@@ -1,0 +1,23 @@
+{
+  "id": "iris-official.shortcut-cheatsheet",
+  "name": "shortcut-cheatsheet",
+  "version": "1.0.0",
+  "engineVersion": "^1.0.0",
+  "main": "./dist/index.js",
+  "displayName": "Keyboard Shortcut Cheatsheet",
+  "description": "Display all keyboard shortcuts in a searchable panel with usage frequency tracking",
+  "publisher": "iris-official",
+  "activationEvents": [
+    "onStartup"
+  ],
+  "contributes": {
+    "commands": [
+      { "command": "iris-official.shortcut-cheatsheet.show", "title": "Show Shortcut Cheatsheet", "icon": "keyboard" },
+      { "command": "iris-official.shortcut-cheatsheet.stats", "title": "Shortcut Usage Stats", "icon": "bar-chart-2" }
+    ],
+    "keybindings": [
+      { "command": "iris-official.shortcut-cheatsheet.show", "key": "ctrl+shift+/" }
+    ]
+  },
+  "permissions": ["commands:register", "ui:panel"]
+}

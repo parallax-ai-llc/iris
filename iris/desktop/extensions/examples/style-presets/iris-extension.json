@@ -1,0 +1,30 @@
+{
+  "id": "iris-official.style-presets",
+  "name": "style-presets",
+  "version": "1.0.0",
+  "engineVersion": "^1.0.0",
+  "main": "./dist/index.js",
+  "displayName": "Style Transfer Presets",
+  "description": "Quick-apply art style presets to your prompts — Ghibli, Cyberpunk, Watercolor, and more",
+  "publisher": "iris-official",
+  "activationEvents": ["onStartup"],
+  "contributes": {
+    "commands": [
+      { "command": "iris-official.style-presets.select", "title": "Select Style Preset", "icon": "wand" },
+      { "command": "iris-official.style-presets.custom", "title": "Add Custom Preset", "icon": "plus-circle" }
+    ],
+    "settings": [
+      {
+        "id": "iris-official.style-presets.favorites",
+        "type": "string",
+        "title": "Favorite Presets",
+        "description": "Comma-separated list of favorite preset keys",
+        "default": "ghibli,cyberpunk"
+      }
+    ],
+    "keybindings": [
+      { "command": "iris-official.style-presets.select", "key": "ctrl+shift+y" }
+    ]
+  },
+  "permissions": ["commands:register", "ui:panel", "clipboard"]
+}

@@ -1,0 +1,126 @@
+{
+  "title": "拡張機能マーケット",
+  "subtitle": "ワークフローを強化する拡張機能を見つけてインストール",
+  "search": "拡張機能を検索...",
+  "featured": "おすすめ",
+  "categories": {
+    "all": "すべて",
+    "ai_tools": "AIツール",
+    "workflows": "ワークフロー",
+    "integrations": "連携"
+  },
+  "sort": {
+    "popular": "人気順",
+    "rating": "評価順",
+    "newest": "新着順",
+    "name": "名前順 (A-Z)"
+  },
+  "card": {
+    "installs": "インストール",
+    "reviews": "レビュー",
+    "install": "インストール",
+    "installed": "インストール済み",
+    "uninstall": "アンインストール",
+    "installing": "インストール中...",
+    "removing": "削除中...",
+    "retry": "再試行",
+    "official": "公式"
+  },
+  "detail": {
+    "overview": "概要",
+    "reviews": "レビュー",
+    "changelog": "変更履歴",
+    "by": "{{author}} 作成",
+    "version": "v{{version}}",
+    "type": "タイプ",
+    "lastUpdated": "最終更新",
+    "author": "作者"
+  },
+  "review": {
+    "writeReview": "レビューを書く",
+    "yourRating": "評価",
+    "yourComment": "コメントを入力...",
+    "submit": "レビュー投稿",
+    "noReviews": "まだレビューがありません。最初のレビューを書きましょう！"
+  },
+  "empty": {
+    "title": "拡張機能が見つかりません",
+    "description": "検索条件やフィルターを調整してください"
+  },
+  "tabs": {
+    "browse": "ブラウズ",
+    "my": "マイ拡張機能"
+  },
+  "submit": {
+    "title": "拡張機能の登録",
+    "subtitle": "マーケットプレイスに拡張機能を登録",
+    "registerButton": "登録",
+    "name": "名前",
+    "namePlaceholder": "拡張機能の名前",
+    "shortDescription": "簡単な説明",
+    "shortDescriptionPlaceholder": "簡単な説明（最大500文字）",
+    "description": "詳細説明",
+    "descriptionPlaceholder": "拡張機能の詳細な説明を入力...",
+    "type": "タイプ",
+    "category": "カテゴリ",
+    "icon": "アイコン（絵文字）",
+    "price": "価格（トークン、0 = 無料）",
+    "tags": "タグ",
+    "tagsPlaceholder": "タグ1, タグ2, タグ3",
+    "cancel": "キャンセル",
+    "submit": "登録する",
+    "submitting": "登録中..."
+  },
+  "my": {
+    "loading": "マイ拡張機能を読み込み中...",
+    "empty": "まだ拡張機能を登録していません。",
+    "delete": "削除"
+  },
+  "guide": {
+    "title": "拡張機能開発ガイド",
+    "viewGuide": "ガイド",
+    "close": "閉じる",
+    "overview": {
+      "title": "概要",
+      "content": "拡張機能マーケットを通じて、ツール、ワークフロー、連携機能をコミュニティと共有できます。誰でも拡張機能を登録・公開できます。"
+    },
+    "aiTool": {
+      "title": "AIツール拡張",
+      "content": "AIツール拡張は、フィルター、スタイル変換、画像処理などAI搭載の新機能を追加します。AIモデルを活用してクリエイティブワークフローを強化します。"
+    },
+    "workflow": {
+      "title": "ワークフローテンプレート拡張",
+      "content": "ワークフローテンプレートは、構築済みの自動化パイプラインを提供します。バッチ処理、SNS投稿、コンテンツ作成などの多段階プロセスを含むことができます。"
+    },
+    "integration": {
+      "title": "連携拡張",
+      "content": "連携拡張はIrisをNotion、Figma、Slackなどの外部サービスと接続します。プラットフォーム間のシームレスなデータ交換とワークフロー自動化を実現します。"
+    },
+    "steps": {
+      "title": "登録手順",
+      "content": "1. マーケットヘッダーの「登録」をクリック\n2. 拡張機能情報を入力（名前、説明、タイプ、カテゴリ）\n3. 検索に役立つタグを追加\n4. 価格を設定（無料は0）\n5. 送信 — 拡張機能がすぐに公開されます"
+    },
+    "policy": {
+      "title": "レビュー・通報ポリシー",
+      "content": "ユーザーは拡張機能を評価・レビューできます。不適切なコンテンツは通報できます。通報は運営チームが確認します。ガイドラインに違反する拡張機能は削除される場合があります。"
+    }
+  },
+  "report": {
+    "button": "通報",
+    "title": "拡張機能を通報",
+    "titleReview": "レビューを通報",
+    "reasonLabel": "通報理由",
+    "reasons": {
+      "spam": "スパムまたは広告",
+      "inappropriate": "不適切なコンテンツ",
+      "misleading": "虚偽または詐欺",
+      "other": "その他"
+    },
+    "description": "詳細（任意）",
+    "descriptionPlaceholder": "詳しい内容を入力してください...",
+    "cancel": "キャンセル",
+    "submit": "通報する",
+    "submitting": "通報中...",
+    "success": "通報が受理されました。ありがとうございます！"
+  }
+}

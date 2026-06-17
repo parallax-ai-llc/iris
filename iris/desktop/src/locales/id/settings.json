@@ -1,0 +1,56 @@
+{
+  "title": "Pengaturan",
+  "sections": {
+    "account": "Akun",
+    "storage": "Penyimpanan",
+    "notifications": "Notifikasi",
+    "keyboard": "Pintasan Keyboard",
+    "about": "Tentang",
+    "language": "Bahasa"
+  },
+  "account": {
+    "notLoggedIn": "Belum masuk"
+  },
+  "storage": {
+    "defaultSaveLocation": "Lokasi Penyimpanan Default",
+    "noFolderSelected": "Tidak ada folder dipilih - file akan menggunakan default sistem",
+    "cacheSize": "Ukuran Cache",
+    "cacheSizeDescription": "File sementara dan thumbnail",
+    "cacheCleared": "Cache berhasil dibersihkan",
+    "cacheClearFailed": "Gagal membersihkan cache",
+    "saveLocationUpdated": "Lokasi penyimpanan diperbarui",
+    "desktopOnly": "Fitur ini hanya tersedia di aplikasi desktop"
+  },
+  "notifications": {
+    "generationComplete": "Pembuatan Selesai",
+    "generationCompleteDesc": "Beri tahu ketika pembuatan gambar atau video selesai",
+    "workflowErrors": "Galat Alur Kerja",
+    "workflowErrorsDesc": "Beri tahu ketika alur kerja gagal atau mengalami galat",
+    "updates": "Notifikasi Pembaruan",
+    "updatesDesc": "Beri tahu ketika versi baru tersedia"
+  },
+  "keyboard": {
+    "newGeneration": "Pembuatan baru",
+    "saveDownload": "Simpan/Unduh",
+    "openSettings": "Buka pengaturan",
+    "closeModal": "Tutup modal",
+    "navigateGallery": "Jelajahi galeri"
+  },
+  "about": {
+    "irisDesktop": "Iris Desktop",
+    "version": "Versi {{version}}",
+    "documentation": "Dokumentasi",
+    "documentationDesc": "Pelajari cara menggunakan Iris Desktop",
+    "privacyPolicy": "Kebijakan Privasi",
+    "privacyPolicyDesc": "Bagaimana kami menangani data Anda",
+    "termsOfService": "Ketentuan Layanan",
+    "termsDesc": "Syarat dan ketentuan penggunaan",
+    "checkUpdates": "Periksa Pembaruan",
+    "latestVersion": "Anda menggunakan versi terbaru",
+    "updateCheckFailed": "Gagal memeriksa pembaruan"
+  },
+  "footer": {
+    "madeBy": "Dibuat dengan penuh perhatian oleh Parallax AI",
+    "copyright": "© 2024 Parallax AI. Semua hak dilindungi."
+  }
+}

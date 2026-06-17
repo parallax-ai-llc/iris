@@ -1,0 +1,61 @@
+{
+  "title": "Profile",
+  "loading": "Loading profile...",
+  "error": "Failed to load profile data",
+  "retry": "Retry",
+  "plan": {
+    "title": "Current Plan",
+    "name": "Plan",
+    "price": "Price",
+    "status": "Status",
+    "nextBilling": "Next Billing",
+    "changePlan": "Change Plan",
+    "month": "month",
+    "statuses": {
+      "active": "Active",
+      "canceled": "Canceled",
+      "past_due": "Past Due",
+      "free": "Free"
+    },
+    "cancelAtPeriodEnd": "Your plan will be canceled at the end of the current billing period."
+  },
+  "tokenUsage": {
+    "title": "Credit Usage",
+    "billingPeriod": "Billing Period",
+    "used": "used",
+    "tokensUsed": "credits used",
+    "remaining": "remaining",
+    "effectiveRemaining": "Total Available"
+  },
+  "bonusTokens": {
+    "title": "Bonus Credits",
+    "total": "Total",
+    "remaining": "Remaining",
+    "used": "Used",
+    "expires": "Expires",
+    "noExpiry": "No expiry",
+    "empty": "No bonus credits yet",
+    "source": {
+      "label": "Source",
+      "promotion": "Promotion",
+      "referral": "Referral",
+      "reward": "Reward",
+      "admin": "Admin",
+      "signup": "Sign Up"
+    }
+  },
+  "promotionCode": {
+    "title": "Promotion Code",
+    "placeholder": "Enter promotion code",
+    "redeem": "Redeem",
+    "redeeming": "Redeeming...",
+    "success": "Successfully redeemed! +{{tokens}} bonus credits",
+    "errors": {
+      "INVALID_CODE": "Invalid promotion code",
+      "ALREADY_REDEEMED": "This code has already been redeemed",
+      "EXPIRED": "This promotion code has expired",
+      "MAX_REDEMPTIONS_REACHED": "This code has reached its maximum redemptions",
+      "INTERNAL_ERROR": "An error occurred. Please try again."
+    }
+  }
+}

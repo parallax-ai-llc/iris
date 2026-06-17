@@ -1,0 +1,72 @@
+{
+  "generate": {
+    "title": "画像生成",
+    "prompt": "プロンプト",
+    "promptPlaceholder": "生成したい画像を説明してください...",
+    "promptHint": "Ctrl+Enterで生成",
+    "negativePrompt": "ネガティブプロンプト",
+    "negativePromptPlaceholder": "画像に含めたくない要素...",
+    "model": "モデル",
+    "selectModel": "モデルを選択",
+    "aspectRatio": "アスペクト比",
+    "img2img": "画像から画像",
+    "active": "アクティブ",
+    "removeReference": "参照画像を削除",
+    "selectFromLibrary": "ライブラリから選択",
+    "uploadFromComputer": "コンピュータからアップロード",
+    "pasteFromClipboard": "クリップボードから貼り付け",
+    "imageStrength": "画像強度",
+    "imageStrengthHint": "高いほど元の画像の影響が大きくなります",
+    "estimatedTokens": "推定クレジット",
+    "generating": "生成中...",
+    "serverRequired": "サーバー接続が必要です"
+  },
+  "gallery": {
+    "title": "画像ギャラリー",
+    "upload": "アップロード",
+    "open": "開く",
+    "searchPlaceholder": "画像を検索...",
+    "noResults": "結果が見つかりません",
+    "noResultsHint": "検索条件やフィルターを調整してみてください。",
+    "clearFilters": "フィルターをクリア",
+    "selectForTool": "画像を選択してください:",
+    "generationFailed": "生成に失敗しました",
+    "processing": "処理中...",
+    "referenceBadge": "参照",
+    "emptyTitle": "まだ画像がありません",
+    "emptyHint": "左のパネルから最初の画像を生成するか、既存の画像をアップロードしてください。",
+    "tooltipDownload": "ダウンロード",
+    "tooltipDelete": "削除",
+    "tooltipUseAsReference": "参照として使用 (Shift+Click)"
+  },
+  "filter": {
+    "all": "すべての画像",
+    "generated": "生成済み",
+    "uploaded": "アップロード済み",
+    "edited": "編集済み"
+  },
+  "toasts": {
+    "clipboardAttached": "クリップボードから画像を添付しました",
+    "noClipboardImage": "クリップボードに画像が見つかりません",
+    "clipboardDenied": "クリップボードの権限が拒否されました。Ctrl+Vを使用してください。",
+    "clipboardReadFailed": "クリップボードの読み取りに失敗しました",
+    "attachRefFailed": "参照画像の添付に失敗しました",
+    "uploadOk": "画像をアップロードしました",
+    "uploadFailed": "画像のアップロードに失敗しました",
+    "uploadFileFailed": "ファイルのアップロードに失敗しました",
+    "readFileFailed": "ファイルの読み取りに失敗しました",
+    "openFileFailed": "ファイルを開けませんでした: {{error}}",
+    "psdUrlMissing": "PSDファイルのURLが利用できません",
+    "psdOpened": "{{name}} を{{count}}個のレイヤーで開きました",
+    "psdOpenFailed": "PSDファイルを開けませんでした"
+  },
+  "reference": {
+    "title": "参照画像を選択",
+    "description": "ライブラリから参照として使用する画像を選択してください"
+  },
+  "delete": {
+    "title": "選択した画像を削除",
+    "message": "選択した{{count}}枚の画像を削除しますか？この操作は元に戻せません。",
+    "confirm": "削除"
+  }
+}

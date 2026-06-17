@@ -1,0 +1,181 @@
+{
+  "buttons": {
+    "save": "บันทึก",
+    "cancel": "ยกเลิก",
+    "close": "ปิด",
+    "delete": "ลบ",
+    "confirm": "ยืนยัน",
+    "generate": "สร้าง",
+    "export": "ส่งออก",
+    "import": "นำเข้า",
+    "upload": "อัปโหลด",
+    "download": "ดาวน์โหลด",
+    "open": "เปิด",
+    "create": "สร้าง",
+    "add": "เพิ่ม",
+    "remove": "นำออก",
+    "apply": "นำไปใช้",
+    "reset": "รีเซ็ต",
+    "done": "เสร็จสิ้น!",
+    "loading": "กำลังโหลด...",
+    "generating": "กำลังสร้าง...",
+    "processing": "กำลังประมวลผล...",
+    "logout": "ออกจากระบบ",
+    "choose": "เลือกโฟลเดอร์",
+    "clear": "ล้าง",
+    "checkUpdates": "ตรวจหาการอัปเดต",
+    "select": "เลือก",
+    "selectAll": "เลือกทั้งหมด",
+    "new": "ใหม่",
+    "previous": "ก่อนหน้า",
+    "next": "ถัดไป"
+  },
+  "status": {
+    "success": "สำเร็จ",
+    "error": "ข้อผิดพลาด",
+    "loading": "กำลังโหลด",
+    "noData": "ไม่มีข้อมูล",
+    "notLoggedIn": "ยังไม่ได้เข้าสู่ระบบ",
+    "latestVersion": "คุณกำลังใช้เวอร์ชันล่าสุด",
+    "updateCheckFailed": "ตรวจหาการอัปเดตไม่สำเร็จ",
+    "loggedOut": "ออกจากระบบเรียบร้อยแล้ว"
+  },
+  "language": {
+    "en": "English",
+    "ko": "한국어",
+    "ja": "日本語",
+    "hi": "हिन्दी",
+    "th": "ไทย",
+    "id": "Bahasa Indonesia",
+    "es": "Español",
+    "pt": "Português (Brasil)",
+    "fr": "Français",
+    "bn": "বাংলা",
+    "te": "తెలుగు",
+    "ta": "தமிழ்",
+    "mr": "मराठी",
+    "select": "ภาษา"
+  },
+  "home": {
+    "greeting": {
+      "morning": "อรุณสวัสดิ์",
+      "afternoon": "สวัสดีตอนบ่าย",
+      "evening": "สวัสดีตอนเย็น"
+    },
+    "subtitle": "พร้อมสร้างสรรค์สิ่งที่น่าทึ่งแล้วหรือยัง?",
+    "quickStart": "เริ่มต้นอย่างรวดเร็ว",
+    "recentActivity": "กิจกรรมล่าสุด",
+    "viewAll": "ดูทั้งหมด",
+    "noActivity": "ยังไม่มีกิจกรรมล่าสุด",
+    "noActivityHint": "เริ่มสร้างสรรค์เพื่อดูผลงานของคุณที่นี่",
+    "proTip": "เคล็ดลับ:",
+    "proTipNavigate": "เพื่อสลับหน้าได้อย่างรวดเร็ว",
+    "stats": {
+      "imagesCreated": "ภาพที่สร้างแล้ว",
+      "videosCreated": "วิดีโอที่สร้างแล้ว",
+      "thisWeek": "สัปดาห์นี้"
+    },
+    "actions": {
+      "createImage": {
+        "title": "สร้างภาพ",
+        "description": "สร้างภาพที่น่าทึ่งด้วย AI"
+      },
+      "createVideo": {
+        "title": "สร้างวิดีโอ",
+        "description": "แปลงไอเดียให้เป็นวิดีโอ"
+      },
+      "buildWorkflow": {
+        "title": "สร้างเวิร์กโฟลว์",
+        "description": "ทำกระบวนการสร้างสรรค์ให้เป็นอัตโนมัติ"
+      }
+    },
+    "timeAgo": {
+      "days": "{{count}} วันที่แล้ว",
+      "hours": "{{count}} ชั่วโมงที่แล้ว",
+      "minutes": "{{count}} นาทีที่แล้ว",
+      "justNow": "เมื่อสักครู่"
+    }
+  },
+  "nav": {
+    "home": "หน้าแรก",
+    "tools": "เครื่องมือ",
+    "templates": "เทมเพลต",
+    "images": "ภาพ",
+    "videos": "วิดีโอ",
+    "projects": "โปรเจกต์",
+    "workflows": "เวิร์กโฟลว์",
+    "batch": "ประมวลผลเป็นชุด",
+    "extensions": "ส่วนขยาย",
+    "library": "ไลบรารี",
+    "storage": "พื้นที่จัดเก็บ",
+    "settings": "การตั้งค่า"
+  },
+  "titleBar": {
+    "unsavedChanges": "การเปลี่ยนแปลงที่ยังไม่ได้บันทึก",
+    "unsavedMessage": "คุณอยู่ในตัวแก้ไข การเปลี่ยนแปลงที่ยังไม่ได้บันทึกจะหายไป คุณแน่ใจว่าต้องการออกหรือไม่?",
+    "quitWithoutSaving": "ออกโดยไม่บันทึก",
+    "bugReport": "รายงานข้อบกพร่อง",
+    "bugReportMessageLabel": "รายละเอียด",
+    "bugReportPlaceholder": "โปรดอธิบายข้อบกพร่อง...",
+    "bugReportSubmit": "ส่ง",
+    "bugReportSuccess": "ส่งรายงานข้อบกพร่องเรียบร้อยแล้ว",
+    "bugReportError": "ส่งรายงานข้อบกพร่องไม่สำเร็จ",
+    "bugReportRateLimit": "ส่งรายงานมากเกินไป กรุณาลองอีกครั้งในภายหลัง",
+    "bugReportThankYou": "ขอบคุณสำหรับรายงานของคุณ! เราจะตรวจสอบในเร็วๆ นี้"
+  },
+  "editor": {
+    "localFileWarning": {
+      "imageTitle": "ภาพในเครื่องที่ยังไม่ได้บันทึก",
+      "imageMessage": "ไฟล์ในเครื่องจะไม่ถูกบันทึกบนคลาวด์ การกลับไปยังแกลเลอรีอาจทำให้การแก้ไขของคุณหายไป",
+      "videoTitle": "วิดีโอในเครื่องที่ยังไม่ได้บันทึก",
+      "videoMessage": "ไฟล์วิดีโอในเครื่องจะไม่ถูกบันทึกบนคลาวด์ การปิดจะทำให้การแก้ไขของคุณหายไป",
+      "closeWithoutSaving": "ปิดโดยไม่บันทึก"
+    },
+    "closeTabWarning": {
+      "title": "การเปลี่ยนแปลงที่ยังไม่ได้บันทึก",
+      "message": "คุณมีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก คุณแน่ใจว่าต้องการปิดแท็บนี้หรือไม่?",
+      "closeWithoutSaving": "ปิดโดยไม่บันทึก",
+      "saveAndClose": "บันทึกและปิด"
+    },
+    "videoUnsavedWarning": {
+      "title": "การเปลี่ยนแปลงที่ยังไม่ได้บันทึก",
+      "message": "โปรเจกต์ปัจจุบันมีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก คุณต้องการทำอย่างไร?",
+      "discard": "ยกเลิก",
+      "saveAndContinue": "บันทึกและดำเนินการต่อ"
+    },
+    "workflowUnsavedWarning": {
+      "title": "ออกโดยไม่บันทึก?",
+      "message": "คุณมีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก การออกจะทำให้ข้อมูลเหล่านี้หายไป",
+      "leaveWithoutSaving": "ออกโดยไม่บันทึก"
+    },
+    "videoInit": {
+      "analyzing": "กำลังวิเคราะห์วิดีโอ...",
+      "probingDimensions": "กำลังตรวจสอบความละเอียดวิดีโอ...",
+      "probingDuration": "กำลังตรวจสอบระยะเวลาวิดีโอ...",
+      "preparingEditor": "กำลังเตรียมตัวแก้ไข..."
+    }
+  },
+  "sort": {
+    "newest": "ใหม่ที่สุดก่อน",
+    "oldest": "เก่าที่สุดก่อน",
+    "nameAsc": "ชื่อ (A-Z)",
+    "nameDesc": "ชื่อ (Z-A)"
+  },
+  "storage": {
+    "pickerTitle": "เลือกจากไลบรารี",
+    "pickerDescription": "เลือกสินทรัพย์จากไลบรารีของคุณ",
+    "searchPlaceholder": "ค้นหาสินทรัพย์...",
+    "emptyTitle": "ไม่พบสินทรัพย์",
+    "emptyHintImages": "สร้างหรืออัปโหลดรูปภาพเพื่อดูที่นี่",
+    "emptyHintVideos": "สร้างหรืออัปโหลดวิดีโอเพื่อดูที่นี่",
+    "emptyHintAll": "สร้างหรืออัปโหลดสินทรัพย์เพื่อดูที่นี่",
+    "badgeImage": "รูปภาพ",
+    "badgeVideo": "วิดีโอ",
+    "assetTypeImage": "รูปภาพ",
+    "assetTypeVideo": "วิดีโอ",
+    "pageOf": "หน้า {{page}} จาก {{total}}"
+  },
+  "errors": {
+    "unknown": "เกิดข้อผิดพลาดที่ไม่รู้จัก"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "id": "iris-official.bg-suggester",
+  "name": "bg-suggester",
+  "version": "1.0.0",
+  "engineVersion": "^1.0.0",
+  "main": "./dist/index.js",
+  "displayName": "AI Background Suggester",
+  "description": "Detect image subjects and suggest matching background prompts by category",
+  "publisher": "iris-official",
+  "activationEvents": [
+    "onCommand:iris-official.bg-suggester.suggest"
+  ],
+  "contributes": {
+    "commands": [
+      { "command": "iris-official.bg-suggester.suggest", "title": "Suggest Backgrounds", "icon": "image-plus" }
+    ],
+    "keybindings": [
+      { "command": "iris-official.bg-suggester.suggest", "key": "ctrl+shift+g" }
+    ],
+    "settings": [
+      { "id": "iris-official.bg-suggester.category", "type": "string", "title": "Default Category", "default": "all", "enum": ["all", "nature", "studio", "abstract", "urban", "gradient"] }
+    ]
+  },
+  "permissions": ["commands:register", "image:read", "ai:execute", "ui:panel", "clipboard"]
+}

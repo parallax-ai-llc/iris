@@ -1,0 +1,24 @@
+{
+  "id": "iris-official.export-presets",
+  "name": "export-presets",
+  "version": "1.0.0",
+  "engineVersion": "^1.0.0",
+  "main": "./dist/index.js",
+  "displayName": "Export Presets",
+  "description": "Quick-apply platform export presets (YouTube, TikTok, Instagram, etc.)",
+  "publisher": "iris-official",
+  "activationEvents": [
+    "onCommand:iris-official.export-presets.show",
+    "onCommand:iris-official.export-presets.show-settings"
+  ],
+  "contributes": {
+    "commands": [
+      { "command": "iris-official.export-presets.show", "title": "Export Presets", "icon": "tv" },
+      { "command": "iris-official.export-presets.show-settings", "title": "Show Export Settings", "icon": "settings" }
+    ],
+    "keybindings": [
+      { "command": "iris-official.export-presets.show", "key": "ctrl+shift+e" }
+    ]
+  },
+  "permissions": ["commands:register", "export:configure", "ui:panel"]
+}

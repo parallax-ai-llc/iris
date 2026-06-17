@@ -1,0 +1,119 @@
+/* iris-editor theme — Tailwind v4 + the iris design tokens copied verbatim from
+ * iris/web's globals.css (@theme inline block). Shipped so the shared editor
+ * renders identically when hosted by the local app. iris/web does NOT import
+ * this (it already defines these tokens in its own globals.css). */
+
+@import 'tailwindcss';
+@import '@xyflow/react/dist/style.css';
+
+@theme {
+  /* Iris background colors (dark web editor) */
+  --color-iris-bg: #18181b;
+  --color-iris-bg-elevated: rgba(15, 15, 15, 0.8);
+  --color-iris-bg-solid: #0f0f0f;
+  --color-iris-bg-panel: rgba(15, 15, 15, 0.9);
+  --color-iris-bg-panel-solid: rgba(15, 15, 15, 0.95);
+
+  /* Iris Desktop brand colors (silver system) */
+  --color-iris-ink: #0a0a0a;
+  --color-iris-silver-700: #374151;
+  --color-iris-silver-500: #6b7280;
+  --color-iris-silver-400: #9ca3af;
+  --color-iris-silver-300: #d1d5db;
+  --color-iris-surface: #f8f9fa;
+  --color-iris-panel: #f4f4f5;
+
+  /* Iris Web dark canvas tokens */
+  --color-iris-canvas: #07070a;
+  --color-iris-canvas-1: #0b0b10;
+  --color-iris-canvas-2: #101019;
+  --color-iris-canvas-3: #16161f;
+  --color-iris-surf-1: rgba(255, 255, 255, 0.025);
+  --color-iris-surf-2: rgba(255, 255, 255, 0.04);
+  --color-iris-surf-3: rgba(255, 255, 255, 0.06);
+  --color-iris-surf-hover: rgba(255, 255, 255, 0.075);
+  --color-iris-line-1: rgba(255, 255, 255, 0.06);
+  --color-iris-line-2: rgba(255, 255, 255, 0.09);
+  --color-iris-line-3: rgba(255, 255, 255, 0.14);
+  --color-iris-line-strong: rgba(255, 255, 255, 0.22);
+  --color-iris-text-1: rgba(255, 255, 255, 0.96);
+  --color-iris-text-2: rgba(255, 255, 255, 0.72);
+  --color-iris-text-3: rgba(255, 255, 255, 0.5);
+  --color-iris-text-4: rgba(255, 255, 255, 0.34);
+  --color-iris-violet: #a78bfa;
+  --color-iris-cyan: #7dd3fc;
+  --color-iris-pink: #f0abfc;
+  --color-iris-ok: #34d399;
+  --color-iris-ok-bg: rgba(52, 211, 153, 0.12);
+  --color-iris-warn: #fbbf24;
+  --color-iris-warn-bg: rgba(251, 191, 36, 0.12);
+  --color-iris-err: #f87171;
+  --color-iris-err-bg: rgba(248, 113, 113, 0.12);
+}
+
+/* Scrollbar tokens. The shared editor renders on a dark canvas, so it uses the
+ * white-based values from iris/web's `.dark` block. */
+:root {
+  --scrollbar-thumb: rgba(255, 255, 255, 0.18);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.32);
+  --scrollbar-track: transparent;
+}
+
+/* Global smooth scroll and subtle, thin scrollbar styles — copied verbatim from
+ * iris/web's globals.css so scrollbars look identical in both hosts. */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* WebKit (Chrome, Edge, Safari) */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+
+*::-webkit-scrollbar-track {
+  background-color: var(--scrollbar-track);
+}
+
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
+/* React Flow handle overrides for Iris editor (copied from iris/web globals.css) */
+.react-flow__handle {
+  width: 8px !important;
+  height: 8px !important;
+  min-width: 8px !important;
+  min-height: 8px !important;
+  transform: translateY(0px) !important;
+}
+.react-flow__handle.connecting {
+  transform: translateY(3px) !important;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}

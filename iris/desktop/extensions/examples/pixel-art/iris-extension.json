@@ -1,0 +1,29 @@
+{
+  "id": "iris-official.pixel-art",
+  "name": "pixel-art",
+  "version": "1.0.0",
+  "engineVersion": "^1.0.0",
+  "main": "./dist/index.js",
+  "displayName": "Pixel Art Converter",
+  "description": "Convert images to pixel art style with customizable pixel size and color palette presets",
+  "publisher": "iris-official",
+  "activationEvents": [
+    "onCommand:iris-official.pixel-art.convert",
+    "onCommand:iris-official.pixel-art.configure"
+  ],
+  "contributes": {
+    "commands": [
+      { "command": "iris-official.pixel-art.convert", "title": "Convert to Pixel Art", "icon": "grid-3x3" },
+      { "command": "iris-official.pixel-art.configure", "title": "Pixel Art Settings", "icon": "settings" }
+    ],
+    "keybindings": [
+      { "command": "iris-official.pixel-art.convert", "key": "ctrl+shift+x" }
+    ],
+    "settings": [
+      { "id": "iris-official.pixel-art.pixelSize", "type": "number", "title": "Pixel Size", "default": 8 },
+      { "id": "iris-official.pixel-art.maxColors", "type": "number", "title": "Max Colors", "default": 16 },
+      { "id": "iris-official.pixel-art.palette", "type": "string", "title": "Palette Preset", "default": "auto", "enum": ["auto", "gameboy", "nes", "snes", "cga", "grayscale"] }
+    ]
+  },
+  "permissions": ["commands:register", "image:read", "image:write", "ui:panel"]
+}

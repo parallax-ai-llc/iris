@@ -1,0 +1,126 @@
+{
+  "title": "확장 프로그램 마켓",
+  "subtitle": "워크플로우를 향상시킬 확장 프로그램을 검색하고 설치하세요",
+  "search": "확장 프로그램 검색...",
+  "featured": "추천",
+  "categories": {
+    "all": "전체",
+    "ai_tools": "AI 도구",
+    "workflows": "워크플로우",
+    "integrations": "연동"
+  },
+  "sort": {
+    "popular": "인기순",
+    "rating": "평점순",
+    "newest": "최신순",
+    "name": "이름순 (가-하)"
+  },
+  "card": {
+    "installs": "설치",
+    "reviews": "리뷰",
+    "install": "설치",
+    "installed": "설치됨",
+    "uninstall": "제거",
+    "installing": "설치 중...",
+    "removing": "제거 중...",
+    "retry": "재시도",
+    "official": "공식"
+  },
+  "detail": {
+    "overview": "개요",
+    "reviews": "리뷰",
+    "changelog": "변경 이력",
+    "by": "{{author}} 제작",
+    "version": "v{{version}}",
+    "type": "유형",
+    "lastUpdated": "최근 업데이트",
+    "author": "제작자"
+  },
+  "review": {
+    "writeReview": "리뷰 작성",
+    "yourRating": "평점",
+    "yourComment": "리뷰를 작성해 주세요...",
+    "submit": "리뷰 등록",
+    "noReviews": "아직 리뷰가 없습니다. 첫 번째 리뷰를 작성해 보세요!"
+  },
+  "empty": {
+    "title": "확장 프로그램을 찾을 수 없습니다",
+    "description": "검색어나 필터를 조정해 보세요"
+  },
+  "tabs": {
+    "browse": "둘러보기",
+    "my": "내 확장 프로그램"
+  },
+  "submit": {
+    "title": "확장 프로그램 등록",
+    "subtitle": "마켓플레이스에 확장 프로그램을 등록하세요",
+    "registerButton": "등록하기",
+    "name": "이름",
+    "namePlaceholder": "확장 프로그램 이름",
+    "shortDescription": "간단 설명",
+    "shortDescriptionPlaceholder": "간단한 설명 (최대 500자)",
+    "description": "상세 설명",
+    "descriptionPlaceholder": "확장 프로그램에 대한 상세 설명을 입력하세요...",
+    "type": "유형",
+    "category": "카테고리",
+    "icon": "아이콘 (이모지)",
+    "price": "가격 (토큰, 0 = 무료)",
+    "tags": "태그",
+    "tagsPlaceholder": "태그1, 태그2, 태그3",
+    "cancel": "취소",
+    "submit": "등록하기",
+    "submitting": "등록 중..."
+  },
+  "my": {
+    "loading": "내 확장 프로그램 불러오는 중...",
+    "empty": "아직 등록한 확장 프로그램이 없습니다.",
+    "delete": "삭제"
+  },
+  "guide": {
+    "title": "확장 프로그램 개발 가이드",
+    "viewGuide": "가이드",
+    "close": "닫기",
+    "overview": {
+      "title": "개요",
+      "content": "확장 프로그램 마켓을 통해 도구, 워크플로우, 연동 기능을 커뮤니티와 공유할 수 있습니다. 누구나 확장 프로그램을 등록하고 게시할 수 있습니다."
+    },
+    "aiTool": {
+      "title": "AI 도구 확장",
+      "content": "AI 도구 확장은 필터, 스타일 변환, 이미지 처리 등 AI 기반의 새로운 기능을 추가합니다. AI 모델을 활용하여 창작 워크플로우를 향상시킵니다."
+    },
+    "workflow": {
+      "title": "워크플로우 템플릿 확장",
+      "content": "워크플로우 템플릿은 사전 구축된 자동화 파이프라인을 제공합니다. 배치 처리, 소셜 미디어 게시, 콘텐츠 생성 등의 다단계 프로세스를 포함할 수 있습니다."
+    },
+    "integration": {
+      "title": "연동 확장",
+      "content": "연동 확장은 Iris를 Notion, Figma, Slack 등의 외부 서비스와 연결합니다. 플랫폼 간 원활한 데이터 교환과 워크플로우 자동화를 가능하게 합니다."
+    },
+    "steps": {
+      "title": "등록 절차",
+      "content": "1. 마켓 헤더에서 '등록하기' 클릭\n2. 확장 프로그램 정보 입력 (이름, 설명, 유형, 카테고리)\n3. 검색에 도움이 될 태그 추가\n4. 가격 설정 (무료는 0)\n5. 제출 — 확장 프로그램이 즉시 공개됩니다"
+    },
+    "policy": {
+      "title": "리뷰 및 신고 정책",
+      "content": "사용자는 확장 프로그램을 평가하고 리뷰할 수 있습니다. 부적절한 콘텐츠는 신고할 수 있습니다. 신고는 운영팀이 검토합니다. 가이드라인을 위반하는 확장 프로그램은 제거될 수 있습니다."
+    }
+  },
+  "report": {
+    "button": "신고",
+    "title": "확장 프로그램 신고",
+    "titleReview": "리뷰 신고",
+    "reasonLabel": "신고 사유",
+    "reasons": {
+      "spam": "스팸 또는 광고",
+      "inappropriate": "부적절한 콘텐츠",
+      "misleading": "허위 또는 사기",
+      "other": "기타"
+    },
+    "description": "추가 설명 (선택)",
+    "descriptionPlaceholder": "자세한 내용을 입력해 주세요...",
+    "cancel": "취소",
+    "submit": "신고하기",
+    "submitting": "신고 중...",
+    "success": "신고가 접수되었습니다. 감사합니다!"
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "title": "設定",
+  "sections": {
+    "account": "アカウント",
+    "storage": "ストレージ",
+    "notifications": "通知",
+    "keyboard": "キーボードショートカット",
+    "about": "このアプリについて",
+    "language": "言語"
+  },
+  "account": {
+    "notLoggedIn": "ログインしていません"
+  },
+  "storage": {
+    "defaultSaveLocation": "デフォルト保存先",
+    "noFolderSelected": "フォルダが選択されていません - システムのデフォルトを使用します",
+    "cacheSize": "キャッシュサイズ",
+    "cacheSizeDescription": "一時ファイルとサムネイル",
+    "cacheCleared": "キャッシュを削除しました",
+    "cacheClearFailed": "キャッシュの削除に失敗しました",
+    "saveLocationUpdated": "保存先を更新しました",
+    "desktopOnly": "この機能はデスクトップアプリでのみ利用できます"
+  },
+  "notifications": {
+    "generationComplete": "生成完了",
+    "generationCompleteDesc": "画像または動画の生成が完了したときに通知",
+    "workflowErrors": "ワークフローエラー",
+    "workflowErrorsDesc": "ワークフローが失敗またはエラーが発生したときに通知",
+    "updates": "アップデート通知",
+    "updatesDesc": "新しいバージョンが利用可能になったときに通知"
+  },
+  "keyboard": {
+    "newGeneration": "新規生成",
+    "saveDownload": "保存/ダウンロード",
+    "openSettings": "設定を開く",
+    "closeModal": "モーダルを閉じる",
+    "navigateGallery": "ギャラリーを移動"
+  },
+  "about": {
+    "irisDesktop": "Iris Desktop",
+    "version": "バージョン {{version}}",
+    "documentation": "ドキュメント",
+    "documentationDesc": "Iris Desktopの使い方を確認",
+    "privacyPolicy": "プライバシーポリシー",
+    "privacyPolicyDesc": "データの取り扱いについて",
+    "termsOfService": "利用規約",
+    "termsDesc": "利用条件",
+    "checkUpdates": "アップデートを確認",
+    "latestVersion": "最新バージョンをご利用中です",
+    "updateCheckFailed": "アップデートの確認に失敗しました"
+  },
+  "footer": {
+    "madeBy": "Parallax AIが心を込めて作りました",
+    "copyright": "© 2024 Parallax AI. All rights reserved."
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "iris-official.exif-viewer",
+  "name": "exif-viewer",
+  "version": "1.0.0",
+  "engineVersion": "^1.0.0",
+  "main": "./dist/index.js",
+  "displayName": "EXIF / Metadata Viewer",
+  "description": "Displays file info and EXIF metadata for the current image in a panel",
+  "publisher": "iris-official",
+  "activationEvents": ["onCommand:iris-official.exif-viewer.show"],
+  "contributes": {
+    "commands": [
+      { "command": "iris-official.exif-viewer.show", "title": "Show EXIF / File Info", "icon": "file-search" }
+    ],
+    "keybindings": [
+      { "command": "iris-official.exif-viewer.show", "key": "ctrl+shift+i" }
+    ]
+  },
+  "permissions": ["commands:register", "image:read", "ui:panel"]
+}

@@ -1,0 +1,72 @@
+{
+  "generate": {
+    "title": "Generate Image",
+    "prompt": "Prompt",
+    "promptPlaceholder": "Describe the image you want to create...",
+    "promptHint": "Press Ctrl+Enter to generate",
+    "negativePrompt": "Negative Prompt",
+    "negativePromptPlaceholder": "What to avoid in the image...",
+    "model": "Model",
+    "selectModel": "Select a model",
+    "aspectRatio": "Aspect Ratio",
+    "img2img": "Image-to-Image",
+    "active": "Active",
+    "removeReference": "Remove reference image",
+    "selectFromLibrary": "Select from Library",
+    "uploadFromComputer": "Upload from Computer",
+    "pasteFromClipboard": "Paste from Clipboard",
+    "imageStrength": "Image Strength",
+    "imageStrengthHint": "Higher = more original image influence",
+    "estimatedTokens": "Estimated credits",
+    "generating": "Generating...",
+    "serverRequired": "Server connection required"
+  },
+  "gallery": {
+    "title": "Image Gallery",
+    "upload": "Upload",
+    "open": "Open",
+    "searchPlaceholder": "Search images...",
+    "noResults": "No results found",
+    "noResultsHint": "Try adjusting your search or filter to find what you're looking for.",
+    "clearFilters": "Clear filters",
+    "selectForTool": "Select an image for",
+    "generationFailed": "Generation Failed",
+    "processing": "প্রক্রিয়াকরণ চলছে...",
+    "referenceBadge": "রেফারেন্স",
+    "emptyTitle": "এখনও কোনো ছবি নেই",
+    "emptyHint": "বাম প্যানেল থেকে আপনার প্রথম ছবি জেনারেট করুন, অথবা বিদ্যমান ছবি আপলোড করুন।",
+    "tooltipDownload": "ডাউনলোড",
+    "tooltipDelete": "মুছুন",
+    "tooltipUseAsReference": "রেফারেন্স হিসাবে ব্যবহার করুন (Shift+Click)"
+  },
+  "reference": {
+    "title": "Select Reference Image",
+    "description": "Choose an image from your library to use as reference"
+  },
+  "delete": {
+    "title": "Delete Selected Images",
+    "message": "Are you sure you want to delete {{count}} selected image(s)? This action cannot be undone.",
+    "confirm": "Delete"
+  },
+  "filter": {
+    "all": "সব ছবি",
+    "generated": "জেনারেট করা",
+    "uploaded": "আপলোড করা",
+    "edited": "সম্পাদিত"
+  },
+  "toasts": {
+    "clipboardAttached": "ক্লিপবোর্ড থেকে ছবি সংযুক্ত করা হয়েছে",
+    "noClipboardImage": "ক্লিপবোর্ডে কোনো ছবি পাওয়া যায়নি",
+    "clipboardDenied": "ক্লিপবোর্ড অনুমতি অস্বীকার করা হয়েছে। Ctrl+V ব্যবহার করুন।",
+    "clipboardReadFailed": "ক্লিপবোর্ড পড়তে ব্যর্থ",
+    "attachRefFailed": "রেফারেন্স ছবি সংযুক্ত করতে ব্যর্থ",
+    "uploadOk": "ছবি সফলভাবে আপলোড হয়েছে",
+    "uploadFailed": "ছবি আপলোড করতে ব্যর্থ",
+    "uploadFileFailed": "ফাইল আপলোড করতে ব্যর্থ",
+    "readFileFailed": "ফাইল পড়তে ব্যর্থ",
+    "openFileFailed": "ফাইল খুলতে ব্যর্থ: {{error}}",
+    "psdUrlMissing": "PSD ফাইল URL উপলব্ধ নয়",
+    "psdOpened": "{{name}} {{count}}টি লেয়ার সহ খোলা হয়েছে",
+    "psdOpenFailed": "PSD ফাইল খুলতে ব্যর্থ"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "id": "iris-official.social-preview",
+  "name": "social-preview",
+  "version": "1.0.0",
+  "engineVersion": "^1.0.0",
+  "main": "./dist/index.js",
+  "displayName": "Social Media Preview",
+  "description": "Preview how your image will look on Instagram, Twitter, YouTube thumbnails, and more",
+  "publisher": "iris-official",
+  "activationEvents": [
+    "onCommand:iris-official.social-preview.show"
+  ],
+  "contributes": {
+    "commands": [
+      { "command": "iris-official.social-preview.show", "title": "Social Media Preview", "icon": "monitor-smartphone" }
+    ],
+    "keybindings": [
+      { "command": "iris-official.social-preview.show", "key": "ctrl+shift+o" }
+    ],
+    "settings": [
+      { "id": "iris-official.social-preview.defaultPlatform", "type": "string", "title": "Default Platform", "default": "instagram", "enum": ["instagram", "twitter", "youtube", "tiktok", "facebook"] }
+    ]
+  },
+  "permissions": ["commands:register", "image:read", "ui:panel"]
+}

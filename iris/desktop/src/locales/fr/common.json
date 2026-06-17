@@ -1,0 +1,181 @@
+{
+  "buttons": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "close": "Fermer",
+    "delete": "Supprimer",
+    "confirm": "Confirmer",
+    "generate": "Générer",
+    "export": "Exporter",
+    "import": "Importer",
+    "upload": "Téléverser",
+    "download": "Télécharger",
+    "open": "Ouvrir",
+    "create": "Créer",
+    "add": "Ajouter",
+    "remove": "Retirer",
+    "apply": "Appliquer",
+    "reset": "Réinitialiser",
+    "done": "Terminé !",
+    "loading": "Chargement...",
+    "generating": "Génération...",
+    "processing": "Traitement...",
+    "logout": "Déconnexion",
+    "choose": "Choisir un dossier",
+    "clear": "Effacer",
+    "checkUpdates": "Rechercher des mises à jour",
+    "select": "Sélectionner",
+    "selectAll": "Tout sélectionner",
+    "new": "Nouveau",
+    "previous": "Précédent",
+    "next": "Suivant"
+  },
+  "status": {
+    "success": "Succès",
+    "error": "Erreur",
+    "loading": "Chargement",
+    "noData": "Aucune donnée",
+    "notLoggedIn": "Non connecté",
+    "latestVersion": "Vous utilisez la dernière version",
+    "updateCheckFailed": "Échec de la recherche de mises à jour",
+    "loggedOut": "Déconnexion réussie"
+  },
+  "language": {
+    "en": "English",
+    "ko": "한국어",
+    "ja": "日本語",
+    "hi": "हिन्दी",
+    "th": "ไทย",
+    "id": "Bahasa Indonesia",
+    "es": "Español",
+    "pt": "Português (Brasil)",
+    "fr": "Français",
+    "bn": "বাংলা",
+    "te": "తెలుగు",
+    "ta": "தமிழ்",
+    "mr": "मराठी",
+    "select": "Langue"
+  },
+  "home": {
+    "greeting": {
+      "morning": "Bonjour",
+      "afternoon": "Bon après-midi",
+      "evening": "Bonsoir"
+    },
+    "subtitle": "Prêt à créer quelque chose d'incroyable ?",
+    "quickStart": "Démarrage rapide",
+    "recentActivity": "Activité récente",
+    "viewAll": "Tout voir",
+    "noActivity": "Aucune activité récente pour le moment",
+    "noActivityHint": "Commencez à créer pour voir votre travail ici",
+    "proTip": "Astuce :",
+    "proTipNavigate": "pour naviguer rapidement entre les pages",
+    "stats": {
+      "imagesCreated": "Images créées",
+      "videosCreated": "Vidéos créées",
+      "thisWeek": "Cette semaine"
+    },
+    "actions": {
+      "createImage": {
+        "title": "Créer une image",
+        "description": "Générez des images époustouflantes avec l'AI"
+      },
+      "createVideo": {
+        "title": "Créer une vidéo",
+        "description": "Transformez vos idées en vidéos"
+      },
+      "buildWorkflow": {
+        "title": "Créer un workflow",
+        "description": "Automatisez votre processus créatif"
+      }
+    },
+    "timeAgo": {
+      "days": "il y a {{count}} j",
+      "hours": "il y a {{count}} h",
+      "minutes": "il y a {{count}} min",
+      "justNow": "À l'instant"
+    }
+  },
+  "nav": {
+    "home": "Accueil",
+    "tools": "Outils",
+    "templates": "Modèles",
+    "images": "Images",
+    "videos": "Vidéos",
+    "projects": "Projets",
+    "workflows": "Workflows",
+    "batch": "Lot",
+    "extensions": "Extensions",
+    "library": "Bibliothèque",
+    "storage": "Stockage",
+    "settings": "Paramètres"
+  },
+  "titleBar": {
+    "unsavedChanges": "Modifications non enregistrées",
+    "unsavedMessage": "Vous êtes actuellement dans l'éditeur. Toute modification non enregistrée sera perdue. Voulez-vous vraiment quitter ?",
+    "quitWithoutSaving": "Quitter sans enregistrer",
+    "bugReport": "Signaler un bug",
+    "bugReportMessageLabel": "Description",
+    "bugReportPlaceholder": "Veuillez décrire le bug...",
+    "bugReportSubmit": "Envoyer",
+    "bugReportSuccess": "Rapport de bug envoyé avec succès",
+    "bugReportError": "Échec de l'envoi du rapport de bug",
+    "bugReportRateLimit": "Trop de rapports. Veuillez réessayer plus tard.",
+    "bugReportThankYou": "Merci pour votre rapport ! Nous l'examinerons sous peu."
+  },
+  "editor": {
+    "localFileWarning": {
+      "imageTitle": "Image locale non enregistrée",
+      "imageMessage": "Les fichiers locaux ne sont pas enregistrés dans le cloud. Revenir à la galerie peut annuler vos modifications.",
+      "videoTitle": "Vidéo locale non enregistrée",
+      "videoMessage": "Les fichiers vidéo locaux ne sont pas enregistrés dans le cloud. Fermer annulera vos modifications.",
+      "closeWithoutSaving": "Fermer sans enregistrer"
+    },
+    "closeTabWarning": {
+      "title": "Modifications non enregistrées",
+      "message": "Vous avez des modifications non enregistrées. Voulez-vous vraiment fermer cet onglet ?",
+      "closeWithoutSaving": "Fermer sans enregistrer",
+      "saveAndClose": "Enregistrer et fermer"
+    },
+    "videoUnsavedWarning": {
+      "title": "Modifications non enregistrées",
+      "message": "Le projet actuel contient des modifications non enregistrées. Que souhaitez-vous faire ?",
+      "discard": "Abandonner",
+      "saveAndContinue": "Enregistrer et continuer"
+    },
+    "workflowUnsavedWarning": {
+      "title": "Quitter sans enregistrer ?",
+      "message": "Vous avez des modifications non enregistrées. Quitter les annulera.",
+      "leaveWithoutSaving": "Quitter sans enregistrer"
+    },
+    "videoInit": {
+      "analyzing": "Analyse de la vidéo...",
+      "probingDimensions": "Vérification de la résolution vidéo...",
+      "probingDuration": "Vérification de la durée vidéo...",
+      "preparingEditor": "Préparation de l'éditeur..."
+    }
+  },
+  "sort": {
+    "newest": "Plus récents",
+    "oldest": "Plus anciens",
+    "nameAsc": "Nom (A-Z)",
+    "nameDesc": "Nom (Z-A)"
+  },
+  "storage": {
+    "pickerTitle": "Sélectionner depuis la bibliothèque",
+    "pickerDescription": "Choisissez un élément dans votre bibliothèque",
+    "searchPlaceholder": "Rechercher des éléments...",
+    "emptyTitle": "Aucun élément trouvé",
+    "emptyHintImages": "Générez ou téléchargez des images pour les voir ici.",
+    "emptyHintVideos": "Générez ou téléchargez des vidéos pour les voir ici.",
+    "emptyHintAll": "Générez ou téléchargez des éléments pour les voir ici.",
+    "badgeImage": "IMAGE",
+    "badgeVideo": "VIDÉO",
+    "assetTypeImage": "Image",
+    "assetTypeVideo": "Vidéo",
+    "pageOf": "Page {{page}} sur {{total}}"
+  },
+  "errors": {
+    "unknown": "Une erreur inconnue s'est produite"
+  }
+}

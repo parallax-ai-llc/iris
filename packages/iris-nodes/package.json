@@ -1,0 +1,37 @@
+{
+  "name": "iris-nodes",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Single source of truth for Iris workflow node definitions, shared across web, desktop, server, llm, and SDKs.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./prompt": {
+      "types": "./dist/prompt.d.ts",
+      "import": "./dist/prompt.js",
+      "default": "./dist/prompt.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/write-snapshot.mjs",
+    "build:ts": "tsc -p tsconfig.json",
+    "gen:snapshot": "node scripts/write-snapshot.mjs",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rimraf dist"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "rimraf": "^5.0.0"
+  }
+}

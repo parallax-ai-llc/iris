@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+dist-electron/
+build/Release/
+release/
+out/
+*.tsbuildinfo
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+keys.json
+
+# Local Iris data (BYOK keys, workflows, executions, batch jobs)
+.iris-flow/
+iris-flow/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# Test artifacts
+e2e/.test-user-data/
+coverage/
+playwright-report/
+test-results/
+
+# Agent / tooling
+.claude/

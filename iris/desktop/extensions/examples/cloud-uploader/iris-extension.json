@@ -1,0 +1,31 @@
+{
+  "id": "iris-official.cloud-uploader",
+  "name": "cloud-uploader",
+  "version": "1.0.0",
+  "engineVersion": "^1.0.0",
+  "main": "./dist/index.js",
+  "displayName": "Cloud Sync Uploader",
+  "description": "Upload finished images directly to S3, GCS, or Cloudinary with one click",
+  "publisher": "iris-official",
+  "activationEvents": [
+    "onCommand:iris-official.cloud-uploader.upload",
+    "onCommand:iris-official.cloud-uploader.history",
+    "onCommand:iris-official.cloud-uploader.configure"
+  ],
+  "contributes": {
+    "commands": [
+      { "command": "iris-official.cloud-uploader.upload", "title": "Upload to Cloud", "icon": "cloud-upload" },
+      { "command": "iris-official.cloud-uploader.history", "title": "Upload History", "icon": "history" },
+      { "command": "iris-official.cloud-uploader.configure", "title": "Configure Cloud Provider", "icon": "settings" }
+    ],
+    "keybindings": [
+      { "command": "iris-official.cloud-uploader.upload", "key": "ctrl+shift+u" }
+    ],
+    "settings": [
+      { "id": "iris-official.cloud-uploader.provider", "type": "string", "title": "Cloud Provider", "default": "cloudinary", "enum": ["s3", "gcs", "cloudinary"] },
+      { "id": "iris-official.cloud-uploader.apiKey", "type": "string", "title": "API Key", "secret": true },
+      { "id": "iris-official.cloud-uploader.bucket", "type": "string", "title": "Bucket / Cloud Name" }
+    ]
+  },
+  "permissions": ["commands:register", "image:read", "network", "ui:panel", "clipboard"]
+}

@@ -1,0 +1,56 @@
+{
+  "title": "Configurações",
+  "sections": {
+    "account": "Conta",
+    "storage": "Armazenamento",
+    "notifications": "Notificações",
+    "keyboard": "Atalhos de teclado",
+    "about": "Sobre",
+    "language": "Idioma"
+  },
+  "account": {
+    "notLoggedIn": "Não conectado"
+  },
+  "storage": {
+    "defaultSaveLocation": "Local de salvamento padrão",
+    "noFolderSelected": "Nenhuma pasta selecionada - os arquivos usarão o padrão do sistema",
+    "cacheSize": "Tamanho do cache",
+    "cacheSizeDescription": "Arquivos temporários e miniaturas",
+    "cacheCleared": "Cache limpo com sucesso",
+    "cacheClearFailed": "Falha ao limpar o cache",
+    "saveLocationUpdated": "Local de salvamento atualizado",
+    "desktopOnly": "Este recurso está disponível apenas no aplicativo para desktop"
+  },
+  "notifications": {
+    "generationComplete": "Geração concluída",
+    "generationCompleteDesc": "Notificar quando a geração de imagem ou vídeo for concluída",
+    "workflowErrors": "Erros de fluxo de trabalho",
+    "workflowErrorsDesc": "Notificar quando um fluxo de trabalho falhar ou encontrar um erro",
+    "updates": "Notificações de atualização",
+    "updatesDesc": "Notificar quando uma nova versão estiver disponível"
+  },
+  "keyboard": {
+    "newGeneration": "Nova geração",
+    "saveDownload": "Salvar/Baixar",
+    "openSettings": "Abrir configurações",
+    "closeModal": "Fechar modal",
+    "navigateGallery": "Navegar na galeria"
+  },
+  "about": {
+    "irisDesktop": "Iris Desktop",
+    "version": "Versão {{version}}",
+    "documentation": "Documentação",
+    "documentationDesc": "Aprenda a usar o Iris Desktop",
+    "privacyPolicy": "Política de privacidade",
+    "privacyPolicyDesc": "Como tratamos seus dados",
+    "termsOfService": "Termos de serviço",
+    "termsDesc": "Termos e condições de uso",
+    "checkUpdates": "Verificar atualizações",
+    "latestVersion": "Você está na versão mais recente",
+    "updateCheckFailed": "Falha ao verificar atualizações"
+  },
+  "footer": {
+    "madeBy": "Feito com carinho pela Parallax AI",
+    "copyright": "© 2024 Parallax AI. Todos os direitos reservados."
+  }
+}

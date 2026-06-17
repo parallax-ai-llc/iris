@@ -1,0 +1,74 @@
+{
+  "generate": {
+    "title": "Generate Video",
+    "prompt": "Prompt",
+    "promptPlaceholder": "Describe the video you want to create...",
+    "promptHint": "Press Ctrl+Enter to generate",
+    "negativePrompt": "Negative Prompt",
+    "negativePromptPlaceholder": "What to avoid in the video...",
+    "model": "Model",
+    "selectModel": "Select a model",
+    "loadingModels": "Loading models...",
+    "aspectRatio": "Aspect Ratio",
+    "notSupported": "Not supported by this model",
+    "duration": "Duration",
+    "img2vid": "Image to Video",
+    "active": "Active",
+    "removeReference": "Remove reference image",
+    "selectFromLibrary": "Select from Library",
+    "uploadFromComputer": "Upload from Computer",
+    "pasteFromClipboard": "Paste from Clipboard",
+    "firstFrameHint": "The first frame will be based on this image",
+    "estimatedTokens": "Estimated credits",
+    "generating": "Generating...",
+    "serverRequired": "Server connection required",
+    "generatingProgress": "Generando video...",
+    "optional": "opcional"
+  },
+  "gallery": {
+    "title": "Video Gallery",
+    "upload": "Upload",
+    "open": "Open",
+    "searchPlaceholder": "Search videos...",
+    "noResults": "No results found",
+    "noResultsHint": "Try adjusting your search or filter to find what you're looking for.",
+    "clearFilters": "Clear filters",
+    "selectForTool": "Select a video for",
+    "generationFailed": "Generation Failed",
+    "emptyTitle": "Aún no hay videos",
+    "emptyHint": "Genera tu primer video usando el panel de la izquierda, o sube un video existente.",
+    "uploadingCount": "Subiendo ({{count}})",
+    "statusUploading": "Subiendo...",
+    "statusProcessing": "Procesando...",
+    "statusComplete": "Completado",
+    "uploadFailed": "Error al subir"
+  },
+  "delete": {
+    "title": "Delete Selected Videos",
+    "message": "Are you sure you want to delete {{count}} selected video(s)? This action cannot be undone.",
+    "confirm": "Delete"
+  },
+  "filter": {
+    "all": "Todos los videos",
+    "generated": "Generados",
+    "uploaded": "Subidos"
+  },
+  "addToProject": {
+    "title": "Añadir al proyecto",
+    "description": "Selecciona un proyecto para añadir \"{{name}}\":",
+    "empty": "Aún no hay proyectos",
+    "create": "Crear nuevo proyecto",
+    "mediaSuffix": "medios",
+    "namePrefix": "Proyecto: {{name}}"
+  },
+  "toasts": {
+    "clipboardAttached": "Imagen adjuntada desde el portapapeles",
+    "noClipboardImage": "No se encontró ninguna imagen en el portapapeles",
+    "clipboardDenied": "Permiso del portapapeles denegado. Usa Ctrl+V en su lugar.",
+    "clipboardReadFailed": "No se pudo leer el portapapeles",
+    "attachFrameFailed": "No se pudo adjuntar la imagen del fotograma",
+    "readFileFailed": "No se pudo leer el archivo",
+    "uploadVideoFailed": "No se pudo subir el archivo de video",
+    "openVideoFailed": "No se pudo abrir el video: {{error}}"
+  }
+}

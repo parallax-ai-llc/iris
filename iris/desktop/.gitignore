@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+dist-electron/
+release/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# TypeScript
+*.tsbuildinfo
+
+# Test artifacts
+tmp/
+test-results/
+playwright-report/
+e2e/.test-user-data/
+e2e/tests/screenshots/
+
+# Temp package files
+package.json.test
+test-pkg.json
+
+# Electron
+out/

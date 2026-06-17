@@ -1,0 +1,56 @@
+{
+  "title": "Settings",
+  "sections": {
+    "account": "Account",
+    "storage": "Storage",
+    "notifications": "Notifications",
+    "keyboard": "Keyboard Shortcuts",
+    "about": "About",
+    "language": "Language"
+  },
+  "account": {
+    "notLoggedIn": "Not logged in"
+  },
+  "storage": {
+    "defaultSaveLocation": "Default Save Location",
+    "noFolderSelected": "No folder selected - files will use system default",
+    "cacheSize": "Cache Size",
+    "cacheSizeDescription": "Temporary files and thumbnails",
+    "cacheCleared": "Cache cleared successfully",
+    "cacheClearFailed": "Failed to clear cache",
+    "saveLocationUpdated": "Save location updated",
+    "desktopOnly": "This feature is only available in the desktop app"
+  },
+  "notifications": {
+    "generationComplete": "Generation Complete",
+    "generationCompleteDesc": "Notify when image or video generation is done",
+    "workflowErrors": "Workflow Errors",
+    "workflowErrorsDesc": "Notify when a workflow fails or encounters an error",
+    "updates": "Update Notifications",
+    "updatesDesc": "Notify when a new version is available"
+  },
+  "keyboard": {
+    "newGeneration": "New generation",
+    "saveDownload": "Save/Download",
+    "openSettings": "Open settings",
+    "closeModal": "Close modal",
+    "navigateGallery": "Navigate gallery"
+  },
+  "about": {
+    "irisDesktop": "Iris Desktop",
+    "version": "Version {{version}}",
+    "documentation": "Documentation",
+    "documentationDesc": "Learn how to use Iris Desktop",
+    "privacyPolicy": "Privacy Policy",
+    "privacyPolicyDesc": "How we handle your data",
+    "termsOfService": "Terms of Service",
+    "termsDesc": "Usage terms and conditions",
+    "checkUpdates": "Check for Updates",
+    "latestVersion": "You are on the latest version",
+    "updateCheckFailed": "Failed to check for updates"
+  },
+  "footer": {
+    "madeBy": "Made with care by Parallax AI",
+    "copyright": "© 2024 Parallax AI. All rights reserved."
+  }
+}

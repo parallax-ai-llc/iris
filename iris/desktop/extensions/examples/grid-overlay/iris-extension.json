@@ -1,0 +1,29 @@
+{
+  "id": "iris-official.grid-overlay",
+  "name": "grid-overlay",
+  "version": "1.0.0",
+  "engineVersion": "^1.0.0",
+  "main": "./dist/index.js",
+  "displayName": "Grid & Guide Overlay",
+  "description": "Display rule of thirds, golden ratio, and diagonal composition guides on the canvas",
+  "publisher": "iris-official",
+  "activationEvents": [
+    "onCommand:iris-official.grid-overlay.toggle",
+    "onCommand:iris-official.grid-overlay.configure"
+  ],
+  "contributes": {
+    "commands": [
+      { "command": "iris-official.grid-overlay.toggle", "title": "Toggle Grid Overlay", "icon": "grid-3x3" },
+      { "command": "iris-official.grid-overlay.configure", "title": "Grid Settings", "icon": "settings" }
+    ],
+    "keybindings": [
+      { "command": "iris-official.grid-overlay.toggle", "key": "ctrl+shift+'" }
+    ],
+    "settings": [
+      { "id": "iris-official.grid-overlay.type", "type": "string", "title": "Guide Type", "default": "thirds", "enum": ["thirds", "golden-ratio", "diagonal", "center-cross", "custom-grid"] },
+      { "id": "iris-official.grid-overlay.color", "type": "string", "title": "Guide Color", "default": "#FF000080" },
+      { "id": "iris-official.grid-overlay.opacity", "type": "number", "title": "Opacity (0-100)", "default": 40 }
+    ]
+  },
+  "permissions": ["commands:register", "image:read", "image:write", "ui:panel"]
+}

@@ -1,0 +1,72 @@
+{
+  "generate": {
+    "title": "Generate Image",
+    "prompt": "Prompt",
+    "promptPlaceholder": "Describe the image you want to create...",
+    "promptHint": "Press Ctrl+Enter to generate",
+    "negativePrompt": "Negative Prompt",
+    "negativePromptPlaceholder": "What to avoid in the image...",
+    "model": "Model",
+    "selectModel": "Select a model",
+    "aspectRatio": "Aspect Ratio",
+    "img2img": "Image-to-Image",
+    "active": "Active",
+    "removeReference": "Remove reference image",
+    "selectFromLibrary": "Select from Library",
+    "uploadFromComputer": "Upload from Computer",
+    "pasteFromClipboard": "Paste from Clipboard",
+    "imageStrength": "Image Strength",
+    "imageStrengthHint": "Higher = more original image influence",
+    "estimatedTokens": "Estimated credits",
+    "generating": "Generating...",
+    "serverRequired": "Server connection required"
+  },
+  "gallery": {
+    "title": "Image Gallery",
+    "upload": "Upload",
+    "open": "Open",
+    "searchPlaceholder": "Search images...",
+    "noResults": "No results found",
+    "noResultsHint": "Try adjusting your search or filter to find what you're looking for.",
+    "clearFilters": "Clear filters",
+    "selectForTool": "Select an image for",
+    "generationFailed": "Generation Failed",
+    "processing": "प्रोसेस हो रहा है...",
+    "referenceBadge": "रेफरेंस",
+    "emptyTitle": "अभी तक कोई इमेज नहीं",
+    "emptyHint": "बाईं ओर के पैनल से अपनी पहली इमेज जनरेट करें, या मौजूदा इमेज अपलोड करें।",
+    "tooltipDownload": "डाउनलोड",
+    "tooltipDelete": "हटाएं",
+    "tooltipUseAsReference": "रेफरेंस के रूप में उपयोग करें (Shift+Click)"
+  },
+  "reference": {
+    "title": "Select Reference Image",
+    "description": "Choose an image from your library to use as reference"
+  },
+  "delete": {
+    "title": "Delete Selected Images",
+    "message": "Are you sure you want to delete {{count}} selected image(s)? This action cannot be undone.",
+    "confirm": "Delete"
+  },
+  "filter": {
+    "all": "सभी इमेज",
+    "generated": "जनरेट की गई",
+    "uploaded": "अपलोड की गई",
+    "edited": "संपादित"
+  },
+  "toasts": {
+    "clipboardAttached": "क्लिपबोर्ड से इमेज संलग्न की गई",
+    "noClipboardImage": "क्लिपबोर्ड में कोई इमेज नहीं मिली",
+    "clipboardDenied": "क्लिपबोर्ड की अनुमति अस्वीकार। Ctrl+V का उपयोग करें।",
+    "clipboardReadFailed": "क्लिपबोर्ड पढ़ने में विफल",
+    "attachRefFailed": "रेफरेंस इमेज संलग्न करने में विफल",
+    "uploadOk": "इमेज सफलतापूर्वक अपलोड हुई",
+    "uploadFailed": "इमेज अपलोड करने में विफल",
+    "uploadFileFailed": "फ़ाइल अपलोड करने में विफल",
+    "readFileFailed": "फ़ाइल पढ़ने में विफल",
+    "openFileFailed": "फ़ाइल खोलने में विफल: {{error}}",
+    "psdUrlMissing": "PSD फ़ाइल URL उपलब्ध नहीं",
+    "psdOpened": "{{name}} को {{count}} लेयर्स के साथ खोला",
+    "psdOpenFailed": "PSD फ़ाइल खोलने में विफल"
+  }
+}

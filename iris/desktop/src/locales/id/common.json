@@ -1,0 +1,181 @@
+{
+  "buttons": {
+    "save": "Simpan",
+    "cancel": "Batal",
+    "close": "Tutup",
+    "delete": "Hapus",
+    "confirm": "Konfirmasi",
+    "generate": "Hasilkan",
+    "export": "Ekspor",
+    "import": "Impor",
+    "upload": "Unggah",
+    "download": "Unduh",
+    "open": "Buka",
+    "create": "Buat",
+    "add": "Tambah",
+    "remove": "Hapus",
+    "apply": "Terapkan",
+    "reset": "Atur Ulang",
+    "done": "Selesai!",
+    "loading": "Memuat...",
+    "generating": "Membuat...",
+    "processing": "Memproses...",
+    "logout": "Keluar",
+    "choose": "Pilih Folder",
+    "clear": "Bersihkan",
+    "checkUpdates": "Periksa Pembaruan",
+    "select": "Pilih",
+    "selectAll": "Pilih Semua",
+    "new": "Baru",
+    "previous": "Sebelumnya",
+    "next": "Berikutnya"
+  },
+  "status": {
+    "success": "Berhasil",
+    "error": "Galat",
+    "loading": "Memuat",
+    "noData": "Tidak ada data",
+    "notLoggedIn": "Belum masuk",
+    "latestVersion": "Anda menggunakan versi terbaru",
+    "updateCheckFailed": "Gagal memeriksa pembaruan",
+    "loggedOut": "Berhasil keluar"
+  },
+  "language": {
+    "en": "English",
+    "ko": "한국어",
+    "ja": "日本語",
+    "hi": "हिन्दी",
+    "th": "ไทย",
+    "id": "Bahasa Indonesia",
+    "es": "Español",
+    "pt": "Português (Brasil)",
+    "fr": "Français",
+    "bn": "বাংলা",
+    "te": "తెలుగు",
+    "ta": "தமிழ்",
+    "mr": "मराठी",
+    "select": "Bahasa"
+  },
+  "home": {
+    "greeting": {
+      "morning": "Selamat pagi",
+      "afternoon": "Selamat siang",
+      "evening": "Selamat malam"
+    },
+    "subtitle": "Siap membuat sesuatu yang luar biasa?",
+    "quickStart": "Mulai Cepat",
+    "recentActivity": "Aktivitas Terbaru",
+    "viewAll": "Lihat semua",
+    "noActivity": "Belum ada aktivitas terbaru",
+    "noActivityHint": "Mulai membuat untuk melihat karya Anda di sini",
+    "proTip": "Tips:",
+    "proTipNavigate": "untuk berpindah antar halaman dengan cepat",
+    "stats": {
+      "imagesCreated": "Gambar Dibuat",
+      "videosCreated": "Video Dibuat",
+      "thisWeek": "Minggu Ini"
+    },
+    "actions": {
+      "createImage": {
+        "title": "Buat Gambar",
+        "description": "Hasilkan gambar memukau dengan AI"
+      },
+      "createVideo": {
+        "title": "Buat Video",
+        "description": "Ubah ide menjadi video"
+      },
+      "buildWorkflow": {
+        "title": "Bangun Alur Kerja",
+        "description": "Otomatiskan proses kreatif Anda"
+      }
+    },
+    "timeAgo": {
+      "days": "{{count}} hari lalu",
+      "hours": "{{count}} jam lalu",
+      "minutes": "{{count}} menit lalu",
+      "justNow": "Baru saja"
+    }
+  },
+  "nav": {
+    "home": "Beranda",
+    "tools": "Alat",
+    "templates": "Templat",
+    "images": "Gambar",
+    "videos": "Video",
+    "projects": "Proyek",
+    "workflows": "Alur Kerja",
+    "batch": "Batch",
+    "extensions": "Ekstensi",
+    "library": "Pustaka",
+    "storage": "Penyimpanan",
+    "settings": "Pengaturan"
+  },
+  "titleBar": {
+    "unsavedChanges": "Perubahan Belum Disimpan",
+    "unsavedMessage": "Anda sedang berada di editor. Perubahan yang belum disimpan akan hilang. Apakah Anda yakin ingin keluar?",
+    "quitWithoutSaving": "Keluar Tanpa Menyimpan",
+    "bugReport": "Laporan Bug",
+    "bugReportMessageLabel": "Deskripsi",
+    "bugReportPlaceholder": "Mohon jelaskan bug-nya...",
+    "bugReportSubmit": "Kirim",
+    "bugReportSuccess": "Laporan bug berhasil dikirim",
+    "bugReportError": "Gagal mengirim laporan bug",
+    "bugReportRateLimit": "Terlalu banyak laporan. Coba lagi nanti.",
+    "bugReportThankYou": "Terima kasih atas laporan Anda! Kami akan segera meninjaunya."
+  },
+  "editor": {
+    "localFileWarning": {
+      "imageTitle": "Gambar Lokal Belum Disimpan",
+      "imageMessage": "File lokal tidak disimpan ke cloud. Kembali ke galeri dapat membuang hasil pengeditan Anda.",
+      "videoTitle": "Video Lokal Belum Disimpan",
+      "videoMessage": "File video lokal tidak disimpan ke cloud. Menutup akan membuang hasil pengeditan Anda.",
+      "closeWithoutSaving": "Tutup Tanpa Menyimpan"
+    },
+    "closeTabWarning": {
+      "title": "Perubahan Belum Disimpan",
+      "message": "Anda memiliki perubahan yang belum disimpan. Apakah Anda yakin ingin menutup tab ini?",
+      "closeWithoutSaving": "Tutup Tanpa Menyimpan",
+      "saveAndClose": "Simpan dan Tutup"
+    },
+    "videoUnsavedWarning": {
+      "title": "Perubahan Belum Disimpan",
+      "message": "Proyek saat ini memiliki perubahan yang belum disimpan. Apa yang ingin Anda lakukan?",
+      "discard": "Buang",
+      "saveAndContinue": "Simpan & Lanjutkan"
+    },
+    "workflowUnsavedWarning": {
+      "title": "Keluar Tanpa Menyimpan?",
+      "message": "Anda memiliki perubahan yang belum disimpan. Keluar akan membuangnya.",
+      "leaveWithoutSaving": "Keluar Tanpa Menyimpan"
+    },
+    "videoInit": {
+      "analyzing": "Menganalisis video...",
+      "probingDimensions": "Memeriksa resolusi video...",
+      "probingDuration": "Memeriksa durasi video...",
+      "preparingEditor": "Menyiapkan editor..."
+    }
+  },
+  "sort": {
+    "newest": "Terbaru",
+    "oldest": "Terlama",
+    "nameAsc": "Nama (A-Z)",
+    "nameDesc": "Nama (Z-A)"
+  },
+  "storage": {
+    "pickerTitle": "Pilih dari Perpustakaan",
+    "pickerDescription": "Pilih aset dari perpustakaan Anda",
+    "searchPlaceholder": "Cari aset...",
+    "emptyTitle": "Tidak ada aset ditemukan",
+    "emptyHintImages": "Hasilkan atau unggah gambar untuk melihatnya di sini.",
+    "emptyHintVideos": "Hasilkan atau unggah video untuk melihatnya di sini.",
+    "emptyHintAll": "Hasilkan atau unggah aset untuk melihatnya di sini.",
+    "badgeImage": "GAMBAR",
+    "badgeVideo": "VIDEO",
+    "assetTypeImage": "Gambar",
+    "assetTypeVideo": "Video",
+    "pageOf": "Halaman {{page}} dari {{total}}"
+  },
+  "errors": {
+    "unknown": "Terjadi kesalahan yang tidak diketahui"
+  }
+}

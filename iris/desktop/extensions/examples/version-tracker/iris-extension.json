@@ -1,0 +1,29 @@
+{
+  "id": "iris-official.version-tracker",
+  "name": "version-tracker",
+  "version": "1.0.0",
+  "engineVersion": "^1.0.0",
+  "main": "./dist/index.js",
+  "displayName": "Version Tracker",
+  "description": "Automatically snapshot image versions during editing sessions with comparison and restore",
+  "publisher": "iris-official",
+  "activationEvents": [
+    "onStartup"
+  ],
+  "contributes": {
+    "commands": [
+      { "command": "iris-official.version-tracker.snapshot", "title": "Save Version Snapshot", "icon": "save" },
+      { "command": "iris-official.version-tracker.history", "title": "Version History", "icon": "git-branch" },
+      { "command": "iris-official.version-tracker.restore", "title": "Restore Version", "icon": "rotate-ccw" }
+    ],
+    "keybindings": [
+      { "command": "iris-official.version-tracker.snapshot", "key": "ctrl+shift+v" },
+      { "command": "iris-official.version-tracker.history", "key": "ctrl+alt+v" }
+    ],
+    "settings": [
+      { "id": "iris-official.version-tracker.autoSnapshot", "type": "boolean", "title": "Auto Snapshot on Change", "default": false },
+      { "id": "iris-official.version-tracker.maxVersions", "type": "number", "title": "Max Versions per Image", "default": 20 }
+    ]
+  },
+  "permissions": ["commands:register", "image:read", "image:write", "ui:panel"]
+}

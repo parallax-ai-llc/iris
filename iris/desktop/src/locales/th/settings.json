@@ -1,0 +1,56 @@
+{
+  "title": "การตั้งค่า",
+  "sections": {
+    "account": "บัญชี",
+    "storage": "พื้นที่จัดเก็บ",
+    "notifications": "การแจ้งเตือน",
+    "keyboard": "แป้นพิมพ์ลัด",
+    "about": "เกี่ยวกับ",
+    "language": "ภาษา"
+  },
+  "account": {
+    "notLoggedIn": "ยังไม่ได้เข้าสู่ระบบ"
+  },
+  "storage": {
+    "defaultSaveLocation": "ตำแหน่งบันทึกเริ่มต้น",
+    "noFolderSelected": "ไม่ได้เลือกโฟลเดอร์ - ไฟล์จะใช้ค่าเริ่มต้นของระบบ",
+    "cacheSize": "ขนาดแคช",
+    "cacheSizeDescription": "ไฟล์ชั่วคราวและภาพย่อ",
+    "cacheCleared": "ล้างแคชเรียบร้อยแล้ว",
+    "cacheClearFailed": "ล้างแคชไม่สำเร็จ",
+    "saveLocationUpdated": "อัปเดตตำแหน่งบันทึกแล้ว",
+    "desktopOnly": "ฟีเจอร์นี้ใช้ได้เฉพาะในแอปเดสก์ท็อปเท่านั้น"
+  },
+  "notifications": {
+    "generationComplete": "สร้างเสร็จสิ้น",
+    "generationCompleteDesc": "แจ้งเตือนเมื่อการสร้างภาพหรือวิดีโอเสร็จสิ้น",
+    "workflowErrors": "ข้อผิดพลาดของเวิร์กโฟลว์",
+    "workflowErrorsDesc": "แจ้งเตือนเมื่อเวิร์กโฟลว์ล้มเหลวหรือพบข้อผิดพลาด",
+    "updates": "การแจ้งเตือนการอัปเดต",
+    "updatesDesc": "แจ้งเตือนเมื่อมีเวอร์ชันใหม่"
+  },
+  "keyboard": {
+    "newGeneration": "สร้างใหม่",
+    "saveDownload": "บันทึก/ดาวน์โหลด",
+    "openSettings": "เปิดการตั้งค่า",
+    "closeModal": "ปิดหน้าต่าง",
+    "navigateGallery": "นำทางแกลเลอรี"
+  },
+  "about": {
+    "irisDesktop": "Iris Desktop",
+    "version": "เวอร์ชัน {{version}}",
+    "documentation": "เอกสารประกอบ",
+    "documentationDesc": "เรียนรู้วิธีใช้งาน Iris Desktop",
+    "privacyPolicy": "นโยบายความเป็นส่วนตัว",
+    "privacyPolicyDesc": "วิธีที่เราจัดการกับข้อมูลของคุณ",
+    "termsOfService": "เงื่อนไขการให้บริการ",
+    "termsDesc": "เงื่อนไขและข้อตกลงในการใช้งาน",
+    "checkUpdates": "ตรวจหาการอัปเดต",
+    "latestVersion": "คุณกำลังใช้เวอร์ชันล่าสุด",
+    "updateCheckFailed": "ตรวจหาการอัปเดตไม่สำเร็จ"
+  },
+  "footer": {
+    "madeBy": "สร้างด้วยความใส่ใจโดย Parallax AI",
+    "copyright": "© 2024 Parallax AI. สงวนลิขสิทธิ์ทั้งหมด"
+  }
+}

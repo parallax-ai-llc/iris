@@ -1,0 +1,23 @@
+{
+  "id": "iris-official.quick-filter",
+  "name": "quick-filter",
+  "version": "1.0.0",
+  "engineVersion": "^1.0.0",
+  "main": "./dist/index.js",
+  "displayName": "Quick Filter",
+  "description": "Apply quick image filters: grayscale, invert, sepia",
+  "publisher": "iris-official",
+  "activationEvents": [
+    "onCommand:iris-official.quick-filter.grayscale",
+    "onCommand:iris-official.quick-filter.invert",
+    "onCommand:iris-official.quick-filter.sepia"
+  ],
+  "contributes": {
+    "commands": [
+      { "command": "iris-official.quick-filter.grayscale", "title": "Grayscale Filter" },
+      { "command": "iris-official.quick-filter.invert", "title": "Invert Colors" },
+      { "command": "iris-official.quick-filter.sepia", "title": "Sepia Filter" }
+    ]
+  },
+  "permissions": ["commands:register", "image:read", "image:write"]
+}

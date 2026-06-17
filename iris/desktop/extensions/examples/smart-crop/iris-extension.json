@@ -1,0 +1,25 @@
+{
+  "id": "iris-official.smart-crop",
+  "name": "smart-crop",
+  "version": "1.0.0",
+  "engineVersion": "^1.0.0",
+  "main": "./dist/index.js",
+  "displayName": "Smart Crop Advisor",
+  "description": "AI-powered crop suggestions based on rule of thirds, golden ratio, and platform aspect ratios",
+  "publisher": "iris-official",
+  "activationEvents": [
+    "onCommand:iris-official.smart-crop.analyze"
+  ],
+  "contributes": {
+    "commands": [
+      { "command": "iris-official.smart-crop.analyze", "title": "Smart Crop Suggestions", "icon": "crop" }
+    ],
+    "keybindings": [
+      { "command": "iris-official.smart-crop.analyze", "key": "ctrl+shift+k" }
+    ],
+    "settings": [
+      { "id": "iris-official.smart-crop.preferredRatios", "type": "string", "title": "Preferred Aspect Ratios", "default": "1:1,9:16,16:9" }
+    ]
+  },
+  "permissions": ["commands:register", "image:read", "ai:execute", "ui:panel"]
+}

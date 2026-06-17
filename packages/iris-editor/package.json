@@ -1,0 +1,51 @@
+{
+  "name": "iris-editor",
+  "version": "0.0.0",
+  "private": true,
+  "license": "SEE LICENSE IN LICENSE.md",
+  "description": "Shared Iris workflow editor — iris/web's ReactFlow editor extracted as a framework-agnostic library, consumed by iris/web and the iris-host-local app (npx iris-flow) via an injected seam context.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles.css": "./src/styles/iris-theme.css",
+    "./package.json": "./package.json",
+    "./dist/*": "./dist/*"
+  },
+  "files": [
+    "src",
+    "dist"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@xyflow/react": "^12.10.1",
+    "clsx": "^2.1.1",
+    "iris-nodes": "workspace:*",
+    "lucide-react": "^0.539.0",
+    "tailwind-merge": "^3.3.1",
+    "nanoid": "^5.0.0",
+    "sonner": "^2.0.7",
+    "zustand": "^5.0.7"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "@vitejs/plugin-react": "^5.1.4",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "tailwindcss": "^4",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.19"
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "generate": {
+    "title": "Generate Image",
+    "prompt": "Prompt",
+    "promptPlaceholder": "Describe the image you want to create...",
+    "promptHint": "Press Ctrl+Enter to generate",
+    "negativePrompt": "Negative Prompt",
+    "negativePromptPlaceholder": "What to avoid in the image...",
+    "model": "Model",
+    "selectModel": "Select a model",
+    "aspectRatio": "Aspect Ratio",
+    "img2img": "Image-to-Image",
+    "active": "Active",
+    "removeReference": "Remove reference image",
+    "selectFromLibrary": "Select from Library",
+    "uploadFromComputer": "Upload from Computer",
+    "pasteFromClipboard": "Paste from Clipboard",
+    "imageStrength": "Image Strength",
+    "imageStrengthHint": "Higher = more original image influence",
+    "estimatedTokens": "Estimated credits",
+    "generating": "Generating...",
+    "serverRequired": "Server connection required"
+  },
+  "gallery": {
+    "title": "Image Gallery",
+    "upload": "Upload",
+    "open": "Open",
+    "searchPlaceholder": "Search images...",
+    "noResults": "No results found",
+    "noResultsHint": "Try adjusting your search or filter to find what you're looking for.",
+    "clearFilters": "Clear filters",
+    "selectForTool": "Select an image for",
+    "generationFailed": "Generation Failed",
+    "processing": "செயலாக்கம்...",
+    "referenceBadge": "குறிப்பு",
+    "emptyTitle": "இன்னும் படங்கள் இல்லை",
+    "emptyHint": "இடது பேனலில் இருந்து உங்கள் முதல் படத்தை உருவாக்கவும், அல்லது ஏற்கனவே உள்ள படத்தை பதிவேற்றவும்.",
+    "tooltipDownload": "பதிவிறக்கு",
+    "tooltipDelete": "நீக்கு",
+    "tooltipUseAsReference": "குறிப்பாக பயன்படுத்து (Shift+Click)"
+  },
+  "reference": {
+    "title": "Select Reference Image",
+    "description": "Choose an image from your library to use as reference"
+  },
+  "delete": {
+    "title": "Delete Selected Images",
+    "message": "Are you sure you want to delete {{count}} selected image(s)? This action cannot be undone.",
+    "confirm": "Delete"
+  },
+  "filter": {
+    "all": "அனைத்து படங்கள்",
+    "generated": "உருவாக்கப்பட்டது",
+    "uploaded": "பதிவேற்றப்பட்டது",
+    "edited": "திருத்தப்பட்டது"
+  },
+  "toasts": {
+    "clipboardAttached": "கிளிப்போர்டிலிருந்து படம் இணைக்கப்பட்டது",
+    "noClipboardImage": "கிளிப்போர்டில் படம் இல்லை",
+    "clipboardDenied": "கிளிப்போர்டு அனுமதி மறுக்கப்பட்டது. Ctrl+V ஐ பயன்படுத்தவும்.",
+    "clipboardReadFailed": "கிளிப்போர்டை படிக்க முடியவில்லை",
+    "attachRefFailed": "குறிப்பு படத்தை இணைக்க முடியவில்லை",
+    "uploadOk": "படம் வெற்றிகரமாக பதிவேற்றப்பட்டது",
+    "uploadFailed": "படத்தை பதிவேற்ற முடியவில்லை",
+    "uploadFileFailed": "கோப்பை பதிவேற்ற முடியவில்லை",
+    "readFileFailed": "கோப்பை படிக்க முடியவில்லை",
+    "openFileFailed": "கோப்பை திறக்க முடியவில்லை: {{error}}",
+    "psdUrlMissing": "PSD கோப்பு URL கிடைக்கவில்லை",
+    "psdOpened": "{{name}} {{count}} லேயர்களுடன் திறக்கப்பட்டது",
+    "psdOpenFailed": "PSD கோப்பை திறக்க முடியவில்லை"
+  }
+}

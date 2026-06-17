@@ -1,0 +1,2410 @@
+{
+  "dashboard": {
+    "title": "My Workflows",
+    "description": "Create and manage your AI automation workflows",
+    "newWorkflow": "New Workflow",
+    "createWorkflow": "Create Workflow",
+    "noWorkflows": "No workflows yet",
+    "noWorkflowsDesc": "Create your first workflow to get started",
+    "signInRequired": "Sign in to view your workflows",
+    "signInDesc": "Create and manage AI automation workflows",
+    "signIn": "Sign In",
+    "headerSubtitle": "Compose nodes into pipelines. Trigger by webhook, schedule, or manually.",
+    "searchPlaceholder": "Search workflows…",
+    "sortOptions": {
+      "updatedDesc": "Updated · newest",
+      "updatedAsc": "Updated · oldest",
+      "createdDesc": "Created · newest",
+      "nameAsc": "Name A–Z"
+    },
+    "newWorkflowCard": {
+      "title": "New workflow",
+      "subtitle": "Start from scratch or template"
+    }
+  },
+  "filters": {
+    "search": "Search...",
+    "sort": "Sort:",
+    "all": "All",
+    "draft": "Draft",
+    "active": "Active",
+    "paused": "Paused",
+    "archived": "Archived",
+    "updated": "Updated",
+    "created": "Created",
+    "name": "Name",
+    "executed": "Executed",
+    "newest": "Newest",
+    "oldest": "Oldest",
+    "images": "Images",
+    "videos": "Videos"
+  },
+  "actions": {
+    "delete": "Delete",
+    "clone": "Clone",
+    "edit": "Edit",
+    "run": "Run",
+    "upgrade": "Upgrade",
+    "pause": "Pause",
+    "activate": "Activate",
+    "archive": "Archive",
+    "download": "Download",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "refresh": "Refresh"
+  },
+  "messages": {
+    "deleteConfirm": "Are you sure you want to delete this workflow?",
+    "deleteSuccess": "Workflow deleted",
+    "deleteFailed": "Failed to delete workflow",
+    "cloneSuccess": "Workflow cloned",
+    "cloneFailed": "Failed to clone workflow",
+    "updateSuccess": "Workflow updated",
+    "updateFailed": "Failed to update workflow",
+    "loadFailed": "Failed to load workflows",
+    "statusUpdated": "Workflow {{status}}"
+  },
+  "library": {
+    "title": "Library",
+    "description": "Community gallery of AI-generated content",
+    "publish": "Publish to Library",
+    "publishConfirmTitle": "Publish to Library",
+    "publishConfirmMessage": "Share this content with the community and earn credit rewards!",
+    "publishSuccess": "Successfully published to library! You earned {{tokens}} credits.",
+    "publishFailed": "Failed to publish to library",
+    "unpublish": "Unpublish",
+    "unpublishConfirmTitle": "Unpublish from Library",
+    "unpublishConfirmMessage": "Remove this content from the public library?",
+    "unpublishSuccess": "Successfully unpublished from library",
+    "unpublishFailed": "Failed to unpublish from library",
+    "alreadyPublished": "Already published",
+    "earnTokens": "Earn credits by sharing",
+    "filters": {
+      "all": "All",
+      "images": "Images",
+      "videos": "Videos",
+      "newest": "Newest",
+      "oldest": "Oldest"
+    },
+    "empty": {
+      "title": "No items yet",
+      "description": "The library is empty. Be the first to publish your AI-generated content!"
+    },
+    "loadMore": "Load More",
+    "detail": {
+      "prompt": "Prompt",
+      "model": "Model",
+      "provider": "Provider",
+      "aspectRatio": "Aspect Ratio",
+      "dimensions": "Dimensions",
+      "duration": "Duration",
+      "createdAt": "Created",
+      "copyPrompt": "Prompt copied",
+      "close": "Close",
+      "useThis": "Use This"
+    }
+  },
+  "images": {
+    "title": "Images",
+    "description": "Create and manage AI-generated images",
+    "newImage": "New Image",
+    "searchPlaceholder": "Search images...",
+    "noImages": "No images yet",
+    "noImagesDesc": "Use the prompt panel on the right to generate your first image with AI.",
+    "generateSuccess": "Image generated!",
+    "generateFailed": "Failed to generate image",
+    "generating": "Generating image...",
+    "queuedSuccess": "Image queued for generation. Check back in a few seconds.",
+    "processing": "Processing...",
+    "deleteConfirm": "Are you sure you want to delete \"{{name}}\"?",
+    "deleteSuccess": "Image deleted",
+    "deleteFailed": "Failed to delete image",
+    "deleting": "Deleting...",
+    "maskSaved": "Mask saved",
+    "prompt": "Prompt",
+    "negativePrompt": "Negative Prompt",
+    "generationSettings": "Generation Settings",
+    "aspectRatio": "Aspect Ratio",
+    "cameraAngle": "Camera Angle",
+    "upscale": "Upscale",
+    "removeBackground": "Remove Background",
+    "enabled": "Enabled",
+    "fileInfo": "File Info",
+    "createdAt": "Created",
+    "storagePath": "Storage Path",
+    "resolution": "Resolution",
+    "fileSize": "File Size",
+    "version": "Version",
+    "copied": "Copied",
+    "copy": "Copy",
+    "copySuccess": "Prompt copied",
+    "processingComplete": "\"{{name}}\" image processing completed",
+    "processingFailed": "\"{{name}}\" image processing failed",
+    "deleteSelectedSuccess": "{{count}} image(s) deleted",
+    "deleteSelectedPartial": "Only {{deleted}} of {{total}} images were deleted",
+    "deleteAsset": "Delete Image",
+    "headerSubtitle": "Generated images, recent first. Click to open the editor.",
+    "loadingMore": "Loading more..."
+  },
+  "videos": {
+    "title": "Videos",
+    "description": "Create and manage AI-generated videos",
+    "newVideo": "New Video",
+    "searchPlaceholder": "Search videos...",
+    "noVideos": "No videos yet",
+    "noVideosDesc": "Use the prompt panel on the right to generate your first video with AI.",
+    "generating": "Generating...",
+    "generateSuccess": "Video generation started!",
+    "generateFailed": "Failed to generate video",
+    "generationFailed": "Generation failed",
+    "queuedSuccess": "Video queued for generation. Check back in 3-5 minutes.",
+    "processing": "Processing...",
+    "processingDelayed": "Processing delayed...",
+    "minutesElapsed": "{{minutes}} min elapsed",
+    "cancelGeneration": "Cancel generation",
+    "duration": "Duration",
+    "processingComplete": "\"{{name}}\" video processing completed",
+    "processingFailed": "\"{{name}}\" video processing failed",
+    "deleteSelectedSuccess": "{{count}} video(s) deleted",
+    "deleteSelectedPartial": "Only {{deleted}} of {{total}} videos were deleted",
+    "deleteAsset": "Delete Video",
+    "inpaintMinDuration": "Video inpaint requires videos of at least 8 seconds",
+    "referenceImage": "Reference Image",
+    "motionSource": "Motion Source",
+    "headerSubtitle": "Rendered clips, recent first. Hover to preview, click to open the editor.",
+    "loadingMore": "Loading more...",
+    "grid": {
+      "loading": "Loading more...",
+      "loadMore": "Load more"
+    }
+  },
+  "batch": {
+    "title": "Batch Jobs",
+    "description": "Run workflows on multiple inputs from Excel/CSV files",
+    "newBatch": "New Batch Job",
+    "createBatch": "Create Batch Job",
+    "noBatches": "No batch jobs found",
+    "noBatchesDesc": "Create your first batch job to run workflows on multiple inputs",
+    "adjustFilters": "Try adjusting your filters",
+    "searchPlaceholder": "Search by name or workflow...",
+    "deleteConfirm": "Are you sure you want to delete this batch job?",
+    "deleteFailed": "Failed to delete batch job",
+    "retryFailed": "Failed to retry batch job",
+    "retryFailedRows": "Retry Failed",
+    "status": {
+      "all": "All",
+      "pending": "Pending",
+      "processing": "Processing",
+      "paused": "Paused",
+      "completed": "Completed",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    },
+    "progress": "Progress",
+    "items": "items",
+    "rows": "rows",
+    "total": "Total",
+    "success": "Success",
+    "workflow": "Workflow",
+    "created": "Created",
+    "startTime": "Start Time",
+    "endTime": "End Time",
+    "page": "Page {{page}} of {{total}}",
+    "detail": {
+      "loadFailed": "Failed to load batch job",
+      "backToList": "Back to Batch Jobs",
+      "editName": "Edit name",
+      "upgrade": "Upgrade",
+      "restart": "Restart",
+      "start": "Start",
+      "pause": "Pause",
+      "resume": "Resume",
+      "cancel": "Cancel",
+      "retryFailed": "Retry Failed",
+      "totalRows": "Total Rows",
+      "processed": "Processed",
+      "successful": "Successful",
+      "failed": "Failed",
+      "progress": "Progress",
+      "estimatedTime": "Estimated time remaining",
+      "jobInfo": "Job Information",
+      "workflow": "Workflow",
+      "file": "File",
+      "fileType": "File Type",
+      "concurrency": "Concurrency",
+      "stopOnError": "Stop on Error",
+      "yes": "Yes",
+      "no": "No",
+      "download": "Download",
+      "excelXlsx": "Excel (.xlsx)",
+      "csvFile": "CSV (.csv)",
+      "timeline": "Timeline",
+      "created": "Created",
+      "started": "Started",
+      "completed": "Completed",
+      "errors": "Errors",
+      "error": "Error",
+      "row": "Row",
+      "rowResults": "Row Results",
+      "status": "Status",
+      "input": "Input",
+      "output": "Output",
+      "duration": "Duration",
+      "inputData": "Input Data",
+      "outputData": "Output Data",
+      "noOutput": "No output data",
+      "previous": "Previous",
+      "next": "Next",
+      "pageOf": "Page {{page}} of {{total}}",
+      "pauseTitle": "Pause Batch Job",
+      "pauseMessage": "Are you sure you want to pause this batch job? You can resume it later to continue processing remaining rows.",
+      "cancelTitle": "Cancel Batch Job",
+      "cancelMessage": "Are you sure you want to cancel this batch job? All progress will be reset and you will need to start over.",
+      "pauseBtn": "Pause",
+      "cancelJobBtn": "Cancel Job"
+    },
+    "create": {
+      "steps": {
+        "selectWorkflow": "Select Workflow",
+        "uploadFile": "Upload File",
+        "mapColumns": "Map Columns",
+        "settings": "Settings",
+        "reviewStart": "Review & Start"
+      },
+      "step1": {
+        "title": "Select Workflow",
+        "description": "Choose the workflow to run for each row in your file.",
+        "more": "+{{count}} more"
+      },
+      "step2": {
+        "title": "Upload File",
+        "description": "Upload an Excel (.xlsx) or CSV file with your data.",
+        "dropFile": "Drop your file here or click to browse",
+        "supports": "Supports .xlsx and .csv files",
+        "preview": "Preview (first 5 rows)",
+        "rowsColumns": "{{rows}} rows × {{columns}} columns",
+        "invalidFileType": "Please upload an Excel (.xlsx) or CSV file"
+      },
+      "step3": {
+        "title": "Map Columns to Variables",
+        "description": "Connect your file columns to workflow input variables.",
+        "availableVars": "Available Variables:",
+        "skipColumn": "-- Skip this column --",
+        "sample": "Sample",
+        "mapAtLeast": "Map at least one column to continue"
+      },
+      "step4": {
+        "title": "Job Settings",
+        "jobName": "Job Name *",
+        "enterName": "Enter a name for this batch job",
+        "description": "Description",
+        "optionalDesc": "Optional description",
+        "concurrency": "Concurrency",
+        "concurrencyDesc": "Number of rows to process in parallel (max: {{max}} for {{plan}} plan)",
+        "parallelExec": "{{count}} parallel executions",
+        "upgradeFor": "Upgrade to {{plan}} ({{count}}) for more",
+        "concurrencyNote": "* Actual concurrency may vary depending on the provider's rate limits."
+      },
+      "step5": {
+        "title": "Review & Start",
+        "workflow": "Workflow",
+        "file": "File",
+        "totalRows": "Total Rows",
+        "columnMappings": "Column Mappings",
+        "concurrency": "Concurrency",
+        "plan": "Plan",
+        "startImmediately": "Start immediately",
+        "startImmediatelyDesc": "Begin processing as soon as the job is created"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "back": "Back",
+        "next": "Next",
+        "creating": "Creating...",
+        "createStart": "Create & Start",
+        "createJob": "Create Job"
+      }
+    }
+  },
+  "detail": {
+    "notFound": "Workflow Not Found",
+    "goBack": "Go back to workflows",
+    "executionStarted": "Workflow execution started!",
+    "executionCompleted": "Workflow execution completed!",
+    "executionFailed": "Execution failed",
+    "executionCancelled": "Execution was cancelled",
+    "deleted": "Workflow deleted",
+    "deleteFailed": "Failed to delete workflow",
+    "cloned": "Workflow cloned",
+    "cloneFailed": "Failed to clone workflow",
+    "stop": "Stop",
+    "cancelling": "Cancelling...",
+    "upgradeToRun": "Upgrade to Run",
+    "runNow": "Run Now",
+    "cloneWorkflow": "Clone Workflow",
+    "deleteWorkflow": "Delete Workflow",
+    "totalRuns": "Total Runs",
+    "successRate": "Success Rate",
+    "failedRuns": "Failed Runs",
+    "lastRun": "Last Run",
+    "workflowDetails": "Workflow Details",
+    "status": "Status",
+    "connections": "Connections",
+    "created": "Created",
+    "updated": "Updated",
+    "recentExecutions": "Recent Executions",
+    "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
+    "cloneConfirm": "Create a copy of \"{{name}}\"?",
+    "never": "Never"
+  },
+  "create": {
+    "back": "Back",
+    "title": "Create Workflow",
+    "chooseTemplate": "Choose a Template",
+    "chooseTemplateDesc": "Select a pre-built workflow or start from scratch",
+    "workflowName": "Workflow Name (optional)",
+    "creating": "Creating...",
+    "createAndOpen": "Create & Open Editor",
+    "selectTemplate": "Please select a template",
+    "createFailed": "Failed to create workflow",
+    "createSuccess": "Workflow created!",
+    "addNodesFailed": "Failed to add nodes to workflow",
+    "addConnectionsFailed": "Failed to add connections. You can add them manually in the editor."
+  },
+  "templates": {
+    "title": "Workflow Templates",
+    "description": "Get started quickly with pre-built workflow templates",
+    "noTemplates": "No templates found",
+    "noTemplatesDesc": "Templates will be available soon",
+    "adjustSearch": "Try adjusting your search query",
+    "useTemplate": "Use Template",
+    "preview": "Preview",
+    "searchPlaceholder": "Search templates...",
+    "allTemplates": "All Templates",
+    "imageGeneration": "Image Generation",
+    "videoGeneration": "Video Generation",
+    "contentCreation": "Content Creation",
+    "automation": "Automation",
+    "featured": "Featured",
+    "creating": "Creating...",
+    "noDescription": "No description available",
+    "loadFailed": "Failed to load templates",
+    "createdFromTemplate": "Workflow created from template!",
+    "nodes": "nodes",
+    "uses": "uses",
+    "connections": "connections"
+  },
+  "editor": {
+    "title": "Workflow Editor",
+    "untitled": "Untitled Workflow",
+    "saving": "Saving...",
+    "saved": "Saved",
+    "unsaved": "Unsaved",
+    "unsavedChanges": "Unsaved changes",
+    "nodes": "Nodes",
+    "properties": "Properties",
+    "config": "Config",
+    "addNode": "Add Node",
+    "deleteNode": "Delete Node",
+    "runWorkflow": "Run Workflow",
+    "stopWorkflow": "Stop Workflow",
+    "testRun": "Test Run",
+    "validate": "Validate",
+    "validationSuccess": "Workflow is valid!",
+    "validationFailed": "Failed to validate workflow",
+    "errorsFound": "Found {{count}} error(s)",
+    "validation": {
+      "selectModel": "Please select a model to use",
+      "selectProvider": "Please select a provider"
+    },
+    "saveSuccess": "Workflow saved!",
+    "saveFailed": "Failed to save workflow",
+    "loadFailed": "Failed to load workflow",
+    "notFound": "Workflow Not Found",
+    "goBack": "Go back to workflows",
+    "loading": "Loading workflow editor...",
+    "executionStarted": "Workflow execution started!",
+    "executionFailed": "Failed to execute workflow",
+    "executionCompleted": "Workflow completed successfully!",
+    "executionCancelled": "Workflow execution was cancelled",
+    "hideNodes": "Hide Nodes",
+    "showNodes": "Show Nodes",
+    "hideConfig": "Hide Config",
+    "showConfig": "Show Config",
+    "executionInProgress": "Workflow Execution in Progress",
+    "attentionRequired": "Attention required",
+    "executionWarningContent": "A workflow is currently executing.",
+    "saveWarning": "Saving now may affect the running execution. Changed node configurations may not apply to the current run, and unexpected results may occur.",
+    "runWarning": "Starting a new execution may interrupt the existing one. It may become difficult to track the status of the previous execution.",
+    "proceedSave": "Proceed with Save",
+    "proceedRun": "Proceed with Run",
+    "deleteNodeConfirmNamed": "node will be deleted. Are you sure?",
+    "deleteNodeConfirm": "Are you sure you want to delete the selected node?",
+    "deleteNodeWarning": "This action cannot be undone. Connected edges will also be deleted.",
+    "aiAssistant": "AI Assistant"
+  },
+  "workflowChat": {
+    "title": "AI Workflow Assistant",
+    "newChat": "New chat",
+    "helperText": "Describe what you want your workflow to do. For example: \"Create a workflow that generates an image from text input and saves it to storage\"",
+    "helperTextWithNodes": "You have existing nodes. Describe modifications or additions, or ask to create a new workflow.",
+    "workflowApplied": "Workflow applied to canvas!",
+    "warningsFound": "Some warnings occurred during workflow application",
+    "applied": "Applied",
+    "replaced": "Replaced",
+    "added": "Added",
+    "modified": "modified",
+    "deleted": "deleted",
+    "nodes": "nodes",
+    "connections": "connections",
+    "existingNodesTitle": "Existing Workflow Detected",
+    "existingNodesMessage": "You have nodes on the canvas. How would you like to apply the new workflow?",
+    "replaceAll": "Replace all",
+    "addToExisting": "Add to existing",
+    "applyWorkflow": "Apply Workflow"
+  },
+  "nav": {
+    "workflows": "Workflows",
+    "images": "Images",
+    "videos": "Videos",
+    "templates": "Templates",
+    "batchJobs": "Batch Jobs",
+    "tools": "Tools",
+    "guide": "Guide",
+    "library": "Library",
+    "irisDesktop": "Iris Desktop",
+    "openChat": "Open chat"
+  },
+  "tools": {
+    "title": "AI Tools",
+    "description": "Explore all AI-powered tools for image and video creation",
+    "searchPlaceholder": "Search tools...",
+    "all": "All",
+    "video": "Video",
+    "image": "Image",
+    "videoTools": "Video Tools",
+    "imageTools": "Image Tools",
+    "noResults": "No tools found matching your search",
+    "tools": "Tools",
+    "edit": "Edit",
+    "aiTools": "AI Tools",
+    "editTools": "Edit Tools",
+    "presetTools": "Presets"
+  },
+  "editModes": {
+    "prompt": "Prompt",
+    "modify": "Modify",
+    "deselect": "Deselect"
+  },
+  "guide": {
+    "title": "Iris Guide",
+    "viewGuide": "View Guide",
+    "tipsTitle": "Tips & Best Practices",
+    "previous": "Previous:",
+    "next": "Next:",
+    "sections": {
+      "workflows": "Workflows",
+      "images": "Images",
+      "videos": "Videos",
+      "templates": "Templates",
+      "batch": "Batch Processing",
+      "desktopImage": "Image Editor (Desktop)",
+      "desktopVideo": "Video Editor (Desktop)"
+    },
+    "categories": {
+      "triggers": "Triggers",
+      "generators": "Generators",
+      "analyzers": "Analyzers",
+      "editors": "Editors",
+      "utilities": "Utilities",
+      "web": "Web Data",
+      "outputs": "Outputs",
+      "diGeneration": "Generation",
+      "diBasicEditing": "Basic Editing",
+      "diDrawing": "Drawing Tools",
+      "diSelection": "Selection",
+      "diLayers": "Layers",
+      "diAiTools": "AI Tools",
+      "diAnalysis": "Analysis",
+      "diAutomation": "Automation",
+      "diExport": "Export",
+      "dvProject": "Project",
+      "dvTimeline": "Timeline",
+      "dvEffects": "Effects & Color",
+      "dvAudio": "Audio",
+      "dvSubtitles": "Subtitles",
+      "dvAi": "AI Features",
+      "dvAdvanced": "Advanced",
+      "dvExport": "Export"
+    },
+    "workflows": {
+      "overview": {
+        "title": "Workflow Overview",
+        "description": "Workflows are visual pipelines that connect multiple AI operations together. Create complex automation by linking nodes that process data sequentially or in parallel. Each workflow can be triggered manually, on a schedule, or via webhook.",
+        "mediaHint": "[Video: Workflow editor walkthrough showing drag-and-drop node creation, connecting nodes, and running a workflow]",
+        "tip1": "Start with a Trigger node",
+        "tip2": "Connect nodes by dragging from output to input ports",
+        "tip3": "Use the validation button before running"
+      },
+      "triggerManual": {
+        "title": "Manual Trigger",
+        "description": "Start workflows on-demand with custom input. Choose between text input, image upload, or file upload. Perfect for one-off tasks or testing workflows before automation.",
+        "mediaHint": "[Screenshot: Manual trigger node configuration panel showing input type options]",
+        "tip1": "Set a descriptive input label",
+        "tip2": "Use image input for workflows that process photos",
+        "tip3": "Test your workflow with different inputs"
+      },
+      "triggerSchedule": {
+        "title": "Schedule Trigger",
+        "description": "Automate workflows to run at specific times or intervals. Configure hourly, daily, weekly, or custom cron schedules. Ideal for recurring content generation or batch processing.",
+        "mediaHint": "[Screenshot: Schedule configuration panel with cron expression builder]",
+        "tip1": "Use static input values for scheduled workflows",
+        "tip2": "Set up error notifications for failed runs",
+        "tip3": "Consider timezone differences"
+      },
+      "triggerWebhook": {
+        "title": "Webhook Trigger",
+        "description": "Trigger workflows from external systems via HTTP POST requests. Receive JSON payloads and headers as workflow inputs. Perfect for integrating with other applications and services.",
+        "mediaHint": "[Screenshot: Webhook settings showing URL, secret key, and sample curl command]",
+        "tip1": "Keep your webhook URL secure",
+        "tip2": "Use the secret key for authentication",
+        "tip3": "Parse JSON payloads in subsequent nodes"
+      },
+      "execution": {
+        "title": "Execution & Monitoring",
+        "description": "Run workflows and monitor their progress in real-time. View execution logs, node outputs, and error messages. Track token usage and execution history for each workflow.",
+        "mediaHint": "[Screenshot: Execution logs accordion showing node-by-node progress with timing information]",
+        "tip1": "Check the execution logs for debugging",
+        "tip2": "Use the cancel button for long-running workflows",
+        "tip3": "Review token costs before running expensive workflows"
+      },
+      "outputStorage": {
+        "title": "Save to Storage",
+        "description": "Save workflow outputs to your encrypted cloud storage. Organize files into folders, manage versions, and access your generated content from anywhere. All files are securely stored and can be downloaded or shared.",
+        "mediaHint": "[Screenshot: Storage output node configuration with folder selection]",
+        "tip1": "Create folders to organize outputs by project",
+        "tip2": "Use meaningful file names for easy retrieval",
+        "tip3": "Files are automatically encrypted at rest"
+      },
+      "outputWebhook": {
+        "title": "Webhook Output",
+        "description": "Send workflow results to external services via HTTP POST. Configure custom URLs, headers, and payload formats. Perfect for integrating with Slack, Discord, custom APIs, or any webhook-compatible service.",
+        "mediaHint": "[Screenshot: Webhook output configuration with URL and headers fields]",
+        "tip1": "Test your webhook endpoint before deploying",
+        "tip2": "Include authentication headers for secure endpoints",
+        "tip3": "Use JSON format for structured data delivery"
+      }
+    },
+    "images": {
+      "textToImage": {
+        "title": "Text to Image",
+        "description": "Generate stunning images from text descriptions. Choose from multiple AI providers including GPT Image 2, Stable Diffusion 3.5, Flux Pro, Imagen 3, and Grok Aurora. Customize aspect ratio, style, and quality settings.",
+        "mediaHint": "[Image Grid: 4 sample generated images showing different styles - photorealistic, illustration, 3D render, anime]",
+        "tip1": "Be specific in your prompts",
+        "tip2": "Use negative prompts to exclude unwanted elements",
+        "tip3": "Experiment with different providers for varied styles"
+      },
+      "imageToImage": {
+        "title": "Image to Image",
+        "description": "Transform existing images using AI. Apply style changes, modify content, or enhance details while maintaining the original composition. Control transformation strength for subtle or dramatic changes.",
+        "mediaHint": "[Before/After Comparison: Original photo on left, AI-transformed version on right]",
+        "tip1": "Lower strength preserves more of the original",
+        "tip2": "Use reference images for style consistency",
+        "tip3": "Combine with text prompts for guided transformations"
+      },
+      "inpainting": {
+        "title": "Inpainting",
+        "description": "Edit specific regions of an image using masks. Replace objects, fix imperfections, or add new elements seamlessly. The AI fills masked areas based on your prompt and surrounding context.",
+        "mediaHint": "[Screenshot: Inpainting interface showing mask painting tool and before/after result]",
+        "tip1": "Create clean masks for better results",
+        "tip2": "Provide context in your prompt",
+        "tip3": "Use feathered edges for smoother blending"
+      },
+      "outpainting": {
+        "title": "Outpainting",
+        "description": "Extend images beyond their original boundaries. Expand in any direction - left, right, up, down, or all sides. The AI generates coherent content that seamlessly continues the original image.",
+        "mediaHint": "[Animated GIF: Image expanding outward in all directions with AI-generated content]",
+        "tip1": "Start with high-quality source images",
+        "tip2": "Specify what should appear in extended areas",
+        "tip3": "Use multiple passes for large expansions"
+      },
+      "styleTransfer": {
+        "title": "Style Transfer",
+        "description": "Apply artistic styles from reference images to your content. Transform photos into paintings, sketches, or match any visual aesthetic. Adjust strength to control how much of the style is applied.",
+        "mediaHint": "[Grid: Same photo with 4 different style transfers - oil painting, watercolor, sketch, pop art]",
+        "tip1": "Use high-contrast style references",
+        "tip2": "Adjust strength for subtle vs dramatic effects",
+        "tip3": "Combine with prompts for additional guidance"
+      },
+      "faceSwap": {
+        "title": "Face Swap",
+        "description": "Seamlessly swap faces between images. The AI handles lighting, angle, and expression matching automatically. Great for creating personalized content or character consistency.",
+        "mediaHint": "[Before/After: Source face and target image showing seamless face swap result]",
+        "tip1": "Use clear, well-lit face photos",
+        "tip2": "Similar angles produce better results",
+        "tip3": "Review output for any artifacts"
+      },
+      "bgRemoval": {
+        "title": "Background Removal",
+        "description": "Instantly remove backgrounds from images with AI precision. Handles complex edges like hair and transparent objects. Export with transparency or replace with custom backgrounds.",
+        "mediaHint": "[Before/After: Product photo with cluttered background vs clean transparent background]",
+        "tip1": "Works best with clear subject separation",
+        "tip2": "Use the mask output for fine-tuning",
+        "tip3": "Perfect for product photography"
+      },
+      "upscaling": {
+        "title": "Image Upscaling",
+        "description": "Enhance image resolution by 2x or 4x using AI. Restore detail and sharpness without the blur of traditional upscaling. Ideal for enlarging AI-generated images or old photos.",
+        "mediaHint": "[Comparison: Original low-res image vs AI-upscaled high-res version with visible detail improvement]",
+        "tip1": "Start with the best quality source available",
+        "tip2": "2x upscaling is often sufficient",
+        "tip3": "Check output for AI artifacts"
+      }
+    },
+    "videos": {
+      "textToVideo": {
+        "title": "Text to Video",
+        "description": "Create videos from text descriptions. Choose from leading providers: Runway Gen-3, Kling v2.5, Luma Ray 2, Google Veo 2, and MiniMax. Configure duration (5-10 seconds), aspect ratio, and motion intensity.",
+        "mediaHint": "[Video Player: Sample AI-generated video with playback controls]",
+        "tip1": "Keep prompts focused on motion and action",
+        "tip2": "Shorter durations often produce better results",
+        "tip3": "Describe camera movement if desired"
+      },
+      "imageToVideo": {
+        "title": "Image to Video",
+        "description": "Animate still images into dynamic videos. Provide a source image and motion description. Perfect for bringing artwork to life, creating cinemagraphs, or adding subtle animation to photos.",
+        "mediaHint": "[Side-by-side: Static image on left, animated video version on right]",
+        "tip1": "High-quality images produce better videos",
+        "tip2": "Describe specific movements for the subject",
+        "tip3": "Consider natural motion for realism"
+      },
+      "motionControl": {
+        "title": "Motion Control",
+        "description": "Transfer motion from a reference video to a subject in an image. Using Kling 2.6 Motion Control, animate characters or objects with precise movement matching from dance videos, gestures, or any motion source.",
+        "mediaHint": "[Video: Character from image performing dance moves from reference video]",
+        "tip1": "Use clear reference videos with distinct motion",
+        "tip2": "Image orientation affects maximum video length",
+        "tip3": "Enable sound preservation if needed"
+      },
+      "videoUpscaling": {
+        "title": "Video Upscaling",
+        "description": "Enhance video resolution to HD, Full HD, or 4K using Topaz AI. Improve frame rate up to 60fps for smoother playback. Perfect for upgrading AI-generated videos or restoring old footage.",
+        "mediaHint": "[Comparison: Side-by-side of original SD video vs upscaled 4K version]",
+        "tip1": "Higher target resolution requires more processing time",
+        "tip2": "Frame rate interpolation can smooth motion",
+        "tip3": "Best for footage without heavy compression artifacts"
+      },
+      "videoInpainting": {
+        "title": "Video Object Removal",
+        "description": "Remove unwanted objects from videos using mask-based inpainting. ProPainter provides high-quality object removal, while MiniMax offers faster processing. The AI fills removed areas with coherent content.",
+        "mediaHint": "[Before/After Video: Video with watermark/object vs clean version]",
+        "tip1": "Create accurate masks for the object to remove",
+        "tip2": "Increase mask dilation for cleaner edges",
+        "tip3": "Works best with stationary or slow-moving objects"
+      }
+    },
+    "templates": {
+      "overview": {
+        "title": "Using Templates",
+        "description": "Templates are pre-built workflows for common use cases. Browse the template gallery, preview the workflow structure, and instantly create a copy to customize for your needs. Templates save time and demonstrate best practices.",
+        "mediaHint": "[Screenshot: Template gallery with category filters and preview cards]",
+        "tip1": "Start with templates to learn workflow patterns",
+        "tip2": "Clone and modify rather than starting from scratch",
+        "tip3": "Check required providers before using a template"
+      },
+      "categories": {
+        "title": "Template Categories",
+        "description": "Browse templates by category: Content Creation, Marketing, E-commerce, Social Media, and more. Each category contains workflows optimized for specific use cases with detailed documentation.",
+        "mediaHint": "[Grid: Category icons with names - Content Creation, Marketing, E-commerce, Social Media, Art & Design]",
+        "tip1": "Filter by provider to find compatible templates",
+        "tip2": "Read template descriptions carefully",
+        "tip3": "Check estimated token costs before running"
+      },
+      "creating": {
+        "title": "Creating Templates",
+        "description": "Turn your workflows into reusable templates. Add descriptions, configure default settings, and share with your team. Templates preserve the workflow structure while allowing customization of inputs and settings.",
+        "mediaHint": "[Screenshot: Save as Template dialog with name, description, and category fields]",
+        "tip1": "Document your template thoroughly",
+        "tip2": "Set sensible default values",
+        "tip3": "Test template with various inputs before sharing"
+      }
+    },
+    "specifications": {
+      "title": "Specifications",
+      "option": "Option",
+      "values": "Values",
+      "default": "Default",
+      "notes": "Notes",
+      "inputs": "Inputs",
+      "outputs": "Outputs",
+      "config": "Configuration",
+      "name": "Field",
+      "type": "Type",
+      "required": "Required",
+      "description": "Description"
+    },
+    "specs": {
+      "triggerManual": {
+        "inputType": {
+          "label": "Input Type",
+          "values": "text, image, file",
+          "default": "text",
+          "notes": "Determines what type of data users can provide"
+        },
+        "imageFormats": {
+          "label": "Image Formats",
+          "values": "JPEG, PNG, WebP, GIF",
+          "default": "-",
+          "notes": "Max 50MB per file"
+        },
+        "fileFormats": {
+          "label": "File Formats",
+          "values": "PDF, TXT, CSV, XLSX",
+          "default": "-",
+          "notes": "Max 50MB per file"
+        }
+      },
+      "triggerSchedule": {
+        "schedule": {
+          "label": "Schedule",
+          "values": "Hourly, Daily, Weekly, Custom Cron",
+          "default": "Daily",
+          "notes": "Cron format: * * * * * (min hour day month weekday)"
+        },
+        "timezone": {
+          "label": "Timezone",
+          "values": "All IANA timezones",
+          "default": "UTC",
+          "notes": "e.g., America/New_York, Asia/Tokyo"
+        },
+        "staticInput": {
+          "label": "Static Input",
+          "values": "Text or JSON",
+          "default": "-",
+          "notes": "Pre-defined input for each scheduled run"
+        }
+      },
+      "triggerWebhook": {
+        "method": {
+          "label": "HTTP Method",
+          "values": "POST",
+          "default": "POST",
+          "notes": "Only POST requests are accepted"
+        },
+        "contentType": {
+          "label": "Content-Type",
+          "values": "application/json",
+          "default": "-",
+          "notes": "JSON payload required"
+        },
+        "authentication": {
+          "label": "Authentication",
+          "values": "Secret Key (Header)",
+          "default": "-",
+          "notes": "X-Webhook-Secret header"
+        }
+      },
+      "textToImage": {
+        "model": {
+          "label": "Model",
+          "values": "GPT Image 2, SD 3.5, Flux Pro, Imagen 3, Grok Aurora",
+          "default": "Flux Pro",
+          "notes": "Different models have different strengths"
+        },
+        "aspectRatio": {
+          "label": "Aspect Ratio",
+          "values": "1:1, 4:3, 3:4, 16:9, 9:16, 3:2, 2:3",
+          "default": "1:1",
+          "notes": "Some ratios may not be supported by all models"
+        },
+        "imageCount": {
+          "label": "Image Count",
+          "values": "1-9",
+          "default": "1",
+          "notes": "Generate multiple variations"
+        },
+        "negativePrompt": {
+          "label": "Negative Prompt",
+          "values": "Free text",
+          "default": "-",
+          "notes": "Elements to exclude from generation"
+        }
+      },
+      "textToVideo": {
+        "model": {
+          "label": "Model",
+          "values": "Runway Gen-3, Kling 2.5, Luma Ray 2, Veo 2, MiniMax",
+          "default": "Kling 2.5",
+          "notes": "Processing time varies by provider"
+        },
+        "duration": {
+          "label": "Duration",
+          "values": "5s, 10s (model dependent)",
+          "default": "5s",
+          "notes": "Longer videos cost more tokens"
+        },
+        "aspectRatio": {
+          "label": "Aspect Ratio",
+          "values": "16:9, 9:16, 1:1",
+          "default": "16:9",
+          "notes": "Landscape, portrait, or square"
+        }
+      },
+      "imageToVideo": {
+        "model": {
+          "label": "Model",
+          "values": "Kling 2.5, Luma Ray 2, MiniMax, Veo 2",
+          "default": "Kling 2.5",
+          "notes": "Image must be high quality"
+        },
+        "duration": {
+          "label": "Duration",
+          "values": "5s, 10s",
+          "default": "5s",
+          "notes": "Subject to model limits"
+        },
+        "referenceImage": {
+          "label": "Reference Image",
+          "values": "JPEG, PNG, WebP",
+          "default": "-",
+          "notes": "Required input image to animate"
+        }
+      },
+      "upscaling": {
+        "scale": {
+          "label": "Scale Factor",
+          "values": "2x, 4x",
+          "default": "2x",
+          "notes": "4x runs 2x twice (2x token cost)"
+        },
+        "resemblance": {
+          "label": "Resemblance",
+          "values": "0-100",
+          "default": "80",
+          "notes": "How closely to match original"
+        },
+        "detail": {
+          "label": "Detail Enhancement",
+          "values": "0-100",
+          "default": "50",
+          "notes": "Amount of detail to add"
+        }
+      },
+      "motionControl": {
+        "mode": {
+          "label": "Mode",
+          "values": "Standard, Pro",
+          "default": "Standard",
+          "notes": "Pro offers higher quality"
+        },
+        "orientation": {
+          "label": "Character Source",
+          "values": "Image, Video",
+          "default": "Image",
+          "notes": "Image: character from image, motion from video"
+        },
+        "maxDuration": {
+          "label": "Max Duration",
+          "values": "Image: 10s, Video: 5s",
+          "default": "-",
+          "notes": "Depends on orientation setting"
+        },
+        "keepSound": {
+          "label": "Keep Sound",
+          "values": "On, Off",
+          "default": "Off",
+          "notes": "Preserve audio from reference video"
+        }
+      },
+      "videoUpscale": {
+        "resolution": {
+          "label": "Target Resolution",
+          "values": "720p, 1080p, 4K",
+          "default": "1080p",
+          "notes": "Higher = longer processing"
+        },
+        "fps": {
+          "label": "Frame Rate",
+          "values": "24, 30, 60",
+          "default": "Original",
+          "notes": "Frame interpolation for smoother motion"
+        }
+      },
+      "videoInpaint": {
+        "model": {
+          "label": "Model",
+          "values": "ProPainter, MiniMax",
+          "default": "ProPainter",
+          "notes": "ProPainter: quality, MiniMax: speed"
+        },
+        "maskDilation": {
+          "label": "Mask Dilation",
+          "values": "0-50px",
+          "default": "8px",
+          "notes": "Expands mask edges for cleaner removal"
+        },
+        "minDuration": {
+          "label": "Min Video Length",
+          "values": "8 seconds",
+          "default": "-",
+          "notes": "Video must be at least 8s long"
+        }
+      },
+      "batch": {
+        "concurrency": {
+          "label": "Concurrency",
+          "values": "1-10 (plan dependent)",
+          "default": "1",
+          "notes": "Free: 1, Pro: 5, Ultra: 10"
+        },
+        "fileFormats": {
+          "label": "Input Formats",
+          "values": "CSV, XLSX",
+          "default": "-",
+          "notes": "First row must be headers"
+        },
+        "maxRows": {
+          "label": "Max Rows",
+          "values": "Free: 100, Pro: 1000, Ultra: 10000",
+          "default": "-",
+          "notes": "Per batch job limit"
+        }
+      },
+      "utilDelay": {
+        "duration": {
+          "label": "Duration",
+          "values": "0-60000 ms",
+          "default": "1000",
+          "notes": "Milliseconds to wait"
+        },
+        "passthrough": {
+          "label": "Passthrough",
+          "values": "Enabled",
+          "default": "Yes",
+          "notes": "Input data passes unchanged"
+        }
+      },
+      "utilCondition": {
+        "condition": {
+          "label": "Condition Type",
+          "values": "equals, contains, startsWith, endsWith, greaterThan, lessThan, isEmpty, isNotEmpty",
+          "default": "equals",
+          "notes": "Comparison operator"
+        },
+        "compareValue": {
+          "label": "Compare Value",
+          "values": "Any text/number",
+          "default": "-",
+          "notes": "Value to compare against"
+        }
+      },
+      "utilLoop": {
+        "maxIterations": {
+          "label": "Max Iterations",
+          "values": "1-1000",
+          "default": "100",
+          "notes": "Prevents infinite loops"
+        },
+        "itemType": {
+          "label": "Item Type",
+          "values": "Array items",
+          "default": "-",
+          "notes": "Iterates over JSON arrays"
+        }
+      },
+      "utilMerge": {
+        "mode": {
+          "label": "Merge Mode",
+          "values": "object, array, concat",
+          "default": "object",
+          "notes": "How to combine inputs"
+        },
+        "inputs": {
+          "label": "Input Count",
+          "values": "1-4 inputs",
+          "default": "-",
+          "notes": "Connect multiple sources"
+        }
+      },
+      "utilSplit": {
+        "separator": {
+          "label": "Separator",
+          "values": "Any character",
+          "default": ",",
+          "notes": "Character to split by"
+        },
+        "limit": {
+          "label": "Limit",
+          "values": "2 outputs",
+          "default": "-",
+          "notes": "First part + remaining"
+        }
+      },
+      "utilTransform": {
+        "transformation": {
+          "label": "Transformation",
+          "values": "toUpperCase, toLowerCase, trim, parseJson, stringify",
+          "default": "-",
+          "notes": "Data transformation type"
+        },
+        "customCode": {
+          "label": "Custom",
+          "values": "Not available",
+          "default": "-",
+          "notes": "Use Script node for custom logic"
+        }
+      },
+      "utilHttpRequest": {
+        "method": {
+          "label": "HTTP Method",
+          "values": "GET, POST, PUT, PATCH, DELETE",
+          "default": "GET",
+          "notes": "Request method"
+        },
+        "headers": {
+          "label": "Headers",
+          "values": "JSON object",
+          "default": "{}",
+          "notes": "Custom request headers"
+        },
+        "timeout": {
+          "label": "Timeout",
+          "values": "30 seconds",
+          "default": "30s",
+          "notes": "Request timeout limit"
+        }
+      },
+      "imageGeneration": {
+        "model": {
+          "label": "Model",
+          "values": "GPT Image 2, GPT Image 1, Imagen 3, Grok Aurora, SD 3.5, Flux Pro/Dev/Schnell",
+          "default": "Flux Pro",
+          "notes": "Different models have unique strengths"
+        },
+        "aspectRatio": {
+          "label": "Aspect Ratio",
+          "values": "1:1, 4:3, 3:4, 16:9, 9:16, 21:9",
+          "default": "1:1",
+          "notes": "Square, Standard, Portrait, Widescreen, Vertical, Ultrawide"
+        },
+        "imageCount": {
+          "label": "Image Count",
+          "values": "1-9",
+          "default": "1",
+          "notes": "Generate multiple variations"
+        },
+        "style": {
+          "label": "Style Preset",
+          "values": "Instagram, Artistic, Photography, Mood, Era, Genre, Cultural",
+          "default": "None",
+          "notes": "Adds style-specific prompt text"
+        },
+        "cameraAngles": {
+          "label": "Camera Angles",
+          "values": "Front, Back, Left, Right, Top, Bottom, 3/4 FL, 3/4 FR, 3/4 Back",
+          "default": "None",
+          "notes": "Select multiple for batch generation"
+        }
+      },
+      "imageEditing": {
+        "editMode": {
+          "label": "Edit Mode",
+          "values": "Upscale, Background Remove, Inpaint, Remove, Outpaint, Subject, Crop",
+          "default": "None",
+          "notes": "Select an image to enable edit modes"
+        },
+        "maskTools": {
+          "label": "Mask Tools",
+          "values": "Brush, Eraser, Clear",
+          "default": "Brush",
+          "notes": "For Inpaint, Remove, Outpaint, Subject modes"
+        },
+        "brushSize": {
+          "label": "Brush Size",
+          "values": "10-100px",
+          "default": "30px",
+          "notes": "Adjustable via slider"
+        }
+      },
+      "imageCropUpscale": {
+        "upscaleScale": {
+          "label": "Upscale Scale",
+          "values": "2x, 4x",
+          "default": "2x",
+          "notes": "4x applies 2x twice (2x token cost)"
+        },
+        "resemblance": {
+          "label": "Resemblance",
+          "values": "0-100",
+          "default": "50",
+          "notes": "How closely to match original"
+        },
+        "detail": {
+          "label": "Detail Enhancement",
+          "values": "0-100",
+          "default": "50",
+          "notes": "Amount of new detail to generate"
+        },
+        "cropMode": {
+          "label": "Crop Mode",
+          "values": "Free, Fixed Ratio",
+          "default": "Free",
+          "notes": "Aspect-locked or free-form cropping"
+        }
+      },
+      "videoGeneration": {
+        "model": {
+          "label": "Model",
+          "values": "Runway Gen-3, Kling v2.5, Luma Ray 2, Veo 2, MiniMax",
+          "default": "Kling v2.5",
+          "notes": "Different providers have unique motion styles"
+        },
+        "duration": {
+          "label": "Duration",
+          "values": "5s, 10s",
+          "default": "5s",
+          "notes": "Model-dependent maximum"
+        },
+        "aspectRatio": {
+          "label": "Aspect Ratio",
+          "values": "16:9, 9:16, 1:1",
+          "default": "16:9",
+          "notes": "Landscape, Portrait, Square"
+        }
+      },
+      "videoMotionControl": {
+        "mode": {
+          "label": "Quality Mode",
+          "values": "Standard, Pro",
+          "default": "Standard",
+          "notes": "Pro offers higher quality"
+        },
+        "characterSource": {
+          "label": "Character Source",
+          "values": "Image, Video",
+          "default": "Image",
+          "notes": "Image: up to 10s, Video: up to 5s output"
+        },
+        "keepSound": {
+          "label": "Keep Original Sound",
+          "values": "On, Off",
+          "default": "Off",
+          "notes": "Preserve audio from reference video"
+        }
+      },
+      "videoEditing": {
+        "editMode": {
+          "label": "Edit Mode",
+          "values": "Motion Control, Inpaint, Remove, Upscale",
+          "default": "None",
+          "notes": "Select a video to enable edit modes"
+        },
+        "inpaintMinDuration": {
+          "label": "Inpaint Min Duration",
+          "values": "8 seconds",
+          "default": "-",
+          "notes": "Video must be at least 8s for inpainting"
+        }
+      },
+      "videoUpscaleSection": {
+        "targetResolution": {
+          "label": "Target Resolution",
+          "values": "720p, 1080p, 4K",
+          "default": "1080p",
+          "notes": "Higher resolution = longer processing"
+        },
+        "targetFps": {
+          "label": "Target Frame Rate",
+          "values": "24, 30, 48, 60 fps",
+          "default": "Original",
+          "notes": "Frame interpolation for smoother motion"
+        },
+        "provider": {
+          "label": "Provider",
+          "values": "Topaz AI",
+          "default": "Topaz AI",
+          "notes": "Industry-leading video enhancement"
+        }
+      }
+    },
+    "batch": {
+      "overview": {
+        "title": "Batch Jobs Overview",
+        "description": "Process multiple inputs through a workflow in a single batch job. Upload CSV files, image folders, or text lists. Track progress, view results, and download outputs in bulk. Perfect for high-volume content generation.",
+        "mediaHint": "[Screenshot: Batch job dashboard showing active jobs, progress bars, and completed jobs list]",
+        "tip1": "Start with small batches to test",
+        "tip2": "Monitor token usage for large batches",
+        "tip3": "Use CSV for structured data inputs"
+      },
+      "csvInput": {
+        "title": "CSV Input",
+        "description": "Upload CSV files with columns mapped to workflow inputs. Each row becomes a separate workflow execution. Headers define input names. Great for product descriptions, translations, or data-driven generation.",
+        "mediaHint": "[Screenshot: CSV upload interface with column mapping to workflow inputs]",
+        "tip1": "Match CSV headers to node input names",
+        "tip2": "Escape special characters in CSV",
+        "tip3": "Preview mapping before starting batch"
+      },
+      "imageBatch": {
+        "title": "Image Batch",
+        "description": "Upload multiple images to process through image workflows. Apply consistent transformations, generate variations, or extract information from entire photo libraries.",
+        "mediaHint": "[Screenshot: Image upload grid with drag-and-drop zone and file list]",
+        "tip1": "Organize images before upload",
+        "tip2": "Use consistent naming for output organization",
+        "tip3": "Set appropriate quality settings for the batch size"
+      },
+      "results": {
+        "title": "Results & Downloads",
+        "description": "View all batch outputs in a unified results view. Filter by status, preview individual results, and download as ZIP. Failed items can be retried individually or in bulk.",
+        "mediaHint": "[Screenshot: Results gallery with filter dropdown, selection checkboxes, and download button]",
+        "tip1": "Use filters to find specific results",
+        "tip2": "Download results before they expire",
+        "tip3": "Review failed items for common issues"
+      }
+    },
+    "utilities": {
+      "delay": {
+        "title": "Delay",
+        "description": "Pause workflow execution for a specified duration. Useful for rate limiting API calls, waiting for external processes, or adding intentional delays between operations. The input data passes through unchanged after the delay.",
+        "mediaHint": "[Screenshot: Delay node in workflow showing timer configuration]",
+        "tip1": "Use delays between API calls to avoid rate limits",
+        "tip2": "Combine with loops for polling patterns",
+        "tip3": "Keep delays reasonable to avoid timeout issues"
+      },
+      "condition": {
+        "title": "Condition",
+        "description": "Branch your workflow based on conditional logic. Evaluate input data against conditions like equals, contains, greater than, or is empty. Route data to different paths based on whether the condition is true or false.",
+        "mediaHint": "[Screenshot: Condition node showing branching paths with true/false outputs]",
+        "tip1": "Use conditions to handle different response types",
+        "tip2": "Chain conditions for complex decision trees",
+        "tip3": "Always handle both true and false branches"
+      },
+      "loop": {
+        "title": "Loop",
+        "description": "Iterate over arrays or collections of items. Process each item individually through connected nodes. Perfect for batch operations, processing multiple files, or applying the same transformation to a list of inputs.",
+        "mediaHint": "[Screenshot: Loop node processing array items one by one]",
+        "tip1": "Set max iterations to prevent infinite loops",
+        "tip2": "Use with merge node to collect results",
+        "tip3": "Monitor memory usage with large collections"
+      },
+      "merge": {
+        "title": "Merge",
+        "description": "Combine multiple inputs into a single output. Merge data as an object, array, or concatenated text. Useful for collecting results from parallel branches, combining API responses, or aggregating processed data.",
+        "mediaHint": "[Screenshot: Merge node combining multiple inputs into one output]",
+        "tip1": "Use object mode for key-value data",
+        "tip2": "Use array mode to preserve order",
+        "tip3": "Concatenate mode works best for text outputs"
+      },
+      "split": {
+        "title": "Split",
+        "description": "Divide input into multiple parts based on a separator. Split text by commas, newlines, or custom delimiters. Returns the first part and remaining parts as separate outputs for different processing paths.",
+        "mediaHint": "[Screenshot: Split node dividing text input into separate outputs]",
+        "tip1": "Use newline separator for multi-line text",
+        "tip2": "Combine with loop to process each part",
+        "tip3": "Handle edge cases when input has no separator"
+      },
+      "transform": {
+        "title": "Transform",
+        "description": "Transform data format or structure. Convert text to uppercase/lowercase, trim whitespace, parse JSON strings, or stringify objects. Essential for data preparation and format conversion between nodes.",
+        "mediaHint": "[Screenshot: Transform node converting data format]",
+        "tip1": "Use parseJson before accessing JSON properties",
+        "tip2": "Trim whitespace to avoid comparison issues",
+        "tip3": "Chain transforms for complex conversions"
+      },
+      "httpRequest": {
+        "title": "HTTP Request",
+        "description": "Make HTTP API calls to external services. Support for GET, POST, PUT, PATCH, and DELETE methods. Configure custom headers and request body. Integrate with any REST API or webhook endpoint.",
+        "mediaHint": "[Screenshot: HTTP Request node configuration with URL, method, and headers]",
+        "tip1": "Store API keys securely, not in workflow",
+        "tip2": "Use delay nodes between requests for rate limiting",
+        "tip3": "Parse JSON responses with transform node"
+      }
+    },
+    "imageSection": {
+      "overview": {
+        "title": "Image Features Overview",
+        "description": "Explore Iris's powerful image generation and editing capabilities. Create stunning images from text prompts, transform existing images with AI, and apply professional post-processing effects. All generated images are stored securely in your cloud storage.",
+        "mediaHint": "[Video: Image gallery showcase with various AI-generated images across different styles]",
+        "tip1": "Use the prompt panel on the right to generate images",
+        "tip2": "Select images to access advanced editing features",
+        "tip3": "Images are automatically saved to your storage"
+      },
+      "generation": {
+        "title": "Image Generation Options",
+        "description": "Configure your image generation with precise control over output. Choose your preferred AI model, set aspect ratios for different use cases, apply style presets, and generate multiple variations at once. Combine with post-processing options for professional results.",
+        "mediaHint": "[Screenshot: Prompt panel showing model selector, aspect ratio, style picker, and image count options]",
+        "tip1": "Different models excel at different styles",
+        "tip2": "Use negative prompts to exclude unwanted elements",
+        "tip3": "Generate multiple images to find the perfect result"
+      },
+      "models": {
+        "title": "Available Models",
+        "description": "Choose from industry-leading AI image models. GPT Image 2 delivers 2K resolution with reasoning-based generation, Imagen 3 produces photorealistic results, Grok Aurora brings artistic flair, Stable Diffusion 3.5 offers fine control, and Flux Pro/Dev/Schnell provide speed-quality tradeoffs.",
+        "mediaHint": "[Grid: Same prompt generated across different models showing unique characteristics]",
+        "tip1": "Flux Pro offers the best quality-to-speed ratio",
+        "tip2": "GPT Image 2 handles complex multi-element prompts and text rendering well",
+        "tip3": "Try multiple models to find your preferred style"
+      },
+      "styles": {
+        "title": "Style Presets",
+        "description": "Apply curated style presets to guide your image generation. Browse categories including Instagram filters, artistic movements, photography styles, mood lighting, historical eras, genre aesthetics, and cultural themes. Style prompts are automatically combined with your main prompt.",
+        "mediaHint": "[Grid: Same subject with different style presets applied - Cinematic, Anime, Watercolor, Vintage]",
+        "tip1": "Styles work by adding descriptive text to your prompt",
+        "tip2": "Combine styles with specific camera angles for consistency",
+        "tip3": "Use mood styles for emotional impact in your images"
+      },
+      "editing": {
+        "title": "Edit Modes",
+        "description": "Transform your images with powerful AI editing tools. Select any generated image to access edit modes: Upscale to enhance resolution, Background Remove for transparent exports, Inpaint to modify specific regions, Remove objects seamlessly, Outpaint to extend boundaries, Subject mode to place objects in new scenes, and Crop for precise framing.",
+        "mediaHint": "[Screenshot: Edit mode selector showing all available editing options with icons]",
+        "tip1": "Select an image first to enable edit modes",
+        "tip2": "Combine multiple edit operations for complex transformations",
+        "tip3": "Use masks for precise control over affected regions"
+      },
+      "inpaintOutpaint": {
+        "title": "Inpainting & Outpainting",
+        "description": "Modify specific regions of your images with precision. Inpainting lets you paint a mask over areas to replace or modify, then describe what should appear. Outpainting extends your image beyond its original boundaries in any direction, generating coherent new content that matches the original style.",
+        "mediaHint": "[Before/After: Image with masked region showing inpainted result, and image with expanded canvas showing outpainted content]",
+        "tip1": "Create clean, well-defined masks for best results",
+        "tip2": "Provide detailed prompts for inpainted regions",
+        "tip3": "Outpaint in multiple passes for large expansions"
+      },
+      "cropUpscale": {
+        "title": "Crop & Upscale",
+        "description": "Perfect your images with crop and upscale tools. Crop to reframe your composition or extract specific regions. Upscale uses AI to increase resolution by 2x or 4x while adding detail and sharpness. Configure resemblance (how closely to match the original) and detail enhancement (how much new detail to generate).",
+        "mediaHint": "[Comparison: Original image vs 4x upscaled version showing enhanced detail]",
+        "tip1": "Crop before upscaling to save processing time",
+        "tip2": "2x upscale is often sufficient for most uses",
+        "tip3": "Adjust resemblance higher for faithful enlargements"
+      },
+      "cameraAngles": {
+        "title": "Camera Angles",
+        "description": "Maintain 3D consistency across multiple image generations using the camera angle system. Choose from 9 standard angles: Front, Back, Left, Right, Top, Bottom, and three 3/4 views. Generate the same subject from multiple angles simultaneously to create character sheets or product visualizations.",
+        "mediaHint": "[Grid: Same character generated from 9 different camera angles showing consistent appearance]",
+        "tip1": "Use camera angles for character turnarounds",
+        "tip2": "Select multiple angles to batch generate variations",
+        "tip3": "Combine with subject names for better consistency"
+      }
+    },
+    "desktopImage": {
+      "generate": {
+        "title": "Image Generation",
+        "description": "Generate images from text prompts or transform existing images using AI models. Supports text-to-image and image-to-image workflows with multiple providers including FLUX, Stable Diffusion, and GPT Image. Configure aspect ratios, negative prompts, and batch counts for optimal results.",
+        "mediaHint": "[Screenshot: Image generation panel with prompt input and model selection]",
+        "tip1": "Use detailed, descriptive prompts for better results",
+        "tip2": "Try image-to-image mode for style transfer on existing photos",
+        "tip3": "Experiment with different AI models to find your preferred style"
+      },
+      "crop": {
+        "title": "Crop",
+        "description": "Precisely crop images with free-form or fixed aspect ratio modes. Supports common presets like 1:1, 4:3, 16:9, and custom ratios. Crop handles can be dragged to define the exact region, with real-time preview of the resulting image.",
+        "mediaHint": "[Screenshot: Crop tool with aspect ratio selector and drag handles]",
+        "tip1": "Hold Shift to maintain aspect ratio while dragging",
+        "tip2": "Use preset ratios for social media dimensions",
+        "tip3": "Crop before applying other edits to save processing"
+      },
+      "adjust": {
+        "title": "Adjustments",
+        "description": "Fine-tune image appearance with professional adjustment controls. Modify brightness, contrast, saturation, hue, exposure, highlights, shadows, whites, blacks, temperature, tint, vibrance, and clarity. Includes levels and curves for advanced tonal control.",
+        "mediaHint": "[Screenshot: Adjustment sliders panel showing brightness, contrast, and color controls]",
+        "tip1": "Start with exposure and contrast for basic corrections",
+        "tip2": "Use the histogram to guide your adjustments",
+        "tip3": "Apply subtle changes for natural-looking results"
+      },
+      "filter": {
+        "title": "Filters",
+        "description": "Apply one-click artistic and photographic filters to transform image appearance. Choose from categories including vintage, cinematic, B&W, warm, cool, and creative effects. Each filter can be adjusted in intensity for subtle or dramatic looks.",
+        "mediaHint": "[Screenshot: Filter gallery showing thumbnail previews of available filters]",
+        "tip1": "Preview filters on your image before applying",
+        "tip2": "Adjust filter intensity for a natural look",
+        "tip3": "Combine filters with manual adjustments for unique styles"
+      },
+      "transform": {
+        "title": "Transform",
+        "description": "Apply geometric transformations to images including rotate, flip horizontal/vertical, scale, and skew. Precise controls allow exact angle input for rotation and percentage-based scaling. All transforms maintain image quality with anti-aliased rendering.",
+        "mediaHint": "[Screenshot: Transform controls with rotation, flip, and scale options]",
+        "tip1": "Use 90° increments for lossless rotation",
+        "tip2": "Flip horizontally to mirror selfie compositions",
+        "tip3": "Scale down before uploading to save bandwidth"
+      },
+      "brush": {
+        "title": "Brush, Pencil & Eraser",
+        "description": "Draw directly on images with configurable brush, pencil, and eraser tools. Adjust brush size, opacity, hardness, and color. Pencil provides hard-edged strokes for precise work. Eraser removes content to reveal the layer below or transparency.",
+        "mediaHint": "[Screenshot: Drawing tools toolbar with brush size and opacity controls]",
+        "tip1": "Use bracket keys [ ] to adjust brush size quickly",
+        "tip2": "Lower opacity for subtle, buildable strokes",
+        "tip3": "Switch to pencil for pixel-perfect detail work"
+      },
+      "shapes": {
+        "title": "Shapes",
+        "description": "Add geometric shapes to your canvas including rectangles, ellipses, lines, arrows, polygons, and stars. Configure fill color, stroke color, stroke width, and corner radius. Shapes are rendered as vector objects for crisp edges at any zoom level.",
+        "mediaHint": "[Screenshot: Shape tool options with fill and stroke color pickers]",
+        "tip1": "Hold Shift while drawing for perfect squares and circles",
+        "tip2": "Use arrows for annotations and callouts",
+        "tip3": "Combine shapes with blend modes for creative effects"
+      },
+      "text": {
+        "title": "Text",
+        "description": "Add and style text overlays on your images. Choose from system fonts with full control over size, color, alignment, letter spacing, line height, bold, italic, and underline styles. Text can be positioned freely and resized with handles.",
+        "mediaHint": "[Screenshot: Text tool with font selection and styling options]",
+        "tip1": "Use high-contrast colors for readability over images",
+        "tip2": "Add a subtle shadow or outline for text on busy backgrounds",
+        "tip3": "Keep text concise for visual impact"
+      },
+      "selectionTools": {
+        "title": "Selection Tools",
+        "description": "Make precise selections using rectangular marquee, elliptical marquee, lasso, and magic wand tools. Selections define the active region for editing operations like painting, filtering, and transformations. Combine selections with add, subtract, and intersect modes.",
+        "mediaHint": "[Screenshot: Selection tools with marquee, lasso, and magic wand options]",
+        "tip1": "Use magic wand for quick selections of solid color areas",
+        "tip2": "Feather selections for smooth, gradual edges",
+        "tip3": "Invert selection to quickly target the background"
+      },
+      "colorRange": {
+        "title": "Color Range Selection",
+        "description": "Select regions based on color similarity with adjustable tolerance. Click to sample a color, then refine the selection by adjusting the tolerance slider. Perfect for isolating specific colors in an image for targeted editing or masking.",
+        "mediaHint": "[Screenshot: Color range dialog showing sampled color and tolerance slider]",
+        "tip1": "Start with low tolerance and increase gradually",
+        "tip2": "Use Shift+click to add more colors to the selection",
+        "tip3": "Preview the selection mask before applying"
+      },
+      "mask": {
+        "title": "Layer Masks",
+        "description": "Create non-destructive masks to control layer visibility. Paint with white to reveal, black to hide, and gray for partial transparency. Layer masks preserve the original image data while allowing complex compositing and blending effects.",
+        "mediaHint": "[Screenshot: Layer mask editing with black/white painting on mask thumbnail]",
+        "tip1": "Use a soft brush for smooth mask transitions",
+        "tip2": "Alt+click the mask thumbnail to view the mask directly",
+        "tip3": "Disable the mask temporarily to compare before/after"
+      },
+      "layerManagement": {
+        "title": "Layer Management",
+        "description": "Organize your work with a full layer system. Create, delete, duplicate, reorder, and merge layers. Set opacity and blend modes (Normal, Multiply, Screen, Overlay, and more) for each layer. Group layers for organized, non-destructive editing.",
+        "mediaHint": "[Screenshot: Layers panel showing multiple layers with blend modes and opacity]",
+        "tip1": "Name your layers for better organization",
+        "tip2": "Use Multiply blend mode for shadow effects",
+        "tip3": "Flatten visible layers before export to reduce file size"
+      },
+      "upscale": {
+        "title": "AI Upscale",
+        "description": "Enhance image resolution using AI-powered upscaling. Increase size by 2x or 4x while preserving detail and sharpness. The AI model intelligently adds detail that traditional upscaling methods cannot achieve, ideal for print preparation or enlarging AI-generated images.",
+        "mediaHint": "[Comparison: Original resolution vs AI-upscaled showing enhanced detail]",
+        "tip1": "2x upscale is usually sufficient for most needs",
+        "tip2": "Upscale after all other edits are complete",
+        "tip3": "Check output for any AI artifacts in fine textures"
+      },
+      "bgRemove": {
+        "title": "Background Removal",
+        "description": "Instantly remove image backgrounds using AI. Handles complex edges like hair, fur, and transparent objects with precision. The result is a clean alpha channel (transparency) that can be composited over any background or exported as PNG.",
+        "mediaHint": "[Before/After: Portrait with complex background vs clean transparent result]",
+        "tip1": "Works best with clear subject separation from background",
+        "tip2": "Use the result as a layer for compositing",
+        "tip3": "Export as PNG to preserve transparency"
+      },
+      "inpaint": {
+        "title": "AI Inpainting",
+        "description": "Replace or modify specific regions of an image using AI. Paint a mask over the area to edit, then provide a text prompt describing the desired replacement. The AI seamlessly fills the masked region while matching lighting, perspective, and style of the surrounding image.",
+        "mediaHint": "[Before/After: Image with masked region and AI-generated replacement]",
+        "tip1": "Create clean, well-defined masks for better results",
+        "tip2": "Provide detailed prompts about what should replace the masked area",
+        "tip3": "Use a larger mask area for more context-aware filling"
+      },
+      "outpaint": {
+        "title": "AI Outpainting",
+        "description": "Extend images beyond their original boundaries using AI. Expand the canvas in any direction and the AI generates coherent content that seamlessly continues the original composition. Describe what should appear in the extended areas for guided generation.",
+        "mediaHint": "[Before/After: Original image and expanded version with AI-generated surroundings]",
+        "tip1": "Extend one direction at a time for best quality",
+        "tip2": "Describe the expected content for guided outpainting",
+        "tip3": "Multiple passes produce better results for large expansions"
+      },
+      "faceRestore": {
+        "title": "Face Restoration",
+        "description": "Enhance and restore faces in photos using AI. Improve facial details, fix artifacts, and enhance clarity in portraits. Particularly effective on AI-generated faces with minor imperfections or old/low-quality photographs that need facial enhancement.",
+        "mediaHint": "[Before/After: Blurry/low-quality face vs AI-restored clear portrait]",
+        "tip1": "Best results on images where faces are clearly visible",
+        "tip2": "Combine with upscaling for maximum quality improvement",
+        "tip3": "Review restored faces for naturalness before saving"
+      },
+      "colorize": {
+        "title": "AI Colorization",
+        "description": "Automatically add realistic color to black-and-white or grayscale images using AI. The model analyzes image content and applies historically and contextually accurate colors. Perfect for restoring old photographs or creating colorized versions of monochrome artwork.",
+        "mediaHint": "[Before/After: Black and white photo vs AI-colorized version]",
+        "tip1": "Higher resolution source images produce better colorization",
+        "tip2": "Compare results with reference images for accuracy",
+        "tip3": "Fine-tune with manual color adjustments after AI colorization"
+      },
+      "histogram": {
+        "title": "Histogram & Analysis",
+        "description": "View real-time histogram displaying the tonal distribution of your image across RGB, Red, Green, and Blue channels. Analyze exposure, contrast, and color balance at a glance. Use channel isolation to identify color casts and path-based analysis for detailed inspection.",
+        "mediaHint": "[Screenshot: Histogram panel showing RGB distribution with individual channel overlays]",
+        "tip1": "A well-exposed image has a balanced histogram",
+        "tip2": "Clipping at edges indicates lost highlight or shadow detail",
+        "tip3": "Use individual channels to identify color casts"
+      },
+      "actions": {
+        "title": "Actions (Record & Playback)",
+        "description": "Record sequences of editing operations as reusable actions. Play them back on any image to apply the same edits automatically. Perfect for batch processing, maintaining consistent styles, or creating complex multi-step presets that can be applied with a single click.",
+        "mediaHint": "[Screenshot: Actions panel with recorded steps and playback controls]",
+        "tip1": "Record simple, repeatable steps for best reliability",
+        "tip2": "Test actions on different images before batch processing",
+        "tip3": "Name actions descriptively for easy identification"
+      },
+      "saveExport": {
+        "title": "Save & Export",
+        "description": "Save your work in multiple formats including PNG, JPEG, WebP, PSD (with layers), and PDF. Configure quality, compression, color space, and DPI settings. Export optimized versions for web, print, or archive with a single click.",
+        "mediaHint": "[Screenshot: Export dialog with format selection, quality slider, and size options]",
+        "tip1": "Use PNG for images with transparency",
+        "tip2": "Save as PSD to preserve layers for future editing",
+        "tip3": "Adjust JPEG quality to balance file size and visual quality"
+      }
+    },
+    "desktopVideo": {
+      "projectManagement": {
+        "title": "Project & Media Pool",
+        "description": "Create, open, save, and manage video editing projects. The media pool organizes all your video, audio, and image assets. Import media files, preview thumbnails, and drag assets onto the timeline. Projects auto-save to prevent data loss.",
+        "mediaHint": "[Screenshot: Media pool panel with imported video and audio assets]",
+        "tip1": "Organize media into folders before importing",
+        "tip2": "Auto-save runs every 30 seconds to prevent data loss",
+        "tip3": "Duplicate projects before making major changes"
+      },
+      "sourceMonitor": {
+        "title": "Source Monitor",
+        "description": "Preview and prepare media clips before adding them to the timeline. Set In and Out points to select specific portions of a clip. Use keyboard shortcuts I (In) and O (Out) for quick marking. Insert selected ranges directly to the timeline with linked video and audio.",
+        "mediaHint": "[Screenshot: Source monitor with In/Out point markers and insert controls]",
+        "tip1": "Press I to set in point, O to set out point",
+        "tip2": "Use Alt+X to clear in/out points",
+        "tip3": "Preview the selected range before inserting to timeline"
+      },
+      "timelineEditing": {
+        "title": "Timeline Editing",
+        "description": "Multi-track timeline with drag-and-drop clip editing. Add, move, trim, split, and duplicate clips across video, audio, subtitle, music, and adjustment tracks. Supports snap-to-grid alignment, rubber-band selection, and linked audio/video clips.",
+        "mediaHint": "[Screenshot: Multi-track timeline with video, audio, and subtitle tracks]",
+        "tip1": "Press C to split clips at the playhead",
+        "tip2": "Hold Shift+Delete for ripple delete that closes the gap",
+        "tip3": "Use G to toggle snap-to-grid for precise alignment"
+      },
+      "advancedEditing": {
+        "title": "Advanced Editing",
+        "description": "Professional editing techniques including Ripple edit (adjust clip boundary, shift neighbors), Roll edit (move boundary between two clips), Slip edit (shift source content within fixed duration), Rate Stretch (change playback speed by dragging), and Bezier curve interpolation for smooth keyframe animation.",
+        "mediaHint": "[Screenshot: Timeline showing ripple and roll edit indicators]",
+        "tip1": "Alt+drag trim handles for roll edits",
+        "tip2": "Alt+drag the clip body for slip edits",
+        "tip3": "Alt+Shift+drag trim end for rate stretch"
+      },
+      "playback": {
+        "title": "Playback Controls",
+        "description": "Professional playback controls with JKL shuttle navigation. J plays reverse (press multiple times to speed up), K stops, L plays forward (press multiple times to speed up). Navigate frame-by-frame with arrow keys. Skip 10 frames with Shift+arrow. Home/End jump to start/end.",
+        "mediaHint": "[Screenshot: Playback controls bar with JKL shuttle and frame navigation]",
+        "tip1": "Use JKL keys for professional shuttle control",
+        "tip2": "Press K to stop, then use J/L for variable speed review",
+        "tip3": "Arrow keys navigate frame-by-frame for precise positioning"
+      },
+      "effectsKeyframes": {
+        "title": "Effects & Keyframes",
+        "description": "Apply visual effects to clips and animate any property over time with keyframes. Add effects from the built-in library, adjust parameters in the inspector, and set keyframes for smooth property animation. Supports linear and bezier interpolation between keyframes.",
+        "mediaHint": "[Screenshot: Effects panel with keyframe editor showing animated properties]",
+        "tip1": "Click the diamond icon to add keyframes at the playhead",
+        "tip2": "Use bezier curves for smooth, natural-looking animation",
+        "tip3": "Copy effects between clips to maintain consistency"
+      },
+      "colorCorrection": {
+        "title": "Color Correction (Lumetri)",
+        "description": "Professional color correction with a Premiere Pro-style Lumetri Color panel. Includes Basic corrections (exposure, contrast, temperature, tint, vibrance, saturation), Tone Curves with RGB channel control, Color Wheels (shadows/midtones/highlights), and HSL Secondary for per-hue adjustments across 8 color channels.",
+        "mediaHint": "[Screenshot: Lumetri Color panel showing basic corrections, curves, and color wheels]",
+        "tip1": "Start with Basic corrections before using advanced tools",
+        "tip2": "Use Color Wheels for creative color grading looks",
+        "tip3": "HSL Secondary lets you target specific colors for adjustment"
+      },
+      "audioMixer": {
+        "title": "Audio Mixer & DSP",
+        "description": "Professional audio mixing with per-track volume faders, VU meters, solo/mute controls, and pan. Web Audio API-based DSP pipeline supports real-time audio processing. Set volume, apply fade-in/fade-out curves, and monitor peak levels for each audio track.",
+        "mediaHint": "[Screenshot: Audio mixer panel with VU meters, faders, and solo/mute buttons]",
+        "tip1": "Watch VU meters to avoid audio clipping",
+        "tip2": "Use fade-in/fade-out for smooth audio transitions",
+        "tip3": "Solo tracks to isolate and fine-tune individual audio sources"
+      },
+      "subtitleSystem": {
+        "title": "Subtitle System",
+        "description": "Create and edit subtitle clips on dedicated subtitle tracks. Configure text content, font, size, color, position, and animation style. Subtitle clips snap to video timing and support animated entry/exit effects for professional-looking captions.",
+        "mediaHint": "[Screenshot: Subtitle track with styled subtitle clips and preview overlay]",
+        "tip1": "Keep subtitle text concise for readability",
+        "tip2": "Use contrasting colors for visibility on varied backgrounds",
+        "tip3": "Time subtitles to match spoken words precisely"
+      },
+      "autoCaptions": {
+        "title": "AI Auto Captions",
+        "description": "Automatically generate subtitles from video audio using AI speech recognition. Supports multiple languages and produces timed subtitle clips that align with spoken words. Generated captions can be edited, styled, and positioned after creation.",
+        "mediaHint": "[Screenshot: Auto captions modal with language selection and generated results]",
+        "tip1": "Ensure clear audio for accurate transcription",
+        "tip2": "Review generated captions for accuracy before finalizing",
+        "tip3": "Split long captions into shorter segments for readability"
+      },
+      "autocut": {
+        "title": "AI AutoCut",
+        "description": "Automatically detect and extract highlight moments from long videos using AI analysis. The system analyzes speech patterns, visual interest, and energy levels to identify the most engaging segments. Export detected highlights as individual short-form clips ready for social media.",
+        "mediaHint": "[Screenshot: AutoCut analysis results showing detected highlight segments with scores]",
+        "tip1": "Works best with videos that have clear highlight moments",
+        "tip2": "Adjust the highlight threshold to get more or fewer segments",
+        "tip3": "Review detected segments before exporting"
+      },
+      "autoReframe": {
+        "title": "AI Auto Reframe",
+        "description": "Automatically convert video aspect ratios using AI subject tracking. Transform 16:9 landscape videos to 9:16 portrait, 1:1 square, or any target ratio while keeping the main subject centered. AI detects and follows faces and points of interest throughout the video.",
+        "mediaHint": "[Screenshot: Auto Reframe dialog showing source and target aspect ratios with preview]",
+        "tip1": "Best results with videos featuring a single main subject",
+        "tip2": "Preview the reframed result before rendering",
+        "tip3": "Works great for converting landscape footage to vertical social media"
+      },
+      "aiTools": {
+        "title": "AI Video Tools",
+        "description": "Suite of AI-powered video tools including Upscale (enhance resolution to HD/4K), Motion Control (transfer motion from reference video), Inpaint (remove/replace objects with masks), and Cut (trim video segments). Access tools from the editor toolbar or the AI menu.",
+        "mediaHint": "[Screenshot: AI tools dropdown menu showing Upscale, Motion Control, Inpaint, and Cut options]",
+        "tip1": "Upscale AI-generated videos for professional quality",
+        "tip2": "Use Motion Control for dance and gesture animation",
+        "tip3": "Inpaint to remove watermarks or unwanted objects"
+      },
+      "compoundMulticam": {
+        "title": "Compound, Nested & Multicam",
+        "description": "Group multiple clips into compound clips for organized editing. Nest timelines within timelines for complex compositions. Multicam editing supports up to 9 camera angles with real-time switching — monitor all angles simultaneously and cut between them live during playback.",
+        "mediaHint": "[Screenshot: Multicam monitor showing 4 camera angles with live switching controls]",
+        "tip1": "Use compound clips to organize complex sequences",
+        "tip2": "Double-click compound clips to edit their inner contents",
+        "tip3": "Sync multicam angles by audio waveform or timecode"
+      },
+      "chromakeyProxy": {
+        "title": "Chroma Key & Proxy",
+        "description": "Real-time chroma key (green screen) compositing using Web Worker-based pixel processing. Pick the key color, adjust tolerance and edge softness, and enable spill suppression for clean composites. Proxy workflow generates lower-resolution copies for smooth editing of high-res footage.",
+        "mediaHint": "[Screenshot: Chroma key controls with color picker, tolerance slider, and live preview]",
+        "tip1": "Use evenly lit green/blue screens for best keying results",
+        "tip2": "Adjust edge softness to reduce fringing artifacts",
+        "tip3": "Enable proxy editing for smooth playback of 4K+ footage"
+      },
+      "transcript": {
+        "title": "Text-Based Editing",
+        "description": "Edit video by editing text. The transcript panel displays speech-to-text output synchronized with the timeline. Select text ranges to select corresponding video segments. Delete text to remove video sections. A revolutionary way to edit talking-head and interview content.",
+        "mediaHint": "[Screenshot: Transcript panel with text selection highlighting corresponding timeline clips]",
+        "tip1": "Click words in the transcript to jump to that point in the video",
+        "tip2": "Select and delete text to remove corresponding video sections",
+        "tip3": "Use transcript search to find specific moments quickly"
+      },
+      "exportSettings": {
+        "title": "Export Settings",
+        "description": "Configure video export with format (MP4/H.264, WebM), resolution (720p to 4K), frame rate (24/30/60fps), quality presets, and subtitle embedding options. Choose between burn-in subtitles or separate SRT files. Preview estimated file size before rendering.",
+        "mediaHint": "[Screenshot: Export dialog with format, resolution, quality, and subtitle options]",
+        "tip1": "Use H.264 MP4 for maximum compatibility",
+        "tip2": "Lower resolution exports are faster for draft reviews",
+        "tip3": "Burn in subtitles for social media, use SRT for YouTube"
+      },
+      "ffmpegRender": {
+        "title": "FFmpeg Local Rendering",
+        "description": "Render the final video locally using FFmpeg integrated into the desktop application. The rendering pipeline composites all tracks, applies effects, encodes audio/video, and produces the final output file. Monitor rendering progress with a real-time progress bar and preview.",
+        "mediaHint": "[Screenshot: FFmpeg rendering progress with percentage, estimated time, and preview frame]",
+        "tip1": "Close other applications during rendering for best performance",
+        "tip2": "Preview a short section before rendering the full video",
+        "tip3": "Hardware acceleration is used automatically when available"
+      }
+    },
+    "videoSection": {
+      "overview": {
+        "title": "Video Features Overview",
+        "description": "Create stunning AI-generated videos with Iris. Generate videos from text descriptions, animate still images, apply motion control from reference videos, and enhance with professional upscaling. All videos are processed in the cloud and saved to your secure storage.",
+        "mediaHint": "[Video: Showcase reel of various AI-generated videos demonstrating different styles and motions]",
+        "tip1": "Video generation typically takes 2-5 minutes",
+        "tip2": "Higher quality modes produce better but slower results",
+        "tip3": "Videos are automatically saved when complete"
+      },
+      "generation": {
+        "title": "Video Generation Options",
+        "description": "Configure your video generation with control over duration, aspect ratio, and quality. Choose landscape (16:9), portrait (9:16), or square (1:1) formats. Set duration from 5 to 10 seconds depending on the model. Describe motion and camera movement in your prompt for dynamic results.",
+        "mediaHint": "[Screenshot: Video prompt panel showing duration selector, aspect ratio picker, and model options]",
+        "tip1": "Keep prompts focused on motion and action",
+        "tip2": "Describe camera movement explicitly if desired",
+        "tip3": "Shorter durations often produce more coherent results"
+      },
+      "providers": {
+        "title": "Video Providers",
+        "description": "Choose from leading AI video providers. Runway Gen-3 offers cinematic quality, Kling v2.5/v2.6 excels at motion and offers Motion Control, Luma Ray 2 provides smooth animations, Google Veo 2 delivers high-fidelity output, and MiniMax offers fast processing with good quality.",
+        "mediaHint": "[Grid: Same prompt generated by different providers showing unique motion characteristics]",
+        "tip1": "Kling offers the best motion quality and Motion Control",
+        "tip2": "Runway excels at cinematic, atmospheric scenes",
+        "tip3": "MiniMax is fastest for quick iterations"
+      },
+      "motionControl": {
+        "title": "Motion Control",
+        "description": "Transfer motion from a reference video to your character or subject using Kling 2.6 Motion Control. Upload a dance video, gesture sequence, or any motion source, then apply it to an image. Choose between Standard and Pro quality modes. Character can come from an image (up to 10s) or video (up to 5s).",
+        "mediaHint": "[Video: Character from still image performing dance moves transferred from reference video]",
+        "tip1": "Use clear reference videos with distinct motion",
+        "tip2": "Pro mode offers higher quality at longer processing time",
+        "tip3": "Image orientation allows longer output videos"
+      },
+      "editing": {
+        "title": "Video Edit Modes",
+        "description": "Transform your videos with AI editing tools. Select any video to access edit modes: Motion Control to animate with reference motion, Inpaint to remove and replace objects with masks, Remove for seamless object removal, and Upscale to enhance resolution and frame rate.",
+        "mediaHint": "[Screenshot: Video edit mode selector showing Motion Control, Inpaint, Remove, and Upscale options]",
+        "tip1": "Select a video first to enable edit modes",
+        "tip2": "Video inpainting requires videos of at least 8 seconds",
+        "tip3": "Combine upscale with frame rate boost for smooth playback"
+      },
+      "upscale": {
+        "title": "Video Upscaling",
+        "description": "Enhance video resolution and smoothness using Topaz AI upscaling. Upgrade to 720p, 1080p, or 4K resolution. Boost frame rate to 24, 30, 48, or 60fps for smoother motion. Perfect for preparing AI-generated videos for professional use or large screen display.",
+        "mediaHint": "[Comparison: Side-by-side of original AI video vs 4K 60fps upscaled version]",
+        "tip1": "Higher resolution requires more processing time",
+        "tip2": "Frame rate interpolation smooths choppy AI motion",
+        "tip3": "Best results from videos without heavy compression"
+      }
+    }
+  },
+  "nodePalette": {
+    "title": "Node Types",
+    "searchPlaceholder": "Search nodes...",
+    "dragHint": "Drag nodes to canvas",
+    "tapHint": "Tap to add node",
+    "categories": {
+      "TRIGGER": "Triggers",
+      "GENERATOR": "Generators",
+      "ANALYZER": "Analyzers",
+      "EDITOR": "Editors",
+      "UTILITY": "Utilities",
+      "WEB": "Web",
+      "OUTPUT": "Outputs"
+    },
+    "nodes": {
+      "TRIGGER_MANUAL": "Manual Trigger",
+      "TRIGGER_SCHEDULE": "Schedule Trigger",
+      "TRIGGER_WEBHOOK": "Webhook Trigger",
+      "TRIGGER_EVENT": "Event Trigger",
+      "GEN_TEXT_TO_TEXT": "Text Generator",
+      "GEN_TEXT_TO_IMAGE": "Image Generator",
+      "GEN_IMAGE_TO_IMAGE": "Image to Image",
+      "GEN_TEXT_TO_VIDEO": "Text to Video",
+      "GEN_IMAGE_TO_VIDEO": "Image to Video",
+      "GEN_TEXT_TO_SPEECH": "Text to Speech",
+      "GEN_SPEECH_TO_TEXT": "Speech to Text",
+      "ANALYZE_IMAGE": "Image Analyzer",
+      "ANALYZE_VIDEO": "Video Analyzer",
+      "ANALYZE_TEXT": "Text Analyzer",
+      "ANALYZE_AUDIO": "Audio Analyzer",
+      "ANALYZE_DOCUMENT": "Document Analyzer",
+      "EDIT_IMAGE_UPSCALE": "Image Upscale",
+      "EDIT_IMAGE_INPAINT": "Image Inpaint",
+      "EDIT_IMAGE_OUTPAINT": "Image Outpaint",
+      "EDIT_IMAGE_STYLE": "Style Transfer",
+      "EDIT_IMAGE_FACE_SWAP": "Face Swap",
+      "EDIT_IMAGE_BG_REMOVE": "Background Remove",
+      "EDIT_VIDEO_UPSCALE": "Video Upscale",
+      "EDIT_VIDEO_INPAINT": "Video Inpaint",
+      "EDIT_MOTION_CONTROL": "Motion Control",
+      "UTIL_DELAY": "Delay",
+      "UTIL_CONDITION": "Condition",
+      "UTIL_LOOP": "Loop",
+      "UTIL_MERGE": "Merge",
+      "UTIL_SPLIT": "Split",
+      "UTIL_TRANSFORM": "Transform",
+      "UTIL_HTTP_REQUEST": "HTTP Request",
+      "UTIL_SCRIPT": "Script",
+      "OUTPUT_STORAGE": "Save to Storage",
+      "OUTPUT_WEBHOOK": "Webhook Output"
+    }
+  },
+  "nodeConfig": {
+    "properties": "Properties",
+    "selectNode": "Select a node to view its properties",
+    "settings": "Settings",
+    "inputs": "Inputs",
+    "outputs": "Outputs",
+    "noSettings": "No settings for this node type",
+    "noInputs": "This node has no inputs",
+    "noOutputs": "This node has no outputs",
+    "renameNode": "Rename node",
+    "webhookUrl": "Webhook URL",
+    "generateWebhook": "Generate Webhook URL",
+    "generating": "Generating...",
+    "generateHint": "Generate a unique URL to trigger this workflow",
+    "loadingWebhook": "Loading webhook info...",
+    "regenerateConfirm": "This will invalidate the current webhook URL. Continue?",
+    "copyUrl": "Copy URL",
+    "regenerateUrl": "Regenerate URL",
+    "outputPort": "Output Port",
+    "variableName": "Variable Name",
+    "storageLocation": "Storage Location",
+    "rootFolder": "Root folder",
+    "terminalNode": "This is a terminal node. Results will be available in execution logs.",
+    "autoSaveHint": "Generated content is automatically saved to storage.",
+    "userInputHint": "User input will be passed to connected nodes as",
+    "staticInputHint": "Static input will be passed to connected nodes as",
+    "data": "data",
+    "storageOutput": "Input data will be saved to cloud storage. The storage URL will be available in execution results.",
+    "storageUrl": "Storage URL"
+  },
+  "headersEditor": {
+    "addHeader": "Add header",
+    "addPreset": "Common presets",
+    "keyPlaceholder": "Header name",
+    "valuePlaceholder": "Value",
+    "removeRow": "Remove header",
+    "enable": "Enable",
+    "disable": "Disable",
+    "empty": "No headers configured.",
+    "presets": {
+      "authBearer": "Authorization: Bearer …",
+      "authBasic": "Authorization: Basic …",
+      "contentJson": "Content-Type: application/json",
+      "contentForm": "Content-Type: application/x-www-form-urlencoded",
+      "contentMultipart": "Content-Type: multipart/form-data",
+      "acceptJson": "Accept: application/json",
+      "apiKey": "X-API-Key: …",
+      "userAgent": "User-Agent: …",
+      "cacheNoCache": "Cache-Control: no-cache"
+    }
+  },
+  "prompt": {
+    "imageRequired": "This model requires a reference image. Please attach an image.",
+    "imageToVideoStartFrameRequired": "Start frame is required for Image to Video mode.",
+    "imageToVideoPromptRequired": "Prompt is required for Image to Video mode.",
+    "create": "Create",
+    "edit": "Edit",
+    "version": "Version",
+    "prompt": "Prompt",
+    "promptPlaceholder": "Describe the {{type}} you want to create...",
+    "advancedOptions": "Advanced Options",
+    "negativePrompt": "Negative Prompt",
+    "negativePromptPlaceholder": "What to avoid in the generation...",
+    "storageLocation": "Storage Location",
+    "selectFolder": "Select folder...",
+    "generate": "Generate",
+    "generating": "Generating...",
+    "saveToStorage": "Save to Storage",
+    "saving": "Saving...",
+    "model": "Model",
+    "selectModel": "Select model",
+    "searchModels": "Search models...",
+    "noModelsFound": "No models found",
+    "aspectRatio": "Aspect Ratio",
+    "cameraAngle": "Camera Angle",
+    "cameraAngles": {
+      "FRONT": "Front",
+      "BACK": "Back",
+      "LEFT": "Left",
+      "RIGHT": "Right",
+      "TOP": "Top",
+      "BOTTOM": "Bottom",
+      "THREE_QUARTER_FRONT_LEFT": "3/4 FL",
+      "THREE_QUARTER_FRONT_RIGHT": "3/4 FR",
+      "THREE_QUARTER_BACK": "3/4 Back"
+    },
+    "duration": "Duration",
+    "modelSupports": "Selected model supports: {{durations}}",
+    "subjectPlaceholder": "Enter subject name...",
+    "referenceFiles": "Reference Files",
+    "attachReference": "Attach reference",
+    "uploadFromDevice": "Upload from Device",
+    "selectFromStorage": "Select from Storage",
+    "pasteFromClipboard": "Paste from Clipboard",
+    "postProcessing": "Post Processing",
+    "upscale": "Upscale",
+    "upscaleScale": "Scale",
+    "upscale4xNote": "4x runs upscale twice (costs 2x tokens)",
+    "upscaleResemblance": "Resemblance",
+    "upscaleDetail": "Detail",
+    "removeBg": "Remove BG",
+    "style": "Style",
+    "selectStyle": "Select style",
+    "searchStyles": "Search styles...",
+    "noStylesFound": "No styles found",
+    "clearStyle": "Clear",
+    "imageCount": "Image Count",
+    "selected": "selected",
+    "cameraAngleMultiHint": "Select multiple angles to generate variations",
+    "totalImages": "Total Images",
+    "images": "images",
+    "angles": "angles",
+    "deselect": "Deselect",
+    "advancedEditing": "Advanced Editing",
+    "subject": "Subject",
+    "uploadVideo": "Upload Video",
+    "estimatedCredits": "Estimated Credits",
+    "credits": "credits"
+  },
+  "styles": {
+    "categories": {
+      "all": "All",
+      "instagram": "Instagram",
+      "artistic": "Artistic",
+      "photography": "Photography",
+      "mood": "Mood",
+      "era": "Era",
+      "genre": "Genre",
+      "special": "Special",
+      "cultural": "Cultural"
+    }
+  },
+  "storage": {
+    "title": "Select Storage Location",
+    "home": "Home",
+    "noFolders": "No folders here",
+    "createHint": "Create a new folder to get started",
+    "newFolderPlaceholder": "New folder name",
+    "create": "Create",
+    "cancel": "Cancel",
+    "select": "Select",
+    "rootFolder": "Root folder",
+    "current": "Current",
+    "createNewFolder": "Create new folder",
+    "createFailed": "Failed to create folder"
+  },
+  "canvas": {
+    "zoomIn": "Zoom In",
+    "zoomOut": "Zoom Out",
+    "fitView": "Fit View",
+    "undo": "Undo (Ctrl+Z)",
+    "redo": "Redo (Ctrl+Shift+Z)",
+    "executing": "Executing...",
+    "executionComplete": "Execution complete",
+    "errorInNodes": "Error in {{count}} node(s)",
+    "completedCount": "{{completed}}/{{total}} completed",
+    "runningCount": "{{count}} running",
+    "close": "Close"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "retry": "Retry",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "close": "Close"
+  },
+  "versionChain": {
+    "title": "Version History",
+    "versions": "versions",
+    "past": "Past",
+    "current": "Now",
+    "future": "Later"
+  },
+  "selection": {
+    "select": "Select",
+    "selectAll": "Select All",
+    "deleteSelected": "Delete Selected",
+    "deselectAll": "Deselect All",
+    "deleteConfirmTitle": "Delete Assets",
+    "deleteConfirmMessage": "Are you sure you want to delete {{count}} asset(s)? This action cannot be undone.",
+    "deleteConfirmButton": "Delete",
+    "cancelButton": "Cancel"
+  },
+  "editModes": {
+    "none": "None",
+    "upscale": "Upscale",
+    "bgRemove": "Remove BG",
+    "inpaint": "Inpaint",
+    "remove": "Remove",
+    "outpaint": "Outpaint",
+    "subject": "Subject",
+    "angle": "Angle",
+    "motionControl": "Motion Control",
+    "deselect": "Deselect",
+    "loadingImage": "Loading image...",
+    "processing": "Processing...",
+    "brushSize": "Brush Size",
+    "outpaintHint": "Enter the direction and content to expand in the prompt",
+    "angleHint": "Hold and drag to change camera angle",
+    "rotation": "Rotation",
+    "tilt": "Tilt",
+    "zoom": "Zoom",
+    "shotCount": "Shot Count",
+    "bestAnglesHint": "Generates images from 12 optimal angles (front, back, sides, and various tilts).",
+    "tools": {
+      "move": "Move",
+      "select": "Select",
+      "brush": "Brush",
+      "eraser": "Eraser"
+    },
+    "detailEdit": "Detail Edit",
+    "settings": "Settings",
+    "prompt": "Prompt",
+    "negativePrompt": "Negative Prompt",
+    "placeholders": {
+      "inpaint": "Describe the content for the redraw area. If left empty, it will be generated based on the original image.",
+      "outpaint": "Describe the content for the expanded area.",
+      "subject": "Describe the subject's characteristics.",
+      "negative": "Describe what to avoid in the generation."
+    },
+    "confirm": "Confirm",
+    "video": {
+      "sourceVideo": "Source Video",
+      "mode": "Mode",
+      "standard": "Standard",
+      "pro": "Pro",
+      "orientation": "Orientation",
+      "image": "Image",
+      "video": "Video",
+      "keepSound": "Keep Sound",
+      "resolution": "Resolution",
+      "fps": "FPS",
+      "maskImage": "Mask Image",
+      "inpaintPrompt": "Inpaint Prompt",
+      "inpaintPromptPlaceholder": "Describe what should fill the masked area...",
+      "inpaintHint": "Upload a mask image where white areas will be replaced. The prompt describes what to generate in those areas.",
+      "inpaintHintDraw": "Draw on the video frame to mark areas you want to replace. Yellow areas will be filled with generated content.",
+      "removeHint": "Brush over objects you want to remove. Yellow areas will be removed and filled with background.",
+      "extractingFrame": "Extracting first frame...",
+      "loadErrorHint": "Please try with a different video format or check your connection.",
+      "imageOrientationLimit": "Image orientation is only available for videos under 10 seconds",
+      "orientationHelpImage": "Use image as character, extract motion from video (10s limit)",
+      "orientationHelpVideo": "Use video as character, apply image appearance",
+      "inpaintMinDurationTitle": "Video too short",
+      "inpaintMinDurationDesc": "Video inpaint requires videos of at least 8 seconds. Please use a longer video.",
+      "currentDuration": "Current duration",
+      "howToUse": "How to use",
+      "howItWorks": "How it works",
+      "howToUseDesc": "Combine a reference image with a motion source video to create a result video where your character performs the movements from the motion source.",
+      "result": "Result",
+      "decrypting": "Decrypting video...",
+      "generating": "Generating video..."
+    }
+  },
+  "motionControl": {
+    "generate": "Generate Motion Control Video",
+    "title": "Motion Control",
+    "description": "Transfer motion from reference videos to your characters"
+  },
+  "cut": {
+    "timeline": "Timeline",
+    "addSegment": "Add Segment",
+    "startTime": "Start Time",
+    "endTime": "End Time",
+    "totalDuration": "Total Output",
+    "exportMode": "Export Mode",
+    "merge": "Merge",
+    "individual": "Individual",
+    "mergeDescription": "Combine all segments into a single video",
+    "individualDescription": "Export each segment as a separate video",
+    "outputName": "Output Name (optional)",
+    "outputNamePlaceholder": "video-cut"
+  },
+  "cutVideo": {
+    "introDescription": "Trim and cut your videos with precision. Select multiple segments and export them as a single merged video or individual clips."
+  },
+  "inpaintVideo": {
+    "introDescription": "Remove and replace objects in your videos seamlessly. Draw a mask on the first frame and describe what should fill the area."
+  },
+  "upscaleVideo": {
+    "introDescription": "Enhance your video resolution up to 4K with AI-powered upscaling. Improve frame rate and clarity while preserving original quality."
+  },
+  "cropImage": {
+    "introDescription": "Precisely crop your images with flexible aspect ratios. Adjust the crop area to focus on the perfect composition."
+  },
+  "crop": {
+    "adjustArea": "Adjust crop area",
+    "info": "Crop Information",
+    "position": "Position",
+    "size": "Size",
+    "aspectRatio": "Aspect Ratio",
+    "hint": "Drag the corners or edges to adjust the crop area. Use the aspect ratio buttons to lock proportions.",
+    "reset": "Reset crop"
+  },
+  "modeSelection": {
+    "selectVideoForMode": "Select a video to apply",
+    "selectImageForMode": "Select an image to apply",
+    "mode": "mode"
+  },
+  "upload": {
+    "button": "Upload",
+    "uploading": "Uploading...",
+    "success": "{{count}} file(s) uploaded successfully",
+    "failed": "Failed to upload {{name}}",
+    "invalidType": "{{name}} is not a valid file type",
+    "fileTooLarge": "{{name}} exceeds the 50MB limit",
+    "dropHere": "Drop files here to upload"
+  },
+  "home": {
+    "description": "A single canvas for visual AI — image and video pipelines, batch jobs, and a library of presets honed for production work.",
+    "newWorkflow": "New workflow",
+    "exploreAllTools": "Explore all tools",
+    "seeAll": "See all",
+    "noLibraryItems": "No library items yet",
+    "tiles": {
+      "createImage": "Create Image",
+      "createImageCaption": "Generate from text or reference",
+      "createVideo": "Create Video",
+      "createVideoCaption": "Animate stills, text → video",
+      "motionControl": "Motion Control",
+      "motionControlCaption": "Transfer motion across characters",
+      "editImage": "Edit Image",
+      "editImageCaption": "Inpaint, upscale, retouch"
+    },
+    "featured": {
+      "subtitle": "Most powerful AI tools for creative professionals — curated and tested.",
+      "tools": {
+        "imageUpscale": "Image Upscale",
+        "imageUpscaleDesc": "Up to 4× with Topaz AI",
+        "fourPanel": "4-Panel Portrait",
+        "fourPanelDesc": "Generate 2×2 grids",
+        "chibiSticker": "Chibi Sticker Set",
+        "chibiStickerDesc": "3D Pixar-style chibi",
+        "camcorder": "Camcorder Collage",
+        "camcorderDesc": "Y2K VHS 6-panel",
+        "cameraAngles": "Camera Angles",
+        "cameraAnglesDesc": "Consistent character views",
+        "videoInpaint": "Video Inpaint",
+        "videoInpaintDesc": "Remove and replace objects"
+      }
+    },
+    "communitySubtitle": "A curated gallery of work made on Iris — fork, remix, or take notes.",
+    "automation": {
+      "description": "Chain AI operations into visual workflows. Process batches, trigger by schedule or webhook, and automate repetitive creative tasks.",
+      "createWorkflow": "Create Workflow",
+      "browseTemplates": "Browse Templates",
+      "batchProcessing": "Batch Processing"
+    },
+    "badges": {
+      "new": "NEW",
+      "pro": "PRO",
+      "popular": "POPULAR"
+    }
+  },
+  "landing": {
+    "hero": {
+      "badge": "AI-Powered Creative Suite",
+      "title1": "Automate Your Imagination",
+      "title2": "",
+      "subtitle": "Generate, edit, and transform images and videos using the most advanced AI models. Build powerful workflows and automate your creative process.",
+      "ctaWorkflows": "Start with Workflows",
+      "ctaGuide": "View Guide"
+    },
+    "providers": {
+      "title": "Powered by leading AI providers"
+    },
+    "demo": {
+      "title": "Try the Workflow Builder",
+      "subtitle": "Drag nodes, connect handles, and explore how workflows work"
+    },
+    "features": {
+      "title": "Everything You Need for AI Creation",
+      "subtitle": "From simple image generation to complex multi-step workflows, Iris provides all the tools you need.",
+      "explore": "Explore",
+      "workflow": {
+        "title": "Visual Workflow Builder",
+        "description": "Drag-and-drop workflow editor for complex AI pipelines. Chain multiple operations together seamlessly. Create, save, and share your custom workflows with the team."
+      },
+      "imageEditing": {
+        "title": "Advanced Image Editing",
+        "description": "Inpainting, outpainting, style transfer, upscaling, and background removal."
+      },
+      "videoGeneration": {
+        "title": "Video Generation",
+        "description": "Text-to-video, image-to-video, motion control, and video upscaling."
+      },
+      "templates": {
+        "title": "Templates",
+        "description": "Pre-built workflow templates for common use cases. Get started quickly."
+      },
+      "batch": {
+        "title": "Batch Processing",
+        "description": "Generate multiple variations at once. Process entire folders."
+      }
+    },
+    "capabilities": {
+      "title": "Powerful Workflow Nodes",
+      "subtitle": "Build complex AI pipelines with 35+ specialized nodes",
+      "categories": {
+        "triggers": "Triggers",
+        "generators": "Generators",
+        "analyzers": "Analyzers",
+        "editors": "Editors",
+        "utilities": "Utilities",
+        "outputs": "Outputs"
+      },
+      "nodes": {
+        "manualTrigger": "Manual Trigger",
+        "scheduleTrigger": "Schedule Trigger",
+        "webhookTrigger": "Webhook Trigger",
+        "textGenerator": "Text Generator",
+        "textToImage": "Text to Image",
+        "imageToImage": "Image to Image",
+        "textToVideo": "Text to Video",
+        "imageToVideo": "Image to Video",
+        "textToSpeech": "Text to Speech",
+        "speechToText": "Speech to Text",
+        "textToMusic": "Text to Music",
+        "imageAnalyzer": "Image Analyzer",
+        "videoAnalyzer": "Video Analyzer",
+        "textAnalyzer": "Text Analyzer",
+        "audioAnalyzer": "Audio Analyzer",
+        "documentAnalyzer": "Document Analyzer",
+        "imageUpscale": "Image Upscale",
+        "inpainting": "Inpainting",
+        "outpainting": "Outpainting",
+        "styleTransfer": "Style Transfer",
+        "faceSwap": "Face Swap",
+        "backgroundRemove": "Background Remove",
+        "videoUpscale": "Video Upscale",
+        "videoInpaint": "Video Inpaint",
+        "motionControl": "Motion Control",
+        "delay": "Delay",
+        "condition": "Condition",
+        "loop": "Loop",
+        "merge": "Merge",
+        "split": "Split",
+        "transform": "Transform",
+        "httpRequest": "HTTP Request",
+        "script": "Script",
+        "saveToStorage": "Save to Storage",
+        "webhookOutput": "Webhook Output"
+      }
+    },
+    "stats": {
+      "badge": "Unified API Access",
+      "title": "All Major AI Providers in One Place",
+      "subtitle": "Access multiple AI providers through a single, unified interface.",
+      "providers": "AI Providers",
+      "models": "AI Models",
+      "storage": "Encrypted Storage"
+    },
+    "testimonials": {
+      "title": "Loved by Creators",
+      "subtitle": "See what our users are saying"
+    },
+    "benefits": {
+      "title": "Why Choose Iris?",
+      "items": {
+        "workflow": "Visual workflow builder - no coding required",
+        "storage": "Secure encrypted storage for all your assets",
+        "history": "Version history and non-destructive editing",
+        "batch": "Batch processing for high-volume workflows",
+        "collab": "Real-time collaboration (coming soon)"
+      },
+      "preview": "Feature Preview"
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "subtitle": "Have questions about Iris?",
+      "items": {
+        "failedProcessing": {
+          "question": "Am I charged for failed processing?",
+          "answer": "No, there is absolutely no usage deduction for failed processing. Tokens are only deducted for successfully completed operations."
+        },
+        "tokenPricing": {
+          "question": "What is token-based pricing?",
+          "answer": "Token-based pricing means you pay only for the AI processing you actually use. Tokens are units that measure the amount of text, images, or video processed. This gives you more flexibility compared to fixed usage limits - use more when you need it, save when you don't."
+        },
+        "switchPlans": {
+          "question": "Can I switch plans at any time?",
+          "answer": "Yes, you can upgrade or downgrade your plan at any time. When upgrading, you get immediate access to new features and additional tokens. When downgrading, changes take effect at the start of your next billing cycle."
+        },
+        "tokenRollover": {
+          "question": "Do unused tokens roll over?",
+          "answer": "Unused tokens do not roll over. Your token balance resets at the beginning of each billing cycle."
+        },
+        "paymentMethods": {
+          "question": "What payment methods do you accept?",
+          "answer": "We accept all major credit cards through Stripe. For enterprise customers, we also offer invoice-based billing."
+        }
+      }
+    },
+    "discord": {
+      "title": "Join Our Community",
+      "description": "Connect with fellow creators, get help, share your work, and stay updated with the latest features and improvements.",
+      "available": "24/7 Support Available",
+      "bugsAndIdeas": "Report Bugs & Share Ideas",
+      "joinButton": "Join Discord"
+    },
+    "cta": {
+      "title": "Ready to Create?",
+      "subtitle": "Start generating amazing images and videos with AI. No credit card required to get started.",
+      "button": "Get Started Free"
+    },
+    "explore": {
+      "topPicks": "Top Picks",
+      "categories": {
+        "all": "All",
+        "video": "Video",
+        "image": "Image",
+        "workflow": "Workflow",
+        "file": "Files"
+      },
+      "video": {
+        "title": "Video Features",
+        "subtitle": "Transform and enhance your videos with AI",
+        "motionControl": {
+          "title": "Motion Control",
+          "description": "Transfer motion from reference videos to your characters with Kling 2.6"
+        },
+        "inpaint": {
+          "title": "Video Inpaint",
+          "description": "Remove and replace objects in videos seamlessly with AI"
+        },
+        "remove": {
+          "title": "Object Removal",
+          "description": "Remove unwanted objects from videos automatically"
+        },
+        "upscale": {
+          "title": "Video Upscale",
+          "description": "Enhance video resolution up to 4K with Topaz AI"
+        },
+        "cut": {
+          "title": "Video Cut",
+          "description": "Trim and edit video clips with precision"
+        }
+      },
+      "image": {
+        "title": "Image Features",
+        "subtitle": "Create and edit stunning images with AI",
+        "upscale": {
+          "title": "Image Upscale",
+          "description": "Enhance image resolution by 2x or 4x with AI detail generation"
+        },
+        "bgRemove": {
+          "title": "Background Remove",
+          "description": "Instantly remove backgrounds with AI precision"
+        },
+        "crop": {
+          "title": "Smart Crop",
+          "description": "Crop and reframe images with intelligent composition"
+        },
+        "inpaint": {
+          "title": "Image Inpaint",
+          "description": "Edit specific regions of images using masks and prompts"
+        },
+        "outpaint": {
+          "title": "Outpaint",
+          "description": "Extend images beyond their original boundaries"
+        },
+        "subject": {
+          "title": "Subject Mode",
+          "description": "Extract and place subjects in new scenes"
+        },
+        "angle": {
+          "title": "Camera Angle",
+          "description": "Generate consistent images from multiple camera angles"
+        }
+      },
+      "workflow": {
+        "title": "Workflow Features",
+        "subtitle": "Automate your creative process",
+        "create": {
+          "title": "Visual Workflow Builder",
+          "description": "Drag-and-drop editor for complex AI pipelines"
+        },
+        "batch": {
+          "title": "Batch Processing",
+          "description": "Process multiple inputs with Excel/CSV files"
+        },
+        "templates": {
+          "title": "Workflow Templates",
+          "description": "Pre-built workflows for common use cases"
+        }
+      },
+      "file": {
+        "title": "File Management",
+        "subtitle": "Organize and version your assets",
+        "version": {
+          "title": "Version History",
+          "description": "Track all edits with non-destructive version control"
+        },
+        "cloud": {
+          "title": "Cloud Storage",
+          "description": "Secure encrypted storage for all your assets"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "header": {
+    "title": "ビデオエディター",
+    "closeEditor": "エディターを閉じる",
+    "saveProject": "プロジェクトを保存 (Ctrl+S)",
+    "exportVideo": "動画をエクスポート",
+    "keyboardShortcuts": "キーボードショートカット",
+    "downloadVideo": "動画をダウンロード",
+    "serverRequired": "サーバー接続が必要です",
+    "autoCaptions": "自動字幕 (AI)",
+    "autocut": "AI自動カット（ハイライト）",
+    "autoReframe": "AI自動リフレーム",
+    "save": "保存",
+    "export": "エクスポート"
+  },
+  "exportModal": {
+    "ffmpegNotFound": "FFmpegが見つかりません",
+    "ffmpegRequired": "ローカル動画エクスポートにはFFmpegが必要です。",
+    "ffmpegDownload": "FFmpegをダウンロード →",
+    "ffmpegOutdated": "FFmpegのバージョンが古いです",
+    "ffmpegUpgradeMessage": "一部のトランジション効果にはFFmpeg 4.3以上が必要です。最新バージョンにアップグレードしてください。",
+    "ffmpegPreparing": "動画エンコーダーを準備中...",
+    "ffmpegDownloading": "動画エンコーダーをダウンロード中...",
+    "ffmpegSetupFailed": "動画エンコーダーをセットアップできませんでした"
+  },
+  "lumetri": {
+    "colorMatchAnalyzing": "Color Match: AI解析中..."
+  },
+  "tools": {
+    "upscale": {
+      "label": "アップスケール",
+      "description": "解像度を向上"
+    },
+    "motionControl": {
+      "label": "モーションコントロール",
+      "description": "モーションを転送"
+    },
+    "inpaint": {
+      "label": "インペイント",
+      "description": "オブジェクトの除去/置換"
+    },
+    "cut": {
+      "label": "カット",
+      "description": "動画セグメントをカット"
+    }
+  },
+  "autoCaptions": {
+    "title": "自動字幕",
+    "description": "AI音声認識を使用して音声から自動的に字幕を生成します。",
+    "spokenLanguage": "話し言葉の言語",
+    "model": "モデル",
+    "removeFillerWords": "フィラーワードを除去",
+    "removeFillerWordsHint": "「えーと」「あの」「そのー」などのフィラーワードを自動的に除去します",
+    "generateCaptions": "字幕を生成",
+    "generating": "生成中...",
+    "done": "完了！",
+    "captionsAdded": "タイムラインに字幕を追加しました！",
+    "fillerRemoved": "フィラーワードを{{count}}個除去しました",
+    "errorNoSpeech": "字幕が生成されませんでした。動画に音声がないか、言語が一致しない可能性があります。",
+    "errorFailed": "字幕の生成に失敗しました。接続状態を確認してもう一度お試しください。",
+    "tokens": "クレジット",
+    "cancel": "キャンセル",
+    "models": {
+      "gpt4oMiniTranscribe": {
+        "label": "GPT-4o Mini Transcribe",
+        "description": "高速・低コスト — Whisperより優れています"
+      },
+      "gpt4oTranscribe": {
+        "label": "GPT-4o Transcribe",
+        "description": "最高の精度、優れた多言語サポート"
+      },
+      "whisper1": {
+        "label": "Whisper（レガシー）",
+        "description": "標準モデル"
+      }
+    }
+  },
+  "undo": "元に戻す (Ctrl+Z)",
+  "redo": "やり直す (Ctrl+Shift+Z)"
+}

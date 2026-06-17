@@ -1,0 +1,103 @@
+{
+  "file": {
+    "label": "ファイル",
+    "newProject": "新規プロジェクト...",
+    "openProject": "プロジェクトを開く...",
+    "saveProject": "プロジェクトを保存",
+    "saveProjectAs": "名前を付けて保存...",
+    "exportVideo": "動画をエクスポート...",
+    "downloadOriginal": "オリジナルをダウンロード",
+    "backToVideos": "動画一覧に戻る",
+    "goBack": "戻る"
+  },
+  "edit": {
+    "label": "編集",
+    "undo": "元に戻す",
+    "redo": "やり直す",
+    "cut": "カット",
+    "copy": "コピー",
+    "paste": "ペースト",
+    "duplicate": "複製",
+    "selectAll": "すべて選択",
+    "deleteSelected": "選択を削除",
+    "rippleDelete": "リップル削除"
+  },
+  "view": {
+    "label": "表示",
+    "zoomIn": "ズームイン",
+    "zoomOut": "ズームアウト",
+    "snapToGrid": "グリッドにスナップ",
+    "showWaveforms": "波形を表示"
+  },
+  "subtitles": {
+    "label": "字幕",
+    "generateAutoCaptions": "自動字幕を生成...",
+    "importSubtitles": "字幕をインポート...",
+    "exportSrt": "SRTとしてエクスポート...",
+    "exportVtt": "VTTとしてエクスポート..."
+  },
+  "ai": {
+    "label": "AI",
+    "silenceRemoval": "無音区間の削除..."
+  },
+  "silenceRemovalModal": {
+    "title": "無音区間の削除",
+    "description": "動画の無音区間を自動的に検出して削除します。処理はローカルで行われます。",
+    "modeAuto": "自動（推奨）",
+    "modeManual": "手動",
+    "autoDescription": "動画の音量を解析して、ソースに合わせた無音しきい値を自動で決定します。小声の動画でも適切に動作します。",
+    "advancedToggle": "詳細オプション",
+    "analyzing": "音量を解析中...",
+    "autoThresholdInfo": "自動しきい値: {{value}} dB (平均 {{mean}} dB)",
+    "thresholdLabel": "無音判定デシベル: {{value}} dB",
+    "thresholdStrict": "-60 dB (厳格)",
+    "thresholdLenient": "-10 dB (寛容)",
+    "minDurationLabel": "最小無音時間: {{value}}秒",
+    "minDurationMin": "0.1秒",
+    "minDurationMax": "5.0秒",
+    "paddingLabel": "パディング (非無音区間の前後余白): {{value}}ms",
+    "paddingMin": "0ms",
+    "paddingMax": "500ms",
+    "merging": "メディアを結合中...",
+    "detecting": "無音区間を検出中...",
+    "cancel": "キャンセル",
+    "confirm": "確認",
+    "mergeRequiredTitle": "メディアの結合が必要",
+    "mergeMessageMultiClip": "現在のタイムラインに複数の動画クリップがあります。無音検出のため、すべてのクリップを1つの動画に結合します。新しい動画が作成されます。",
+    "mergeMessageAdditionalTracks": "プロジェクトに追加されたアセット(オーディオ、字幕など)があります。無音検出時にすべてのトラックが1つの動画に結合されます。",
+    "detectedCount": "{{count}}個の無音区間を検出",
+    "statOriginal": "元の長さ",
+    "statSilence": "無音合計",
+    "statEstimated": "予想結果",
+    "removing": "無音区間を削除中... {{progress}}%",
+    "successMessage": "無音区間が削除された動画がメディアプールに追加されました。",
+    "detectButton": "無音検出",
+    "detectingButton": "検出中...",
+    "mergingButton": "結合中...",
+    "removeButton": "無音削除",
+    "doneButton": "完了",
+    "errors": {
+      "desktopRequired": "無音検出にはデスクトップアプリが必要です",
+      "desktopRequiredMerge": "メディア処理にはデスクトップアプリが必要です",
+      "desktopRequiredRemove": "デスクトップアプリが必要です",
+      "couldNotResolve": "動画ファイルのパスを解決できません",
+      "noInputFile": "入力ファイルがありません",
+      "noSegments": "無音区間が検出されませんでした。しきい値を下げるか、最小時間を短くしてください。",
+      "detectFailed": "無音の検出に失敗しました",
+      "analyzeFailed": "オーディオの解析に失敗しました",
+      "mergeFailedPrefix": "結合失敗: {{message}}",
+      "mergeFailedUnknown": "不明なエラー",
+      "mergeFailed": "メディアの結合に失敗しました",
+      "removeFailed": "無音の削除に失敗しました",
+      "addToPoolFailed": "処理済み動画をメディアプールに追加できませんでした"
+    },
+    "outputNameSuffix": "無音削除済み"
+  },
+  "tools": {
+    "label": "ツール",
+    "upscale": "アップスケール",
+    "motionControl": "モーションコントロール",
+    "inpaint": "インペイント",
+    "cut": "カット"
+  }
+}

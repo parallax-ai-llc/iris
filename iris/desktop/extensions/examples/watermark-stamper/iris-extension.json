@@ -1,0 +1,41 @@
+{
+  "id": "iris-official.watermark-stamper",
+  "name": "watermark-stamper",
+  "version": "1.0.0",
+  "engineVersion": "^1.0.0",
+  "main": "./dist/index.js",
+  "displayName": "Watermark Stamper",
+  "description": "Add customizable text watermarks to images with position and opacity controls",
+  "publisher": "iris-official",
+  "activationEvents": [
+    "onCommand:iris-official.watermark-stamper.apply",
+    "onCommand:iris-official.watermark-stamper.configure"
+  ],
+  "contributes": {
+    "commands": [
+      { "command": "iris-official.watermark-stamper.apply", "title": "Apply Watermark", "icon": "stamp" },
+      { "command": "iris-official.watermark-stamper.configure", "title": "Configure Watermark", "icon": "settings" }
+    ],
+    "settings": [
+      {
+        "id": "iris-official.watermark-stamper.text",
+        "type": "string",
+        "title": "Watermark Text",
+        "description": "Default watermark text to stamp on images",
+        "default": "IRIS"
+      },
+      {
+        "id": "iris-official.watermark-stamper.position",
+        "type": "enum",
+        "title": "Watermark Position",
+        "description": "Where to place the watermark on the image",
+        "default": "bottom-right",
+        "enum": ["bottom-right", "bottom-left", "center", "top-right"]
+      }
+    ],
+    "keybindings": [
+      { "command": "iris-official.watermark-stamper.apply", "key": "ctrl+shift+w" }
+    ]
+  },
+  "permissions": ["commands:register", "image:read", "image:write", "ui:panel"]
+}

@@ -1,0 +1,72 @@
+{
+  "generate": {
+    "title": "Generate Image",
+    "prompt": "Prompt",
+    "promptPlaceholder": "Describe the image you want to create...",
+    "promptHint": "Press Ctrl+Enter to generate",
+    "negativePrompt": "Negative Prompt",
+    "negativePromptPlaceholder": "What to avoid in the image...",
+    "model": "Model",
+    "selectModel": "Select a model",
+    "aspectRatio": "Aspect Ratio",
+    "img2img": "Image-to-Image",
+    "active": "Active",
+    "removeReference": "Remove reference image",
+    "selectFromLibrary": "Select from Library",
+    "uploadFromComputer": "Upload from Computer",
+    "pasteFromClipboard": "Paste from Clipboard",
+    "imageStrength": "Image Strength",
+    "imageStrengthHint": "Higher = more original image influence",
+    "estimatedTokens": "Estimated credits",
+    "generating": "Generating...",
+    "serverRequired": "Server connection required"
+  },
+  "gallery": {
+    "title": "Image Gallery",
+    "upload": "Upload",
+    "open": "Open",
+    "searchPlaceholder": "Search images...",
+    "noResults": "No results found",
+    "noResultsHint": "Try adjusting your search or filter to find what you're looking for.",
+    "clearFilters": "Clear filters",
+    "selectForTool": "Select an image for",
+    "generationFailed": "Generation Failed",
+    "processing": "Memproses...",
+    "referenceBadge": "Referensi",
+    "emptyTitle": "Belum ada gambar",
+    "emptyHint": "Hasilkan gambar pertama Anda menggunakan panel di sebelah kiri, atau unggah gambar yang sudah ada.",
+    "tooltipDownload": "Unduh",
+    "tooltipDelete": "Hapus",
+    "tooltipUseAsReference": "Gunakan sebagai referensi (Shift+Click)"
+  },
+  "reference": {
+    "title": "Select Reference Image",
+    "description": "Choose an image from your library to use as reference"
+  },
+  "delete": {
+    "title": "Delete Selected Images",
+    "message": "Are you sure you want to delete {{count}} selected image(s)? This action cannot be undone.",
+    "confirm": "Delete"
+  },
+  "filter": {
+    "all": "Semua Gambar",
+    "generated": "Dihasilkan",
+    "uploaded": "Diunggah",
+    "edited": "Diedit"
+  },
+  "toasts": {
+    "clipboardAttached": "Gambar dilampirkan dari clipboard",
+    "noClipboardImage": "Tidak ada gambar ditemukan di clipboard",
+    "clipboardDenied": "Izin clipboard ditolak. Gunakan Ctrl+V sebagai gantinya.",
+    "clipboardReadFailed": "Gagal membaca clipboard",
+    "attachRefFailed": "Gagal melampirkan gambar referensi",
+    "uploadOk": "Gambar berhasil diunggah",
+    "uploadFailed": "Gagal mengunggah gambar",
+    "uploadFileFailed": "Gagal mengunggah file",
+    "readFileFailed": "Gagal membaca file",
+    "openFileFailed": "Gagal membuka file: {{error}}",
+    "psdUrlMissing": "URL file PSD tidak tersedia",
+    "psdOpened": "{{name}} dibuka dengan {{count}} layer",
+    "psdOpenFailed": "Gagal membuka file PSD"
+  }
+}

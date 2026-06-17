@@ -1,0 +1,32 @@
+{
+  "id": "iris-official.prompt-library",
+  "name": "prompt-library",
+  "version": "1.0.0",
+  "engineVersion": "^1.0.0",
+  "main": "./dist/index.js",
+  "displayName": "Prompt Library",
+  "description": "Save, organize, and quickly insert your favorite AI prompts",
+  "publisher": "iris-official",
+  "activationEvents": ["onStartup"],
+  "contributes": {
+    "commands": [
+      { "command": "iris-official.prompt-library.open", "title": "Open Prompt Library", "icon": "book-open" },
+      { "command": "iris-official.prompt-library.add", "title": "Add New Prompt", "icon": "plus" },
+      { "command": "iris-official.prompt-library.search", "title": "Search Prompts", "icon": "search" }
+    ],
+    "settings": [
+      {
+        "id": "iris-official.prompt-library.default-category",
+        "type": "enum",
+        "title": "Default Category",
+        "description": "Default category when adding new prompts",
+        "default": "image-gen",
+        "enum": ["image-gen", "video-gen", "editing", "style"]
+      }
+    ],
+    "keybindings": [
+      { "command": "iris-official.prompt-library.open", "key": "ctrl+shift+l" }
+    ]
+  },
+  "permissions": ["commands:register", "ui:panel", "clipboard"]
+}

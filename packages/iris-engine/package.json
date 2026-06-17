@@ -1,0 +1,48 @@
+{
+  "name": "iris-engine",
+  "version": "0.0.0",
+  "private": true,
+  "license": "SEE LICENSE IN LICENSE.md",
+  "description": "Server-independent execution engine for Iris automation workflows. Runs node graphs against pluggable host ports (storage, secrets, usage, persistence) so the same engine powers the Parallax cloud, the open-source local web app, and the desktop app.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "LICENSE.md",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@mozilla/readability": "^0.6.0",
+    "dayjs": "^1.11.21",
+    "google-auth-library": "^9.14.2",
+    "iris-nodes": "workspace:*",
+    "jsdom": "^28.1.0",
+    "jsonpath-plus": "^10.4.0",
+    "mammoth": "^1.8.0",
+    "pdf-parse": "^2.1.7",
+    "sharp": "^0.34.5",
+    "turndown": "^7.2.4",
+    "youtube-transcript": "^1.3.1"
+  },
+  "devDependencies": {
+    "@types/jsdom": "^28.0.3",
+    "@types/turndown": "^5.0.6",
+    "typescript": "^5.4.0",
+    "rimraf": "^5.0.0"
+  }
+}

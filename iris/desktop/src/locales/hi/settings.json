@@ -1,0 +1,56 @@
+{
+  "title": "सेटिंग्स",
+  "sections": {
+    "account": "खाता",
+    "storage": "स्टोरेज",
+    "notifications": "सूचनाएं",
+    "keyboard": "कीबोर्ड शॉर्टकट",
+    "about": "के बारे में",
+    "language": "भाषा"
+  },
+  "account": {
+    "notLoggedIn": "लॉग इन नहीं किया है"
+  },
+  "storage": {
+    "defaultSaveLocation": "डिफ़ॉल्ट सहेजने का स्थान",
+    "noFolderSelected": "कोई फ़ोल्डर चयनित नहीं - फ़ाइलें सिस्टम डिफ़ॉल्ट का उपयोग करेंगी",
+    "cacheSize": "कैश आकार",
+    "cacheSizeDescription": "अस्थायी फ़ाइलें और थंबनेल",
+    "cacheCleared": "कैश सफलतापूर्वक साफ़ हो गया",
+    "cacheClearFailed": "कैश साफ़ करने में विफल",
+    "saveLocationUpdated": "सहेजने का स्थान अपडेट हो गया",
+    "desktopOnly": "यह सुविधा केवल डेस्कटॉप ऐप में उपलब्ध है"
+  },
+  "notifications": {
+    "generationComplete": "जनरेशन पूर्ण",
+    "generationCompleteDesc": "जब छवि या वीडियो जनरेशन पूरा हो जाए तो सूचित करें",
+    "workflowErrors": "वर्कफ़्लो त्रुटियां",
+    "workflowErrorsDesc": "जब कोई वर्कफ़्लो विफल हो या त्रुटि का सामना करे तो सूचित करें",
+    "updates": "अपडेट सूचनाएं",
+    "updatesDesc": "जब कोई नया संस्करण उपलब्ध हो तो सूचित करें"
+  },
+  "keyboard": {
+    "newGeneration": "नया जनरेशन",
+    "saveDownload": "सहेजें/डाउनलोड करें",
+    "openSettings": "सेटिंग्स खोलें",
+    "closeModal": "मोडल बंद करें",
+    "navigateGallery": "गैलरी नेविगेट करें"
+  },
+  "about": {
+    "irisDesktop": "Iris Desktop",
+    "version": "संस्करण {{version}}",
+    "documentation": "दस्तावेज़",
+    "documentationDesc": "Iris Desktop का उपयोग कैसे करें जानें",
+    "privacyPolicy": "गोपनीयता नीति",
+    "privacyPolicyDesc": "हम आपके डेटा को कैसे संभालते हैं",
+    "termsOfService": "सेवा की शर्तें",
+    "termsDesc": "उपयोग की शर्तें और नियम",
+    "checkUpdates": "अपडेट देखें",
+    "latestVersion": "आप नवीनतम संस्करण पर हैं",
+    "updateCheckFailed": "अपडेट जांचने में विफल"
+  },
+  "footer": {
+    "madeBy": "Parallax AI द्वारा देखभाल के साथ बनाया गया",
+    "copyright": "© 2024 Parallax AI. सर्वाधिकार सुरक्षित।"
+  }
+}

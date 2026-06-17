@@ -1,0 +1,74 @@
+{
+  "generate": {
+    "title": "Generate Video",
+    "prompt": "Prompt",
+    "promptPlaceholder": "Describe the video you want to create...",
+    "promptHint": "Press Ctrl+Enter to generate",
+    "negativePrompt": "Negative Prompt",
+    "negativePromptPlaceholder": "What to avoid in the video...",
+    "model": "Model",
+    "selectModel": "Select a model",
+    "loadingModels": "Loading models...",
+    "aspectRatio": "Aspect Ratio",
+    "notSupported": "Not supported by this model",
+    "duration": "Duration",
+    "img2vid": "Image to Video",
+    "active": "Active",
+    "removeReference": "Remove reference image",
+    "selectFromLibrary": "Select from Library",
+    "uploadFromComputer": "Upload from Computer",
+    "pasteFromClipboard": "Paste from Clipboard",
+    "firstFrameHint": "The first frame will be based on this image",
+    "estimatedTokens": "Estimated credits",
+    "generating": "Generating...",
+    "serverRequired": "Server connection required",
+    "generatingProgress": "Gerando vídeo...",
+    "optional": "opcional"
+  },
+  "gallery": {
+    "title": "Video Gallery",
+    "upload": "Upload",
+    "open": "Open",
+    "searchPlaceholder": "Search videos...",
+    "noResults": "No results found",
+    "noResultsHint": "Try adjusting your search or filter to find what you're looking for.",
+    "clearFilters": "Clear filters",
+    "selectForTool": "Select a video for",
+    "generationFailed": "Generation Failed",
+    "emptyTitle": "Ainda não há vídeos",
+    "emptyHint": "Gere seu primeiro vídeo usando o painel à esquerda, ou faça upload de um vídeo existente.",
+    "uploadingCount": "Enviando ({{count}})",
+    "statusUploading": "Enviando...",
+    "statusProcessing": "Processando...",
+    "statusComplete": "Concluído",
+    "uploadFailed": "Falha no envio"
+  },
+  "delete": {
+    "title": "Delete Selected Videos",
+    "message": "Are you sure you want to delete {{count}} selected video(s)? This action cannot be undone.",
+    "confirm": "Delete"
+  },
+  "filter": {
+    "all": "Todos os vídeos",
+    "generated": "Gerados",
+    "uploaded": "Enviados"
+  },
+  "addToProject": {
+    "title": "Adicionar ao projeto",
+    "description": "Selecione um projeto para adicionar \"{{name}}\":",
+    "empty": "Ainda não há projetos",
+    "create": "Criar novo projeto",
+    "mediaSuffix": "mídias",
+    "namePrefix": "Projeto: {{name}}"
+  },
+  "toasts": {
+    "clipboardAttached": "Imagem anexada da área de transferência",
+    "noClipboardImage": "Nenhuma imagem encontrada na área de transferência",
+    "clipboardDenied": "Permissão da área de transferência negada. Use Ctrl+V em vez disso.",
+    "clipboardReadFailed": "Falha ao ler a área de transferência",
+    "attachFrameFailed": "Falha ao anexar imagem do quadro",
+    "readFileFailed": "Falha ao ler arquivo",
+    "uploadVideoFailed": "Falha ao enviar arquivo de vídeo",
+    "openVideoFailed": "Falha ao abrir vídeo: {{error}}"
+  }
+}

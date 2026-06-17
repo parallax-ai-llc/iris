@@ -1,0 +1,22 @@
+{
+  "id": "iris-official.daily-inspiration",
+  "name": "daily-inspiration",
+  "version": "1.0.0",
+  "engineVersion": "^1.0.0",
+  "main": "./dist/index.js",
+  "displayName": "Daily Inspiration",
+  "description": "Get daily creative inspiration with color palettes, prompt ideas, art styles, and composition tips",
+  "publisher": "iris-official",
+  "activationEvents": ["onStartup"],
+  "contributes": {
+    "commands": [
+      { "command": "iris-official.daily-inspiration.show", "title": "Show Daily Inspiration", "icon": "sparkles" },
+      { "command": "iris-official.daily-inspiration.random", "title": "Random Inspiration", "icon": "shuffle" },
+      { "command": "iris-official.daily-inspiration.favorites", "title": "View Favorites", "icon": "heart" }
+    ],
+    "keybindings": [
+      { "command": "iris-official.daily-inspiration.show", "key": "ctrl+shift+i" }
+    ]
+  },
+  "permissions": ["commands:register", "ui:panel"]
+}

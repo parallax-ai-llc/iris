@@ -1,0 +1,181 @@
+{
+  "buttons": {
+    "save": "保存",
+    "cancel": "キャンセル",
+    "close": "閉じる",
+    "delete": "削除",
+    "confirm": "確認",
+    "generate": "生成",
+    "export": "エクスポート",
+    "import": "インポート",
+    "upload": "アップロード",
+    "download": "ダウンロード",
+    "open": "開く",
+    "create": "作成",
+    "add": "追加",
+    "remove": "削除",
+    "apply": "適用",
+    "reset": "リセット",
+    "done": "完了！",
+    "loading": "読み込み中...",
+    "generating": "生成中...",
+    "processing": "処理中...",
+    "logout": "ログアウト",
+    "choose": "フォルダを選択",
+    "clear": "クリア",
+    "checkUpdates": "アップデートを確認",
+    "select": "選択",
+    "selectAll": "すべて選択",
+    "new": "新規",
+    "previous": "前へ",
+    "next": "次へ"
+  },
+  "sort": {
+    "newest": "新しい順",
+    "oldest": "古い順",
+    "nameAsc": "名前順 (A-Z)",
+    "nameDesc": "名前逆順 (Z-A)"
+  },
+  "storage": {
+    "pickerTitle": "ライブラリから選択",
+    "pickerDescription": "ライブラリからアセットを選択してください",
+    "searchPlaceholder": "アセットを検索...",
+    "emptyTitle": "アセットが見つかりません",
+    "emptyHintImages": "画像を生成またはアップロードするとここに表示されます。",
+    "emptyHintVideos": "動画を生成またはアップロードするとここに表示されます。",
+    "emptyHintAll": "アセットを生成またはアップロードするとここに表示されます。",
+    "badgeImage": "画像",
+    "badgeVideo": "動画",
+    "assetTypeImage": "画像",
+    "assetTypeVideo": "動画",
+    "pageOf": "{{total}}ページ中 {{page}}ページ目"
+  },
+  "errors": {
+    "unknown": "不明なエラーが発生しました"
+  },
+  "status": {
+    "success": "成功",
+    "error": "エラー",
+    "loading": "読み込み中",
+    "noData": "データなし",
+    "notLoggedIn": "ログインしていません",
+    "latestVersion": "最新バージョンをご利用中です",
+    "updateCheckFailed": "アップデートの確認に失敗しました",
+    "loggedOut": "ログアウトしました"
+  },
+  "language": {
+    "en": "English",
+    "ko": "한국어",
+    "ja": "日本語",
+    "hi": "हिन्दी",
+    "th": "ไทย",
+    "id": "Bahasa Indonesia",
+    "es": "Español",
+    "pt": "Português (Brasil)",
+    "fr": "Français",
+    "bn": "বাংলা",
+    "te": "తెలుగు",
+    "ta": "தமிழ்",
+    "mr": "मराठी",
+    "select": "言語"
+  },
+  "home": {
+    "greeting": {
+      "morning": "おはようございます",
+      "afternoon": "こんにちは",
+      "evening": "こんばんは"
+    },
+    "subtitle": "今日も素晴らしいものを作りましょう",
+    "quickStart": "クイックスタート",
+    "recentActivity": "最近のアクティビティ",
+    "viewAll": "すべて表示",
+    "noActivity": "最近のアクティビティはありません",
+    "noActivityHint": "コンテンツを作成するとここに表示されます",
+    "proTip": "ヒント：",
+    "proTipNavigate": "でページを素早く移動できます",
+    "stats": {
+      "imagesCreated": "作成した画像",
+      "videosCreated": "作成した動画",
+      "thisWeek": "今週"
+    },
+    "actions": {
+      "createImage": {
+        "title": "画像を作成",
+        "description": "AIで美しい画像を生成"
+      },
+      "createVideo": {
+        "title": "動画を作成",
+        "description": "アイデアを動画に変換"
+      },
+      "buildWorkflow": {
+        "title": "ワークフローを作成",
+        "description": "クリエイティブな作業を自動化"
+      }
+    },
+    "timeAgo": {
+      "days": "{{count}}日前",
+      "hours": "{{count}}時間前",
+      "minutes": "{{count}}分前",
+      "justNow": "たった今"
+    }
+  },
+  "nav": {
+    "home": "ホーム",
+    "tools": "ツール",
+    "templates": "テンプレート",
+    "images": "画像",
+    "videos": "動画",
+    "projects": "プロジェクト",
+    "workflows": "ワークフロー",
+    "batch": "一括処理",
+    "extensions": "拡張機能",
+    "library": "ライブラリ",
+    "storage": "ストレージ",
+    "settings": "設定"
+  },
+  "titleBar": {
+    "unsavedChanges": "未保存の変更",
+    "unsavedMessage": "現在エディターで作業中です。未保存の変更はすべて失われます。本当に終了しますか？",
+    "quitWithoutSaving": "保存せずに終了",
+    "bugReport": "バグ報告",
+    "bugReportMessageLabel": "説明",
+    "bugReportPlaceholder": "発生したバグを説明してください...",
+    "bugReportSubmit": "送信",
+    "bugReportSuccess": "バグレポートが正常に送信されました",
+    "bugReportError": "バグレポートの送信に失敗しました",
+    "bugReportRateLimit": "バグレポートの送信回数が多すぎます。しばらくしてから再度お試しください。",
+    "bugReportThankYou": "レポートをお送りいただきありがとうございます！早急に確認いたします。"
+  },
+  "editor": {
+    "localFileWarning": {
+      "imageTitle": "未保存のローカル画像",
+      "imageMessage": "ローカルファイルはクラウドに保存されません。ギャラリーに戻ると編集内容が失われる場合があります。",
+      "videoTitle": "未保存のローカル動画",
+      "videoMessage": "ローカル動画ファイルはクラウドに保存されません。閉じると編集内容が失われます。",
+      "closeWithoutSaving": "保存せずに閉じる"
+    },
+    "closeTabWarning": {
+      "title": "未保存の変更",
+      "message": "未保存の変更があります。このタブを閉じますか？",
+      "closeWithoutSaving": "保存せずに閉じる",
+      "saveAndClose": "保存して閉じる"
+    },
+    "videoUnsavedWarning": {
+      "title": "未保存の変更",
+      "message": "現在のプロジェクトに未保存の変更があります。どうしますか？",
+      "discard": "変更を破棄",
+      "saveAndContinue": "保存して続ける"
+    },
+    "workflowUnsavedWarning": {
+      "title": "保存せずに終了しますか？",
+      "message": "未保存の変更があります。終了すると変更内容が失われます。",
+      "leaveWithoutSaving": "保存せずに終了"
+    },
+    "videoInit": {
+      "analyzing": "動画を分析中...",
+      "probingDimensions": "動画の解像度を確認中...",
+      "probingDuration": "動画の長さを確認中...",
+      "preparingEditor": "エディターを準備中..."
+    }
+  }
+}

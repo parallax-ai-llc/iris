@@ -1,0 +1,181 @@
+{
+  "buttons": {
+    "save": "सहेजें",
+    "cancel": "रद्द करें",
+    "close": "बंद करें",
+    "delete": "हटाएं",
+    "confirm": "पुष्टि करें",
+    "generate": "बनाएं",
+    "export": "निर्यात करें",
+    "import": "आयात करें",
+    "upload": "अपलोड करें",
+    "download": "डाउनलोड करें",
+    "open": "खोलें",
+    "create": "बनाएं",
+    "add": "जोड़ें",
+    "remove": "निकालें",
+    "apply": "लागू करें",
+    "reset": "रीसेट करें",
+    "done": "हो गया!",
+    "loading": "लोड हो रहा है...",
+    "generating": "बना रहा है...",
+    "processing": "प्रसंस्करण हो रहा है...",
+    "logout": "लॉग आउट",
+    "choose": "फ़ोल्डर चुनें",
+    "clear": "साफ़ करें",
+    "checkUpdates": "अपडेट देखें",
+    "select": "चुनें",
+    "selectAll": "सभी चुनें",
+    "new": "नया",
+    "previous": "पिछला",
+    "next": "अगला"
+  },
+  "status": {
+    "success": "सफल",
+    "error": "त्रुटि",
+    "loading": "लोड हो रहा है",
+    "noData": "कोई डेटा नहीं",
+    "notLoggedIn": "लॉग इन नहीं किया है",
+    "latestVersion": "आप नवीनतम संस्करण पर हैं",
+    "updateCheckFailed": "अपडेट जांचने में विफल",
+    "loggedOut": "सफलतापूर्वक लॉग आउट हो गए"
+  },
+  "language": {
+    "en": "English",
+    "ko": "한국어",
+    "ja": "日本語",
+    "hi": "हिन्दी",
+    "th": "ไทย",
+    "id": "Bahasa Indonesia",
+    "es": "Español",
+    "pt": "Português (Brasil)",
+    "fr": "Français",
+    "bn": "বাংলা",
+    "te": "తెలుగు",
+    "ta": "தமிழ்",
+    "mr": "मराठी",
+    "select": "भाषा"
+  },
+  "home": {
+    "greeting": {
+      "morning": "सुप्रभात",
+      "afternoon": "नमस्कार",
+      "evening": "शुभ संध्या"
+    },
+    "subtitle": "कुछ अद्भुत बनाने के लिए तैयार हैं?",
+    "quickStart": "त्वरित प्रारंभ",
+    "recentActivity": "हाल की गतिविधि",
+    "viewAll": "सभी देखें",
+    "noActivity": "अभी तक कोई हाल की गतिविधि नहीं",
+    "noActivityHint": "अपना काम यहां देखने के लिए बनाना शुरू करें",
+    "proTip": "सुझाव:",
+    "proTipNavigate": "पृष्ठों के बीच त्वरित रूप से नेविगेट करने के लिए",
+    "stats": {
+      "imagesCreated": "बनाई गई छवियां",
+      "videosCreated": "बनाए गए वीडियो",
+      "thisWeek": "इस सप्ताह"
+    },
+    "actions": {
+      "createImage": {
+        "title": "छवि बनाएं",
+        "description": "AI से शानदार छवियां उत्पन्न करें"
+      },
+      "createVideo": {
+        "title": "वीडियो बनाएं",
+        "description": "विचारों को वीडियो में बदलें"
+      },
+      "buildWorkflow": {
+        "title": "वर्कफ़्लो बनाएं",
+        "description": "अपनी रचनात्मक प्रक्रिया को स्वचालित करें"
+      }
+    },
+    "timeAgo": {
+      "days": "{{count}} दिन पहले",
+      "hours": "{{count}} घंटे पहले",
+      "minutes": "{{count}} मिनट पहले",
+      "justNow": "अभी अभी"
+    }
+  },
+  "nav": {
+    "home": "होम",
+    "tools": "उपकरण",
+    "templates": "टेम्पलेट",
+    "images": "छवियां",
+    "videos": "वीडियो",
+    "projects": "प्रोजेक्ट",
+    "workflows": "वर्कफ़्लो",
+    "batch": "बैच",
+    "extensions": "एक्सटेंशन",
+    "library": "लाइब्रेरी",
+    "storage": "स्टोरेज",
+    "settings": "सेटिंग्स"
+  },
+  "titleBar": {
+    "unsavedChanges": "सहेजे न गए बदलाव",
+    "unsavedMessage": "आप वर्तमान में संपादक में हैं। कोई भी सहेजे न गए बदलाव खो जाएंगे। क्या आप वाकई बाहर निकलना चाहते हैं?",
+    "quitWithoutSaving": "सहेजे बिना बाहर निकलें",
+    "bugReport": "बग रिपोर्ट",
+    "bugReportMessageLabel": "विवरण",
+    "bugReportPlaceholder": "कृपया बग का वर्णन करें...",
+    "bugReportSubmit": "सबमिट करें",
+    "bugReportSuccess": "बग रिपोर्ट सफलतापूर्वक सबमिट की गई",
+    "bugReportError": "बग रिपोर्ट सबमिट करने में विफल",
+    "bugReportRateLimit": "बहुत अधिक रिपोर्ट। कृपया बाद में पुनः प्रयास करें।",
+    "bugReportThankYou": "आपकी रिपोर्ट के लिए धन्यवाद! हम जल्द ही इसकी समीक्षा करेंगे।"
+  },
+  "editor": {
+    "localFileWarning": {
+      "imageTitle": "सहेजी न गई स्थानीय छवि",
+      "imageMessage": "स्थानीय फ़ाइलें क्लाउड में सहेजी नहीं जाती हैं। गैलरी में वापस जाने से आपके संपादन समाप्त हो सकते हैं।",
+      "videoTitle": "सहेजा न गया स्थानीय वीडियो",
+      "videoMessage": "स्थानीय वीडियो फ़ाइलें क्लाउड में सहेजी नहीं जाती हैं। बंद करने से आपके संपादन समाप्त हो जाएंगे।",
+      "closeWithoutSaving": "सहेजे बिना बंद करें"
+    },
+    "closeTabWarning": {
+      "title": "सहेजे न गए बदलाव",
+      "message": "आपके पास सहेजे न गए बदलाव हैं। क्या आप वाकई इस टैब को बंद करना चाहते हैं?",
+      "closeWithoutSaving": "सहेजे बिना बंद करें",
+      "saveAndClose": "सहेजें और बंद करें"
+    },
+    "videoUnsavedWarning": {
+      "title": "सहेजे न गए बदलाव",
+      "message": "वर्तमान प्रोजेक्ट में सहेजे न गए बदलाव हैं। आप क्या करना चाहेंगे?",
+      "discard": "खारिज करें",
+      "saveAndContinue": "सहेजें और जारी रखें"
+    },
+    "workflowUnsavedWarning": {
+      "title": "बिना सहेजे छोड़ दें?",
+      "message": "आपके पास सहेजे न गए बदलाव हैं। छोड़ने पर वे समाप्त हो जाएंगे।",
+      "leaveWithoutSaving": "सहेजे बिना छोड़ें"
+    },
+    "videoInit": {
+      "analyzing": "वीडियो का विश्लेषण किया जा रहा है...",
+      "probingDimensions": "वीडियो रिज़ॉल्यूशन की जांच की जा रही है...",
+      "probingDuration": "वीडियो अवधि की जांच की जा रही है...",
+      "preparingEditor": "संपादक तैयार किया जा रहा है..."
+    }
+  },
+  "sort": {
+    "newest": "नवीनतम पहले",
+    "oldest": "पुराने पहले",
+    "nameAsc": "नाम (A-Z)",
+    "nameDesc": "नाम (Z-A)"
+  },
+  "storage": {
+    "pickerTitle": "लाइब्रेरी से चुनें",
+    "pickerDescription": "अपनी लाइब्रेरी से एक एसेट चुनें",
+    "searchPlaceholder": "एसेट खोजें...",
+    "emptyTitle": "कोई एसेट नहीं मिला",
+    "emptyHintImages": "यहां देखने के लिए इमेज जनरेट करें या अपलोड करें।",
+    "emptyHintVideos": "यहां देखने के लिए वीडियो जनरेट करें या अपलोड करें।",
+    "emptyHintAll": "यहां देखने के लिए एसेट जनरेट करें या अपलोड करें।",
+    "badgeImage": "इमेज",
+    "badgeVideo": "वीडियो",
+    "assetTypeImage": "इमेज",
+    "assetTypeVideo": "वीडियो",
+    "pageOf": "पेज {{total}} में से {{page}}"
+  },
+  "errors": {
+    "unknown": "अज्ञात त्रुटि हुई"
+  }
+}

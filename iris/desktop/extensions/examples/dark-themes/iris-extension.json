@@ -1,0 +1,31 @@
+{
+  "id": "iris-official.dark-themes",
+  "name": "dark-themes",
+  "version": "1.0.0",
+  "engineVersion": "^1.0.0",
+  "main": "./dist/index.js",
+  "displayName": "Dark Themes",
+  "description": "A collection of dark color themes: Midnight, Ocean, Forest, and Sunset",
+  "publisher": "iris-official",
+  "activationEvents": ["onStartup"],
+  "contributes": {
+    "commands": [
+      { "command": "iris-official.dark-themes.select", "title": "Select Theme", "icon": "palette" },
+      { "command": "iris-official.dark-themes.reset", "title": "Reset to Default Theme", "icon": "rotate-ccw" }
+    ],
+    "settings": [
+      {
+        "id": "iris-official.dark-themes.current",
+        "type": "enum",
+        "title": "Current Theme",
+        "description": "The currently active color theme",
+        "default": "midnight",
+        "enum": ["midnight", "ocean", "forest", "sunset"]
+      }
+    ],
+    "keybindings": [
+      { "command": "iris-official.dark-themes.select", "key": "ctrl+shift+t" }
+    ]
+  },
+  "permissions": ["commands:register", "ui:panel"]
+}

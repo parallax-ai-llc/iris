@@ -1,0 +1,103 @@
+{
+  "file": {
+    "label": "파일",
+    "newProject": "새 프로젝트...",
+    "openProject": "프로젝트 열기...",
+    "saveProject": "프로젝트 저장",
+    "saveProjectAs": "다른 이름으로 저장...",
+    "exportVideo": "영상 내보내기...",
+    "downloadOriginal": "원본 다운로드",
+    "backToVideos": "영상 목록으로",
+    "goBack": "뒤로 가기"
+  },
+  "edit": {
+    "label": "편집",
+    "undo": "실행 취소",
+    "redo": "다시 실행",
+    "cut": "잘라내기",
+    "copy": "복사",
+    "paste": "붙여넣기",
+    "duplicate": "복제",
+    "selectAll": "전체 선택",
+    "deleteSelected": "선택 항목 삭제",
+    "rippleDelete": "리플 삭제"
+  },
+  "view": {
+    "label": "보기",
+    "zoomIn": "확대",
+    "zoomOut": "축소",
+    "snapToGrid": "그리드에 맞추기",
+    "showWaveforms": "파형 표시"
+  },
+  "subtitles": {
+    "label": "자막",
+    "generateAutoCaptions": "자동 자막 생성...",
+    "importSubtitles": "자막 가져오기...",
+    "exportSrt": "SRT로 내보내기...",
+    "exportVtt": "VTT로 내보내기..."
+  },
+  "ai": {
+    "label": "AI",
+    "silenceRemoval": "무음 구간 제거..."
+  },
+  "silenceRemovalModal": {
+    "title": "무음 구간 제거",
+    "description": "영상의 무음 구간을 자동으로 감지하고 제거합니다. 처리는 로컬에서 진행됩니다.",
+    "modeAuto": "자동 (권장)",
+    "modeManual": "수동",
+    "autoDescription": "영상의 평균 음량을 분석해 소스에 맞는 무음 기준을 자동으로 정합니다. 작게 말하는 영상에서도 잘 동작합니다.",
+    "advancedToggle": "고급 옵션",
+    "analyzing": "오디오 음량 분석 중...",
+    "autoThresholdInfo": "자동 기준: {{value}} dB (평균 {{mean}} dB)",
+    "thresholdLabel": "무음 기준 데시벨: {{value}} dB",
+    "thresholdStrict": "-60 dB (엄격)",
+    "thresholdLenient": "-10 dB (관대)",
+    "minDurationLabel": "최소 무음 시간: {{value}}초",
+    "minDurationMin": "0.1초",
+    "minDurationMax": "5.0초",
+    "paddingLabel": "패딩 (비무음 구간 앞뒤 여유): {{value}}ms",
+    "paddingMin": "0ms",
+    "paddingMax": "500ms",
+    "merging": "미디어 병합 중...",
+    "detecting": "무음 구간 감지 중...",
+    "cancel": "취소",
+    "confirm": "확인",
+    "mergeRequiredTitle": "미디어 병합 필요",
+    "mergeMessageMultiClip": "현재 타임라인에 여러 개의 비디오 클립이 있습니다. 무음 감지를 위해 모든 클립을 하나의 영상으로 병합합니다. 새로운 영상이 생성됩니다.",
+    "mergeMessageAdditionalTracks": "현재 프로젝트에 추가된 에셋(오디오, 자막 등)이 있습니다. 무음 감지 시 모든 트랙이 하나의 영상으로 병합됩니다.",
+    "detectedCount": "{{count}}개의 무음 구간 감지",
+    "statOriginal": "원본 길이",
+    "statSilence": "무음 총 시간",
+    "statEstimated": "예상 결과",
+    "removing": "무음 구간 제거 중... {{progress}}%",
+    "successMessage": "무음 구간이 제거된 영상이 미디어 풀에 추가되었습니다.",
+    "detectButton": "무음 감지",
+    "detectingButton": "감지 중...",
+    "mergingButton": "병합 중...",
+    "removeButton": "무음 제거",
+    "doneButton": "완료",
+    "errors": {
+      "desktopRequired": "무음 감지를 위해 데스크톱 앱이 필요합니다",
+      "desktopRequiredMerge": "미디어 처리를 위해 데스크톱 앱이 필요합니다",
+      "desktopRequiredRemove": "데스크톱 앱이 필요합니다",
+      "couldNotResolve": "비디오 파일 경로를 확인할 수 없습니다",
+      "noInputFile": "입력 파일이 없습니다",
+      "noSegments": "감지된 무음 구간이 없습니다. 기준값을 낮추거나 최소 시간을 줄여보세요.",
+      "detectFailed": "무음 감지에 실패했습니다",
+      "analyzeFailed": "오디오 분석에 실패했습니다",
+      "mergeFailedPrefix": "병합 실패: {{message}}",
+      "mergeFailedUnknown": "알 수 없는 오류",
+      "mergeFailed": "미디어 병합에 실패했습니다",
+      "removeFailed": "무음 제거에 실패했습니다",
+      "addToPoolFailed": "처리된 영상을 미디어 풀에 추가하지 못했습니다"
+    },
+    "outputNameSuffix": "무음 제거됨"
+  },
+  "tools": {
+    "label": "도구",
+    "upscale": "업스케일",
+    "motionControl": "모션 컨트롤",
+    "inpaint": "인페인트",
+    "cut": "자르기"
+  }
+}

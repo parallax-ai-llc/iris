@@ -1,0 +1,56 @@
+{
+  "title": "Paramètres",
+  "sections": {
+    "account": "Compte",
+    "storage": "Stockage",
+    "notifications": "Notifications",
+    "keyboard": "Raccourcis clavier",
+    "about": "À propos",
+    "language": "Langue"
+  },
+  "account": {
+    "notLoggedIn": "Non connecté"
+  },
+  "storage": {
+    "defaultSaveLocation": "Emplacement d'enregistrement par défaut",
+    "noFolderSelected": "Aucun dossier sélectionné - les fichiers utiliseront le dossier par défaut du système",
+    "cacheSize": "Taille du cache",
+    "cacheSizeDescription": "Fichiers temporaires et miniatures",
+    "cacheCleared": "Cache vidé avec succès",
+    "cacheClearFailed": "Échec du vidage du cache",
+    "saveLocationUpdated": "Emplacement d'enregistrement mis à jour",
+    "desktopOnly": "Cette fonctionnalité n'est disponible que dans l'application de bureau"
+  },
+  "notifications": {
+    "generationComplete": "Génération terminée",
+    "generationCompleteDesc": "Notifier lorsque la génération d'image ou de vidéo est terminée",
+    "workflowErrors": "Erreurs de workflow",
+    "workflowErrorsDesc": "Notifier lorsqu'un workflow échoue ou rencontre une erreur",
+    "updates": "Notifications de mises à jour",
+    "updatesDesc": "Notifier lorsqu'une nouvelle version est disponible"
+  },
+  "keyboard": {
+    "newGeneration": "Nouvelle génération",
+    "saveDownload": "Enregistrer/Télécharger",
+    "openSettings": "Ouvrir les paramètres",
+    "closeModal": "Fermer la fenêtre",
+    "navigateGallery": "Naviguer dans la galerie"
+  },
+  "about": {
+    "irisDesktop": "Iris Desktop",
+    "version": "Version {{version}}",
+    "documentation": "Documentation",
+    "documentationDesc": "Apprenez à utiliser Iris Desktop",
+    "privacyPolicy": "Politique de confidentialité",
+    "privacyPolicyDesc": "Comment nous gérons vos données",
+    "termsOfService": "Conditions d'utilisation",
+    "termsDesc": "Conditions et modalités d'utilisation",
+    "checkUpdates": "Rechercher des mises à jour",
+    "latestVersion": "Vous utilisez la dernière version",
+    "updateCheckFailed": "Échec de la recherche de mises à jour"
+  },
+  "footer": {
+    "madeBy": "Conçu avec soin par Parallax AI",
+    "copyright": "© 2024 Parallax AI. Tous droits réservés."
+  }
+}

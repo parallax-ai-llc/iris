@@ -1,0 +1,72 @@
+{
+  "generate": {
+    "title": "이미지 생성",
+    "prompt": "프롬프트",
+    "promptPlaceholder": "생성하고 싶은 이미지를 설명하세요...",
+    "promptHint": "Ctrl+Enter로 생성",
+    "negativePrompt": "네거티브 프롬프트",
+    "negativePromptPlaceholder": "이미지에서 제외할 요소...",
+    "model": "모델",
+    "selectModel": "모델 선택",
+    "aspectRatio": "가로세로 비율",
+    "img2img": "이미지 투 이미지",
+    "active": "활성",
+    "removeReference": "참조 이미지 제거",
+    "selectFromLibrary": "라이브러리에서 선택",
+    "uploadFromComputer": "컴퓨터에서 업로드",
+    "pasteFromClipboard": "클립보드에서 가져오기",
+    "imageStrength": "이미지 강도",
+    "imageStrengthHint": "높을수록 원본 이미지 영향력 증가",
+    "estimatedTokens": "예상 크레딧",
+    "generating": "생성 중...",
+    "serverRequired": "서버 연결 필요"
+  },
+  "gallery": {
+    "title": "이미지 갤러리",
+    "upload": "업로드",
+    "open": "열기",
+    "searchPlaceholder": "이미지 검색...",
+    "noResults": "검색 결과 없음",
+    "noResultsHint": "검색어 또는 필터를 조정해 보세요.",
+    "clearFilters": "필터 초기화",
+    "selectForTool": "이미지를 선택하세요:",
+    "generationFailed": "생성 실패",
+    "processing": "처리 중...",
+    "referenceBadge": "참조",
+    "emptyTitle": "아직 이미지가 없습니다",
+    "emptyHint": "왼쪽 패널에서 첫 이미지를 생성하거나 기존 이미지를 업로드하세요.",
+    "tooltipDownload": "다운로드",
+    "tooltipDelete": "삭제",
+    "tooltipUseAsReference": "참조로 사용 (Shift+Click)"
+  },
+  "filter": {
+    "all": "모든 이미지",
+    "generated": "생성됨",
+    "uploaded": "업로드됨",
+    "edited": "편집됨"
+  },
+  "toasts": {
+    "clipboardAttached": "클립보드에서 이미지를 가져왔습니다",
+    "noClipboardImage": "클립보드에 이미지가 없습니다",
+    "clipboardDenied": "클립보드 권한이 거부되었습니다. Ctrl+V를 사용하세요.",
+    "clipboardReadFailed": "클립보드를 읽지 못했습니다",
+    "attachRefFailed": "참조 이미지 첨부에 실패했습니다",
+    "uploadOk": "이미지가 업로드되었습니다",
+    "uploadFailed": "이미지 업로드에 실패했습니다",
+    "uploadFileFailed": "파일 업로드에 실패했습니다",
+    "readFileFailed": "파일을 읽지 못했습니다",
+    "openFileFailed": "파일을 열지 못했습니다: {{error}}",
+    "psdUrlMissing": "PSD 파일 URL이 없습니다",
+    "psdOpened": "{{name}}을(를) {{count}}개 레이어로 열었습니다",
+    "psdOpenFailed": "PSD 파일을 열지 못했습니다"
+  },
+  "reference": {
+    "title": "참조 이미지 선택",
+    "description": "라이브러리에서 참조로 사용할 이미지를 선택하세요"
+  },
+  "delete": {
+    "title": "선택한 이미지 삭제",
+    "message": "선택한 {{count}}개의 이미지를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+    "confirm": "삭제"
+  }
+}

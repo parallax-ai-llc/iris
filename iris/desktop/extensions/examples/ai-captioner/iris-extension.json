@@ -1,0 +1,29 @@
+{
+  "id": "iris-official.ai-captioner",
+  "name": "ai-captioner",
+  "version": "1.0.0",
+  "engineVersion": "^1.0.0",
+  "main": "./dist/index.js",
+  "displayName": "AI Image Captioner",
+  "description": "Generate social media captions, alt text, and SEO descriptions from images using AI",
+  "publisher": "iris-official",
+  "activationEvents": [
+    "onCommand:iris-official.ai-captioner.generate",
+    "onCommand:iris-official.ai-captioner.history"
+  ],
+  "contributes": {
+    "commands": [
+      { "command": "iris-official.ai-captioner.generate", "title": "Generate Caption", "icon": "message-square" },
+      { "command": "iris-official.ai-captioner.history", "title": "View Caption History", "icon": "history" }
+    ],
+    "keybindings": [
+      { "command": "iris-official.ai-captioner.generate", "key": "ctrl+shift+c" }
+    ],
+    "settings": [
+      { "id": "iris-official.ai-captioner.tone", "type": "string", "title": "Caption Tone", "default": "casual", "enum": ["casual", "professional", "humorous", "poetic"] },
+      { "id": "iris-official.ai-captioner.language", "type": "string", "title": "Caption Language", "default": "en", "enum": ["en", "ko", "ja", "zh"] },
+      { "id": "iris-official.ai-captioner.includeHashtags", "type": "boolean", "title": "Include Hashtags", "default": true }
+    ]
+  },
+  "permissions": ["commands:register", "image:read", "ai:execute", "ui:panel", "clipboard"]
+}

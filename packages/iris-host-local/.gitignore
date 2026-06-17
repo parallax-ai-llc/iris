@@ -1,0 +1,9 @@
+# Secrets — never commit. BYOK keys live here.
+.env
+.env.local
+.env.*.local
+
+# Local runtime data / build output
+dist/
+.smoke-data/
+.preview-data/

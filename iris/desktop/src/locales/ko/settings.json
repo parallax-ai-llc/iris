@@ -1,0 +1,56 @@
+{
+  "title": "설정",
+  "sections": {
+    "account": "계정",
+    "storage": "저장소",
+    "notifications": "알림",
+    "keyboard": "키보드 단축키",
+    "about": "정보",
+    "language": "언어"
+  },
+  "account": {
+    "notLoggedIn": "로그인하지 않음"
+  },
+  "storage": {
+    "defaultSaveLocation": "기본 저장 위치",
+    "noFolderSelected": "폴더가 선택되지 않음 - 시스템 기본값 사용",
+    "cacheSize": "캐시 크기",
+    "cacheSizeDescription": "임시 파일 및 썸네일",
+    "cacheCleared": "캐시가 삭제되었습니다",
+    "cacheClearFailed": "캐시 삭제에 실패했습니다",
+    "saveLocationUpdated": "저장 위치가 업데이트되었습니다",
+    "desktopOnly": "이 기능은 데스크탑 앱에서만 사용할 수 있습니다"
+  },
+  "notifications": {
+    "generationComplete": "생성 완료",
+    "generationCompleteDesc": "이미지 또는 영상 생성이 완료되면 알림",
+    "workflowErrors": "워크플로우 오류",
+    "workflowErrorsDesc": "워크플로우 실패 또는 오류 발생 시 알림",
+    "updates": "업데이트 알림",
+    "updatesDesc": "새 버전이 출시되면 알림"
+  },
+  "keyboard": {
+    "newGeneration": "새 생성",
+    "saveDownload": "저장/다운로드",
+    "openSettings": "설정 열기",
+    "closeModal": "모달 닫기",
+    "navigateGallery": "갤러리 탐색"
+  },
+  "about": {
+    "irisDesktop": "Iris Desktop",
+    "version": "버전 {{version}}",
+    "documentation": "문서",
+    "documentationDesc": "Iris Desktop 사용 방법 알아보기",
+    "privacyPolicy": "개인정보처리방침",
+    "privacyPolicyDesc": "데이터 처리 방식",
+    "termsOfService": "이용약관",
+    "termsDesc": "이용 조건",
+    "checkUpdates": "업데이트 확인",
+    "latestVersion": "최신 버전을 사용 중입니다",
+    "updateCheckFailed": "업데이트 확인에 실패했습니다"
+  },
+  "footer": {
+    "madeBy": "Parallax AI가 정성스럽게 만들었습니다",
+    "copyright": "© 2024 Parallax AI. 모든 권리 보유."
+  }
+}

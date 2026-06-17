@@ -1,0 +1,79 @@
+{
+  "generate": {
+    "title": "비디오 생성",
+    "prompt": "프롬프트",
+    "promptPlaceholder": "생성하고 싶은 비디오를 설명하세요...",
+    "promptHint": "Ctrl+Enter로 생성",
+    "negativePrompt": "네거티브 프롬프트",
+    "negativePromptPlaceholder": "비디오에서 제외할 요소...",
+    "model": "모델",
+    "selectModel": "모델 선택",
+    "loadingModels": "모델 로딩 중...",
+    "aspectRatio": "가로세로 비율",
+    "notSupported": "이 모델에서 지원되지 않음",
+    "duration": "길이",
+    "img2vid": "이미지 투 비디오",
+    "active": "활성",
+    "removeReference": "참조 이미지 제거",
+    "removeEndFrame": "종료 프레임 이미지 제거",
+    "selectFromLibrary": "라이브러리에서 선택",
+    "uploadFromComputer": "컴퓨터에서 업로드",
+    "pasteFromClipboard": "클립보드에서 가져오기",
+    "firstFrameHint": "첫 프레임이 이 이미지를 기반으로 생성됩니다",
+    "startFrame": "시작 프레임",
+    "endFrame": "종료 프레임",
+    "endFrameHint": "마지막 프레임이 이 이미지로 전환됩니다",
+    "startEndFrameHint": "시작 프레임은 필수입니다. 종료 프레임은 선택이며, 지원하는 모델(Seedance, Kling 2.1 등)에서만 사용됩니다.",
+    "estimatedTokens": "예상 크레딧",
+    "generating": "생성 중...",
+    "generatingProgress": "비디오를 생성하는 중...",
+    "optional": "선택",
+    "serverRequired": "서버 연결 필요"
+  },
+  "gallery": {
+    "title": "비디오 갤러리",
+    "upload": "업로드",
+    "open": "열기",
+    "searchPlaceholder": "비디오 검색...",
+    "noResults": "검색 결과 없음",
+    "noResultsHint": "검색어 또는 필터를 조정해 보세요.",
+    "clearFilters": "필터 초기화",
+    "selectForTool": "비디오를 선택하세요:",
+    "generationFailed": "생성 실패",
+    "emptyTitle": "아직 비디오가 없습니다",
+    "emptyHint": "왼쪽 패널에서 첫 비디오를 생성하거나 기존 비디오를 업로드하세요.",
+    "uploadingCount": "업로드 중 ({{count}})",
+    "statusUploading": "업로드 중...",
+    "statusProcessing": "처리 중...",
+    "statusComplete": "완료",
+    "uploadFailed": "업로드 실패"
+  },
+  "filter": {
+    "all": "모든 비디오",
+    "generated": "생성됨",
+    "uploaded": "업로드됨"
+  },
+  "addToProject": {
+    "title": "프로젝트에 추가",
+    "description": "\"{{name}}\"을(를) 추가할 프로젝트를 선택하세요:",
+    "empty": "아직 프로젝트가 없습니다",
+    "create": "새 프로젝트 만들기",
+    "mediaSuffix": "개",
+    "namePrefix": "프로젝트: {{name}}"
+  },
+  "toasts": {
+    "clipboardAttached": "클립보드에서 이미지를 가져왔습니다",
+    "noClipboardImage": "클립보드에 이미지가 없습니다",
+    "clipboardDenied": "클립보드 권한이 거부되었습니다. Ctrl+V를 사용하세요.",
+    "clipboardReadFailed": "클립보드를 읽지 못했습니다",
+    "attachFrameFailed": "프레임 이미지 첨부에 실패했습니다",
+    "readFileFailed": "파일을 읽지 못했습니다",
+    "uploadVideoFailed": "비디오 파일 업로드에 실패했습니다",
+    "openVideoFailed": "비디오를 열지 못했습니다: {{error}}"
+  },
+  "delete": {
+    "title": "선택한 비디오 삭제",
+    "message": "선택한 {{count}}개의 비디오를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+    "confirm": "삭제"
+  }
+}

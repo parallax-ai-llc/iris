@@ -1,0 +1,61 @@
+{
+  "title": "프로필",
+  "loading": "프로필 로딩 중...",
+  "error": "프로필 데이터를 불러오지 못했습니다",
+  "retry": "다시 시도",
+  "plan": {
+    "title": "현재 플랜",
+    "name": "플랜",
+    "price": "가격",
+    "status": "상태",
+    "nextBilling": "다음 결제일",
+    "changePlan": "플랜 변경",
+    "month": "월",
+    "statuses": {
+      "active": "활성",
+      "canceled": "취소됨",
+      "past_due": "연체",
+      "free": "무료"
+    },
+    "cancelAtPeriodEnd": "현재 결제 기간이 종료되면 플랜이 취소됩니다."
+  },
+  "tokenUsage": {
+    "title": "크레딧 사용량",
+    "billingPeriod": "결제 기간",
+    "used": "사용됨",
+    "tokensUsed": "크레딧 사용",
+    "remaining": "남은 크레딧",
+    "effectiveRemaining": "총 사용 가능"
+  },
+  "bonusTokens": {
+    "title": "보너스 크레딧",
+    "total": "총합",
+    "remaining": "잔여",
+    "used": "사용됨",
+    "expires": "만료일",
+    "noExpiry": "만료 없음",
+    "empty": "보너스 크레딧이 없습니다",
+    "source": {
+      "label": "출처",
+      "promotion": "프로모션",
+      "referral": "추천",
+      "reward": "보상",
+      "admin": "관리자",
+      "signup": "가입"
+    }
+  },
+  "promotionCode": {
+    "title": "프로모션 코드",
+    "placeholder": "프로모션 코드를 입력하세요",
+    "redeem": "적용",
+    "redeeming": "적용 중...",
+    "success": "적용 완료! +{{tokens}} 보너스 크레딧",
+    "errors": {
+      "INVALID_CODE": "유효하지 않은 프로모션 코드입니다",
+      "ALREADY_REDEEMED": "이미 사용된 코드입니다",
+      "EXPIRED": "만료된 프로모션 코드입니다",
+      "MAX_REDEMPTIONS_REACHED": "최대 사용 횟수에 도달한 코드입니다",
+      "INTERNAL_ERROR": "오류가 발생했습니다. 다시 시도해 주세요."
+    }
+  }
+}

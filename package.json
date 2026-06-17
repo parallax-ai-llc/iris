@@ -1,0 +1,35 @@
+{
+  "name": "iris",
+  "private": true,
+  "description": "Iris — fair-code AI automation workflow engine, node-graph editor, local web app (npx iris-flow), and desktop app.",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "packageManager": "pnpm@10.23.0",
+  "scripts": {
+    "build:nodes": "pnpm --filter iris-nodes build",
+    "build:packages": "pnpm --filter iris-nodes build && pnpm --filter iris-engine build && pnpm --filter iris-editor build && pnpm --filter iris-host-local build",
+    "typecheck": "pnpm -r --parallel typecheck",
+    "iris-flow": "pnpm --filter iris-host-local start",
+    "desktop:dev": "pnpm --filter iris-desktop dev"
+  },
+  "pnpm": {
+    "overrides": {
+      "@types/react": "19.2.2",
+      "@types/react-dom": "19.2.2"
+    },
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "ffmpeg-static",
+      "sharp",
+      "electron",
+      "electron-winstaller",
+      "core-js",
+      "core-js-pure",
+      "unrs-resolver",
+      "protobufjs"
+    ],
+    "patchedDependencies": {
+      "app-builder-lib@26.8.1": "patches/app-builder-lib@26.8.1.patch"
+    },
+    "allowUnusedPatches": true
+  }
+}

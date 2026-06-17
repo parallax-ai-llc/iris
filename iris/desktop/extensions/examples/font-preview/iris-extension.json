@@ -1,0 +1,26 @@
+{
+  "id": "iris-official.font-preview",
+  "name": "font-preview",
+  "version": "1.0.0",
+  "engineVersion": "^1.0.0",
+  "main": "./dist/index.js",
+  "displayName": "Font Preview Panel",
+  "description": "Browse and preview system fonts for text overlay with favorites and category filtering",
+  "publisher": "iris-official",
+  "activationEvents": [
+    "onCommand:iris-official.font-preview.open"
+  ],
+  "contributes": {
+    "commands": [
+      { "command": "iris-official.font-preview.open", "title": "Font Preview", "icon": "type" }
+    ],
+    "keybindings": [
+      { "command": "iris-official.font-preview.open", "key": "ctrl+shift+f" }
+    ],
+    "settings": [
+      { "id": "iris-official.font-preview.sampleText", "type": "string", "title": "Preview Text", "default": "The quick brown fox jumps over the lazy dog" },
+      { "id": "iris-official.font-preview.fontSize", "type": "number", "title": "Preview Font Size", "default": 24 }
+    ]
+  },
+  "permissions": ["commands:register", "ui:panel", "clipboard"]
+}

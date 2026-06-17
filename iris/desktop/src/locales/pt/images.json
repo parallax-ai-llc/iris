@@ -1,0 +1,72 @@
+{
+  "generate": {
+    "title": "Generate Image",
+    "prompt": "Prompt",
+    "promptPlaceholder": "Describe the image you want to create...",
+    "promptHint": "Press Ctrl+Enter to generate",
+    "negativePrompt": "Negative Prompt",
+    "negativePromptPlaceholder": "What to avoid in the image...",
+    "model": "Model",
+    "selectModel": "Select a model",
+    "aspectRatio": "Aspect Ratio",
+    "img2img": "Image-to-Image",
+    "active": "Active",
+    "removeReference": "Remove reference image",
+    "selectFromLibrary": "Select from Library",
+    "uploadFromComputer": "Upload from Computer",
+    "pasteFromClipboard": "Paste from Clipboard",
+    "imageStrength": "Image Strength",
+    "imageStrengthHint": "Higher = more original image influence",
+    "estimatedTokens": "Estimated credits",
+    "generating": "Generating...",
+    "serverRequired": "Server connection required"
+  },
+  "gallery": {
+    "title": "Image Gallery",
+    "upload": "Upload",
+    "open": "Open",
+    "searchPlaceholder": "Search images...",
+    "noResults": "No results found",
+    "noResultsHint": "Try adjusting your search or filter to find what you're looking for.",
+    "clearFilters": "Clear filters",
+    "selectForTool": "Select an image for",
+    "generationFailed": "Generation Failed",
+    "processing": "Processando...",
+    "referenceBadge": "Referência",
+    "emptyTitle": "Ainda não há imagens",
+    "emptyHint": "Gere sua primeira imagem usando o painel à esquerda, ou faça upload de uma imagem existente.",
+    "tooltipDownload": "Baixar",
+    "tooltipDelete": "Excluir",
+    "tooltipUseAsReference": "Usar como referência (Shift+Click)"
+  },
+  "reference": {
+    "title": "Select Reference Image",
+    "description": "Choose an image from your library to use as reference"
+  },
+  "delete": {
+    "title": "Delete Selected Images",
+    "message": "Are you sure you want to delete {{count}} selected image(s)? This action cannot be undone.",
+    "confirm": "Delete"
+  },
+  "filter": {
+    "all": "Todas as imagens",
+    "generated": "Geradas",
+    "uploaded": "Enviadas",
+    "edited": "Editadas"
+  },
+  "toasts": {
+    "clipboardAttached": "Imagem anexada da área de transferência",
+    "noClipboardImage": "Nenhuma imagem encontrada na área de transferência",
+    "clipboardDenied": "Permissão da área de transferência negada. Use Ctrl+V em vez disso.",
+    "clipboardReadFailed": "Falha ao ler a área de transferência",
+    "attachRefFailed": "Falha ao anexar imagem de referência",
+    "uploadOk": "Imagem enviada com sucesso",
+    "uploadFailed": "Falha ao enviar imagem",
+    "uploadFileFailed": "Falha ao enviar arquivo",
+    "readFileFailed": "Falha ao ler arquivo",
+    "openFileFailed": "Falha ao abrir arquivo: {{error}}",
+    "psdUrlMissing": "URL do arquivo PSD não disponível",
+    "psdOpened": "{{name}} aberto com {{count}} camadas",
+    "psdOpenFailed": "Falha ao abrir arquivo PSD"
+  }
+}

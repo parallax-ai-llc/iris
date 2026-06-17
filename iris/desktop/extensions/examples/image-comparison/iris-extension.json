@@ -1,0 +1,27 @@
+{
+  "id": "iris-official.image-comparison",
+  "name": "image-comparison",
+  "version": "1.0.0",
+  "engineVersion": "^1.0.0",
+  "main": "./dist/index.js",
+  "displayName": "Image Comparison Slider",
+  "description": "Compare before/after images with an interactive slider panel",
+  "publisher": "iris-official",
+  "activationEvents": [
+    "onCommand:iris-official.image-comparison.snapshot",
+    "onCommand:iris-official.image-comparison.compare",
+    "onCommand:iris-official.image-comparison.clear"
+  ],
+  "contributes": {
+    "commands": [
+      { "command": "iris-official.image-comparison.snapshot", "title": "Take Snapshot (Before)", "icon": "camera" },
+      { "command": "iris-official.image-comparison.compare", "title": "Compare Before/After", "icon": "columns" },
+      { "command": "iris-official.image-comparison.clear", "title": "Clear Snapshots", "icon": "trash-2" }
+    ],
+    "keybindings": [
+      { "command": "iris-official.image-comparison.snapshot", "key": "ctrl+shift+b" },
+      { "command": "iris-official.image-comparison.compare", "key": "ctrl+shift+d" }
+    ]
+  },
+  "permissions": ["commands:register", "image:read", "ui:panel"]
+}

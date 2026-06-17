@@ -1,0 +1,80 @@
+{
+  "header": {
+    "title": "비디오 에디터",
+    "closeEditor": "에디터 닫기",
+    "saveProject": "프로젝트 저장 (Ctrl+S)",
+    "exportVideo": "영상 내보내기",
+    "keyboardShortcuts": "키보드 단축키",
+    "downloadVideo": "영상 다운로드",
+    "serverRequired": "서버 연결이 필요합니다",
+    "autoCaptions": "자동 자막 (AI)",
+    "autocut": "AI 자동 편집 (하이라이트)",
+    "autoReframe": "AI 자동 리프레임",
+    "save": "저장",
+    "export": "내보내기"
+  },
+  "exportModal": {
+    "ffmpegNotFound": "FFmpeg를 찾을 수 없습니다",
+    "ffmpegRequired": "로컬 비디오 내보내기를 사용하려면 FFmpeg가 필요합니다.",
+    "ffmpegDownload": "FFmpeg 다운로드 →",
+    "ffmpegOutdated": "FFmpeg 버전이 낮습니다",
+    "ffmpegUpgradeMessage": "일부 전환 효과는 FFmpeg 4.3 이상이 필요합니다. 최신 버전으로 업그레이드하세요.",
+    "ffmpegPreparing": "비디오 인코더 준비 중...",
+    "ffmpegDownloading": "비디오 인코더 다운로드 중...",
+    "ffmpegSetupFailed": "비디오 인코더를 설정하지 못했습니다"
+  },
+  "lumetri": {
+    "colorMatchAnalyzing": "Color Match: AI 분석 중..."
+  },
+  "tools": {
+    "upscale": {
+      "label": "업스케일",
+      "description": "해상도 향상"
+    },
+    "motionControl": {
+      "label": "모션 컨트롤",
+      "description": "모션 전환"
+    },
+    "inpaint": {
+      "label": "인페인트",
+      "description": "객체 제거/교체"
+    },
+    "cut": {
+      "label": "자르기",
+      "description": "영상 구간 잘라내기"
+    }
+  },
+  "autoCaptions": {
+    "title": "자동 자막",
+    "description": "AI 음성 인식을 통해 오디오에서 자막을 자동으로 생성합니다.",
+    "spokenLanguage": "음성 언어",
+    "model": "모델",
+    "removeFillerWords": "불필요한 말 제거",
+    "removeFillerWordsHint": "\"음\", \"어\", \"그것도\" 등 불필요한 말을 자동으로 제거합니다",
+    "generateCaptions": "자막 생성",
+    "generating": "생성 중...",
+    "done": "완료!",
+    "captionsAdded": "타임라인에 자막이 추가되었습니다!",
+    "fillerRemoved": "불필요한 말 {{count}}개가 제거되었습니다",
+    "errorNoSpeech": "자막이 생성되지 않았습니다. 영상에 음성이 없거나 언어가 일치하지 않을 수 있습니다.",
+    "errorFailed": "자막 생성에 실패했습니다. 연결 상태를 확인하고 다시 시도해 주세요.",
+    "tokens": "크레딧",
+    "cancel": "취소",
+    "models": {
+      "gpt4oMiniTranscribe": {
+        "label": "GPT-4o Mini Transcribe",
+        "description": "빠르고 저렴함 — Whisper보다 뛰어남"
+      },
+      "gpt4oTranscribe": {
+        "label": "GPT-4o Transcribe",
+        "description": "최고의 정확도, 뛰어난 다국어 지원"
+      },
+      "whisper1": {
+        "label": "Whisper (레거시)",
+        "description": "기본 모델"
+      }
+    }
+  },
+  "undo": "실행 취소 (Ctrl+Z)",
+  "redo": "다시 실행 (Ctrl+Shift+Z)"
+}

@@ -1,0 +1,79 @@
+{
+  "generate": {
+    "title": "Generate Video",
+    "prompt": "Prompt",
+    "promptPlaceholder": "Describe the video you want to create...",
+    "promptHint": "Press Ctrl+Enter to generate",
+    "negativePrompt": "Negative Prompt",
+    "negativePromptPlaceholder": "What to avoid in the video...",
+    "model": "Model",
+    "selectModel": "Select a model",
+    "loadingModels": "Loading models...",
+    "aspectRatio": "Aspect Ratio",
+    "notSupported": "Not supported by this model",
+    "duration": "Duration",
+    "img2vid": "Image to Video",
+    "active": "Active",
+    "removeReference": "Remove reference image",
+    "removeEndFrame": "Remove end frame image",
+    "selectFromLibrary": "Select from Library",
+    "uploadFromComputer": "Upload from Computer",
+    "pasteFromClipboard": "Paste from Clipboard",
+    "firstFrameHint": "The first frame will be based on this image",
+    "startFrame": "Start Frame",
+    "endFrame": "End Frame",
+    "endFrameHint": "The last frame will transition to this image",
+    "startEndFrameHint": "Start frame is required. End frame is optional and only used by models that support it (Seedance, Kling 2.1, ...).",
+    "estimatedTokens": "Estimated credits",
+    "generating": "Generating...",
+    "generatingProgress": "Generating video...",
+    "optional": "optional",
+    "serverRequired": "Server connection required"
+  },
+  "gallery": {
+    "title": "Video Gallery",
+    "upload": "Upload",
+    "open": "Open",
+    "searchPlaceholder": "Search videos...",
+    "noResults": "No results found",
+    "noResultsHint": "Try adjusting your search or filter to find what you're looking for.",
+    "clearFilters": "Clear filters",
+    "selectForTool": "Select a video for",
+    "generationFailed": "Generation Failed",
+    "emptyTitle": "No videos yet",
+    "emptyHint": "Generate your first video using the panel on the left, or upload an existing video.",
+    "uploadingCount": "Uploading ({{count}})",
+    "statusUploading": "Uploading...",
+    "statusProcessing": "Processing...",
+    "statusComplete": "Complete",
+    "uploadFailed": "Upload failed"
+  },
+  "filter": {
+    "all": "All Videos",
+    "generated": "Generated",
+    "uploaded": "Uploaded"
+  },
+  "addToProject": {
+    "title": "Add to Project",
+    "description": "Select a project to add \"{{name}}\" to:",
+    "empty": "No projects yet",
+    "create": "Create New Project",
+    "mediaSuffix": "media",
+    "namePrefix": "Project: {{name}}"
+  },
+  "toasts": {
+    "clipboardAttached": "Image attached from clipboard",
+    "noClipboardImage": "No image found in clipboard",
+    "clipboardDenied": "Clipboard permission denied. Use Ctrl+V instead.",
+    "clipboardReadFailed": "Failed to read clipboard",
+    "attachFrameFailed": "Failed to attach frame image",
+    "readFileFailed": "Failed to read file",
+    "uploadVideoFailed": "Failed to upload video file",
+    "openVideoFailed": "Failed to open video: {{error}}"
+  },
+  "delete": {
+    "title": "Delete Selected Videos",
+    "message": "Are you sure you want to delete {{count}} selected video(s)? This action cannot be undone.",
+    "confirm": "Delete"
+  }
+}

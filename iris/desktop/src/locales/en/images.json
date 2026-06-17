@@ -1,0 +1,72 @@
+{
+  "generate": {
+    "title": "Generate Image",
+    "prompt": "Prompt",
+    "promptPlaceholder": "Describe the image you want to create...",
+    "promptHint": "Press Ctrl+Enter to generate",
+    "negativePrompt": "Negative Prompt",
+    "negativePromptPlaceholder": "What to avoid in the image...",
+    "model": "Model",
+    "selectModel": "Select a model",
+    "aspectRatio": "Aspect Ratio",
+    "img2img": "Image-to-Image",
+    "active": "Active",
+    "removeReference": "Remove reference image",
+    "selectFromLibrary": "Select from Library",
+    "uploadFromComputer": "Upload from Computer",
+    "pasteFromClipboard": "Paste from Clipboard",
+    "imageStrength": "Image Strength",
+    "imageStrengthHint": "Higher = more original image influence",
+    "estimatedTokens": "Estimated credits",
+    "generating": "Generating...",
+    "serverRequired": "Server connection required"
+  },
+  "gallery": {
+    "title": "Image Gallery",
+    "upload": "Upload",
+    "open": "Open",
+    "searchPlaceholder": "Search images...",
+    "noResults": "No results found",
+    "noResultsHint": "Try adjusting your search or filter to find what you're looking for.",
+    "clearFilters": "Clear filters",
+    "selectForTool": "Select an image for",
+    "generationFailed": "Generation Failed",
+    "processing": "Processing...",
+    "referenceBadge": "Reference",
+    "emptyTitle": "No images yet",
+    "emptyHint": "Generate your first image using the panel on the left, or upload an existing image.",
+    "tooltipDownload": "Download",
+    "tooltipDelete": "Delete",
+    "tooltipUseAsReference": "Use as reference (Shift+Click)"
+  },
+  "filter": {
+    "all": "All Images",
+    "generated": "Generated",
+    "uploaded": "Uploaded",
+    "edited": "Edited"
+  },
+  "toasts": {
+    "clipboardAttached": "Image attached from clipboard",
+    "noClipboardImage": "No image found in clipboard",
+    "clipboardDenied": "Clipboard permission denied. Use Ctrl+V instead.",
+    "clipboardReadFailed": "Failed to read clipboard",
+    "attachRefFailed": "Failed to attach reference image",
+    "uploadOk": "Image uploaded successfully",
+    "uploadFailed": "Failed to upload image",
+    "uploadFileFailed": "Failed to upload file",
+    "readFileFailed": "Failed to read file",
+    "openFileFailed": "Failed to open file: {{error}}",
+    "psdUrlMissing": "PSD file URL not available",
+    "psdOpened": "Opened {{name}} with {{count}} layers",
+    "psdOpenFailed": "Failed to open PSD file"
+  },
+  "reference": {
+    "title": "Select Reference Image",
+    "description": "Choose an image from your library to use as reference"
+  },
+  "delete": {
+    "title": "Delete Selected Images",
+    "message": "Are you sure you want to delete {{count}} selected image(s)? This action cannot be undone.",
+    "confirm": "Delete"
+  }
+}

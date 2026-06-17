@@ -1,0 +1,126 @@
+{
+  "title": "Extension Marketplace",
+  "subtitle": "Discover and install extensions to enhance your workflow",
+  "search": "Search extensions...",
+  "featured": "Featured",
+  "categories": {
+    "all": "All",
+    "ai_tools": "AI Tools",
+    "workflows": "Workflows",
+    "integrations": "Integrations"
+  },
+  "sort": {
+    "popular": "Most Popular",
+    "rating": "Top Rated",
+    "newest": "Newest",
+    "name": "Name (A-Z)"
+  },
+  "card": {
+    "installs": "installs",
+    "reviews": "reviews",
+    "install": "Install",
+    "installed": "Installed",
+    "uninstall": "Uninstall",
+    "installing": "Installing...",
+    "removing": "Removing...",
+    "retry": "Retry",
+    "official": "Official"
+  },
+  "detail": {
+    "overview": "Overview",
+    "reviews": "Reviews",
+    "changelog": "Changelog",
+    "by": "by {{author}}",
+    "version": "v{{version}}",
+    "type": "Type",
+    "lastUpdated": "Last Updated",
+    "author": "Author"
+  },
+  "review": {
+    "writeReview": "Write a Review",
+    "yourRating": "Your Rating",
+    "yourComment": "Your comment...",
+    "submit": "Submit Review",
+    "noReviews": "No reviews yet. Be the first!"
+  },
+  "empty": {
+    "title": "No extensions found",
+    "description": "Try adjusting your search or filters"
+  },
+  "tabs": {
+    "browse": "Browse",
+    "my": "My Extensions"
+  },
+  "submit": {
+    "title": "Register Extension",
+    "subtitle": "Submit your extension to the marketplace",
+    "registerButton": "Register",
+    "name": "Name",
+    "namePlaceholder": "Extension name",
+    "shortDescription": "Short Description",
+    "shortDescriptionPlaceholder": "Brief description (max 500 chars)",
+    "description": "Description",
+    "descriptionPlaceholder": "Detailed description of your extension...",
+    "type": "Type",
+    "category": "Category",
+    "icon": "Icon (emoji)",
+    "price": "Price (tokens, 0 = free)",
+    "tags": "Tags",
+    "tagsPlaceholder": "tag1, tag2, tag3",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "submitting": "Submitting..."
+  },
+  "my": {
+    "loading": "Loading your extensions...",
+    "empty": "You haven't registered any extensions yet.",
+    "delete": "Delete"
+  },
+  "guide": {
+    "title": "Extension Development Guide",
+    "viewGuide": "Guide",
+    "close": "Close",
+    "overview": {
+      "title": "Overview",
+      "content": "The Extension Marketplace allows you to share your tools, workflows, and integrations with the community. Anyone can register and publish extensions."
+    },
+    "aiTool": {
+      "title": "AI Tool Extensions",
+      "content": "AI Tool extensions add new AI-powered capabilities such as filters, style transfers, image processing, and more. They leverage AI models to enhance creative workflows."
+    },
+    "workflow": {
+      "title": "Workflow Template Extensions",
+      "content": "Workflow templates provide pre-built automation pipelines. They can include multi-step processes for batch processing, social media posting, or content creation."
+    },
+    "integration": {
+      "title": "Integration Extensions",
+      "content": "Integrations connect Iris with external services like Notion, Figma, Slack, and more. They enable seamless data exchange and workflow automation across platforms."
+    },
+    "steps": {
+      "title": "Registration Steps",
+      "content": "1. Click 'Register' in the marketplace header\n2. Fill in the extension details (name, description, type, category)\n3. Add relevant tags for discoverability\n4. Set pricing (0 for free)\n5. Submit — your extension will be immediately available"
+    },
+    "policy": {
+      "title": "Review & Reporting Policy",
+      "content": "Users can rate and review extensions. Inappropriate content can be reported. Reports are reviewed by our moderation team. Extensions violating our guidelines may be removed."
+    }
+  },
+  "report": {
+    "button": "Report",
+    "title": "Report Extension",
+    "titleReview": "Report Review",
+    "reasonLabel": "Reason for reporting",
+    "reasons": {
+      "spam": "Spam or advertising",
+      "inappropriate": "Inappropriate content",
+      "misleading": "Misleading or fraudulent",
+      "other": "Other"
+    },
+    "description": "Additional details (optional)",
+    "descriptionPlaceholder": "Provide more context...",
+    "cancel": "Cancel",
+    "submit": "Submit Report",
+    "submitting": "Submitting...",
+    "success": "Report submitted successfully. Thank you!"
+  }
+}

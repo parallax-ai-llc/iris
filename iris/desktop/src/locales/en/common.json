@@ -1,0 +1,181 @@
+{
+  "buttons": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "generate": "Generate",
+    "export": "Export",
+    "import": "Import",
+    "upload": "Upload",
+    "download": "Download",
+    "open": "Open",
+    "create": "Create",
+    "add": "Add",
+    "remove": "Remove",
+    "apply": "Apply",
+    "reset": "Reset",
+    "done": "Done!",
+    "loading": "Loading...",
+    "generating": "Generating...",
+    "processing": "Processing...",
+    "logout": "Logout",
+    "choose": "Choose Folder",
+    "clear": "Clear",
+    "checkUpdates": "Check for Updates",
+    "select": "Select",
+    "selectAll": "Select All",
+    "new": "New",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "sort": {
+    "newest": "Newest First",
+    "oldest": "Oldest First",
+    "nameAsc": "Name (A-Z)",
+    "nameDesc": "Name (Z-A)"
+  },
+  "storage": {
+    "pickerTitle": "Select from Library",
+    "pickerDescription": "Choose an asset from your library",
+    "searchPlaceholder": "Search assets...",
+    "emptyTitle": "No assets found",
+    "emptyHintImages": "Generate or upload images to see them here.",
+    "emptyHintVideos": "Generate or upload videos to see them here.",
+    "emptyHintAll": "Generate or upload assets to see them here.",
+    "badgeImage": "IMAGE",
+    "badgeVideo": "VIDEO",
+    "assetTypeImage": "Image",
+    "assetTypeVideo": "Video",
+    "pageOf": "Page {{page}} of {{total}}"
+  },
+  "errors": {
+    "unknown": "Unknown error occurred"
+  },
+  "status": {
+    "success": "Success",
+    "error": "Error",
+    "loading": "Loading",
+    "noData": "No data",
+    "notLoggedIn": "Not logged in",
+    "latestVersion": "You are on the latest version",
+    "updateCheckFailed": "Failed to check for updates",
+    "loggedOut": "Logged out successfully"
+  },
+  "language": {
+    "en": "English",
+    "ko": "한국어",
+    "ja": "日本語",
+    "hi": "हिन्दी",
+    "th": "ไทย",
+    "id": "Bahasa Indonesia",
+    "es": "Español",
+    "pt": "Português (Brasil)",
+    "fr": "Français",
+    "bn": "বাংলা",
+    "te": "తెలుగు",
+    "ta": "தமிழ்",
+    "mr": "मराठी",
+    "select": "Language"
+  },
+  "home": {
+    "greeting": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening"
+    },
+    "subtitle": "Ready to create something amazing?",
+    "quickStart": "Quick Start",
+    "recentActivity": "Recent Activity",
+    "viewAll": "View all",
+    "noActivity": "No recent activity yet",
+    "noActivityHint": "Start creating to see your work here",
+    "proTip": "Pro tip:",
+    "proTipNavigate": "to quickly navigate between pages",
+    "stats": {
+      "imagesCreated": "Images Created",
+      "videosCreated": "Videos Created",
+      "thisWeek": "This Week"
+    },
+    "actions": {
+      "createImage": {
+        "title": "Create Image",
+        "description": "Generate stunning images with AI"
+      },
+      "createVideo": {
+        "title": "Create Video",
+        "description": "Transform ideas into videos"
+      },
+      "buildWorkflow": {
+        "title": "Build Workflow",
+        "description": "Automate your creative process"
+      }
+    },
+    "timeAgo": {
+      "days": "{{count}}d ago",
+      "hours": "{{count}}h ago",
+      "minutes": "{{count}}m ago",
+      "justNow": "Just now"
+    }
+  },
+  "nav": {
+    "home": "Home",
+    "tools": "Tools",
+    "templates": "Templates",
+    "images": "Images",
+    "videos": "Videos",
+    "projects": "Projects",
+    "workflows": "Workflows",
+    "batch": "Batch",
+    "extensions": "Extensions",
+    "library": "Library",
+    "storage": "Storage",
+    "settings": "Settings"
+  },
+  "titleBar": {
+    "unsavedChanges": "Unsaved Changes",
+    "unsavedMessage": "You are currently in the editor. Any unsaved changes will be lost. Are you sure you want to quit?",
+    "quitWithoutSaving": "Quit Without Saving",
+    "bugReport": "Bug Report",
+    "bugReportMessageLabel": "Description",
+    "bugReportPlaceholder": "Please describe the bug...",
+    "bugReportSubmit": "Submit",
+    "bugReportSuccess": "Bug report submitted successfully",
+    "bugReportError": "Failed to submit bug report",
+    "bugReportRateLimit": "Too many reports. Please try again later.",
+    "bugReportThankYou": "Thank you for your report! We will review it shortly."
+  },
+  "editor": {
+    "localFileWarning": {
+      "imageTitle": "Unsaved Local Image",
+      "imageMessage": "Local files are not saved to the cloud. Returning to the gallery may discard your edits.",
+      "videoTitle": "Unsaved Local Video",
+      "videoMessage": "Local video files are not saved to the cloud. Closing will discard your edits.",
+      "closeWithoutSaving": "Close Without Saving"
+    },
+    "closeTabWarning": {
+      "title": "Unsaved Changes",
+      "message": "You have unsaved changes. Are you sure you want to close this tab?",
+      "closeWithoutSaving": "Close Without Saving",
+      "saveAndClose": "Save and Close"
+    },
+    "videoUnsavedWarning": {
+      "title": "Unsaved Changes",
+      "message": "Current project has unsaved changes. What would you like to do?",
+      "discard": "Discard",
+      "saveAndContinue": "Save & Continue"
+    },
+    "workflowUnsavedWarning": {
+      "title": "Leave Without Saving?",
+      "message": "You have unsaved changes. Leaving will discard them.",
+      "leaveWithoutSaving": "Leave Without Saving"
+    },
+    "videoInit": {
+      "analyzing": "Analyzing video...",
+      "probingDimensions": "Checking video resolution...",
+      "probingDuration": "Checking video duration...",
+      "preparingEditor": "Preparing editor..."
+    }
+  }
+}

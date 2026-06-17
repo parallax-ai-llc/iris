@@ -1,0 +1,74 @@
+{
+  "generate": {
+    "title": "Generate Video",
+    "prompt": "Prompt",
+    "promptPlaceholder": "Describe the video you want to create...",
+    "promptHint": "Press Ctrl+Enter to generate",
+    "negativePrompt": "Negative Prompt",
+    "negativePromptPlaceholder": "What to avoid in the video...",
+    "model": "Model",
+    "selectModel": "Select a model",
+    "loadingModels": "Loading models...",
+    "aspectRatio": "Aspect Ratio",
+    "notSupported": "Not supported by this model",
+    "duration": "Duration",
+    "img2vid": "Image to Video",
+    "active": "Active",
+    "removeReference": "Remove reference image",
+    "selectFromLibrary": "Select from Library",
+    "uploadFromComputer": "Upload from Computer",
+    "pasteFromClipboard": "Paste from Clipboard",
+    "firstFrameHint": "The first frame will be based on this image",
+    "estimatedTokens": "Estimated credits",
+    "generating": "Generating...",
+    "serverRequired": "Server connection required",
+    "generatingProgress": "வீடியோ உருவாக்கப்படுகிறது...",
+    "optional": "விருப்ப"
+  },
+  "gallery": {
+    "title": "Video Gallery",
+    "upload": "Upload",
+    "open": "Open",
+    "searchPlaceholder": "Search videos...",
+    "noResults": "No results found",
+    "noResultsHint": "Try adjusting your search or filter to find what you're looking for.",
+    "clearFilters": "Clear filters",
+    "selectForTool": "Select a video for",
+    "generationFailed": "Generation Failed",
+    "emptyTitle": "இன்னும் வீடியோக்கள் இல்லை",
+    "emptyHint": "இடது பேனலில் இருந்து உங்கள் முதல் வீடியோவை உருவாக்கவும், அல்லது ஏற்கனவே உள்ள வீடியோவை பதிவேற்றவும்.",
+    "uploadingCount": "பதிவேற்றுகிறது ({{count}})",
+    "statusUploading": "பதிவேற்றுகிறது...",
+    "statusProcessing": "செயலாக்கம்...",
+    "statusComplete": "முடிந்தது",
+    "uploadFailed": "பதிவேற்றம் தோல்வி"
+  },
+  "delete": {
+    "title": "Delete Selected Videos",
+    "message": "Are you sure you want to delete {{count}} selected video(s)? This action cannot be undone.",
+    "confirm": "Delete"
+  },
+  "filter": {
+    "all": "அனைத்து வீடியோக்கள்",
+    "generated": "உருவாக்கப்பட்டது",
+    "uploaded": "பதிவேற்றப்பட்டது"
+  },
+  "addToProject": {
+    "title": "திட்டத்தில் சேர்",
+    "description": "\"{{name}}\"-ஐ சேர்க்க ஒரு திட்டத்தை தேர்ந்தெடுக்கவும்:",
+    "empty": "இன்னும் திட்டங்கள் இல்லை",
+    "create": "புதிய திட்டத்தை உருவாக்கு",
+    "mediaSuffix": "மீடியா",
+    "namePrefix": "திட்டம்: {{name}}"
+  },
+  "toasts": {
+    "clipboardAttached": "கிளிப்போர்டிலிருந்து படம் இணைக்கப்பட்டது",
+    "noClipboardImage": "கிளிப்போர்டில் படம் இல்லை",
+    "clipboardDenied": "கிளிப்போர்டு அனுமதி மறுக்கப்பட்டது. Ctrl+V ஐ பயன்படுத்தவும்.",
+    "clipboardReadFailed": "கிளிப்போர்டை படிக்க முடியவில்லை",
+    "attachFrameFailed": "பிரேம் படத்தை இணைக்க முடியவில்லை",
+    "readFileFailed": "கோப்பை படிக்க முடியவில்லை",
+    "uploadVideoFailed": "வீடியோ கோப்பை பதிவேற்ற முடியவில்லை",
+    "openVideoFailed": "வீடியோவை திறக்க முடியவில்லை: {{error}}"
+  }
+}

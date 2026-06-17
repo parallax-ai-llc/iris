@@ -1,0 +1,74 @@
+{
+  "generate": {
+    "title": "Generate Video",
+    "prompt": "Prompt",
+    "promptPlaceholder": "Describe the video you want to create...",
+    "promptHint": "Press Ctrl+Enter to generate",
+    "negativePrompt": "Negative Prompt",
+    "negativePromptPlaceholder": "What to avoid in the video...",
+    "model": "Model",
+    "selectModel": "Select a model",
+    "loadingModels": "Loading models...",
+    "aspectRatio": "Aspect Ratio",
+    "notSupported": "Not supported by this model",
+    "duration": "Duration",
+    "img2vid": "Image to Video",
+    "active": "Active",
+    "removeReference": "Remove reference image",
+    "selectFromLibrary": "Select from Library",
+    "uploadFromComputer": "Upload from Computer",
+    "pasteFromClipboard": "Paste from Clipboard",
+    "firstFrameHint": "The first frame will be based on this image",
+    "estimatedTokens": "Estimated credits",
+    "generating": "Generating...",
+    "serverRequired": "Server connection required",
+    "generatingProgress": "వీడియో రూపొందించబడుతోంది...",
+    "optional": "ఐచ్ఛికం"
+  },
+  "gallery": {
+    "title": "Video Gallery",
+    "upload": "Upload",
+    "open": "Open",
+    "searchPlaceholder": "Search videos...",
+    "noResults": "No results found",
+    "noResultsHint": "Try adjusting your search or filter to find what you're looking for.",
+    "clearFilters": "Clear filters",
+    "selectForTool": "Select a video for",
+    "generationFailed": "Generation Failed",
+    "emptyTitle": "ఇంకా వీడియోలు లేవు",
+    "emptyHint": "ఎడమ ప్యానెల్ నుండి మీ మొదటి వీడియోను రూపొందించండి లేదా ఉన్న వీడియోను అప్‌లోడ్ చేయండి.",
+    "uploadingCount": "అప్‌లోడ్ అవుతోంది ({{count}})",
+    "statusUploading": "అప్‌లోడ్ అవుతోంది...",
+    "statusProcessing": "ప్రాసెస్ అవుతోంది...",
+    "statusComplete": "పూర్తయింది",
+    "uploadFailed": "అప్‌లోడ్ విఫలమైంది"
+  },
+  "delete": {
+    "title": "Delete Selected Videos",
+    "message": "Are you sure you want to delete {{count}} selected video(s)? This action cannot be undone.",
+    "confirm": "Delete"
+  },
+  "filter": {
+    "all": "అన్ని వీడియోలు",
+    "generated": "రూపొందించబడింది",
+    "uploaded": "అప్‌లోడ్ చేయబడింది"
+  },
+  "addToProject": {
+    "title": "ప్రాజెక్ట్‌కు జోడించు",
+    "description": "\"{{name}}\" జోడించడానికి ఒక ప్రాజెక్ట్‌ను ఎంచుకోండి:",
+    "empty": "ఇంకా ప్రాజెక్ట్‌లు లేవు",
+    "create": "కొత్త ప్రాజెక్ట్ సృష్టించు",
+    "mediaSuffix": "మీడియా",
+    "namePrefix": "ప్రాజెక్ట్: {{name}}"
+  },
+  "toasts": {
+    "clipboardAttached": "క్లిప్‌బోర్డ్ నుండి చిత్రం జతచేయబడింది",
+    "noClipboardImage": "క్లిప్‌బోర్డ్‌లో చిత్రం కనుగొనబడలేదు",
+    "clipboardDenied": "క్లిప్‌బోర్డ్ అనుమతి తిరస్కరించబడింది. Ctrl+V ఉపయోగించండి.",
+    "clipboardReadFailed": "క్లిప్‌బోర్డ్ చదవడం విఫలమైంది",
+    "attachFrameFailed": "ఫ్రేమ్ చిత్రాన్ని జతచేయడం విఫలమైంది",
+    "readFileFailed": "ఫైల్‌ను చదవడం విఫలమైంది",
+    "uploadVideoFailed": "వీడియో ఫైల్‌ను అప్‌లోడ్ చేయడం విఫలమైంది",
+    "openVideoFailed": "వీడియోను తెరవడం విఫలమైంది: {{error}}"
+  }
+}

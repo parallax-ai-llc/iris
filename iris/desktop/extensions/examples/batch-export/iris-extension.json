@@ -1,0 +1,28 @@
+{
+  "id": "iris-official.batch-export",
+  "name": "batch-export",
+  "version": "1.0.0",
+  "engineVersion": "^1.0.0",
+  "main": "./dist/index.js",
+  "displayName": "Batch Export",
+  "description": "Export images to multiple resolutions and formats at once for web, mobile, and print",
+  "publisher": "iris-official",
+  "activationEvents": [
+    "onCommand:iris-official.batch-export.run",
+    "onCommand:iris-official.batch-export.configure"
+  ],
+  "contributes": {
+    "commands": [
+      { "command": "iris-official.batch-export.run", "title": "Batch Export", "icon": "download" },
+      { "command": "iris-official.batch-export.configure", "title": "Configure Export Profiles", "icon": "settings" }
+    ],
+    "keybindings": [
+      { "command": "iris-official.batch-export.run", "key": "ctrl+shift+j" }
+    ],
+    "settings": [
+      { "id": "iris-official.batch-export.profiles", "type": "string", "title": "Export Profiles", "default": "web,mobile,print" },
+      { "id": "iris-official.batch-export.namingRule", "type": "string", "title": "File Naming Rule", "default": "{name}_{profile}_{width}x{height}" }
+    ]
+  },
+  "permissions": ["commands:register", "image:read", "export:configure", "filesystem:write", "ui:panel"]
+}

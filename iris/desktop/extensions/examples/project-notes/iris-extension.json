@@ -1,0 +1,24 @@
+{
+  "id": "iris-official.project-notes",
+  "name": "project-notes",
+  "version": "1.0.0",
+  "engineVersion": "^1.0.0",
+  "main": "./dist/index.js",
+  "displayName": "Project Notes",
+  "description": "Attach markdown notes to each image file for tracking edit intentions and revision history",
+  "publisher": "iris-official",
+  "activationEvents": [
+    "onCommand:iris-official.project-notes.open",
+    "onCommand:iris-official.project-notes.search"
+  ],
+  "contributes": {
+    "commands": [
+      { "command": "iris-official.project-notes.open", "title": "Open Image Notes", "icon": "file-text" },
+      { "command": "iris-official.project-notes.search", "title": "Search All Notes", "icon": "search" }
+    ],
+    "keybindings": [
+      { "command": "iris-official.project-notes.open", "key": "ctrl+shift+n" }
+    ]
+  },
+  "permissions": ["commands:register", "image:read", "ui:panel"]
+}

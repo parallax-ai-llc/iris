@@ -1,0 +1,74 @@
+{
+  "generate": {
+    "title": "Generate Video",
+    "prompt": "Prompt",
+    "promptPlaceholder": "Describe the video you want to create...",
+    "promptHint": "Press Ctrl+Enter to generate",
+    "negativePrompt": "Negative Prompt",
+    "negativePromptPlaceholder": "What to avoid in the video...",
+    "model": "Model",
+    "selectModel": "Select a model",
+    "loadingModels": "Loading models...",
+    "aspectRatio": "Aspect Ratio",
+    "notSupported": "Not supported by this model",
+    "duration": "Duration",
+    "img2vid": "Image to Video",
+    "active": "Active",
+    "removeReference": "Remove reference image",
+    "selectFromLibrary": "Select from Library",
+    "uploadFromComputer": "Upload from Computer",
+    "pasteFromClipboard": "Paste from Clipboard",
+    "firstFrameHint": "The first frame will be based on this image",
+    "estimatedTokens": "Estimated credits",
+    "generating": "Generating...",
+    "serverRequired": "Server connection required",
+    "generatingProgress": "Génération de la vidéo...",
+    "optional": "facultatif"
+  },
+  "gallery": {
+    "title": "Video Gallery",
+    "upload": "Upload",
+    "open": "Open",
+    "searchPlaceholder": "Search videos...",
+    "noResults": "No results found",
+    "noResultsHint": "Try adjusting your search or filter to find what you're looking for.",
+    "clearFilters": "Clear filters",
+    "selectForTool": "Select a video for",
+    "generationFailed": "Generation Failed",
+    "emptyTitle": "Aucune vidéo pour le moment",
+    "emptyHint": "Générez votre première vidéo avec le panneau de gauche, ou téléchargez une vidéo existante.",
+    "uploadingCount": "Téléchargement ({{count}})",
+    "statusUploading": "Téléchargement...",
+    "statusProcessing": "Traitement...",
+    "statusComplete": "Terminé",
+    "uploadFailed": "Échec du téléchargement"
+  },
+  "delete": {
+    "title": "Delete Selected Videos",
+    "message": "Are you sure you want to delete {{count}} selected video(s)? This action cannot be undone.",
+    "confirm": "Delete"
+  },
+  "filter": {
+    "all": "Toutes les vidéos",
+    "generated": "Générées",
+    "uploaded": "Téléchargées"
+  },
+  "addToProject": {
+    "title": "Ajouter au projet",
+    "description": "Sélectionnez un projet auquel ajouter « {{name}} » :",
+    "empty": "Aucun projet pour le moment",
+    "create": "Créer un nouveau projet",
+    "mediaSuffix": "médias",
+    "namePrefix": "Projet : {{name}}"
+  },
+  "toasts": {
+    "clipboardAttached": "Image jointe depuis le presse-papiers",
+    "noClipboardImage": "Aucune image trouvée dans le presse-papiers",
+    "clipboardDenied": "Autorisation du presse-papiers refusée. Utilisez Ctrl+V à la place.",
+    "clipboardReadFailed": "Échec de la lecture du presse-papiers",
+    "attachFrameFailed": "Échec de l'attachement de l'image de la trame",
+    "readFileFailed": "Échec de la lecture du fichier",
+    "uploadVideoFailed": "Échec du téléchargement du fichier vidéo",
+    "openVideoFailed": "Échec de l'ouverture de la vidéo : {{error}}"
+  }
+}

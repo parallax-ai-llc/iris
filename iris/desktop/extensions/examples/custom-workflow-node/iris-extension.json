@@ -1,0 +1,27 @@
+{
+  "id": "iris-official.text-overlay",
+  "name": "text-overlay",
+  "version": "1.0.0",
+  "engineVersion": "^1.0.0",
+  "main": "./dist/index.js",
+  "displayName": "Text Overlay Node",
+  "description": "Adds a custom workflow node that overlays text on images",
+  "publisher": "iris-official",
+  "activationEvents": ["onStartup"],
+  "contributes": {
+    "workflowNodes": [
+      {
+        "id": "iris-official.text-overlay.node",
+        "name": "Text Overlay",
+        "category": "transform",
+        "inputs": [
+          { "id": "image", "type": "image", "label": "Image" }
+        ],
+        "outputs": [
+          { "id": "result", "type": "image", "label": "Result" }
+        ]
+      }
+    ]
+  },
+  "permissions": ["workflow:register", "image:read", "image:write"]
+}

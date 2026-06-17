@@ -1,0 +1,181 @@
+{
+  "buttons": {
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "close": "Fechar",
+    "delete": "Excluir",
+    "confirm": "Confirmar",
+    "generate": "Gerar",
+    "export": "Exportar",
+    "import": "Importar",
+    "upload": "Enviar",
+    "download": "Baixar",
+    "open": "Abrir",
+    "create": "Criar",
+    "add": "Adicionar",
+    "remove": "Remover",
+    "apply": "Aplicar",
+    "reset": "Redefinir",
+    "done": "Pronto!",
+    "loading": "Carregando...",
+    "generating": "Gerando...",
+    "processing": "Processando...",
+    "logout": "Sair",
+    "choose": "Escolher pasta",
+    "clear": "Limpar",
+    "checkUpdates": "Verificar atualizações",
+    "select": "Selecionar",
+    "selectAll": "Selecionar tudo",
+    "new": "Novo",
+    "previous": "Anterior",
+    "next": "Próximo"
+  },
+  "status": {
+    "success": "Sucesso",
+    "error": "Erro",
+    "loading": "Carregando",
+    "noData": "Sem dados",
+    "notLoggedIn": "Não conectado",
+    "latestVersion": "Você está na versão mais recente",
+    "updateCheckFailed": "Falha ao verificar atualizações",
+    "loggedOut": "Desconectado com sucesso"
+  },
+  "language": {
+    "en": "English",
+    "ko": "한국어",
+    "ja": "日本語",
+    "hi": "हिन्दी",
+    "th": "ไทย",
+    "id": "Bahasa Indonesia",
+    "es": "Español",
+    "pt": "Português (Brasil)",
+    "fr": "Français",
+    "bn": "বাংলা",
+    "te": "తెలుగు",
+    "ta": "தமிழ்",
+    "mr": "मराठी",
+    "select": "Idioma"
+  },
+  "home": {
+    "greeting": {
+      "morning": "Bom dia",
+      "afternoon": "Boa tarde",
+      "evening": "Boa noite"
+    },
+    "subtitle": "Pronto para criar algo incrível?",
+    "quickStart": "Início rápido",
+    "recentActivity": "Atividade recente",
+    "viewAll": "Ver tudo",
+    "noActivity": "Nenhuma atividade recente ainda",
+    "noActivityHint": "Comece a criar para ver seu trabalho aqui",
+    "proTip": "Dica:",
+    "proTipNavigate": "para navegar rapidamente entre páginas",
+    "stats": {
+      "imagesCreated": "Imagens criadas",
+      "videosCreated": "Vídeos criados",
+      "thisWeek": "Esta semana"
+    },
+    "actions": {
+      "createImage": {
+        "title": "Criar imagem",
+        "description": "Gere imagens incríveis com AI"
+      },
+      "createVideo": {
+        "title": "Criar vídeo",
+        "description": "Transforme ideias em vídeos"
+      },
+      "buildWorkflow": {
+        "title": "Criar fluxo de trabalho",
+        "description": "Automatize seu processo criativo"
+      }
+    },
+    "timeAgo": {
+      "days": "há {{count}} d",
+      "hours": "há {{count}} h",
+      "minutes": "há {{count}} min",
+      "justNow": "Agora mesmo"
+    }
+  },
+  "nav": {
+    "home": "Início",
+    "tools": "Ferramentas",
+    "templates": "Modelos",
+    "images": "Imagens",
+    "videos": "Vídeos",
+    "projects": "Projetos",
+    "workflows": "Fluxos de trabalho",
+    "batch": "Em lote",
+    "extensions": "Extensões",
+    "library": "Biblioteca",
+    "storage": "Armazenamento",
+    "settings": "Configurações"
+  },
+  "titleBar": {
+    "unsavedChanges": "Alterações não salvas",
+    "unsavedMessage": "Você está atualmente no editor. Quaisquer alterações não salvas serão perdidas. Tem certeza de que deseja sair?",
+    "quitWithoutSaving": "Sair sem salvar",
+    "bugReport": "Relatório de bug",
+    "bugReportMessageLabel": "Descrição",
+    "bugReportPlaceholder": "Por favor, descreva o bug...",
+    "bugReportSubmit": "Enviar",
+    "bugReportSuccess": "Relatório de bug enviado com sucesso",
+    "bugReportError": "Falha ao enviar relatório de bug",
+    "bugReportRateLimit": "Muitos relatórios. Por favor, tente novamente mais tarde.",
+    "bugReportThankYou": "Obrigado pelo seu relatório! Iremos analisá-lo em breve."
+  },
+  "editor": {
+    "localFileWarning": {
+      "imageTitle": "Imagem local não salva",
+      "imageMessage": "Arquivos locais não são salvos na nuvem. Voltar para a galeria pode descartar suas edições.",
+      "videoTitle": "Vídeo local não salvo",
+      "videoMessage": "Arquivos de vídeo locais não são salvos na nuvem. Fechar descartará suas edições.",
+      "closeWithoutSaving": "Fechar sem salvar"
+    },
+    "closeTabWarning": {
+      "title": "Alterações não salvas",
+      "message": "Você tem alterações não salvas. Tem certeza de que deseja fechar esta aba?",
+      "closeWithoutSaving": "Fechar sem salvar",
+      "saveAndClose": "Salvar e fechar"
+    },
+    "videoUnsavedWarning": {
+      "title": "Alterações não salvas",
+      "message": "O projeto atual tem alterações não salvas. O que você gostaria de fazer?",
+      "discard": "Descartar",
+      "saveAndContinue": "Salvar e continuar"
+    },
+    "workflowUnsavedWarning": {
+      "title": "Sair sem salvar?",
+      "message": "Você tem alterações não salvas. Sair irá descartá-las.",
+      "leaveWithoutSaving": "Sair sem salvar"
+    },
+    "videoInit": {
+      "analyzing": "Analisando vídeo...",
+      "probingDimensions": "Verificando resolução do vídeo...",
+      "probingDuration": "Verificando duração do vídeo...",
+      "preparingEditor": "Preparando editor..."
+    }
+  },
+  "sort": {
+    "newest": "Mais recentes",
+    "oldest": "Mais antigos",
+    "nameAsc": "Nome (A-Z)",
+    "nameDesc": "Nome (Z-A)"
+  },
+  "storage": {
+    "pickerTitle": "Selecionar da biblioteca",
+    "pickerDescription": "Escolha um item da sua biblioteca",
+    "searchPlaceholder": "Buscar itens...",
+    "emptyTitle": "Nenhum item encontrado",
+    "emptyHintImages": "Gere ou faça upload de imagens para vê-las aqui.",
+    "emptyHintVideos": "Gere ou faça upload de vídeos para vê-los aqui.",
+    "emptyHintAll": "Gere ou faça upload de itens para vê-los aqui.",
+    "badgeImage": "IMAGEM",
+    "badgeVideo": "VÍDEO",
+    "assetTypeImage": "Imagem",
+    "assetTypeVideo": "Vídeo",
+    "pageOf": "Página {{page}} de {{total}}"
+  },
+  "errors": {
+    "unknown": "Ocorreu um erro desconhecido"
+  }
+}

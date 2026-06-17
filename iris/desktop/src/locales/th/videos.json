@@ -1,0 +1,74 @@
+{
+  "generate": {
+    "title": "Generate Video",
+    "prompt": "Prompt",
+    "promptPlaceholder": "Describe the video you want to create...",
+    "promptHint": "Press Ctrl+Enter to generate",
+    "negativePrompt": "Negative Prompt",
+    "negativePromptPlaceholder": "What to avoid in the video...",
+    "model": "Model",
+    "selectModel": "Select a model",
+    "loadingModels": "Loading models...",
+    "aspectRatio": "Aspect Ratio",
+    "notSupported": "Not supported by this model",
+    "duration": "Duration",
+    "img2vid": "Image to Video",
+    "active": "Active",
+    "removeReference": "Remove reference image",
+    "selectFromLibrary": "Select from Library",
+    "uploadFromComputer": "Upload from Computer",
+    "pasteFromClipboard": "Paste from Clipboard",
+    "firstFrameHint": "The first frame will be based on this image",
+    "estimatedTokens": "Estimated credits",
+    "generating": "Generating...",
+    "serverRequired": "Server connection required",
+    "generatingProgress": "กำลังสร้างวิดีโอ...",
+    "optional": "ไม่บังคับ"
+  },
+  "gallery": {
+    "title": "Video Gallery",
+    "upload": "Upload",
+    "open": "Open",
+    "searchPlaceholder": "Search videos...",
+    "noResults": "No results found",
+    "noResultsHint": "Try adjusting your search or filter to find what you're looking for.",
+    "clearFilters": "Clear filters",
+    "selectForTool": "Select a video for",
+    "generationFailed": "Generation Failed",
+    "emptyTitle": "ยังไม่มีวิดีโอ",
+    "emptyHint": "สร้างวิดีโอแรกของคุณโดยใช้แผงด้านซ้าย หรืออัปโหลดวิดีโอที่มีอยู่",
+    "uploadingCount": "กำลังอัปโหลด ({{count}})",
+    "statusUploading": "กำลังอัปโหลด...",
+    "statusProcessing": "กำลังประมวลผล...",
+    "statusComplete": "เสร็จสมบูรณ์",
+    "uploadFailed": "อัปโหลดไม่สำเร็จ"
+  },
+  "delete": {
+    "title": "Delete Selected Videos",
+    "message": "Are you sure you want to delete {{count}} selected video(s)? This action cannot be undone.",
+    "confirm": "Delete"
+  },
+  "filter": {
+    "all": "วิดีโอทั้งหมด",
+    "generated": "สร้างขึ้น",
+    "uploaded": "อัปโหลดแล้ว"
+  },
+  "addToProject": {
+    "title": "เพิ่มในโปรเจกต์",
+    "description": "เลือกโปรเจกต์ที่จะเพิ่ม \"{{name}}\":",
+    "empty": "ยังไม่มีโปรเจกต์",
+    "create": "สร้างโปรเจกต์ใหม่",
+    "mediaSuffix": "สื่อ",
+    "namePrefix": "โปรเจกต์: {{name}}"
+  },
+  "toasts": {
+    "clipboardAttached": "แนบรูปภาพจากคลิปบอร์ดแล้ว",
+    "noClipboardImage": "ไม่พบรูปภาพในคลิปบอร์ด",
+    "clipboardDenied": "การอนุญาตคลิปบอร์ดถูกปฏิเสธ ใช้ Ctrl+V แทน",
+    "clipboardReadFailed": "อ่านคลิปบอร์ดไม่สำเร็จ",
+    "attachFrameFailed": "แนบรูปภาพเฟรมไม่สำเร็จ",
+    "readFileFailed": "อ่านไฟล์ไม่สำเร็จ",
+    "uploadVideoFailed": "อัปโหลดไฟล์วิดีโอไม่สำเร็จ",
+    "openVideoFailed": "เปิดวิดีโอไม่สำเร็จ: {{error}}"
+  }
+}

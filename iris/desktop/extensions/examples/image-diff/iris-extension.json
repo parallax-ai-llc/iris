@@ -1,0 +1,28 @@
+{
+  "id": "iris-official.image-diff",
+  "name": "image-diff",
+  "version": "1.0.0",
+  "engineVersion": "^1.0.0",
+  "main": "./dist/index.js",
+  "displayName": "Image Diff Checker",
+  "description": "Visualize pixel-level differences between two images with similarity scoring",
+  "publisher": "iris-official",
+  "activationEvents": [
+    "onCommand:iris-official.image-diff.capture",
+    "onCommand:iris-official.image-diff.diff"
+  ],
+  "contributes": {
+    "commands": [
+      { "command": "iris-official.image-diff.capture", "title": "Capture Reference Image", "icon": "camera" },
+      { "command": "iris-official.image-diff.diff", "title": "Show Diff", "icon": "diff" }
+    ],
+    "keybindings": [
+      { "command": "iris-official.image-diff.diff", "key": "ctrl+shift+f" }
+    ],
+    "settings": [
+      { "id": "iris-official.image-diff.threshold", "type": "number", "title": "Diff Threshold (0-255)", "default": 10 },
+      { "id": "iris-official.image-diff.highlightColor", "type": "string", "title": "Highlight Color", "default": "#FF0000" }
+    ]
+  },
+  "permissions": ["commands:register", "image:read", "image:write", "ui:panel"]
+}

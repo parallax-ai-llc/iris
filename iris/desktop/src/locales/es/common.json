@@ -1,0 +1,181 @@
+{
+  "buttons": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "delete": "Eliminar",
+    "confirm": "Confirmar",
+    "generate": "Generar",
+    "export": "Exportar",
+    "import": "Importar",
+    "upload": "Subir",
+    "download": "Descargar",
+    "open": "Abrir",
+    "create": "Crear",
+    "add": "Añadir",
+    "remove": "Quitar",
+    "apply": "Aplicar",
+    "reset": "Restablecer",
+    "done": "¡Listo!",
+    "loading": "Cargando...",
+    "generating": "Generando...",
+    "processing": "Procesando...",
+    "logout": "Cerrar sesión",
+    "choose": "Elegir carpeta",
+    "clear": "Limpiar",
+    "checkUpdates": "Buscar actualizaciones",
+    "select": "Seleccionar",
+    "selectAll": "Seleccionar todo",
+    "new": "Nuevo",
+    "previous": "Anterior",
+    "next": "Siguiente"
+  },
+  "sort": {
+    "newest": "Más recientes",
+    "oldest": "Más antiguos",
+    "nameAsc": "Nombre (A-Z)",
+    "nameDesc": "Nombre (Z-A)"
+  },
+  "storage": {
+    "pickerTitle": "Seleccionar de la biblioteca",
+    "pickerDescription": "Elige un recurso de tu biblioteca",
+    "searchPlaceholder": "Buscar recursos...",
+    "emptyTitle": "No se encontraron recursos",
+    "emptyHintImages": "Genera o sube imágenes para verlas aquí.",
+    "emptyHintVideos": "Genera o sube videos para verlos aquí.",
+    "emptyHintAll": "Genera o sube recursos para verlos aquí.",
+    "badgeImage": "IMAGEN",
+    "badgeVideo": "VIDEO",
+    "assetTypeImage": "Imagen",
+    "assetTypeVideo": "Video",
+    "pageOf": "Página {{page}} de {{total}}"
+  },
+  "errors": {
+    "unknown": "Ocurrió un error desconocido"
+  },
+  "status": {
+    "success": "Éxito",
+    "error": "Error",
+    "loading": "Cargando",
+    "noData": "Sin datos",
+    "notLoggedIn": "No has iniciado sesión",
+    "latestVersion": "Estás usando la última versión",
+    "updateCheckFailed": "No se pudieron buscar actualizaciones",
+    "loggedOut": "Sesión cerrada correctamente"
+  },
+  "language": {
+    "en": "English",
+    "ko": "한국어",
+    "ja": "日本語",
+    "hi": "हिन्दी",
+    "th": "ไทย",
+    "id": "Bahasa Indonesia",
+    "es": "Español",
+    "pt": "Português (Brasil)",
+    "fr": "Français",
+    "bn": "বাংলা",
+    "te": "తెలుగు",
+    "ta": "தமிழ்",
+    "mr": "मराठी",
+    "select": "Idioma"
+  },
+  "home": {
+    "greeting": {
+      "morning": "Buenos días",
+      "afternoon": "Buenas tardes",
+      "evening": "Buenas noches"
+    },
+    "subtitle": "¿Listo para crear algo increíble?",
+    "quickStart": "Inicio rápido",
+    "recentActivity": "Actividad reciente",
+    "viewAll": "Ver todo",
+    "noActivity": "Aún no hay actividad reciente",
+    "noActivityHint": "Empieza a crear para ver tu trabajo aquí",
+    "proTip": "Consejo:",
+    "proTipNavigate": "para navegar rápidamente entre páginas",
+    "stats": {
+      "imagesCreated": "Imágenes creadas",
+      "videosCreated": "Videos creados",
+      "thisWeek": "Esta semana"
+    },
+    "actions": {
+      "createImage": {
+        "title": "Crear imagen",
+        "description": "Genera imágenes impresionantes con AI"
+      },
+      "createVideo": {
+        "title": "Crear video",
+        "description": "Transforma ideas en videos"
+      },
+      "buildWorkflow": {
+        "title": "Crear flujo de trabajo",
+        "description": "Automatiza tu proceso creativo"
+      }
+    },
+    "timeAgo": {
+      "days": "hace {{count}} d",
+      "hours": "hace {{count}} h",
+      "minutes": "hace {{count}} min",
+      "justNow": "Justo ahora"
+    }
+  },
+  "nav": {
+    "home": "Inicio",
+    "tools": "Herramientas",
+    "templates": "Plantillas",
+    "images": "Imágenes",
+    "videos": "Videos",
+    "projects": "Proyectos",
+    "workflows": "Flujos de trabajo",
+    "batch": "Por lotes",
+    "extensions": "Extensiones",
+    "library": "Biblioteca",
+    "storage": "Almacenamiento",
+    "settings": "Ajustes"
+  },
+  "titleBar": {
+    "unsavedChanges": "Cambios sin guardar",
+    "unsavedMessage": "Actualmente estás en el editor. Cualquier cambio sin guardar se perderá. ¿Seguro que quieres salir?",
+    "quitWithoutSaving": "Salir sin guardar",
+    "bugReport": "Informe de error",
+    "bugReportMessageLabel": "Descripción",
+    "bugReportPlaceholder": "Describe el error, por favor...",
+    "bugReportSubmit": "Enviar",
+    "bugReportSuccess": "Informe de error enviado correctamente",
+    "bugReportError": "No se pudo enviar el informe de error",
+    "bugReportRateLimit": "Demasiados informes. Por favor, inténtalo de nuevo más tarde.",
+    "bugReportThankYou": "¡Gracias por tu informe! Lo revisaremos en breve."
+  },
+  "editor": {
+    "localFileWarning": {
+      "imageTitle": "Imagen local sin guardar",
+      "imageMessage": "Los archivos locales no se guardan en la nube. Volver a la galería puede descartar tus ediciones.",
+      "videoTitle": "Video local sin guardar",
+      "videoMessage": "Los archivos de video locales no se guardan en la nube. Cerrar descartará tus ediciones.",
+      "closeWithoutSaving": "Cerrar sin guardar"
+    },
+    "closeTabWarning": {
+      "title": "Cambios sin guardar",
+      "message": "Tienes cambios sin guardar. ¿Seguro que quieres cerrar esta pestaña?",
+      "closeWithoutSaving": "Cerrar sin guardar",
+      "saveAndClose": "Guardar y cerrar"
+    },
+    "videoUnsavedWarning": {
+      "title": "Cambios sin guardar",
+      "message": "El proyecto actual tiene cambios sin guardar. ¿Qué te gustaría hacer?",
+      "discard": "Descartar",
+      "saveAndContinue": "Guardar y continuar"
+    },
+    "workflowUnsavedWarning": {
+      "title": "¿Salir sin guardar?",
+      "message": "Tienes cambios sin guardar. Si sales, se descartarán.",
+      "leaveWithoutSaving": "Salir sin guardar"
+    },
+    "videoInit": {
+      "analyzing": "Analizando video...",
+      "probingDimensions": "Comprobando resolución del video...",
+      "probingDuration": "Comprobando duración del video...",
+      "preparingEditor": "Preparando editor..."
+    }
+  }
+}

@@ -1,0 +1,13 @@
+diff --git a/out/codeSign/windowsSignAzureManager.js b/out/codeSign/windowsSignAzureManager.js
+index 0868e1fa3527d28455da1678827f36540c70b490..ae100eee55431cc308a1f61d3f8e1199555655af 100644
+--- a/out/codeSign/windowsSignAzureManager.js
++++ b/out/codeSign/windowsSignAzureManager.js
+@@ -108,7 +108,7 @@ class WindowsSignAzureManager {
+             return [...res, `-${field}`, `'${escapedValue}'`];
+         }, [])
+             .join(" ");
+-        await vm.exec(ps, ["-NoProfile", "-NonInteractive", "-Command", `Invoke-TrustedSigning ${paramsString}`]);
++        await vm.exec(ps, ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", `Import-Module TrustedSigning; Invoke-TrustedSigning ${paramsString}`]);
+         return true;
+     }
+ }

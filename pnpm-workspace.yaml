@@ -1,0 +1,6 @@
+packages:
+  # Fair-code open-source Iris packages
+  - 'packages/*'
+  # Desktop app (Electron) — path preserved as iris/desktop so the editor's
+  # ../../packages/iris-editor relative references resolve unchanged.
+  - 'iris/desktop'

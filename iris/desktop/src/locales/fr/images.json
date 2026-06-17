@@ -1,0 +1,72 @@
+{
+  "generate": {
+    "title": "Generate Image",
+    "prompt": "Prompt",
+    "promptPlaceholder": "Describe the image you want to create...",
+    "promptHint": "Press Ctrl+Enter to generate",
+    "negativePrompt": "Negative Prompt",
+    "negativePromptPlaceholder": "What to avoid in the image...",
+    "model": "Model",
+    "selectModel": "Select a model",
+    "aspectRatio": "Aspect Ratio",
+    "img2img": "Image-to-Image",
+    "active": "Active",
+    "removeReference": "Remove reference image",
+    "selectFromLibrary": "Select from Library",
+    "uploadFromComputer": "Upload from Computer",
+    "pasteFromClipboard": "Paste from Clipboard",
+    "imageStrength": "Image Strength",
+    "imageStrengthHint": "Higher = more original image influence",
+    "estimatedTokens": "Estimated credits",
+    "generating": "Generating...",
+    "serverRequired": "Server connection required"
+  },
+  "gallery": {
+    "title": "Image Gallery",
+    "upload": "Upload",
+    "open": "Open",
+    "searchPlaceholder": "Search images...",
+    "noResults": "No results found",
+    "noResultsHint": "Try adjusting your search or filter to find what you're looking for.",
+    "clearFilters": "Clear filters",
+    "selectForTool": "Select an image for",
+    "generationFailed": "Generation Failed",
+    "processing": "Traitement...",
+    "referenceBadge": "Référence",
+    "emptyTitle": "Aucune image pour le moment",
+    "emptyHint": "Générez votre première image avec le panneau de gauche, ou téléchargez une image existante.",
+    "tooltipDownload": "Télécharger",
+    "tooltipDelete": "Supprimer",
+    "tooltipUseAsReference": "Utiliser comme référence (Shift+Click)"
+  },
+  "reference": {
+    "title": "Select Reference Image",
+    "description": "Choose an image from your library to use as reference"
+  },
+  "delete": {
+    "title": "Delete Selected Images",
+    "message": "Are you sure you want to delete {{count}} selected image(s)? This action cannot be undone.",
+    "confirm": "Delete"
+  },
+  "filter": {
+    "all": "Toutes les images",
+    "generated": "Générées",
+    "uploaded": "Téléchargées",
+    "edited": "Éditées"
+  },
+  "toasts": {
+    "clipboardAttached": "Image jointe depuis le presse-papiers",
+    "noClipboardImage": "Aucune image trouvée dans le presse-papiers",
+    "clipboardDenied": "Autorisation du presse-papiers refusée. Utilisez Ctrl+V à la place.",
+    "clipboardReadFailed": "Échec de la lecture du presse-papiers",
+    "attachRefFailed": "Échec de l'attachement de l'image de référence",
+    "uploadOk": "Image téléchargée avec succès",
+    "uploadFailed": "Échec du téléchargement de l'image",
+    "uploadFileFailed": "Échec du téléchargement du fichier",
+    "readFileFailed": "Échec de la lecture du fichier",
+    "openFileFailed": "Échec de l'ouverture du fichier : {{error}}",
+    "psdUrlMissing": "URL du fichier PSD non disponible",
+    "psdOpened": "{{name}} ouvert avec {{count}} calques",
+    "psdOpenFailed": "Échec de l'ouverture du fichier PSD"
+  }
+}

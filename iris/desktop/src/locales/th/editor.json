@@ -1,0 +1,80 @@
+{
+  "header": {
+    "title": "Video Editor",
+    "closeEditor": "Close Editor",
+    "saveProject": "Save Project (Ctrl+S)",
+    "exportVideo": "Export Video",
+    "keyboardShortcuts": "Keyboard Shortcuts",
+    "downloadVideo": "Download Video",
+    "serverRequired": "Server connection required",
+    "autoCaptions": "Auto Captions (AI)",
+    "autocut": "AI AutoCut (Highlights)",
+    "autoReframe": "AI Auto-Reframe",
+    "save": "Save",
+    "export": "Export"
+  },
+  "exportModal": {
+    "ffmpegNotFound": "FFmpeg not found",
+    "ffmpegRequired": "FFmpeg is required to export videos locally.",
+    "ffmpegDownload": "Download FFmpeg →",
+    "ffmpegOutdated": "FFmpeg version is too old",
+    "ffmpegUpgradeMessage": "Some transition effects require FFmpeg 4.3 or higher. Please upgrade to the latest version.",
+    "ffmpegPreparing": "Preparing video encoder...",
+    "ffmpegDownloading": "Downloading video encoder...",
+    "ffmpegSetupFailed": "Couldn't set up the video encoder"
+  },
+  "lumetri": {
+    "colorMatchAnalyzing": "Color Match: AI analyzing..."
+  },
+  "tools": {
+    "upscale": {
+      "label": "Upscale",
+      "description": "Enhance resolution"
+    },
+    "motionControl": {
+      "label": "Motion Control",
+      "description": "Transfer motion"
+    },
+    "inpaint": {
+      "label": "Inpaint",
+      "description": "Remove/replace objects"
+    },
+    "cut": {
+      "label": "Cut",
+      "description": "Cut video segments"
+    }
+  },
+  "autoCaptions": {
+    "title": "Auto Captions",
+    "description": "Automatically generate subtitles from audio using AI transcription.",
+    "spokenLanguage": "Spoken Language",
+    "model": "Model",
+    "removeFillerWords": "Remove filler words",
+    "removeFillerWordsHint": "Automatically remove \"um\", \"uh\", \"you know\" and similar filler words",
+    "generateCaptions": "Generate Captions",
+    "generating": "Generating...",
+    "done": "Done!",
+    "captionsAdded": "Captions added to timeline!",
+    "fillerRemoved": "Removed {{count}} filler word(s)",
+    "errorNoSpeech": "No captions were generated. The video may have no speech, or the language may not match.",
+    "errorFailed": "Failed to generate captions. Please check your connection and try again.",
+    "tokens": "credits",
+    "cancel": "Cancel",
+    "models": {
+      "gpt4oMiniTranscribe": {
+        "label": "GPT-4o Mini Transcribe",
+        "description": "Fast & affordable — better than Whisper"
+      },
+      "gpt4oTranscribe": {
+        "label": "GPT-4o Transcribe",
+        "description": "Best accuracy, excellent multilingual support"
+      },
+      "whisper1": {
+        "label": "Whisper (Legacy)",
+        "description": "Standard model"
+      }
+    }
+  },
+  "undo": "Undo (Ctrl+Z)",
+  "redo": "Redo (Ctrl+Shift+Z)"
+}

@@ -1,0 +1,74 @@
+{
+  "generate": {
+    "title": "Generate Video",
+    "prompt": "Prompt",
+    "promptPlaceholder": "Describe the video you want to create...",
+    "promptHint": "Press Ctrl+Enter to generate",
+    "negativePrompt": "Negative Prompt",
+    "negativePromptPlaceholder": "What to avoid in the video...",
+    "model": "Model",
+    "selectModel": "Select a model",
+    "loadingModels": "Loading models...",
+    "aspectRatio": "Aspect Ratio",
+    "notSupported": "Not supported by this model",
+    "duration": "Duration",
+    "img2vid": "Image to Video",
+    "active": "Active",
+    "removeReference": "Remove reference image",
+    "selectFromLibrary": "Select from Library",
+    "uploadFromComputer": "Upload from Computer",
+    "pasteFromClipboard": "Paste from Clipboard",
+    "firstFrameHint": "The first frame will be based on this image",
+    "estimatedTokens": "Estimated credits",
+    "generating": "Generating...",
+    "serverRequired": "Server connection required",
+    "generatingProgress": "Menghasilkan video...",
+    "optional": "opsional"
+  },
+  "gallery": {
+    "title": "Video Gallery",
+    "upload": "Upload",
+    "open": "Open",
+    "searchPlaceholder": "Search videos...",
+    "noResults": "No results found",
+    "noResultsHint": "Try adjusting your search or filter to find what you're looking for.",
+    "clearFilters": "Clear filters",
+    "selectForTool": "Select a video for",
+    "generationFailed": "Generation Failed",
+    "emptyTitle": "Belum ada video",
+    "emptyHint": "Hasilkan video pertama Anda menggunakan panel di sebelah kiri, atau unggah video yang sudah ada.",
+    "uploadingCount": "Mengunggah ({{count}})",
+    "statusUploading": "Mengunggah...",
+    "statusProcessing": "Memproses...",
+    "statusComplete": "Selesai",
+    "uploadFailed": "Unggahan gagal"
+  },
+  "delete": {
+    "title": "Delete Selected Videos",
+    "message": "Are you sure you want to delete {{count}} selected video(s)? This action cannot be undone.",
+    "confirm": "Delete"
+  },
+  "filter": {
+    "all": "Semua Video",
+    "generated": "Dihasilkan",
+    "uploaded": "Diunggah"
+  },
+  "addToProject": {
+    "title": "Tambahkan ke Proyek",
+    "description": "Pilih proyek untuk menambahkan \"{{name}}\":",
+    "empty": "Belum ada proyek",
+    "create": "Buat Proyek Baru",
+    "mediaSuffix": "media",
+    "namePrefix": "Proyek: {{name}}"
+  },
+  "toasts": {
+    "clipboardAttached": "Gambar dilampirkan dari clipboard",
+    "noClipboardImage": "Tidak ada gambar ditemukan di clipboard",
+    "clipboardDenied": "Izin clipboard ditolak. Gunakan Ctrl+V sebagai gantinya.",
+    "clipboardReadFailed": "Gagal membaca clipboard",
+    "attachFrameFailed": "Gagal melampirkan gambar frame",
+    "readFileFailed": "Gagal membaca file",
+    "uploadVideoFailed": "Gagal mengunggah file video",
+    "openVideoFailed": "Gagal membuka video: {{error}}"
+  }
+}

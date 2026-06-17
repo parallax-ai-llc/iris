@@ -1,0 +1,74 @@
+{
+  "generate": {
+    "title": "Generate Video",
+    "prompt": "Prompt",
+    "promptPlaceholder": "Describe the video you want to create...",
+    "promptHint": "Press Ctrl+Enter to generate",
+    "negativePrompt": "Negative Prompt",
+    "negativePromptPlaceholder": "What to avoid in the video...",
+    "model": "Model",
+    "selectModel": "Select a model",
+    "loadingModels": "Loading models...",
+    "aspectRatio": "Aspect Ratio",
+    "notSupported": "Not supported by this model",
+    "duration": "Duration",
+    "img2vid": "Image to Video",
+    "active": "Active",
+    "removeReference": "Remove reference image",
+    "selectFromLibrary": "Select from Library",
+    "uploadFromComputer": "Upload from Computer",
+    "pasteFromClipboard": "Paste from Clipboard",
+    "firstFrameHint": "The first frame will be based on this image",
+    "estimatedTokens": "Estimated credits",
+    "generating": "Generating...",
+    "serverRequired": "Server connection required",
+    "generatingProgress": "वीडियो जनरेट हो रहा है...",
+    "optional": "वैकल्पिक"
+  },
+  "gallery": {
+    "title": "Video Gallery",
+    "upload": "Upload",
+    "open": "Open",
+    "searchPlaceholder": "Search videos...",
+    "noResults": "No results found",
+    "noResultsHint": "Try adjusting your search or filter to find what you're looking for.",
+    "clearFilters": "Clear filters",
+    "selectForTool": "Select a video for",
+    "generationFailed": "Generation Failed",
+    "emptyTitle": "अभी तक कोई वीडियो नहीं",
+    "emptyHint": "बाईं ओर के पैनल से अपना पहला वीडियो जनरेट करें, या मौजूदा वीडियो अपलोड करें।",
+    "uploadingCount": "अपलोड हो रहा है ({{count}})",
+    "statusUploading": "अपलोड हो रहा है...",
+    "statusProcessing": "प्रोसेस हो रहा है...",
+    "statusComplete": "पूर्ण",
+    "uploadFailed": "अपलोड विफल"
+  },
+  "delete": {
+    "title": "Delete Selected Videos",
+    "message": "Are you sure you want to delete {{count}} selected video(s)? This action cannot be undone.",
+    "confirm": "Delete"
+  },
+  "filter": {
+    "all": "सभी वीडियो",
+    "generated": "जनरेट किए गए",
+    "uploaded": "अपलोड किए गए"
+  },
+  "addToProject": {
+    "title": "प्रोजेक्ट में जोड़ें",
+    "description": "\"{{name}}\" को जोड़ने के लिए एक प्रोजेक्ट चुनें:",
+    "empty": "अभी तक कोई प्रोजेक्ट नहीं",
+    "create": "नया प्रोजेक्ट बनाएं",
+    "mediaSuffix": "मीडिया",
+    "namePrefix": "प्रोजेक्ट: {{name}}"
+  },
+  "toasts": {
+    "clipboardAttached": "क्लिपबोर्ड से इमेज संलग्न की गई",
+    "noClipboardImage": "क्लिपबोर्ड में कोई इमेज नहीं मिली",
+    "clipboardDenied": "क्लिपबोर्ड की अनुमति अस्वीकार। Ctrl+V का उपयोग करें।",
+    "clipboardReadFailed": "क्लिपबोर्ड पढ़ने में विफल",
+    "attachFrameFailed": "फ्रेम इमेज संलग्न करने में विफल",
+    "readFileFailed": "फ़ाइल पढ़ने में विफल",
+    "uploadVideoFailed": "वीडियो फ़ाइल अपलोड करने में विफल",
+    "openVideoFailed": "वीडियो खोलने में विफल: {{error}}"
+  }
+}

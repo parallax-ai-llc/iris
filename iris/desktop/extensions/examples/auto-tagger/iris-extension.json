@@ -1,0 +1,24 @@
+{
+  "id": "iris-official.auto-tagger",
+  "name": "auto-tagger",
+  "version": "1.0.0",
+  "engineVersion": "^1.0.0",
+  "main": "./dist/index.js",
+  "displayName": "Auto Tagger",
+  "description": "Automatically generate descriptive tags for images using AI analysis",
+  "publisher": "iris-official",
+  "activationEvents": [
+    "onCommand:iris-official.auto-tagger.tag",
+    "onCommand:iris-official.auto-tagger.history"
+  ],
+  "contributes": {
+    "commands": [
+      { "command": "iris-official.auto-tagger.tag", "title": "Auto Tag Image", "icon": "tags" },
+      { "command": "iris-official.auto-tagger.history", "title": "View Tag History", "icon": "history" }
+    ],
+    "keybindings": [
+      { "command": "iris-official.auto-tagger.tag", "key": "ctrl+shift+a" }
+    ]
+  },
+  "permissions": ["commands:register", "image:read", "ai:execute", "ui:panel"]
+}

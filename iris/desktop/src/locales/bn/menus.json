@@ -1,0 +1,103 @@
+{
+  "file": {
+    "label": "File",
+    "newProject": "New Project...",
+    "openProject": "Open Project...",
+    "saveProject": "Save Project",
+    "saveProjectAs": "Save Project As...",
+    "exportVideo": "Export Video...",
+    "downloadOriginal": "Download Original",
+    "backToVideos": "Back to Videos",
+    "goBack": "Go Back"
+  },
+  "edit": {
+    "label": "Edit",
+    "undo": "Undo",
+    "redo": "Redo",
+    "cut": "Cut",
+    "copy": "Copy",
+    "paste": "Paste",
+    "duplicate": "Duplicate",
+    "selectAll": "Select All",
+    "deleteSelected": "Delete Selected",
+    "rippleDelete": "Ripple Delete"
+  },
+  "view": {
+    "label": "View",
+    "zoomIn": "Zoom In",
+    "zoomOut": "Zoom Out",
+    "snapToGrid": "Snap to Grid",
+    "showWaveforms": "Show Waveforms"
+  },
+  "subtitles": {
+    "label": "Subtitles",
+    "generateAutoCaptions": "Generate Auto Captions...",
+    "importSubtitles": "Import Subtitles...",
+    "exportSrt": "Export as SRT...",
+    "exportVtt": "Export as VTT..."
+  },
+  "ai": {
+    "label": "AI",
+    "silenceRemoval": "Silence Removal..."
+  },
+  "silenceRemovalModal": {
+    "title": "Silence Removal",
+    "description": "Automatically detect and remove silent sections from your video. Processing happens locally.",
+    "modeAuto": "Auto (recommended)",
+    "modeManual": "Manual",
+    "autoDescription": "Analyzes the video's loudness and picks a silence threshold adapted to the source. Works well for both quiet and loud speech.",
+    "advancedToggle": "Advanced options",
+    "analyzing": "Analyzing audio loudness...",
+    "autoThresholdInfo": "Auto threshold: {{value}} dB (mean {{mean}} dB)",
+    "thresholdLabel": "Silence threshold: {{value}} dB",
+    "thresholdStrict": "-60 dB (strict)",
+    "thresholdLenient": "-10 dB (lenient)",
+    "minDurationLabel": "Minimum silence duration: {{value}}s",
+    "minDurationMin": "0.1s",
+    "minDurationMax": "5.0s",
+    "paddingLabel": "Padding (around non-silent regions): {{value}}ms",
+    "paddingMin": "0ms",
+    "paddingMax": "500ms",
+    "merging": "Merging media...",
+    "detecting": "Detecting silent sections...",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "mergeRequiredTitle": "Media merge required",
+    "mergeMessageMultiClip": "There are multiple video clips on the timeline. To detect silence, all clips will be merged into a single video. A new video will be created.",
+    "mergeMessageAdditionalTracks": "There are additional assets (audio, subtitles, etc.) in the project. All tracks will be merged into a single video for silence detection.",
+    "detectedCount": "{{count}} silent sections detected",
+    "statOriginal": "Original",
+    "statSilence": "Silence",
+    "statEstimated": "Estimated",
+    "removing": "Removing silent sections... {{progress}}%",
+    "successMessage": "Video with silence removed has been added to the media pool.",
+    "detectButton": "Detect Silence",
+    "detectingButton": "Detecting...",
+    "mergingButton": "Merging...",
+    "removeButton": "Remove Silence",
+    "doneButton": "Done",
+    "errors": {
+      "desktopRequired": "Desktop application required for silence detection",
+      "desktopRequiredMerge": "Desktop application required for media processing",
+      "desktopRequiredRemove": "Desktop application required",
+      "couldNotResolve": "Could not resolve video file path",
+      "noInputFile": "No input file available",
+      "noSegments": "No silent segments detected. Try lowering the threshold or reducing the minimum duration.",
+      "detectFailed": "Failed to detect silence",
+      "analyzeFailed": "Failed to analyze audio",
+      "mergeFailedPrefix": "Merge failed: {{message}}",
+      "mergeFailedUnknown": "Unknown error",
+      "mergeFailed": "Failed to merge media",
+      "removeFailed": "Failed to remove silence",
+      "addToPoolFailed": "Failed to add processed video to media pool"
+    },
+    "outputNameSuffix": "Silence Removed"
+  },
+  "tools": {
+    "label": "Tools",
+    "upscale": "Upscale",
+    "motionControl": "Motion Control",
+    "inpaint": "Inpaint",
+    "cut": "Cut"
+  }
+}

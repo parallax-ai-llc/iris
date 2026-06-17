@@ -1,0 +1,23 @@
+{
+  "id": "iris-official.session-timer",
+  "name": "session-timer",
+  "version": "1.0.0",
+  "engineVersion": "^1.0.0",
+  "main": "./dist/index.js",
+  "displayName": "Session Timer",
+  "description": "Track your creative session time with a status bar timer and Pomodoro mode",
+  "publisher": "iris-official",
+  "activationEvents": ["onStartup"],
+  "contributes": {
+    "commands": [
+      { "command": "iris-official.session-timer.toggle", "title": "Start/Pause Timer", "icon": "timer" },
+      { "command": "iris-official.session-timer.reset", "title": "Reset Timer", "icon": "rotate-ccw" },
+      { "command": "iris-official.session-timer.pomodoro", "title": "Start Pomodoro (25 min)", "icon": "alarm-clock" },
+      { "command": "iris-official.session-timer.stats", "title": "View Session Stats", "icon": "bar-chart" }
+    ],
+    "keybindings": [
+      { "command": "iris-official.session-timer.toggle", "key": "ctrl+shift+s" }
+    ]
+  },
+  "permissions": ["commands:register", "ui:panel"]
+}

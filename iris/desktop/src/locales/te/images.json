@@ -1,0 +1,72 @@
+{
+  "generate": {
+    "title": "Generate Image",
+    "prompt": "Prompt",
+    "promptPlaceholder": "Describe the image you want to create...",
+    "promptHint": "Press Ctrl+Enter to generate",
+    "negativePrompt": "Negative Prompt",
+    "negativePromptPlaceholder": "What to avoid in the image...",
+    "model": "Model",
+    "selectModel": "Select a model",
+    "aspectRatio": "Aspect Ratio",
+    "img2img": "Image-to-Image",
+    "active": "Active",
+    "removeReference": "Remove reference image",
+    "selectFromLibrary": "Select from Library",
+    "uploadFromComputer": "Upload from Computer",
+    "pasteFromClipboard": "Paste from Clipboard",
+    "imageStrength": "Image Strength",
+    "imageStrengthHint": "Higher = more original image influence",
+    "estimatedTokens": "Estimated credits",
+    "generating": "Generating...",
+    "serverRequired": "Server connection required"
+  },
+  "gallery": {
+    "title": "Image Gallery",
+    "upload": "Upload",
+    "open": "Open",
+    "searchPlaceholder": "Search images...",
+    "noResults": "No results found",
+    "noResultsHint": "Try adjusting your search or filter to find what you're looking for.",
+    "clearFilters": "Clear filters",
+    "selectForTool": "Select an image for",
+    "generationFailed": "Generation Failed",
+    "processing": "ప్రాసెస్ అవుతోంది...",
+    "referenceBadge": "రిఫరెన్స్",
+    "emptyTitle": "ఇంకా చిత్రాలు లేవు",
+    "emptyHint": "ఎడమ ప్యానెల్ నుండి మీ మొదటి చిత్రాన్ని రూపొందించండి లేదా ఉన్న చిత్రాన్ని అప్‌లోడ్ చేయండి.",
+    "tooltipDownload": "డౌన్‌లోడ్",
+    "tooltipDelete": "తొలగించు",
+    "tooltipUseAsReference": "రిఫరెన్స్‌గా ఉపయోగించు (Shift+Click)"
+  },
+  "reference": {
+    "title": "Select Reference Image",
+    "description": "Choose an image from your library to use as reference"
+  },
+  "delete": {
+    "title": "Delete Selected Images",
+    "message": "Are you sure you want to delete {{count}} selected image(s)? This action cannot be undone.",
+    "confirm": "Delete"
+  },
+  "filter": {
+    "all": "అన్ని చిత్రాలు",
+    "generated": "రూపొందించబడింది",
+    "uploaded": "అప్‌లోడ్ చేయబడింది",
+    "edited": "సవరించబడింది"
+  },
+  "toasts": {
+    "clipboardAttached": "క్లిప్‌బోర్డ్ నుండి చిత్రం జతచేయబడింది",
+    "noClipboardImage": "క్లిప్‌బోర్డ్‌లో చిత్రం కనుగొనబడలేదు",
+    "clipboardDenied": "క్లిప్‌బోర్డ్ అనుమతి తిరస్కరించబడింది. Ctrl+V ఉపయోగించండి.",
+    "clipboardReadFailed": "క్లిప్‌బోర్డ్ చదవడం విఫలమైంది",
+    "attachRefFailed": "రిఫరెన్స్ చిత్రాన్ని జతచేయడం విఫలమైంది",
+    "uploadOk": "చిత్రం విజయవంతంగా అప్‌లోడ్ చేయబడింది",
+    "uploadFailed": "చిత్రాన్ని అప్‌లోడ్ చేయడం విఫలమైంది",
+    "uploadFileFailed": "ఫైల్‌ను అప్‌లోడ్ చేయడం విఫలమైంది",
+    "readFileFailed": "ఫైల్‌ను చదవడం విఫలమైంది",
+    "openFileFailed": "ఫైల్‌ను తెరవడం విఫలమైంది: {{error}}",
+    "psdUrlMissing": "PSD ఫైల్ URL అందుబాటులో లేదు",
+    "psdOpened": "{{name}} {{count}} లేయర్‌లతో తెరవబడింది",
+    "psdOpenFailed": "PSD ఫైల్‌ను తెరవడం విఫలమైంది"
+  }
+}

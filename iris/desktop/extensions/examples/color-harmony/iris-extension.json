@@ -1,0 +1,27 @@
+{
+  "id": "iris-official.color-harmony",
+  "name": "color-harmony",
+  "version": "1.0.0",
+  "engineVersion": "^1.0.0",
+  "main": "./dist/index.js",
+  "displayName": "Color Harmony Generator",
+  "description": "Generate complementary, triadic, analogous, and split-complementary color palettes from any color",
+  "publisher": "iris-official",
+  "activationEvents": [
+    "onCommand:iris-official.color-harmony.generate",
+    "onCommand:iris-official.color-harmony.fromImage"
+  ],
+  "contributes": {
+    "commands": [
+      { "command": "iris-official.color-harmony.generate", "title": "Generate Color Harmony", "icon": "palette" },
+      { "command": "iris-official.color-harmony.fromImage", "title": "Harmony from Image Colors", "icon": "pipette" }
+    ],
+    "keybindings": [
+      { "command": "iris-official.color-harmony.generate", "key": "ctrl+shift+h" }
+    ],
+    "settings": [
+      { "id": "iris-official.color-harmony.format", "type": "string", "title": "Copy Format", "default": "hex", "enum": ["hex", "rgb", "hsl", "tailwind"] }
+    ]
+  },
+  "permissions": ["commands:register", "image:read", "ui:panel", "clipboard"]
+}

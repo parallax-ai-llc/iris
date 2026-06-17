@@ -1,0 +1,21 @@
+{
+  "id": "iris-official.image-info",
+  "name": "image-info",
+  "version": "1.0.0",
+  "engineVersion": "^1.0.0",
+  "main": "./dist/index.js",
+  "displayName": "Image Info",
+  "description": "Displays detailed information about the current canvas image",
+  "publisher": "iris-official",
+  "activationEvents": ["onCommand:iris-official.image-info.show"],
+  "contributes": {
+    "commands": [
+      {
+        "command": "iris-official.image-info.show",
+        "title": "Show Image Info",
+        "icon": "info"
+      }
+    ]
+  },
+  "permissions": ["commands:register", "image:read"]
+}

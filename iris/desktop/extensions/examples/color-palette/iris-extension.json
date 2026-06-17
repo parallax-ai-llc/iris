@@ -1,0 +1,22 @@
+{
+  "id": "iris-official.color-palette",
+  "name": "color-palette",
+  "version": "1.0.0",
+  "engineVersion": "^1.0.0",
+  "main": "./dist/index.js",
+  "displayName": "Color Palette Extractor",
+  "description": "Extract dominant colors from images and copy hex codes to clipboard",
+  "publisher": "iris-official",
+  "activationEvents": [
+    "onCommand:iris-official.color-palette.extract"
+  ],
+  "contributes": {
+    "commands": [
+      { "command": "iris-official.color-palette.extract", "title": "Extract Color Palette", "icon": "pipette" }
+    ],
+    "keybindings": [
+      { "command": "iris-official.color-palette.extract", "key": "ctrl+shift+p" }
+    ]
+  },
+  "permissions": ["commands:register", "image:read", "ui:panel", "clipboard"]
+}

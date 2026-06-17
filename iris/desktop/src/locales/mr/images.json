@@ -1,0 +1,72 @@
+{
+  "generate": {
+    "title": "Generate Image",
+    "prompt": "Prompt",
+    "promptPlaceholder": "Describe the image you want to create...",
+    "promptHint": "Press Ctrl+Enter to generate",
+    "negativePrompt": "Negative Prompt",
+    "negativePromptPlaceholder": "What to avoid in the image...",
+    "model": "Model",
+    "selectModel": "Select a model",
+    "aspectRatio": "Aspect Ratio",
+    "img2img": "Image-to-Image",
+    "active": "Active",
+    "removeReference": "Remove reference image",
+    "selectFromLibrary": "Select from Library",
+    "uploadFromComputer": "Upload from Computer",
+    "pasteFromClipboard": "Paste from Clipboard",
+    "imageStrength": "Image Strength",
+    "imageStrengthHint": "Higher = more original image influence",
+    "estimatedTokens": "Estimated credits",
+    "generating": "Generating...",
+    "serverRequired": "Server connection required"
+  },
+  "gallery": {
+    "title": "Image Gallery",
+    "upload": "Upload",
+    "open": "Open",
+    "searchPlaceholder": "Search images...",
+    "noResults": "No results found",
+    "noResultsHint": "Try adjusting your search or filter to find what you're looking for.",
+    "clearFilters": "Clear filters",
+    "selectForTool": "Select an image for",
+    "generationFailed": "Generation Failed",
+    "processing": "प्रक्रिया सुरू आहे...",
+    "referenceBadge": "संदर्भ",
+    "emptyTitle": "अद्याप कोणत्याही प्रतिमा नाहीत",
+    "emptyHint": "डाव्या पॅनेलमधून आपली पहिली प्रतिमा तयार करा किंवा विद्यमान प्रतिमा अपलोड करा.",
+    "tooltipDownload": "डाउनलोड",
+    "tooltipDelete": "हटवा",
+    "tooltipUseAsReference": "संदर्भ म्हणून वापरा (Shift+Click)"
+  },
+  "reference": {
+    "title": "Select Reference Image",
+    "description": "Choose an image from your library to use as reference"
+  },
+  "delete": {
+    "title": "Delete Selected Images",
+    "message": "Are you sure you want to delete {{count}} selected image(s)? This action cannot be undone.",
+    "confirm": "Delete"
+  },
+  "filter": {
+    "all": "सर्व प्रतिमा",
+    "generated": "तयार केलेल्या",
+    "uploaded": "अपलोड केलेल्या",
+    "edited": "संपादित"
+  },
+  "toasts": {
+    "clipboardAttached": "क्लिपबोर्डवरून प्रतिमा संलग्न केली",
+    "noClipboardImage": "क्लिपबोर्डमध्ये कोणतीही प्रतिमा सापडली नाही",
+    "clipboardDenied": "क्लिपबोर्ड परवानगी नाकारली. कृपया Ctrl+V वापरा.",
+    "clipboardReadFailed": "क्लिपबोर्ड वाचण्यात अयशस्वी",
+    "attachRefFailed": "संदर्भ प्रतिमा संलग्न करण्यात अयशस्वी",
+    "uploadOk": "प्रतिमा यशस्वीरीत्या अपलोड झाली",
+    "uploadFailed": "प्रतिमा अपलोड करण्यात अयशस्वी",
+    "uploadFileFailed": "फाइल अपलोड करण्यात अयशस्वी",
+    "readFileFailed": "फाइल वाचण्यात अयशस्वी",
+    "openFileFailed": "फाइल उघडण्यात अयशस्वी: {{error}}",
+    "psdUrlMissing": "PSD फाइल URL उपलब्ध नाही",
+    "psdOpened": "{{name}} {{count}} लेयर्ससह उघडले",
+    "psdOpenFailed": "PSD फाइल उघडण्यात अयशस्वी"
+  }
+}

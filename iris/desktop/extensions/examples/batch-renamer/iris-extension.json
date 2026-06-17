@@ -1,0 +1,17 @@
+{
+  "id": "iris-official.batch-renamer",
+  "name": "batch-renamer",
+  "version": "1.0.0",
+  "engineVersion": "^1.0.0",
+  "main": "./dist/index.js",
+  "displayName": "Batch Renamer",
+  "description": "Rename multiple files in a directory using pattern-based rules",
+  "publisher": "iris-official",
+  "activationEvents": ["onCommand:iris-official.batch-renamer.run"],
+  "contributes": {
+    "commands": [
+      { "command": "iris-official.batch-renamer.run", "title": "Batch Rename Files", "icon": "edit-3" }
+    ]
+  },
+  "permissions": ["commands:register", "filesystem:read", "filesystem:write"]
+}

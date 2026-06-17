@@ -1,0 +1,72 @@
+{
+  "generate": {
+    "title": "Generate Image",
+    "prompt": "Prompt",
+    "promptPlaceholder": "Describe the image you want to create...",
+    "promptHint": "Press Ctrl+Enter to generate",
+    "negativePrompt": "Negative Prompt",
+    "negativePromptPlaceholder": "What to avoid in the image...",
+    "model": "Model",
+    "selectModel": "Select a model",
+    "aspectRatio": "Aspect Ratio",
+    "img2img": "Image-to-Image",
+    "active": "Active",
+    "removeReference": "Remove reference image",
+    "selectFromLibrary": "Select from Library",
+    "uploadFromComputer": "Upload from Computer",
+    "pasteFromClipboard": "Paste from Clipboard",
+    "imageStrength": "Image Strength",
+    "imageStrengthHint": "Higher = more original image influence",
+    "estimatedTokens": "Estimated credits",
+    "generating": "Generating...",
+    "serverRequired": "Server connection required"
+  },
+  "gallery": {
+    "title": "Image Gallery",
+    "upload": "Upload",
+    "open": "Open",
+    "searchPlaceholder": "Search images...",
+    "noResults": "No results found",
+    "noResultsHint": "Try adjusting your search or filter to find what you're looking for.",
+    "clearFilters": "Clear filters",
+    "selectForTool": "Select an image for",
+    "generationFailed": "Generation Failed",
+    "processing": "กำลังประมวลผล...",
+    "referenceBadge": "อ้างอิง",
+    "emptyTitle": "ยังไม่มีรูปภาพ",
+    "emptyHint": "สร้างรูปภาพแรกของคุณโดยใช้แผงด้านซ้าย หรืออัปโหลดรูปภาพที่มีอยู่",
+    "tooltipDownload": "ดาวน์โหลด",
+    "tooltipDelete": "ลบ",
+    "tooltipUseAsReference": "ใช้เป็นข้อมูลอ้างอิง (Shift+Click)"
+  },
+  "reference": {
+    "title": "Select Reference Image",
+    "description": "Choose an image from your library to use as reference"
+  },
+  "delete": {
+    "title": "Delete Selected Images",
+    "message": "Are you sure you want to delete {{count}} selected image(s)? This action cannot be undone.",
+    "confirm": "Delete"
+  },
+  "filter": {
+    "all": "รูปภาพทั้งหมด",
+    "generated": "สร้างขึ้น",
+    "uploaded": "อัปโหลดแล้ว",
+    "edited": "แก้ไขแล้ว"
+  },
+  "toasts": {
+    "clipboardAttached": "แนบรูปภาพจากคลิปบอร์ดแล้ว",
+    "noClipboardImage": "ไม่พบรูปภาพในคลิปบอร์ด",
+    "clipboardDenied": "การอนุญาตคลิปบอร์ดถูกปฏิเสธ ใช้ Ctrl+V แทน",
+    "clipboardReadFailed": "อ่านคลิปบอร์ดไม่สำเร็จ",
+    "attachRefFailed": "แนบรูปภาพอ้างอิงไม่สำเร็จ",
+    "uploadOk": "อัปโหลดรูปภาพสำเร็จ",
+    "uploadFailed": "อัปโหลดรูปภาพไม่สำเร็จ",
+    "uploadFileFailed": "อัปโหลดไฟล์ไม่สำเร็จ",
+    "readFileFailed": "อ่านไฟล์ไม่สำเร็จ",
+    "openFileFailed": "เปิดไฟล์ไม่สำเร็จ: {{error}}",
+    "psdUrlMissing": "ไม่มี URL ของไฟล์ PSD",
+    "psdOpened": "เปิด {{name}} ด้วย {{count}} เลเยอร์",
+    "psdOpenFailed": "เปิดไฟล์ PSD ไม่สำเร็จ"
+  }
+}
