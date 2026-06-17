@@ -73,6 +73,7 @@
     "iris-engine": "workspace:*",
     "iris-host-local": "workspace:*",
     "iris-nodes": "workspace:*",
+    "iris-templates": "workspace:*",
     "jspdf": "^4.2.0",
     "lucide-react": "^0.575.0",
     "react": "^19.2.4",

@@ -1,0 +1,107 @@
+{
+  "presets": {
+    "snsContentImage": {
+      "name": "SNS 콘텐츠 이미지",
+      "description": "텍스트 프롬프트로 SNS용 이미지 생성 후 고화질 업스케일"
+    },
+    "productBgRemove": {
+      "name": "상품 배경 제거",
+      "description": "상품 이미지 배경을 자동 제거하여 깔끔한 누끼 생성"
+    },
+    "aiStyleTransfer": {
+      "name": "AI 스타일 변환",
+      "description": "원본 이미지를 다양한 아트 스타일로 변환"
+    },
+    "productPromoVideo": {
+      "name": "제품 프로모션 영상",
+      "description": "텍스트 설명으로 이미지 생성 후 영상으로 변환"
+    },
+    "imageAnimation": {
+      "name": "이미지 애니메이션",
+      "description": "정적 이미지를 동적인 영상으로 변환"
+    },
+    "aiMusicVideo": {
+      "name": "AI 뮤직비디오",
+      "description": "텍스트로 영상과 배경음악 동시 생성"
+    },
+    "blogPostGenerator": {
+      "name": "블로그 포스트 생성",
+      "description": "주제를 입력하면 SEO 최적화된 블로그 글 자동 작성"
+    },
+    "multilingualTranslation": {
+      "name": "다국어 번역",
+      "description": "콘텐츠를 여러 언어로 자동 번역"
+    },
+    "podcastScriptAudio": {
+      "name": "팟캐스트 스크립트 + 음성",
+      "description": "주제로 스크립트 생성 후 음성 합성"
+    },
+    "imageAnalysisReport": {
+      "name": "이미지 자동 분석 리포트",
+      "description": "이미지 분석 후 상세 설명 자동 생성"
+    },
+    "documentSummary": {
+      "name": "문서 요약 자동화",
+      "description": "긴 문서를 분석하고 핵심 요약 생성"
+    },
+    "webhookContentPipeline": {
+      "name": "웹훅 기반 콘텐츠 생성",
+      "description": "외부 트리거로 자동 콘텐츠 생성 파이프라인"
+    },
+    "depositGuard": {
+      "name": "보증금 가드",
+      "description": "퇴거 점검 사진을 객관적인 보증금 정산 리포트로 변환"
+    },
+    "rfqAutoResponder": {
+      "name": "견적요청 자동응답",
+      "description": "수신된 B2B 견적 요청을 읽고 검토용 견적서와 답장 초안을 생성"
+    },
+    "competitorWatchdog": {
+      "name": "경쟁사 워치독",
+      "description": "경쟁사 제품 페이지를 주기적으로 모니터링해 변화를 감지하고 대응을 추천"
+    },
+    "aiResearchAnalyst": {
+      "name": "AI 리서치 애널리스트",
+      "description": "자율 에이전트가 주제를 조사해 구조화된 시장·경쟁사 리포트를 생성"
+    }
+  },
+  "nodeLabels": {
+    "manualTrigger": "수동 트리거",
+    "imageGenerator": "이미지 생성기",
+    "imageUpscale": "이미지 업스케일",
+    "backgroundRemove": "배경 제거",
+    "saveToStorage": "스토리지에 저장",
+    "imageToImage": "이미지 투 이미지",
+    "imageToVideo": "이미지 투 비디오",
+    "textToVideo": "텍스트 투 비디오",
+    "textToMusic": "텍스트 투 뮤직",
+    "merge": "병합",
+    "outlineGenerator": "아웃라인 생성기",
+    "contentWriter": "콘텐츠 작성기",
+    "englishTranslation": "영어 번역",
+    "japaneseTranslation": "일본어 번역",
+    "chineseTranslation": "중국어 번역",
+    "scriptGenerator": "스크립트 생성기",
+    "textToSpeech": "텍스트 투 스피치",
+    "imageAnalyzer": "이미지 분석기",
+    "reportGenerator": "리포트 생성기",
+    "documentAnalyzer": "문서 분석기",
+    "summaryGenerator": "요약 생성기",
+    "webhookTrigger": "웹훅 트리거",
+    "contentGenerator": "콘텐츠 생성기",
+    "webhookOutput": "웹훅 출력"
+  },
+  "inputLabels": {
+    "snsImagePrompt": "SNS 이미지 프롬프트를 입력하세요",
+    "uploadProductImage": "상품 이미지를 업로드하세요",
+    "uploadStyleImage": "스타일 변환할 이미지를 업로드하세요",
+    "enterProductDescription": "제품 설명을 입력하세요",
+    "uploadAnimationImage": "애니메이션할 이미지를 업로드하세요",
+    "enterMusicVideoConcept": "뮤직비디오 컨셉을 입력하세요",
+    "enterBlogTopic": "블로그 주제를 입력하세요",
+    "enterTextToTranslate": "번역할 텍스트를 입력하세요",
+    "enterPodcastTopic": "팟캐스트 주제를 입력하세요",
+    "uploadImageToAnalyze": "분석할 이미지를 업로드하세요",
+    "uploadDocumentImage": "문서 이미지를 업로드하세요 (PDF 페이지, 스캔)"
+  }
+}

@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { useUIStore } from '@/shared/stores/ui.store';
 import { useAuthStore } from '@/features/auth/stores/auth.store';
 import { useConnectionStore } from '@/shared/stores/connection.store';
+import { IS_SELF_HOST } from '@/config/self-host';
 import { ConnectionStatus } from './ConnectionStatus';
 
 interface NavItem {
@@ -23,6 +24,8 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
   path: string;
   requiresServer?: boolean;
+  /** Community/cloud-only feature — hidden in self-host (open-source) builds. */
+  communityOnly?: boolean;
   kbd?: string;
 }
 
@@ -35,9 +38,10 @@ const navItems: NavItem[] = [
   // Workflows + Batch run on the local engine (BYOK) — no cloud connection needed.
   { id: 'workflows', labelKey: 'nav.workflows', icon: Workflow, path: '/workflows', kbd: '6' },
   { id: 'batch', labelKey: 'nav.batch', icon: Layers, path: '/batch', kbd: '7' },
-  { id: 'library', labelKey: 'nav.library', icon: FolderOpen, path: '/library', kbd: '8' },
+  // Library is a community (cloud) feature — not available when self-hosting.
+  { id: 'library', labelKey: 'nav.library', icon: FolderOpen, path: '/library', communityOnly: true, kbd: '8' },
   { id: 'storage', labelKey: 'nav.storage', icon: HardDrive, path: '/storage', requiresServer: true, kbd: '9' },
-];
+].filter((item) => !(IS_SELF_HOST && item.communityOnly));
 
 export function Sidebar() {
   const { currentPage, setCurrentPage } = useUIStore();

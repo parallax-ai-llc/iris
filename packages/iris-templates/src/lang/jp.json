@@ -1,0 +1,107 @@
+{
+  "presets": {
+    "snsContentImage": {
+      "name": "SNSコンテンツ画像",
+      "description": "テキストプロンプトからSNS用画像を生成し、高画質アップスケール"
+    },
+    "productBgRemove": {
+      "name": "商品背景削除",
+      "description": "商品画像の背景を自動削除してきれいな切り抜きを作成"
+    },
+    "aiStyleTransfer": {
+      "name": "AIスタイル変換",
+      "description": "元の画像を様々なアートスタイルに変換"
+    },
+    "productPromoVideo": {
+      "name": "製品プロモーション動画",
+      "description": "テキスト説明から画像を生成し、動画に変換"
+    },
+    "imageAnimation": {
+      "name": "画像アニメーション",
+      "description": "静止画像をダイナミックな動画に変換"
+    },
+    "aiMusicVideo": {
+      "name": "AIミュージックビデオ",
+      "description": "テキストから動画とBGMを同時生成"
+    },
+    "blogPostGenerator": {
+      "name": "ブログ記事生成",
+      "description": "トピックを入力するとSEO最適化されたブログ記事を自動作成"
+    },
+    "multilingualTranslation": {
+      "name": "多言語翻訳",
+      "description": "コンテンツを複数の言語に自動翻訳"
+    },
+    "podcastScriptAudio": {
+      "name": "ポッドキャスト台本+音声",
+      "description": "トピックから台本を生成し、音声合成"
+    },
+    "imageAnalysisReport": {
+      "name": "画像自動分析レポート",
+      "description": "画像を分析し、詳細な説明を自動生成"
+    },
+    "documentSummary": {
+      "name": "文書要約自動化",
+      "description": "長い文書を分析し、要点を要約"
+    },
+    "webhookContentPipeline": {
+      "name": "Webhookベースコンテンツ生成",
+      "description": "外部トリガーによる自動コンテンツ生成パイプライン"
+    },
+    "depositGuard": {
+      "name": "デポジットガード",
+      "description": "退去時の点検写真を客観的な敷金精算レポートに変換"
+    },
+    "rfqAutoResponder": {
+      "name": "RFQ自動応答",
+      "description": "受信したB2B見積依頼を読み取り、レビュー用の見積書と返信の下書きを作成"
+    },
+    "competitorWatchdog": {
+      "name": "競合ウォッチドッグ",
+      "description": "競合の製品ページを定期的に監視し、変化を検知して対応を提案"
+    },
+    "aiResearchAnalyst": {
+      "name": "AIリサーチアナリスト",
+      "description": "自律エージェントがトピックを調査し、構造化された市場・競合レポートを作成"
+    }
+  },
+  "nodeLabels": {
+    "manualTrigger": "手動トリガー",
+    "imageGenerator": "画像生成",
+    "imageUpscale": "画像アップスケール",
+    "backgroundRemove": "背景削除",
+    "saveToStorage": "ストレージに保存",
+    "imageToImage": "画像から画像",
+    "imageToVideo": "画像から動画",
+    "textToVideo": "テキストから動画",
+    "textToMusic": "テキストから音楽",
+    "merge": "マージ",
+    "outlineGenerator": "アウトライン生成",
+    "contentWriter": "コンテンツ作成",
+    "englishTranslation": "英語翻訳",
+    "japaneseTranslation": "日本語翻訳",
+    "chineseTranslation": "中国語翻訳",
+    "scriptGenerator": "台本生成",
+    "textToSpeech": "テキスト読み上げ",
+    "imageAnalyzer": "画像分析",
+    "reportGenerator": "レポート生成",
+    "documentAnalyzer": "文書分析",
+    "summaryGenerator": "要約生成",
+    "webhookTrigger": "Webhookトリガー",
+    "contentGenerator": "コンテンツ生成",
+    "webhookOutput": "Webhook出力"
+  },
+  "inputLabels": {
+    "snsImagePrompt": "SNS画像のプロンプトを入力してください",
+    "uploadProductImage": "商品画像をアップロードしてください",
+    "uploadStyleImage": "スタイル変換する画像をアップロードしてください",
+    "enterProductDescription": "製品説明を入力してください",
+    "uploadAnimationImage": "アニメーションする画像をアップロードしてください",
+    "enterMusicVideoConcept": "ミュージックビデオのコンセプトを入力してください",
+    "enterBlogTopic": "ブログのトピックを入力してください",
+    "enterTextToTranslate": "翻訳するテキストを入力してください",
+    "enterPodcastTopic": "ポッドキャストのトピックを入力してください",
+    "uploadImageToAnalyze": "分析する画像をアップロードしてください",
+    "uploadDocumentImage": "文書画像をアップロードしてください（PDFページ、スキャン）"
+  }
+}

@@ -171,7 +171,8 @@ function AppContent() {
       case 'extensions':
         return <ExtensionsPage />;
       case 'library':
-        return <LibraryPage />;
+        // Library is a community (cloud) feature — unavailable when self-hosting.
+        return IS_SELF_HOST ? <WorkflowsPage /> : <LibraryPage />;
       case 'storage':
         return <StoragePage />;
       case 'settings':

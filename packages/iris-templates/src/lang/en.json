@@ -1,0 +1,107 @@
+{
+  "presets": {
+    "snsContentImage": {
+      "name": "SNS Content Image",
+      "description": "Generate SNS images from text prompts with high-quality upscaling"
+    },
+    "productBgRemove": {
+      "name": "Product Background Removal",
+      "description": "Automatically remove backgrounds from product images for clean cutouts"
+    },
+    "aiStyleTransfer": {
+      "name": "AI Style Transfer",
+      "description": "Transform original images into various art styles"
+    },
+    "productPromoVideo": {
+      "name": "Product Promo Video",
+      "description": "Generate images from text descriptions and convert to video"
+    },
+    "imageAnimation": {
+      "name": "Image Animation",
+      "description": "Transform static images into dynamic videos"
+    },
+    "aiMusicVideo": {
+      "name": "AI Music Video",
+      "description": "Generate video and background music simultaneously from text"
+    },
+    "blogPostGenerator": {
+      "name": "Blog Post Generator",
+      "description": "Automatically write SEO-optimized blog posts from a topic"
+    },
+    "multilingualTranslation": {
+      "name": "Multilingual Translation",
+      "description": "Automatically translate content into multiple languages"
+    },
+    "podcastScriptAudio": {
+      "name": "Podcast Script + Audio",
+      "description": "Generate script from a topic and synthesize voice"
+    },
+    "imageAnalysisReport": {
+      "name": "Image Analysis Report",
+      "description": "Analyze images and automatically generate detailed descriptions"
+    },
+    "documentSummary": {
+      "name": "Document Summary Automation",
+      "description": "Analyze long documents and generate key summaries"
+    },
+    "webhookContentPipeline": {
+      "name": "Webhook Content Pipeline",
+      "description": "Automatic content generation pipeline triggered externally"
+    },
+    "depositGuard": {
+      "name": "Deposit Guard",
+      "description": "Turn rental move-out inspection photos into an objective deposit-settlement report"
+    },
+    "rfqAutoResponder": {
+      "name": "RFQ Auto-Responder",
+      "description": "Read inbound B2B quote requests and produce a draft quote and reply for review"
+    },
+    "competitorWatchdog": {
+      "name": "Competitor Watchdog",
+      "description": "Monitor competitor product pages on a schedule, detect changes, and recommend a response"
+    },
+    "aiResearchAnalyst": {
+      "name": "AI Research Analyst",
+      "description": "Autonomous agent that researches a topic and returns a structured market/competitor report"
+    }
+  },
+  "nodeLabels": {
+    "manualTrigger": "Manual Trigger",
+    "imageGenerator": "Image Generator",
+    "imageUpscale": "Image Upscale",
+    "backgroundRemove": "Background Remove",
+    "saveToStorage": "Save to Storage",
+    "imageToImage": "Image to Image",
+    "imageToVideo": "Image to Video",
+    "textToVideo": "Text to Video",
+    "textToMusic": "Text to Music",
+    "merge": "Merge",
+    "outlineGenerator": "Outline Generator",
+    "contentWriter": "Content Writer",
+    "englishTranslation": "English Translation",
+    "japaneseTranslation": "Japanese Translation",
+    "chineseTranslation": "Chinese Translation",
+    "scriptGenerator": "Script Generator",
+    "textToSpeech": "Text to Speech",
+    "imageAnalyzer": "Image Analyzer",
+    "reportGenerator": "Report Generator",
+    "documentAnalyzer": "Document Analyzer",
+    "summaryGenerator": "Summary Generator",
+    "webhookTrigger": "Webhook Trigger",
+    "contentGenerator": "Content Generator",
+    "webhookOutput": "Webhook Output"
+  },
+  "inputLabels": {
+    "snsImagePrompt": "Enter your SNS image prompt",
+    "uploadProductImage": "Upload your product image",
+    "uploadStyleImage": "Upload image for style transfer",
+    "enterProductDescription": "Enter product description",
+    "uploadAnimationImage": "Upload image to animate",
+    "enterMusicVideoConcept": "Enter music video concept",
+    "enterBlogTopic": "Enter blog topic",
+    "enterTextToTranslate": "Enter text to translate",
+    "enterPodcastTopic": "Enter podcast topic",
+    "uploadImageToAnalyze": "Upload image to analyze",
+    "uploadDocumentImage": "Upload document image (PDF page, scan)"
+  }
+}

@@ -6,8 +6,8 @@ import {
   type WorkflowTemplate,
 } from '@/config/templates';
 import { useUIStore } from '@/shared/stores/ui.store';
-import { useRequiresServer } from '@/shared/hooks/useRequiresServer';
-import { ServerRequiredOverlay } from '@/shared/components/common/ServerRequiredOverlay';
+import { createLocalWorkflowFromTemplate } from '@/features/workflows/lib/local-engine';
+import { toast } from '@/shared/lib/toast';
 
 const categories = [
   { id: 'all', name: 'All' },
@@ -74,7 +74,7 @@ function EmptyState({ searchQuery }: { searchQuery: string }) {
 }
 
 function TemplatesPageContent() {
-  const { setCurrentPage } = useUIStore();
+  const setEditingWorkflowId = useUIStore((s) => s.setEditingWorkflowId);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [creatingTemplateId, setCreatingTemplateId] = useState<string | null>(null);
@@ -94,9 +94,19 @@ function TemplatesPageContent() {
 
   const handleUseTemplate = async (template: WorkflowTemplate) => {
     setCreatingTemplateId(template.id);
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    setCurrentPage('workflows');
-    setCreatingTemplateId(null);
+    try {
+      const wf = await createLocalWorkflowFromTemplate(template);
+      if (wf) {
+        // Opening the editor mounts the workflow with the template's graph.
+        setEditingWorkflowId(wf.id);
+      } else {
+        toast.error('Failed to create workflow from template');
+      }
+    } catch {
+      toast.error('Failed to create workflow from template');
+    } finally {
+      setCreatingTemplateId(null);
+    }
   };
 
   return (
@@ -166,8 +176,7 @@ function TemplatesPageContent() {
 }
 
 export const TemplatesPage = memo(function TemplatesPage() {
-  const { isServerConnected } = useRequiresServer();
-  if (!isServerConnected) return <ServerRequiredOverlay pageName="Templates" />;
+  // Templates run fully locally (no cloud server required).
   return <TemplatesPageContent />;
 });
 
