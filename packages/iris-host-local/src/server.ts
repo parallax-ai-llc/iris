@@ -13,7 +13,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { promises as fs } from 'node:fs';
-import Fastify, { type FastifyInstance } from 'fastify';
+import Fastify, { type FastifyInstance, type FastifyReply } from 'fastify';
 import fastifyCors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import {
@@ -29,6 +29,7 @@ import { createLocalWorkflowEngine } from './engine-factory.js';
 import { registerMediaServer, readLocalAsset } from './local-media-server.js';
 import { createLocalGenerator, type GenerateAssetInput } from './local-generate.js';
 import { createLocalImporter, type ImportAssetInput } from './local-import.js';
+import { LocalProjectStore } from './local-projects.js';
 import { validateWorkflowSemantics } from './validate.js';
 import {
   LocalScheduler,
@@ -144,6 +145,78 @@ export async function buildServer(
       }
       return asset;
     },
+  );
+
+  // ── Video-editor projects (local JSON store) ────────────────────────────────
+  // Bare-entity responses (the desktop apiClient wraps them in {success,data}).
+  // Export is omitted: the desktop renders locally via Electron FFmpeg IPC.
+  const projects = new LocalProjectStore(config.dataDir, LOCAL_USER_ID);
+  const notFound = (reply: FastifyReply) =>
+    reply.code(404).send({ error: 'Project not found' });
+
+  app.get('/api/video-projects', async () => projects.list());
+  app.post<{ Body: Record<string, unknown> }>(
+    '/api/video-projects',
+    async req => projects.create(req.body ?? {}),
+  );
+  app.get<{ Params: { id: string } }>(
+    '/api/video-projects/:id',
+    async (req, reply) =>
+      (await projects.get(req.params.id)) ?? notFound(reply),
+  );
+  app.get<{ Params: { externalId: string } }>(
+    '/api/video-projects/by-asset/:externalId',
+    async (req, reply) =>
+      (await projects.findByAsset(req.params.externalId)) ?? notFound(reply),
+  );
+  app.patch<{ Params: { id: string }; Body: Record<string, unknown> }>(
+    '/api/video-projects/:id',
+    async (req, reply) =>
+      (await projects.update(req.params.id, req.body ?? {})) ?? notFound(reply),
+  );
+  app.delete<{ Params: { id: string } }>(
+    '/api/video-projects/:id',
+    async (req, reply) => {
+      const ok = await projects.remove(req.params.id);
+      return ok ? { success: true } : notFound(reply);
+    },
+  );
+  app.post<{ Params: { id: string } }>(
+    '/api/video-projects/:id/duplicate',
+    async (req, reply) =>
+      (await projects.duplicate(req.params.id)) ?? notFound(reply),
+  );
+  app.put<{ Params: { id: string }; Body: Record<string, unknown> }>(
+    '/api/video-projects/:id/timeline',
+    async (req, reply) =>
+      (await projects.saveTimeline(req.params.id, req.body ?? {})) ??
+      notFound(reply),
+  );
+  app.get<{ Params: { id: string } }>(
+    '/api/video-projects/:id/media',
+    async req => projects.getMediaPool(req.params.id),
+  );
+  app.post<{ Params: { id: string }; Body: Record<string, unknown> }>(
+    '/api/video-projects/:id/media',
+    async (req, reply) =>
+      (await projects.addMedia(req.params.id, req.body ?? {})) ??
+      notFound(reply),
+  );
+  app.delete<{ Params: { id: string; mediaId: string } }>(
+    '/api/video-projects/:id/media/:mediaId',
+    async (req, reply) => {
+      const ok = await projects.removeMedia(req.params.id, req.params.mediaId);
+      return ok ? { success: true } : notFound(reply);
+    },
+  );
+  app.patch<{ Params: { id: string; mediaId: string }; Body: Record<string, unknown> }>(
+    '/api/video-projects/:id/media/:mediaId/proxy',
+    async (req, reply) =>
+      (await projects.updateMediaProxy(
+        req.params.id,
+        req.params.mediaId,
+        req.body ?? {},
+      )) ?? notFound(reply),
   );
 
   // ── Health ────────────────────────────────────────────────────────────────

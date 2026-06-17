@@ -40,6 +40,34 @@ export async function irisLocalFetch<T>(
   return (await res.json()) as T;
 }
 
+export interface LocalApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
+/** Call a local-engine JSON endpoint and return the same `{success,data,error}`
+ *  envelope the cloud `apiClient` produces (so callers branch with one line). */
+export async function localApiCall<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+): Promise<LocalApiResponse<T>> {
+  try {
+    const init: RequestInit =
+      body === undefined
+        ? { method }
+        : {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          };
+    return { success: true, data: await irisLocalFetch<T>(path, init) };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : 'Request failed' };
+  }
+}
+
 /** Read a user's local File and import it into the local engine's disk asset
  *  store (gallery "Upload" in self-host). Returns the stored IrisAsset. */
 export async function importLocalAsset(
