@@ -10,8 +10,8 @@ The same engine is meant to power three hosts:
 | **iris-host-local** (open, fair-code) | planned | JSON files on disk | local disk | **BYOK** — your own keys via `.env` / settings UI | none (no-op) |
 | **iris/desktop** (open, fair-code) | future | Electron main process | local disk | OS keychain | none |
 
-This is the n8n model: the **engine + node catalog + editor are public (fair-code)**;
-the **multi-tenant hosting** (database, billing, scheduler, webhooks infra) stays
+The **engine, node catalog, and editor are public (fair-code)**; the
+**multi-tenant hosting** (database, billing, scheduler, webhooks infra) stays
 proprietary in `core/server`.
 
 ## Why this package exists

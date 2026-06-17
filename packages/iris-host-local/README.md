@@ -2,8 +2,8 @@
 
 The **open-source local host** for the [Iris workflow engine](../iris-engine).
 Run a local server, build workflows in your browser, and execute them with your
-own AI API keys (**BYOK**). No server, database, GCS, or billing required — the
-self-hosted experience, like n8n.
+own AI API keys (**BYOK**). No managed server, database, GCS, or billing
+required — a fully self-hosted experience.
 
 ---
 

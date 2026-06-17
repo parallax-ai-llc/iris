@@ -2,9 +2,9 @@
 
 Copyright © 2026 Parallax AI LLC.
 
-`iris-engine` (and the other fair-code Iris packages) is **source-available**
-and licensed under the **Sustainable Use License**, the same fair-code license
-used by n8n. The licensor is Parallax AI LLC.
+`iris-host-local` (and the other fair-code Iris packages) is **source-available**
+and licensed under the **Sustainable Use License**, a fair-code license.
+The licensor is Parallax AI LLC.
 
 In short — and the formal terms below govern:
 
@@ -15,7 +15,7 @@ In short — and the formal terms below govern:
 - ❌ You may **not** sell it or offer it to third parties as a hosted/managed
   service.
 
-For uses beyond what this license permits (for example, offering iris-engine to
+For uses beyond what this license permits (for example, offering iris-host-local to
 third parties as a service), contact Parallax AI LLC for a commercial license.
 
 ---

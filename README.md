@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/og.jpg" alt="Iris — fair-code AI automation workflows" width="100%" />
+
 # Iris
 
 **Fair-code AI automation workflows — run them anywhere, with your own keys.**
@@ -16,9 +18,8 @@ workflow product. The same execution engine that powers the Parallax cloud also
 runs **fully on your machine** — `npx iris-flow` launches a local web app, and
 the desktop app embeds the engine for offline, BYOK execution.
 
-This follows the [n8n](https://n8n.io) model: the **engine, node catalog, and
-editor are public (fair-code)**; multi-tenant hosting (managed database, billing,
-scheduling infrastructure) stays proprietary.
+The **engine, node catalog, and editor are public (fair-code)**; multi-tenant
+hosting (managed database, billing, scheduling infrastructure) stays proprietary.
 
 ## Packages
 
@@ -126,8 +127,8 @@ pnpm typecheck        # typecheck every package
 
 ## License
 
-Source-available under the **Sustainable Use License** (fair-code, the same
-license used by n8n). Use, modify, and self-host for free for internal, personal,
+Source-available under the **Sustainable Use License** (a fair-code license).
+Use, modify, and self-host for free for internal, personal,
 or non-commercial purposes. You may not sell it or offer it to third parties as a
 hosted/managed service. See [LICENSE.md](LICENSE.md).
 
