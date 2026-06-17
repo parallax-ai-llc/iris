@@ -16,6 +16,7 @@ import {
   FileAudio,
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
+import { IS_SELF_HOST } from '@/config/self-host';
 import { useLibraryStore } from '@/features/library/stores/library.store';
 import { useCachedAssetUrl } from '@/shared/hooks/useCachedAssetUrl';
 import type { IrisAsset } from '@/shared/api/types';
@@ -117,7 +118,10 @@ export const ImportMediaModal = memo(function ImportMediaModal({
   const isLoading = useLibraryStore((s) => s.isLoading);
   const fetchAssets = useLibraryStore((s) => s.fetchAssets);
 
-  const [activeTab, setActiveTab] = useState<'gallery' | 'import'>('gallery');
+  // Self-host has no cloud gallery — only local-file import.
+  const [activeTab, setActiveTab] = useState<'gallery' | 'import'>(
+    IS_SELF_HOST ? 'import' : 'gallery',
+  );
   const [filter, setFilter] = useState<'all' | 'VIDEO' | 'IMAGE'>('all');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -129,9 +133,10 @@ export const ImportMediaModal = memo(function ImportMediaModal({
   // Fetch assets on mount
   useEffect(() => {
     if (isOpen) {
-      fetchAssets();
+      // No cloud gallery in self-host — don't fetch cloud assets, open Import.
+      if (!IS_SELF_HOST) fetchAssets();
       setSelectedIds(new Set());
-      setActiveTab('gallery');
+      setActiveTab(IS_SELF_HOST ? 'import' : 'gallery');
       setIsImporting(false);
       setImportedFiles([]);
     }
@@ -265,18 +270,20 @@ export const ImportMediaModal = memo(function ImportMediaModal({
         {/* Tabs: Gallery / Import */}
         <div className="flex items-center gap-4 px-4 py-3 border-b border-zinc-800">
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setActiveTab('gallery')}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors',
-                activeTab === 'gallery'
-                  ? 'bg-white text-black'
-                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
-              )}
-            >
-              <Video className="w-4 h-4" />
-              Gallery
-            </button>
+            {!IS_SELF_HOST && (
+              <button
+                onClick={() => setActiveTab('gallery')}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors',
+                  activeTab === 'gallery'
+                    ? 'bg-white text-black'
+                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                )}
+              >
+                <Video className="w-4 h-4" />
+                Gallery
+              </button>
+            )}
             <button
               onClick={() => setActiveTab('import')}
               className={cn(

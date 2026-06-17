@@ -41,6 +41,7 @@ import { formatTokenCost } from '@/shared/hooks/useTokenCost';
 import { VideoCard, VideoCardSkeleton } from '@/features/videos/components/VideoCard';
 import { ModelSelector } from '@/shared/components/common';
 import { StorageAssetPickerModal } from '@/features/storage/components';
+import { IS_SELF_HOST } from '@/config/self-host';
 import { ErrorModal } from '@/shared/components/ui/ErrorModal';
 import { SelectionBar } from '@/shared/components/common/SelectionBar';
 import { ConfirmDialog } from '@/shared/components/ui/Modal';
@@ -230,6 +231,8 @@ const FrameSlot = memo(function FrameSlot({
         />
       ) : (
         <div className="space-y-2">
+          {/* Select from Library — cloud only, hidden in self-host */}
+          {!IS_SELF_HOST && (
           <button
             onClick={onPickFromLibrary}
             disabled={isGenerating}
@@ -244,6 +247,7 @@ const FrameSlot = memo(function FrameSlot({
             <FolderOpen className="w-5 h-5" />
             <span className="text-sm font-medium">{selectLabel}</span>
           </button>
+          )}
           <button
             onClick={async () => {
               try {
@@ -1534,25 +1538,27 @@ export function VideosPage() {
       {/* Upload Queue */}
       <UploadQueuePanel queue={uploadQueue} onCancel={cancelUpload} onRemove={removeFromQueue} />
 
-      {/* Storage Asset Picker Modal */}
-      <StorageAssetPickerModal
-        isOpen={isStoragePickerOpen}
-        onClose={() => setIsStoragePickerOpen(false)}
-        onSelect={(asset) => {
-          if (storagePickerTarget === 'end') {
-            setEndFrameImage(asset);
-          } else {
-            setReferenceImage(asset);
+      {/* Storage Asset Picker Modal — cloud library, unavailable in self-host */}
+      {!IS_SELF_HOST && (
+        <StorageAssetPickerModal
+          isOpen={isStoragePickerOpen}
+          onClose={() => setIsStoragePickerOpen(false)}
+          onSelect={(asset) => {
+            if (storagePickerTarget === 'end') {
+              setEndFrameImage(asset);
+            } else {
+              setReferenceImage(asset);
+            }
+          }}
+          assetType="IMAGE"
+          title={t('generate.img2vid')}
+          description={
+            storagePickerTarget === 'end'
+              ? t('generate.endFrameHint')
+              : t('generate.firstFrameHint')
           }
-        }}
-        assetType="IMAGE"
-        title={t('generate.img2vid')}
-        description={
-          storagePickerTarget === 'end'
-            ? t('generate.endFrameHint')
-            : t('generate.firstFrameHint')
-        }
-      />
+        />
+      )}
 
       {/* Add to Project Modal */}
       <AddToProjectModal

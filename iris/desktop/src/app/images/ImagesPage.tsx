@@ -49,6 +49,7 @@ import { importPsd } from '@/features/image-editor/psd/importPsd';
 import { useRequiresServer } from '@/shared/hooks/useRequiresServer';
 import { toast } from '@/shared/lib/toast';
 import { StorageAssetPickerModal } from '@/features/storage/components';
+import { IS_SELF_HOST } from '@/config/self-host';
 import { ErrorModal } from '@/shared/components/ui/ErrorModal';
 import { SelectionBar } from '@/shared/components/common/SelectionBar';
 import { ConfirmDialog } from '@/shared/components/ui/Modal';
@@ -907,7 +908,8 @@ export function ImagesPage() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {/* Select from Library button */}
+                    {/* Select from Library button — cloud only, hidden in self-host */}
+                    {!IS_SELF_HOST && (
                     <button
                       onClick={() => setIsStoragePickerOpen(true)}
                       disabled={isGenerating}
@@ -922,7 +924,8 @@ export function ImagesPage() {
                       <FolderOpen className="w-5 h-5" />
                       <span className="text-sm font-medium">{t('generate.selectFromLibrary')}</span>
                     </button>
-                    
+                    )}
+
                     {/* Upload from Computer button — keeps file local, no library upload */}
                     <button
                       onClick={async () => {
@@ -1302,15 +1305,17 @@ export function ImagesPage() {
       {/* Error Toast */}
       {error && <ErrorToast message={error} onClose={clearError} />}
 
-      {/* Storage Asset Picker Modal */}
-      <StorageAssetPickerModal
-        isOpen={isStoragePickerOpen}
-        onClose={() => setIsStoragePickerOpen(false)}
-        onSelect={setReferenceImage}
-        assetType="IMAGE"
-        title={t('reference.title')}
-        description={t('reference.description')}
-      />
+      {/* Storage Asset Picker Modal — cloud library, unavailable in self-host */}
+      {!IS_SELF_HOST && (
+        <StorageAssetPickerModal
+          isOpen={isStoragePickerOpen}
+          onClose={() => setIsStoragePickerOpen(false)}
+          onSelect={setReferenceImage}
+          assetType="IMAGE"
+          title={t('reference.title')}
+          description={t('reference.description')}
+        />
+      )}
 
       {/* Error Modal for Failed Assets */}
       <ErrorModal
