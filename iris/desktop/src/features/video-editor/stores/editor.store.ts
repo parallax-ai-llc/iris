@@ -7,6 +7,8 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import type { TimelineData, TimelineTrack, TimelineClip, ClipEffect } from '@/types/videoProject.types';
 import { generateId } from '@/shared/lib/utils/id';
+import { IS_SELF_HOST } from '@/config/self-host';
+import { getIrisApiBaseUrl } from '@/shared/api/iris-local';
 import { formatTime } from '@/shared/lib/utils/time';
 import { findClipById, calculateMaxEndTime, sortClipsByStartTime, closeGapsInClips } from '@/shared/lib/utils/trackUtils';
 
@@ -2716,10 +2718,18 @@ export const useEditorStore = create<EditorState & EditorActions>()(
       set({ assetDownloadStatus: statusMap1 });
 
       try {
-        const API_BASE = import.meta.env.VITE_API_URL || 'https://api.parallax.kr';
-        const downloadUrl = `${API_BASE}/api/iris/assets/${assetId}/download`;
-        const authToken = await window.electronAPI.auth.getToken();
-        if (!authToken) throw new Error('Not authenticated');
+        let downloadUrl: string;
+        let authToken = '';
+        if (IS_SELF_HOST) {
+          // Self-host: assets are on the local engine (no auth).
+          const base = await getIrisApiBaseUrl();
+          downloadUrl = `${base}/api/iris/assets/${assetId}/download`;
+        } else {
+          const API_BASE = import.meta.env.VITE_API_URL || 'https://api.parallax.kr';
+          downloadUrl = `${API_BASE}/api/iris/assets/${assetId}/download`;
+          authToken = (await window.electronAPI.auth.getToken()) ?? '';
+          if (!authToken) throw new Error('Not authenticated');
+        }
 
         const result = await window.electronAPI.assetStorage.download({
           assetId,

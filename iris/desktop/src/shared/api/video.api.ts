@@ -11,7 +11,7 @@ import {
   AssetVersion,
 } from './types';
 import { IS_SELF_HOST } from '@/config/self-host';
-import { irisLocalFetch, importLocalAsset } from './iris-local';
+import { irisLocalFetch, importLocalAsset, assetDownloadUrl } from './iris-local';
 
 const buildQueryString = (params?: Record<string, unknown>): string => {
   if (!params) return '';
@@ -219,10 +219,8 @@ export async function deleteVideo(id: string): Promise<{ success: boolean; error
  * Returns the authenticated download endpoint URL
  */
 export async function downloadVideoUrl(id: string): Promise<string | null> {
-  // The download endpoint streams the decrypted file directly
-  // We need to construct the URL with auth token for direct download
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.parallax.kr';
-  return `${API_BASE_URL}/api/iris/assets/${id}/download`;
+  // Resolves to the local engine in self-host, else the cloud API.
+  return assetDownloadUrl(id);
 }
 
 /**

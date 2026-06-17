@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { useEditorStore, type Track, type Clip, hasEffects, hasVolume } from '@/features/video-editor/stores/editor.store';
 import { useVideoProjectStore } from '@/features/video-editor/stores/videoProject.store';
 import { useUIStore } from '@/shared/stores/ui.store';
+import { assetDownloadUrl } from '@/shared/api/iris-local';
 import { VideoEditor } from '@/features/video-editor/components/VideoEditor';
 import { VideoEditorMenuBar } from '@/features/video-editor/components/VideoEditorMenuBar';
 import { NewVideoProjectModal } from '@/features/video-editor/components/modals/NewVideoProjectModal';
@@ -369,8 +370,7 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
         if (needsProbe && window.electronAPI?.video?.probeDimensions) {
           setInitStep(t('editor.videoInit.probingDimensions'));
           try {
-            const API_BASE = import.meta.env.VITE_API_URL || 'https://api.parallax.kr';
-            const assetUrl = `${API_BASE}/api/iris/assets/${asset.id}/download`;
+            const assetUrl = await assetDownloadUrl(asset.id);
             const authToken = await window.electronAPI.auth.getToken();
             if (!initCancelledRef.current) {
               const probed = await window.electronAPI.video.probeDimensions(assetUrl, authToken ?? undefined);
@@ -409,8 +409,7 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
         // not depend on previewUrl being a playable stream.
         if (!duration && window.electronAPI?.video?.probeDuration) {
           try {
-            const API_BASE = import.meta.env.VITE_API_URL || 'https://api.parallax.kr';
-            const assetUrl = `${API_BASE}/api/iris/assets/${asset.id}/download`;
+            const assetUrl = await assetDownloadUrl(asset.id);
             const authToken = await window.electronAPI.auth.getToken();
             const probed = await window.electronAPI.video.probeDuration(assetUrl, authToken ?? undefined);
             if (probed && probed > 0) duration = probed;
@@ -891,8 +890,7 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
         // Uses Electron IPC → ffmpeg probe (main process downloads with auth headers).
         const videoMedia = project.mediaPool.find((m) => m.mediaType === 'video' && m.externalId);
         if (videoMedia?.externalId && window.electronAPI?.video?.probeDimensions) {
-          const API_BASE = import.meta.env.VITE_API_URL || 'https://api.parallax.kr';
-          const assetUrl = `${API_BASE}/api/iris/assets/${videoMedia.externalId}/download`;
+          const assetUrl = await assetDownloadUrl(videoMedia.externalId);
           const authToken = await window.electronAPI.auth.getToken();
           const probed = await window.electronAPI.video.probeDimensions(assetUrl, authToken ?? undefined);
           // Fix only when probed dims are the exact rotation-swap of stored dims

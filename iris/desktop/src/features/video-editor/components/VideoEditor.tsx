@@ -28,6 +28,8 @@ import { useVideoStore } from '@/features/videos/stores/video.store';
 import { useVideoProjectStore } from '@/features/video-editor/stores/videoProject.store';
 import { useLibraryStore } from '@/features/library/stores/library.store';
 import type { IrisAsset } from '@/shared/api/types';
+import { IS_SELF_HOST } from '@/config/self-host';
+import { assetDownloadUrl } from '@/shared/api/iris-local';
 import { EditorPreview } from './EditorPreview';
 import { EditorInspector } from './EditorInspector';
 import { EditorTimeline } from './EditorTimeline';
@@ -737,11 +739,13 @@ export const VideoEditor = memo(function VideoEditor({
           if (!window.electronAPI?.assetStorage) {
             throw new Error('assetStorage IPC not available');
           }
-          const authToken = await window.electronAPI.auth.getToken();
-          if (!authToken) throw new Error('Not authenticated');
-
-          const API_BASE = import.meta.env.VITE_API_URL || 'https://api.parallax.kr';
-          const downloadUrl = `${API_BASE}/api/iris/assets/${asset.id}/download`;
+          // Self-host: local engine, no auth. Cloud: requires a token.
+          let authToken = '';
+          if (!IS_SELF_HOST) {
+            authToken = (await window.electronAPI.auth.getToken()) ?? '';
+            if (!authToken) throw new Error('Not authenticated');
+          }
+          const downloadUrl = await assetDownloadUrl(asset.id);
 
           const result = await window.electronAPI.assetStorage.download({
             assetId: asset.id,

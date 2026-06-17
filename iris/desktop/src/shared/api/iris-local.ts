@@ -7,6 +7,7 @@
  */
 
 import type { IrisAsset } from './types';
+import { IS_SELF_HOST } from '@/config/self-host';
 
 let baseUrlPromise: Promise<string> | null = null;
 
@@ -38,6 +39,15 @@ export async function irisLocalFetch<T>(
     throw new Error(message);
   }
   return (await res.json()) as T;
+}
+
+/** Resolve an asset's download URL — the local engine in self-host, else the
+ *  cloud API. Used by the video editor's ffmpeg probe / asset download paths. */
+export async function assetDownloadUrl(assetId: string): Promise<string> {
+  const base = IS_SELF_HOST
+    ? await getIrisApiBaseUrl()
+    : import.meta.env.VITE_API_URL || 'https://api.parallax.kr';
+  return `${base}/api/iris/assets/${assetId}/download`;
 }
 
 export interface LocalApiResponse<T> {
