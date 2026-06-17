@@ -26,7 +26,8 @@ import {
 import type { ResolvedConfig } from './config.js';
 import { publicBaseUrl } from './config.js';
 import { createLocalWorkflowEngine } from './engine-factory.js';
-import { registerMediaServer } from './local-media-server.js';
+import { registerMediaServer, readLocalAsset } from './local-media-server.js';
+import { createLocalGenerator, type GenerateAssetInput } from './local-generate.js';
 import { validateWorkflowSemantics } from './validate.js';
 import {
   LocalScheduler,
@@ -84,6 +85,38 @@ export async function buildServer(
     dataDir: config.dataDir,
     getPublicBaseUrl: () => baseUrl,
   });
+
+  // Single-asset generation (desktop image/video galleries) — runs one
+  // GEN_TEXT_TO_IMAGE / GEN_TEXT_TO_VIDEO node through the engine with BYOK and
+  // stores the result on disk (then visible via the asset list/single routes).
+  const generateAsset = createLocalGenerator({
+    dataDir: config.dataDir,
+    store,
+    getPublicBaseUrl: () => baseUrl,
+    userId: LOCAL_USER_ID,
+  });
+  app.post<{ Body: GenerateAssetInput }>(
+    '/api/iris/assets/generate',
+    async (req, reply) => {
+      const result = await generateAsset(req.body ?? {});
+      if (result.status !== 'completed') {
+        return reply.code(400).send({
+          error: result.error?.message ?? 'Generation failed',
+          code: result.error?.code,
+        });
+      }
+      const assetId = result.assets[0]?.id;
+      const asset = assetId
+        ? await readLocalAsset(config.dataDir, baseUrl, assetId)
+        : null;
+      if (!asset) {
+        return reply
+          .code(500)
+          .send({ error: 'Generation produced no stored asset' });
+      }
+      return asset;
+    },
+  );
 
   // ── Health ────────────────────────────────────────────────────────────────
   app.get('/api/health', async () => ({

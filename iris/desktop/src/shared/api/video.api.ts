@@ -132,6 +132,15 @@ export async function generateVideo(data: GenerateVideoData): Promise<IrisAsset 
     requestBody.endFrameBase64 = data.endFrameBase64;
   }
 
+  // Self-host: generate through the local engine (BYOK) and store on disk.
+  if (IS_SELF_HOST) {
+    return irisLocalFetch<IrisAsset>('/api/iris/assets/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+    });
+  }
+
   const response = await apiClient.post<{ asset: IrisAsset }>(
     '/api/iris/assets/generate',
     requestBody,

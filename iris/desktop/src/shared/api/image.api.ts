@@ -106,6 +106,15 @@ export async function generateImage(data: GenerateImageData): Promise<IrisAsset 
     (requestBody.settings as Record<string, unknown>).imageStrength = data.imageStrength;
   }
 
+  // Self-host: generate through the local engine (BYOK) and store on disk.
+  if (IS_SELF_HOST) {
+    return irisLocalFetch<IrisAsset>('/api/iris/assets/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+    });
+  }
+
   const response = await apiClient.post<IrisAsset>(
     '/api/iris/assets/generate',
     requestBody,
