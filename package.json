@@ -9,7 +9,8 @@
     "build:packages": "pnpm --filter iris-nodes build && pnpm --filter iris-engine build && pnpm --filter iris-editor build && pnpm --filter iris-host-local build",
     "typecheck": "pnpm -r --parallel typecheck",
     "iris-flow": "pnpm --filter iris-host-local start",
-    "desktop:dev": "pnpm --filter iris-desktop dev"
+    "desktop:dev": "pnpm --filter iris-desktop dev:selfhost",
+    "desktop:build": "pnpm --filter iris-desktop build:selfhost"
   },
   "pnpm": {
     "overrides": {

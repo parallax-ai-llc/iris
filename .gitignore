@@ -14,6 +14,7 @@ out/
 .env
 .env.*
 !.env.example
+!.env.selfhost
 keys.json
 
 # Local Iris data (BYOK keys, workflows, executions, batch jobs)

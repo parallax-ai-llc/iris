@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:selfhost": "vite --mode selfhost",
     "build": "tsc && vite build && electron-builder",
+    "build:selfhost": "tsc && vite build --mode selfhost",
     "build:win": "tsc && vite build && electron-builder --win",
     "build:mac": "tsc && vite build && electron-builder --mac",
     "build:linux": "tsc && vite build && electron-builder --linux",

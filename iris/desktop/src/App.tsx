@@ -31,6 +31,7 @@ import { useImageEditorStore } from '@/features/image-editor/stores/imageEditor.
 import { useEditorStore } from '@/features/video-editor/stores/editor.store';
 import { useVideoProjectStore } from '@/features/video-editor/stores/videoProject.store';
 import { IrisLogo } from '@/shared/components/common/IrisLogo';
+import { IS_SELF_HOST } from '@/config/self-host';
 import './styles/globals.css';
 
 const queryClient = new QueryClient({
@@ -66,7 +67,8 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    checkAuth();
+    // Self-host (open-source) mode has no cloud account — skip auth entirely.
+    if (!IS_SELF_HOST) checkAuth();
   }, [checkAuth]);
 
   // 언어 결정 우선순위:
@@ -81,21 +83,24 @@ function AppContent() {
     });
   }, []);
 
-  // Show loading state
-  if (isLoading) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-zinc-900">
-        <div className="flex flex-col items-center gap-4">
-          <IrisLogo variant="white" size="xl" />
-          <p className="text-zinc-400 text-sm">Loading...</p>
+  // Cloud mode only: show loading + login gate. Self-host has no login flow.
+  if (!IS_SELF_HOST) {
+    // Show loading state
+    if (isLoading) {
+      return (
+        <div className="h-screen flex items-center justify-center bg-zinc-900">
+          <div className="flex flex-col items-center gap-4">
+            <IrisLogo variant="white" size="xl" />
+            <p className="text-zinc-400 text-sm">Loading...</p>
+          </div>
         </div>
-      </div>
-    );
-  }
+      );
+    }
 
-  // Show login if not authenticated
-  if (!isAuthenticated) {
-    return <LoginPage />;
+    // Show login if not authenticated
+    if (!isAuthenticated) {
+      return <LoginPage />;
+    }
   }
 
   // Show image editor if open (full-screen mode)

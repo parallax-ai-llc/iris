@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useConnectionStore } from '@/shared/stores/connection.store';
+import { IS_SELF_HOST } from '@/config/self-host';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.parallax.kr';
 
@@ -27,6 +28,14 @@ export function useServerConnection() {
           }
         })
         .catch(() => {});
+    }
+
+    // Self-host (open-source) mode has no cloud server to poll. The local engine
+    // is the "server"; mark connected and skip cloud /health polling entirely.
+    if (IS_SELF_HOST) {
+      store().setConnected(true);
+      store().resetFailures();
+      return;
     }
 
     async function checkHealth() {

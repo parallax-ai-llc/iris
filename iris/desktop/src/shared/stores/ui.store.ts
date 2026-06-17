@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { IrisTool } from '@/config/tools';
+import { IS_SELF_HOST } from '@/config/self-host';
 
 type SidebarState = 'expanded' | 'collapsed' | 'hidden';
 
@@ -41,7 +42,8 @@ interface UIActions {
 
 export const useUIStore = create<UIState & UIActions>((set, get) => ({
   sidebarState: 'expanded',
-  currentPage: 'home',
+  // Self-host (open-source) opens on the local Workflows page; cloud opens Home.
+  currentPage: IS_SELF_HOST ? 'workflows' : 'home',
   isSettingsOpen: false,
   notifications: [],
   editingWorkflowId: null,
