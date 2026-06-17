@@ -30,10 +30,10 @@ scheduling infrastructure) stays proprietary.
 | [`iris-host-local`](packages/iris-host-local) | Local host (`npx iris-flow`): JSON-file store, disk storage, BYOK secrets, no-op metering, a Fastify server + bundled editor. |
 | [`iris/desktop`](iris/desktop) | Electron desktop app — embeds the engine for local workflow execution, batch, and scheduling via a background daemon. |
 
-## Quick start — local web app
+## Quick start — local web app (self-host)
 
 Run a local Iris server and build/execute workflows in your browser with your own
-AI keys:
+AI keys. No server, database, or cloud account required.
 
 ```bash
 # from a clone of this repo
@@ -42,15 +42,42 @@ pnpm build:packages
 pnpm iris-flow
 ```
 
-Then open the printed URL (default `http://127.0.0.1:4747`). Provide your API keys
-via `~/.iris-flow/config.json`, a local `iris-flow.json`, or environment variables
-(see [`packages/iris-host-local`](packages/iris-host-local)).
+You'll see:
 
-Once published to npm you'll be able to skip the clone with:
-
-```bash
-npx iris-flow
 ```
+  iris-flow running at http://localhost:4747
+  BYOK providers: openai, google, anthropic, xai, ...
+  Data dir: /Users/you/.iris-flow/data
+```
+
+Open the printed URL — the editor (`/`) and API (`/api/iris/*`) are served on the
+same origin, and everything runs on your machine.
+
+Once published to npm you'll be able to skip the clone with `npx iris-flow`.
+
+### Bring your own keys (BYOK)
+
+Provider keys are read from the environment (never written to disk). Copy
+[`packages/iris-host-local/.env.example`](packages/iris-host-local/.env.example)
+to `.env` in the directory you launch from (or `~/.iris-flow/.env`) and fill in
+only what you use:
+
+```dotenv
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+GOOGLE_API_KEY=...
+```
+
+The startup banner lists which providers it detected. Configure port / host /
+data dir via env vars (`PORT`, `IRIS_FLOW_HOST`, `IRIS_FLOW_DATA_DIR`,
+`IRIS_FLOW_NO_OPEN`) or a `~/.iris-flow/config.json`.
+
+> ⚠️ The local server has **no authentication** — it's meant for `localhost`.
+> Don't bind it to `0.0.0.0` / a public interface without a reverse proxy + auth.
+
+**📖 Full self-hosting guide** — configuration reference, HTTP endpoints, on-disk
+data layout, programmatic embedding, limitations, and troubleshooting:
+[`packages/iris-host-local/README.md`](packages/iris-host-local/README.md).
 
 ## Quick start — desktop app
 
