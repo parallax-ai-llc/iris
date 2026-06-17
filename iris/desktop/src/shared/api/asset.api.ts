@@ -5,6 +5,8 @@
 import { apiClient } from './client';
 import { assetCache } from '../lib/cache/asset-cache';
 import { getTokenStorage } from '@/features/auth/lib/token-storage';
+import { IS_SELF_HOST } from '@/config/self-host';
+import { getIrisApiBaseUrl } from './iris-local';
 import {
   IrisAsset,
   AssetListResponse,
@@ -328,21 +330,30 @@ async function uploadAssetChunked(
  */
 export async function downloadAsset(asset: IrisAsset): Promise<string | null> {
   try {
-    // Get download URL
-    const response = await apiClient.get<{ url: string }>(
-      `/api/iris/assets/${asset.id}/download`,
-      { requireAuth: true }
-    );
+    let blob: Blob;
+    if (IS_SELF_HOST) {
+      // Local engine streams the bytes directly (no signed-URL indirection).
+      const base = await getIrisApiBaseUrl();
+      const fileResponse = await fetch(`${base}/api/iris/assets/${asset.id}/download`);
+      if (!fileResponse.ok) return null;
+      blob = await fileResponse.blob();
+    } else {
+      // Get download URL
+      const response = await apiClient.get<{ url: string }>(
+        `/api/iris/assets/${asset.id}/download`,
+        { requireAuth: true }
+      );
 
-    if (!response.success || !response.data?.url) {
-      return null;
+      if (!response.success || !response.data?.url) {
+        return null;
+      }
+
+      // Fetch the file
+      const fileResponse = await fetch(response.data.url);
+      if (!fileResponse.ok) return null;
+
+      blob = await fileResponse.blob();
     }
-
-    // Fetch the file
-    const fileResponse = await fetch(response.data.url);
-    if (!fileResponse.ok) return null;
-
-    const blob = await fileResponse.blob();
     const extension = asset.mimeType.split('/')[1] || 'bin';
     const fileName = `${asset.name}.${extension}`;
 
@@ -459,6 +470,15 @@ async function getAuthToken(): Promise<string | null> {
  */
 async function fetchAssetContent(assetId: string, endpoint: 'download' | 'thumbnail'): Promise<ArrayBuffer | null> {
   try {
+    // Self-host: local engine, no auth. It serves only /download (no separate
+    // thumbnail), so thumbnail requests fall back to the full file.
+    if (IS_SELF_HOST) {
+      const base = await getIrisApiBaseUrl();
+      const res = await fetch(`${base}/api/iris/assets/${assetId}/download`);
+      if (!res.ok) return null;
+      return res.arrayBuffer();
+    }
+
     const token = await getAuthToken();
     if (!token) return null;
 
