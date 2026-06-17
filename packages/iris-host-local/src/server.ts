@@ -28,6 +28,7 @@ import { publicBaseUrl } from './config.js';
 import { createLocalWorkflowEngine } from './engine-factory.js';
 import { registerMediaServer, readLocalAsset } from './local-media-server.js';
 import { createLocalGenerator, type GenerateAssetInput } from './local-generate.js';
+import { createLocalImporter, type ImportAssetInput } from './local-import.js';
 import { validateWorkflowSemantics } from './validate.js';
 import {
   LocalScheduler,
@@ -113,6 +114,33 @@ export async function buildServer(
         return reply
           .code(500)
           .send({ error: 'Generation produced no stored asset' });
+      }
+      return asset;
+    },
+  );
+
+  // Import a user's local file into the disk asset store (gallery "Upload").
+  const importAsset = createLocalImporter({
+    dataDir: config.dataDir,
+    store,
+    getPublicBaseUrl: () => baseUrl,
+    userId: LOCAL_USER_ID,
+  });
+  app.post<{ Body: ImportAssetInput }>(
+    '/api/iris/assets/import',
+    async (req, reply) => {
+      if (!req.body?.base64) {
+        return reply.code(400).send({ error: 'Missing file data' });
+      }
+      const result = await importAsset(req.body);
+      if (!result.success || !result.asset) {
+        return reply
+          .code(400)
+          .send({ error: result.error ?? 'Import failed' });
+      }
+      const asset = await readLocalAsset(config.dataDir, baseUrl, result.asset.id);
+      if (!asset) {
+        return reply.code(500).send({ error: 'Import produced no stored asset' });
       }
       return asset;
     },

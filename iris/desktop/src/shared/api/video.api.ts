@@ -11,7 +11,7 @@ import {
   AssetVersion,
 } from './types';
 import { IS_SELF_HOST } from '@/config/self-host';
-import { irisLocalFetch } from './iris-local';
+import { irisLocalFetch, importLocalAsset } from './iris-local';
 
 const buildQueryString = (params?: Record<string, unknown>): string => {
   if (!params) return '';
@@ -163,6 +163,15 @@ export async function uploadVideo(
     name?: string;
   }
 ): Promise<{ asset: IrisAsset | null; error?: string }> {
+  // Self-host: import the file into the local engine's disk asset store.
+  if (IS_SELF_HOST) {
+    try {
+      return { asset: await importLocalAsset(file, 'VIDEO') };
+    } catch (e) {
+      return { asset: null, error: e instanceof Error ? e.message : 'Import failed' };
+    }
+  }
+
   const additionalData: Record<string, string> = {
     assetType: 'VIDEO',
   };

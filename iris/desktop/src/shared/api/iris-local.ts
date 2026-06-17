@@ -6,6 +6,8 @@
  * either feature.
  */
 
+import type { IrisAsset } from './types';
+
 let baseUrlPromise: Promise<string> | null = null;
 
 /** Resolve (once) the embedded engine's base URL over IPC. */
@@ -36,6 +38,30 @@ export async function irisLocalFetch<T>(
     throw new Error(message);
   }
   return (await res.json()) as T;
+}
+
+/** Read a user's local File and import it into the local engine's disk asset
+ *  store (gallery "Upload" in self-host). Returns the stored IrisAsset. */
+export async function importLocalAsset(
+  file: File,
+  assetType: 'IMAGE' | 'VIDEO',
+): Promise<IrisAsset> {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+  return irisLocalFetch<IrisAsset>('/api/iris/assets/import', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      fileName: file.name,
+      base64: dataUrl,
+      mimeType: file.type,
+      assetType,
+    }),
+  });
 }
 
 export interface LocalWorkflowNode {

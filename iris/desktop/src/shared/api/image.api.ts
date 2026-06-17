@@ -13,7 +13,7 @@ import {
 } from './types';
 import { useImageStore } from '@/features/images/stores/image.store';
 import { IS_SELF_HOST } from '@/config/self-host';
-import { irisLocalFetch } from './iris-local';
+import { irisLocalFetch, importLocalAsset } from './iris-local';
 
 // Re-export cache and asset functions for convenience
 export { invalidateAssetCache, clearAssetCache, replaceAssetFile } from './asset.api';
@@ -133,6 +133,11 @@ export async function uploadImage(
     name?: string;
   }
 ): Promise<IrisAsset | null> {
+  // Self-host: import the file into the local engine's disk asset store.
+  if (IS_SELF_HOST) {
+    return importLocalAsset(file, 'IMAGE');
+  }
+
   const additionalData: Record<string, string> = {
     assetType: 'IMAGE',
   };
