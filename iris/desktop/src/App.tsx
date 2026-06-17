@@ -174,7 +174,8 @@ function AppContent() {
         // Library is a community (cloud) feature — unavailable when self-hosting.
         return IS_SELF_HOST ? <WorkflowsPage /> : <LibraryPage />;
       case 'storage':
-        return <StoragePage />;
+        // Cloud GCS storage is unavailable when self-hosting.
+        return IS_SELF_HOST ? <WorkflowsPage /> : <StoragePage />;
       case 'settings':
         return <SettingsPage />;
       case 'profile':

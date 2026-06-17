@@ -24,8 +24,9 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
   path: string;
   requiresServer?: boolean;
-  /** Community/cloud-only feature — hidden in self-host (open-source) builds. */
-  communityOnly?: boolean;
+  /** Cloud/community-only feature (needs Parallax cloud storage/account) —
+   *  hidden in self-host (open-source) builds. */
+  selfHostHidden?: boolean;
   kbd?: string;
 }
 
@@ -38,10 +39,11 @@ const navItems: NavItem[] = [
   // Workflows + Batch run on the local engine (BYOK) — no cloud connection needed.
   { id: 'workflows', labelKey: 'nav.workflows', icon: Workflow, path: '/workflows', kbd: '6' },
   { id: 'batch', labelKey: 'nav.batch', icon: Layers, path: '/batch', kbd: '7' },
-  // Library is a community (cloud) feature — not available when self-hosting.
-  { id: 'library', labelKey: 'nav.library', icon: FolderOpen, path: '/library', communityOnly: true, kbd: '8' },
-  { id: 'storage', labelKey: 'nav.storage', icon: HardDrive, path: '/storage', requiresServer: true, kbd: '9' },
-].filter((item) => !(IS_SELF_HOST && item.communityOnly));
+  // Library (community) + Storage (cloud GCS) require the Parallax cloud — not
+  // meaningful when self-hosting.
+  { id: 'library', labelKey: 'nav.library', icon: FolderOpen, path: '/library', selfHostHidden: true, kbd: '8' },
+  { id: 'storage', labelKey: 'nav.storage', icon: HardDrive, path: '/storage', requiresServer: true, selfHostHidden: true, kbd: '9' },
+].filter((item) => !(IS_SELF_HOST && item.selfHostHidden));
 
 export function Sidebar() {
   const { currentPage, setCurrentPage } = useUIStore();
