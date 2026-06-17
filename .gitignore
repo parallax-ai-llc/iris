@@ -17,7 +17,7 @@ out/
 keys.json
 
 # Local Iris data (BYOK keys, workflows, executions, batch jobs)
-.iris-flow/
+.iris-flow*/
 iris-flow/
 
 # Editor / OS
