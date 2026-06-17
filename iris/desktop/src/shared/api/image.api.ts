@@ -12,6 +12,8 @@ import {
   GenerateImageData,
 } from './types';
 import { useImageStore } from '@/features/images/stores/image.store';
+import { IS_SELF_HOST } from '@/config/self-host';
+import { irisLocalFetch } from './iris-local';
 
 // Re-export cache and asset functions for convenience
 export { invalidateAssetCache, clearAssetCache, replaceAssetFile } from './asset.api';
@@ -36,6 +38,14 @@ const buildQueryString = (params?: Record<string, unknown>): string => {
 export async function getImages(params?: AssetQueryParams): Promise<AssetListResponse | null> {
   const queryParams = { ...params, type: 'IMAGE' as const };
   const queryString = buildQueryString(queryParams as Record<string, unknown>);
+  // Self-host: assets live on the local engine's disk store, not the cloud.
+  if (IS_SELF_HOST) {
+    try {
+      return await irisLocalFetch<AssetListResponse>(`/api/iris/assets${queryString}`);
+    } catch {
+      return null;
+    }
+  }
   const response = await apiClient.get<AssetListResponse>(
     `/api/iris/assets${queryString}`,
     { requireAuth: true }

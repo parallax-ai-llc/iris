@@ -25,8 +25,79 @@ import { setTempPublicUploader } from 'iris-engine';
 import { ensureDir, readJsonOrNull } from './fs-util.js';
 
 interface AssetMeta {
+  id?: string;
+  userId?: string;
+  path?: string;
   storagePath: string;
   mimeType: string;
+  assetType?: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'OTHER';
+  prompt?: string;
+  model?: string;
+  provider?: string;
+  metadata?: Record<string, unknown> | null;
+  createdAt?: string;
+}
+
+/** Read every `<dataDir>/assets/<id>/meta.json` and map to the cloud `IrisAsset`
+ *  shape the desktop gallery expects. Asset bytes are served locally, so
+ *  thumbnail/preview URLs point at this host's download route (absolute, so
+ *  the renderer uses them directly without a cloud round-trip). */
+async function listLocalAssets(
+  dataDir: string,
+  baseUrl: string,
+): Promise<Array<Record<string, unknown>>> {
+  const assetsDir = path.join(dataDir, 'assets');
+  let ids: string[];
+  try {
+    ids = await fs.readdir(assetsDir);
+  } catch {
+    return []; // no assets yet
+  }
+  const out: Array<Record<string, unknown>> = [];
+  for (const id of ids) {
+    // A single unreadable/corrupt meta.json must not break the whole gallery.
+    let meta: AssetMeta | null = null;
+    try {
+      meta = await readJsonOrNull<AssetMeta>(
+        path.join(assetsDir, id, 'meta.json'),
+      );
+    } catch {
+      continue;
+    }
+    if (!meta) continue;
+    let sizeBytes = 0;
+    try {
+      sizeBytes = (await fs.stat(meta.storagePath)).size;
+    } catch {
+      /* data file gone — still list metadata */
+    }
+    const download = `${baseUrl}/api/iris/assets/${id}/download`;
+    out.push({
+      id,
+      userId: meta.userId ?? 'local',
+      name: (meta.metadata?.name as string) || meta.prompt?.slice(0, 60) || id,
+      path: meta.path ?? '',
+      storagePath: meta.path ?? '',
+      currentVersion: 1,
+      assetType: meta.assetType ?? 'OTHER',
+      mimeType: meta.mimeType,
+      sizeBytes,
+      metadata: meta.metadata ?? undefined,
+      prompt: meta.prompt,
+      model: meta.model,
+      thumbnailUrl: download,
+      previewUrl: download,
+      processingStatus: 'COMPLETED',
+      isPublic: false,
+      createdAt: meta.createdAt ?? new Date(0).toISOString(),
+      updatedAt: meta.createdAt ?? new Date(0).toISOString(),
+    });
+  }
+  // newest first
+  out.sort((a, b) =>
+    String(b.createdAt).localeCompare(String(a.createdAt)),
+  );
+  return out;
 }
 
 function stripDataUrl(b64: string): string {
@@ -50,6 +121,26 @@ export async function registerMediaServer(
     root: publicDir,
     prefix: '/public/',
     decorateReply: false,
+  });
+
+  // List locally-stored assets (the desktop image/video galleries) — reads
+  // `<dataDir>/assets/*/meta.json`. Supports `?type=IMAGE|VIDEO` + pagination.
+  app.get<{
+    Querystring: { type?: string; page?: string; limit?: string };
+  }>('/api/iris/assets', async req => {
+    const all = await listLocalAssets(opts.dataDir, opts.getPublicBaseUrl());
+    const type = req.query.type;
+    const filtered = type ? all.filter(a => a.assetType === type) : all;
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.max(1, Number(req.query.limit) || 100);
+    const start = (page - 1) * limit;
+    return {
+      assets: filtered.slice(start, start + limit),
+      total: filtered.length,
+      page,
+      limit,
+      totalPages: Math.max(1, Math.ceil(filtered.length / limit)),
+    };
   });
 
   // Stream a stored asset's bytes by id (the host's storeOutput apiUrl).

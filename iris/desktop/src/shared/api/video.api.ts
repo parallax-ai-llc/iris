@@ -10,6 +10,8 @@ import {
   AssetQueryParams,
   AssetVersion,
 } from './types';
+import { IS_SELF_HOST } from '@/config/self-host';
+import { irisLocalFetch } from './iris-local';
 
 const buildQueryString = (params?: Record<string, unknown>): string => {
   if (!params) return '';
@@ -62,6 +64,14 @@ export interface VideoStatusResponse {
 export async function getVideos(params?: AssetQueryParams): Promise<AssetListResponse | null> {
   const queryParams = { ...params, type: 'VIDEO' as const };
   const queryString = buildQueryString(queryParams as Record<string, unknown>);
+  // Self-host: assets live on the local engine's disk store, not the cloud.
+  if (IS_SELF_HOST) {
+    try {
+      return await irisLocalFetch<AssetListResponse>(`/api/iris/assets${queryString}`);
+    } catch {
+      return null;
+    }
+  }
   const response = await apiClient.get<AssetListResponse>(
     `/api/iris/assets${queryString}`,
     { requireAuth: true }
