@@ -57,6 +57,13 @@ export async function getImages(params?: AssetQueryParams): Promise<AssetListRes
  * Get single image by ID
  */
 export async function getImage(id: string): Promise<IrisAsset | null> {
+  if (IS_SELF_HOST) {
+    try {
+      return await irisLocalFetch<IrisAsset>(`/api/iris/assets/${id}`);
+    } catch {
+      return null;
+    }
+  }
   const response = await apiClient.get<IrisAsset>(
     `/api/iris/assets/${id}`,
     { requireAuth: true }
@@ -378,16 +385,25 @@ export async function autoEnhanceImage(id: string): Promise<IrisAsset | null> {
  * Use this to check if an asset has finished processing
  */
 export async function getAssetStatus(id: string): Promise<IAssetStatusResponse | null> {
-  const response = await apiClient.get<IrisAsset>(
-    `/api/iris/assets/${id}`,
-    { requireAuth: true }
-  );
+  let asset: IrisAsset | null;
+  if (IS_SELF_HOST) {
+    try {
+      asset = await irisLocalFetch<IrisAsset>(`/api/iris/assets/${id}`);
+    } catch {
+      asset = null;
+    }
+  } else {
+    const response = await apiClient.get<IrisAsset>(
+      `/api/iris/assets/${id}`,
+      { requireAuth: true }
+    );
+    asset = response.success ? response.data ?? null : null;
+  }
 
-  if (!response.success || !response.data) {
+  if (!asset) {
     return null;
   }
 
-  const asset = response.data;
   return {
     status: asset.processingStatus || 'READY',
     asset: asset,

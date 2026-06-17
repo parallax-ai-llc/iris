@@ -83,6 +83,13 @@ export async function getVideos(params?: AssetQueryParams): Promise<AssetListRes
  * Get single video by ID
  */
 export async function getVideo(id: string): Promise<IrisAsset | null> {
+  if (IS_SELF_HOST) {
+    try {
+      return await irisLocalFetch<IrisAsset>(`/api/iris/assets/${id}`);
+    } catch {
+      return null;
+    }
+  }
   const response = await apiClient.get<IrisAsset>(
     `/api/iris/assets/${id}`,
     { requireAuth: true }
@@ -215,16 +222,24 @@ export async function getVideoVersions(id: string): Promise<AssetVersion[] | nul
  * Get video processing status for polling
  */
 export async function getVideoStatus(id: string): Promise<VideoStatusResponse | null> {
-  const response = await apiClient.get<IrisAsset>(
-    `/api/iris/assets/${id}`,
-    { requireAuth: true }
-  );
-
-  if (!response.success || !response.data) {
-    return null;
+  let asset: IrisAsset | null;
+  if (IS_SELF_HOST) {
+    try {
+      asset = await irisLocalFetch<IrisAsset>(`/api/iris/assets/${id}`);
+    } catch {
+      asset = null;
+    }
+  } else {
+    const response = await apiClient.get<IrisAsset>(
+      `/api/iris/assets/${id}`,
+      { requireAuth: true }
+    );
+    asset = response.success ? response.data ?? null : null;
   }
 
-  const asset = response.data;
+  if (!asset) {
+    return null;
+  }
   return {
     status: (asset.processingStatus as VideoStatusResponse['status']) || 'READY',
     asset: asset,

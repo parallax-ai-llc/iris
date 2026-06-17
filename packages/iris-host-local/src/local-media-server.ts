@@ -42,6 +42,59 @@ interface AssetMeta {
  *  shape the desktop gallery expects. Asset bytes are served locally, so
  *  thumbnail/preview URLs point at this host's download route (absolute, so
  *  the renderer uses them directly without a cloud round-trip). */
+function mapMetaToAsset(
+  id: string,
+  meta: AssetMeta,
+  sizeBytes: number,
+  baseUrl: string,
+): Record<string, unknown> {
+  const download = `${baseUrl}/api/iris/assets/${id}/download`;
+  return {
+    id,
+    userId: meta.userId ?? 'local',
+    name: (meta.metadata?.name as string) || meta.prompt?.slice(0, 60) || id,
+    path: meta.path ?? '',
+    storagePath: meta.path ?? '',
+    currentVersion: 1,
+    assetType: meta.assetType ?? 'OTHER',
+    mimeType: meta.mimeType,
+    sizeBytes,
+    metadata: meta.metadata ?? undefined,
+    prompt: meta.prompt,
+    model: meta.model,
+    thumbnailUrl: download,
+    previewUrl: download,
+    processingStatus: 'READY',
+    isPublic: false,
+    createdAt: meta.createdAt ?? new Date(0).toISOString(),
+    updatedAt: meta.createdAt ?? new Date(0).toISOString(),
+  };
+}
+
+/** Read + map a single asset by id, or null if missing/corrupt. */
+export async function readLocalAsset(
+  dataDir: string,
+  baseUrl: string,
+  id: string,
+): Promise<Record<string, unknown> | null> {
+  let meta: AssetMeta | null = null;
+  try {
+    meta = await readJsonOrNull<AssetMeta>(
+      path.join(dataDir, 'assets', id, 'meta.json'),
+    );
+  } catch {
+    return null;
+  }
+  if (!meta) return null;
+  let sizeBytes = 0;
+  try {
+    sizeBytes = (await fs.stat(meta.storagePath)).size;
+  } catch {
+    /* data file gone — still return metadata */
+  }
+  return mapMetaToAsset(id, meta, sizeBytes, baseUrl);
+}
+
 async function listLocalAssets(
   dataDir: string,
   baseUrl: string,
@@ -55,48 +108,11 @@ async function listLocalAssets(
   }
   const out: Array<Record<string, unknown>> = [];
   for (const id of ids) {
-    // A single unreadable/corrupt meta.json must not break the whole gallery.
-    let meta: AssetMeta | null = null;
-    try {
-      meta = await readJsonOrNull<AssetMeta>(
-        path.join(assetsDir, id, 'meta.json'),
-      );
-    } catch {
-      continue;
-    }
-    if (!meta) continue;
-    let sizeBytes = 0;
-    try {
-      sizeBytes = (await fs.stat(meta.storagePath)).size;
-    } catch {
-      /* data file gone — still list metadata */
-    }
-    const download = `${baseUrl}/api/iris/assets/${id}/download`;
-    out.push({
-      id,
-      userId: meta.userId ?? 'local',
-      name: (meta.metadata?.name as string) || meta.prompt?.slice(0, 60) || id,
-      path: meta.path ?? '',
-      storagePath: meta.path ?? '',
-      currentVersion: 1,
-      assetType: meta.assetType ?? 'OTHER',
-      mimeType: meta.mimeType,
-      sizeBytes,
-      metadata: meta.metadata ?? undefined,
-      prompt: meta.prompt,
-      model: meta.model,
-      thumbnailUrl: download,
-      previewUrl: download,
-      processingStatus: 'COMPLETED',
-      isPublic: false,
-      createdAt: meta.createdAt ?? new Date(0).toISOString(),
-      updatedAt: meta.createdAt ?? new Date(0).toISOString(),
-    });
+    const asset = await readLocalAsset(dataDir, baseUrl, id);
+    if (asset) out.push(asset);
   }
   // newest first
-  out.sort((a, b) =>
-    String(b.createdAt).localeCompare(String(a.createdAt)),
-  );
+  out.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
   return out;
 }
 
@@ -142,6 +158,20 @@ export async function registerMediaServer(
       totalPages: Math.max(1, Math.ceil(filtered.length / limit)),
     };
   });
+
+  // Single asset by id (desktop getImage / getAssetStatus polling).
+  app.get<{ Params: { id: string } }>(
+    '/api/iris/assets/:id',
+    async (req, reply) => {
+      const asset = await readLocalAsset(
+        opts.dataDir,
+        opts.getPublicBaseUrl(),
+        req.params.id,
+      );
+      if (!asset) return reply.code(404).send({ error: 'Asset not found' });
+      return asset;
+    },
+  );
 
   // Stream a stored asset's bytes by id (the host's storeOutput apiUrl).
   app.get<{ Params: { id: string } }>(
