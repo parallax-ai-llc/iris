@@ -134,20 +134,20 @@ export function ModelSelector({
   }, []);
 
   // Get agents from store
-  const { agents, fetchAgents, isLoading: isLoadingModels, availableProviders } = useAgentStore();
+  const { agents, fetchAgents, isLoading: isLoadingModels, availableProviders: configuredProviders } = useAgentStore();
 
   // In self-host (BYOK), the host passes the list of providers that have an API
   // key configured; models from any other provider are shown but disabled.
-  // In cloud (availableProviders === undefined) nothing is gated — the server
+  // In cloud (configuredProviders === undefined) nothing is gated — the server
   // holds the keys.
   const isProviderUnavailable = useCallback(
     (provider: string) => {
-      if (!availableProviders) return false;
+      if (!configuredProviders) return false;
       const key = provider.toLowerCase();
       const resolved = PROVIDER_KEY_ALIASES[key] ?? key;
-      return !availableProviders.includes(resolved) && !availableProviders.includes(key);
+      return !configuredProviders.includes(resolved) && !configuredProviders.includes(key);
     },
-    [availableProviders],
+    [configuredProviders],
   );
 
   // Fetch agents on mount if not loaded

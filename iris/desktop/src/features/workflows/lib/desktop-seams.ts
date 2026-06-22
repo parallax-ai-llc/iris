@@ -9,7 +9,7 @@
  *   - navigate   → close the editor / return to the list
  */
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   createLocalApiClient,
   createLocalT,
@@ -19,11 +19,10 @@ import {
 
 // Stable module-level references — the editor's config effects depend on these
 // ([agents]/[fetchAgents]); a fresh object per render would spin a render loop.
-const LOCAL_MODELS_SEAM: ModelsSeam = {
-  agents: [],
-  fetchAgents: () => {},
-  isLoading: false,
-};
+// The model list comes from the static node-definitions fallback in
+// ModelSelector; `availableProviders` is layered on to gate models by BYOK keys.
+const STABLE_AGENTS: ModelsSeam['agents'] = [];
+const NOOP_FETCH = () => {};
 const localT = createLocalT();
 
 /** Build the editor seams for a resolved local engine base URL. */
@@ -31,13 +30,42 @@ export function useDesktopEditorSeams(
   baseUrl: string,
   onClose: () => void,
 ): IrisEditorSeams {
+  // BYOK providers with a configured key (from the embedded engine's
+  // /api/health). `undefined` until loaded → ModelSelector gates nothing.
+  const [providers, setProviders] = useState<string[] | undefined>(undefined);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${baseUrl}/api/health`)
+      .then(r => r.json())
+      .then(h => {
+        if (!cancelled) setProviders(h.providers ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setProviders([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [baseUrl]);
+
+  const modelsSeam = useMemo<ModelsSeam>(
+    () => ({
+      agents: STABLE_AGENTS,
+      fetchAgents: NOOP_FETCH,
+      isLoading: false,
+      availableProviders: providers,
+    }),
+    [providers],
+  );
+
   return useMemo<IrisEditorSeams>(
     () => ({
       apiClient: createLocalApiClient(baseUrl),
       t: localT,
-      useModels: () => LOCAL_MODELS_SEAM,
+      useModels: () => modelsSeam,
       navigate: onClose,
     }),
-    [baseUrl, onClose],
+    [baseUrl, onClose, modelsSeam],
   );
 }

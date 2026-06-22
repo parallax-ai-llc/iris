@@ -15,13 +15,13 @@ import type { ModelsSeam } from '@editor/seams';
 import { createLocalApiClient } from './local-api-client';
 import { createLocalT } from './local-i18n';
 
-// Stable seam value — referenced by config-component effects ([agents]/
-// [fetchAgents]); must NOT be recreated per render (would cause a render loop).
-const LOCAL_MODELS_SEAM: ModelsSeam = {
-  agents: [],
-  fetchAgents: () => {},
-  isLoading: false,
-};
+// Stable references — config-component effects depend on [agents]/[fetchAgents];
+// these must NOT be recreated per render (would cause a render loop). The model
+// list itself comes from the static node-definitions fallback in ModelSelector,
+// so an empty agents array is fine; `availableProviders` is layered on top to
+// gate models by which BYOK keys are configured (see WorkflowList /api/health).
+const STABLE_AGENTS: ModelsSeam['agents'] = [];
+const NOOP_FETCH = () => {};
 
 // Local i18n: resolve `iris.*` keys against the vendored English dictionary.
 const localT = createLocalT();
@@ -34,9 +34,14 @@ interface ListWorkflow {
   updatedAt: string;
 }
 
-function WorkflowList({ onOpen }: { onOpen: (id: string) => void }) {
+function WorkflowList({
+  onOpen,
+  providers,
+}: {
+  onOpen: (id: string) => void;
+  providers: string[];
+}) {
   const [workflows, setWorkflows] = useState<ListWorkflow[]>([]);
-  const [providers, setProviders] = useState<string[]>([]);
 
   const refresh = useCallback(async () => {
     const r = await fetch('/api/iris/workflows').then(res => res.json());
@@ -45,10 +50,6 @@ function WorkflowList({ onOpen }: { onOpen: (id: string) => void }) {
 
   useEffect(() => {
     void refresh();
-    fetch('/api/health')
-      .then(r => r.json())
-      .then(h => setProviders(h.providers ?? []))
-      .catch(() => {});
   }, [refresh]);
 
   const create = async () => {
@@ -129,21 +130,38 @@ function WorkflowList({ onOpen }: { onOpen: (id: string) => void }) {
 
 export function LocalApp() {
   const [openId, setOpenId] = useState<string | null>(null);
+  // BYOK providers with a configured key (from /api/health). `undefined` until
+  // loaded → ModelSelector gates nothing; `[]` means no keys → everything gated.
+  const [providers, setProviders] = useState<string[] | undefined>(undefined);
   const apiClient = useMemo(() => createLocalApiClient(), []);
+
+  useEffect(() => {
+    fetch('/api/health')
+      .then(r => r.json())
+      .then(h => setProviders(h.providers ?? []))
+      .catch(() => setProviders([]));
+  }, []);
+
+  // Models seam — stable agents/fetchAgents refs (avoid render loop); only
+  // `availableProviders` changes, once, when /api/health resolves.
+  const modelsSeam = useMemo<ModelsSeam>(
+    () => ({
+      agents: STABLE_AGENTS,
+      fetchAgents: NOOP_FETCH,
+      isLoading: false,
+      availableProviders: providers,
+    }),
+    [providers],
+  );
 
   const seams: IrisEditorSeams = useMemo(
     () => ({
       apiClient,
       t: localT,
-      // Return STABLE references — the editor's config components have effects
-      // with `[agents]` / `[fetchAgents]` deps; new values each render would
-      // re-run them every render and (combined with their setState) freeze the
-      // page in a render loop. Models come from the static node-definitions
-      // fallback in ModelSelector, so an empty list is fine here.
-      useModels: () => LOCAL_MODELS_SEAM,
+      useModels: () => modelsSeam,
       navigate: () => setOpenId(null), // back / not-found → return to the list
     }),
-    [apiClient],
+    [apiClient, modelsSeam],
   );
 
   if (openId) {
@@ -153,5 +171,5 @@ export function LocalApp() {
       </IrisEditorProvider>
     );
   }
-  return <WorkflowList onOpen={setOpenId} />;
+  return <WorkflowList onOpen={setOpenId} providers={providers ?? []} />;
 }
