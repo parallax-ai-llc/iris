@@ -28,6 +28,13 @@ export interface ModelsSeam {
   agents: AgentModel[];
   fetchAgents: () => void;
   isLoading: boolean;
+  /**
+   * Self-host BYOK only: the lowercase provider keys (matching iris-engine's
+   * `API_KEY_ENV_MAPPING`) whose API key is configured in the local `.env`.
+   * When provided, ModelSelector disables models from any provider not listed.
+   * When `undefined` (cloud — the server holds the keys) nothing is gated.
+   */
+  availableProviders?: string[];
 }
 
 export interface IrisEditorSeams {

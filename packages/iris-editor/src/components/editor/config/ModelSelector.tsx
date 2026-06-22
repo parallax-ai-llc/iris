@@ -1,14 +1,23 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { cn } from '@editor/lib/convert/string';
-import { ChevronDown, Loader2, Search, X, Check, Zap, DollarSign } from 'lucide-react';
+import { ChevronDown, Loader2, Search, X, Check, Zap, DollarSign, Lock } from 'lucide-react';
 import { PROVIDER_OPTIONS, MODEL_OPTIONS } from '../../../constants/node-definitions';
 import { useAgentStore, AgentModel } from '@editor/store/agent';
 import { getProviderLogo, getProviderLogoStyle } from '../../../utils/provider-logos';
 import { HIDDEN_IMAGE_GENERATION_PROVIDERS } from '../../media/media.constants';
+
+// Map a model's provider to the provider key whose API key actually unlocks it.
+// Most providers match 1:1; these are the exceptions — Kling has no direct API
+// (it runs through Replicate), and grok/x are the xAI provider.
+const PROVIDER_KEY_ALIASES: Record<string, string> = {
+  x: 'xai',
+  grok: 'xai',
+  kling: 'replicate',
+};
 
 // Helper to get providers that support a capability from MODEL_OPTIONS
 function getProvidersForCapability(capability: string): string[] {
@@ -125,7 +134,21 @@ export function ModelSelector({
   }, []);
 
   // Get agents from store
-  const { agents, fetchAgents, isLoading: isLoadingModels } = useAgentStore();
+  const { agents, fetchAgents, isLoading: isLoadingModels, availableProviders } = useAgentStore();
+
+  // In self-host (BYOK), the host passes the list of providers that have an API
+  // key configured; models from any other provider are shown but disabled.
+  // In cloud (availableProviders === undefined) nothing is gated — the server
+  // holds the keys.
+  const isProviderUnavailable = useCallback(
+    (provider: string) => {
+      if (!availableProviders) return false;
+      const key = provider.toLowerCase();
+      const resolved = PROVIDER_KEY_ALIASES[key] ?? key;
+      return !availableProviders.includes(resolved) && !availableProviders.includes(key);
+    },
+    [availableProviders],
+  );
 
   // Fetch agents on mount if not loaded
   useEffect(() => {
@@ -207,14 +230,21 @@ export function ModelSelector({
 
   // Filter models based on search
   const filteredModels = useMemo(() => {
-    if (!searchQuery.trim()) return allAvailableModels;
-    const query = searchQuery.toLowerCase();
-    return allAvailableModels.filter(
-      (m) =>
-        m.name.toLowerCase().includes(query) ||
-        m.provider.toLowerCase().includes(query)
+    const query = searchQuery.trim().toLowerCase();
+    const matched = !query
+      ? allAvailableModels
+      : allAvailableModels.filter(
+          (m) =>
+            m.name.toLowerCase().includes(query) ||
+            m.provider.toLowerCase().includes(query)
+        );
+    // Push models without a configured API key to the bottom (stable sort).
+    return [...matched].sort(
+      (a, b) =>
+        (isProviderUnavailable(a.provider) ? 1 : 0) -
+        (isProviderUnavailable(b.provider) ? 1 : 0)
     );
-  }, [allAvailableModels, searchQuery]);
+  }, [allAvailableModels, searchQuery, isProviderUnavailable]);
 
   // Get providers that have models for the required capability
   const availableProviders = useMemo(() => {
@@ -387,6 +417,7 @@ export function ModelSelector({
                       key={`${m.provider}-${m.id}`}
                       model={m}
                       isSelected={model === m.id}
+                      disabled={isProviderUnavailable(m.provider)}
                       onSelect={() => handleModelSelect(m)}
                     />
                   ))}
@@ -405,31 +436,40 @@ export function ModelSelector({
 function ModelCard({
   model,
   isSelected,
+  disabled = false,
   onSelect,
 }: {
   model: TransformedModel;
   isSelected: boolean;
+  disabled?: boolean;
   onSelect: () => void;
 }) {
   return (
     <button
       type="button"
-      onClick={onSelect}
+      onClick={disabled ? undefined : onSelect}
+      disabled={disabled}
+      aria-disabled={disabled}
+      title={disabled ? 'API key required — add this provider’s key to enable' : undefined}
       className={cn(
-        'relative p-4 rounded-xl text-left transition-all duration-200',
-        'border hover:border-slate-400/50 hover:bg-white/5',
-        'group',
-        isSelected
-          ? 'bg-slate-400/10 border-slate-400/50 ring-1 ring-slate-400/25'
-          : 'bg-white/[0.02] border-white/10'
+        'relative p-4 rounded-xl text-left transition-all duration-200 border group',
+        disabled
+          ? 'cursor-not-allowed opacity-40 bg-white/[0.02] border-white/10'
+          : isSelected
+            ? 'bg-slate-400/10 border-slate-400/50 ring-1 ring-slate-400/25'
+            : 'bg-white/[0.02] border-white/10 hover:border-slate-400/50 hover:bg-white/5'
       )}
     >
-      {/* Selected Check */}
-      {isSelected && (
+      {/* Selected Check / Locked (no API key) */}
+      {disabled ? (
+        <div className="absolute top-3 right-3 text-white/40">
+          <Lock size={14} />
+        </div>
+      ) : isSelected ? (
         <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-slate-400 flex items-center justify-center">
           <Check size={12} className="text-white" />
         </div>
-      )}
+      ) : null}
 
       {/* Provider Icon */}
       <div className="mb-3">
@@ -444,6 +484,12 @@ function ModelCard({
 
       {/* Tags */}
       <div className="flex flex-wrap gap-1.5">
+        {disabled && (
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400/90 text-[10px]">
+            <Lock size={9} />
+            API key required
+          </span>
+        )}
         {model.isFast && (
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px]">
             <Zap size={10} />
