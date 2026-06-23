@@ -11,7 +11,7 @@ import {
   AssetVersion,
 } from './types';
 import { IS_SELF_HOST } from '@/config/self-host';
-import { irisLocalFetch, importLocalAsset, assetDownloadUrl } from './iris-local';
+import { irisLocalFetch, importLocalAsset, assetDownloadUrl, shouldUseLocalEngine } from './iris-local';
 
 const buildQueryString = (params?: Record<string, unknown>): string => {
   if (!params) return '';
@@ -64,8 +64,8 @@ export interface VideoStatusResponse {
 export async function getVideos(params?: AssetQueryParams): Promise<AssetListResponse | null> {
   const queryParams = { ...params, type: 'VIDEO' as const };
   const queryString = buildQueryString(queryParams as Record<string, unknown>);
-  // Self-host: assets live on the local engine's disk store, not the cloud.
-  if (IS_SELF_HOST) {
+  // Self-host or logged-out: assets live on the local engine's disk store.
+  if (await shouldUseLocalEngine()) {
     try {
       return await irisLocalFetch<AssetListResponse>(`/api/iris/assets${queryString}`);
     } catch {
@@ -83,7 +83,7 @@ export async function getVideos(params?: AssetQueryParams): Promise<AssetListRes
  * Get single video by ID
  */
 export async function getVideo(id: string): Promise<IrisAsset | null> {
-  if (IS_SELF_HOST) {
+  if (await shouldUseLocalEngine()) {
     try {
       return await irisLocalFetch<IrisAsset>(`/api/iris/assets/${id}`);
     } catch {
@@ -163,8 +163,9 @@ export async function uploadVideo(
     name?: string;
   }
 ): Promise<{ asset: IrisAsset | null; error?: string }> {
-  // Self-host: import the file into the local engine's disk asset store.
-  if (IS_SELF_HOST) {
+  // Self-host or logged-out: import the file into the local engine's disk asset
+  // store (a local file reference) instead of uploading to cloud storage.
+  if (await shouldUseLocalEngine()) {
     try {
       return { asset: await importLocalAsset(file, 'VIDEO') };
     } catch (e) {
@@ -239,7 +240,7 @@ export async function getVideoVersions(id: string): Promise<AssetVersion[] | nul
  */
 export async function getVideoStatus(id: string): Promise<VideoStatusResponse | null> {
   let asset: IrisAsset | null;
-  if (IS_SELF_HOST) {
+  if (await shouldUseLocalEngine()) {
     try {
       asset = await irisLocalFetch<IrisAsset>(`/api/iris/assets/${id}`);
     } catch {

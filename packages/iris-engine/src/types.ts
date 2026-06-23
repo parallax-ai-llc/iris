@@ -22,7 +22,8 @@ export type IrisTriggerType =
   | 'WEBHOOK'
   | 'SCHEDULE'
   | 'DIRECTORY_WATCH'
-  | 'API';
+  | 'API'
+  | 'FORM';
 
 export type IrisNodeType =
   // Triggers
@@ -548,7 +549,7 @@ export interface ExecutionOptions {
 
   /** Trigger context */
   trigger?: {
-    type: 'manual' | 'webhook' | 'schedule' | 'directory' | 'api';
+    type: 'manual' | 'webhook' | 'schedule' | 'directory' | 'api' | 'form';
     data?: unknown;
   };
 

@@ -21,6 +21,7 @@
     "generating": "生成中...",
     "processing": "処理中...",
     "logout": "ログアウト",
+    "login": "ログイン",
     "choose": "フォルダを選択",
     "clear": "クリア",
     "checkUpdates": "アップデートを確認",
@@ -132,6 +133,11 @@
     "library": "ライブラリ",
     "storage": "ストレージ",
     "settings": "設定"
+  },
+  "auth": {
+    "loginRequiredTitle": "続行するにはサインインしてください",
+    "loginRequiredDesc": "この機能には Parallax アカウントが必要です。サインインせずにローカルツールを引き続き使用できます。",
+    "continueWithout": "サインインせずに続行"
   },
   "titleBar": {
     "unsavedChanges": "未保存の変更",

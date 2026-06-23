@@ -5,8 +5,7 @@
 import { apiClient } from './client';
 import { assetCache } from '../lib/cache/asset-cache';
 import { getTokenStorage } from '@/features/auth/lib/token-storage';
-import { IS_SELF_HOST } from '@/config/self-host';
-import { getIrisApiBaseUrl } from './iris-local';
+import { getIrisApiBaseUrl, shouldUseLocalEngine } from './iris-local';
 import {
   IrisAsset,
   AssetListResponse,
@@ -331,7 +330,7 @@ async function uploadAssetChunked(
 export async function downloadAsset(asset: IrisAsset): Promise<string | null> {
   try {
     let blob: Blob;
-    if (IS_SELF_HOST) {
+    if (await shouldUseLocalEngine()) {
       // Local engine streams the bytes directly (no signed-URL indirection).
       const base = await getIrisApiBaseUrl();
       const fileResponse = await fetch(`${base}/api/iris/assets/${asset.id}/download`);
@@ -470,9 +469,9 @@ async function getAuthToken(): Promise<string | null> {
  */
 async function fetchAssetContent(assetId: string, endpoint: 'download' | 'thumbnail'): Promise<ArrayBuffer | null> {
   try {
-    // Self-host: local engine, no auth. It serves only /download (no separate
-    // thumbnail), so thumbnail requests fall back to the full file.
-    if (IS_SELF_HOST) {
+    // Self-host or logged-out: local engine, no auth. It serves only /download
+    // (no separate thumbnail), so thumbnail requests fall back to the full file.
+    if (await shouldUseLocalEngine()) {
       const base = await getIrisApiBaseUrl();
       const res = await fetch(`${base}/api/iris/assets/${assetId}/download`);
       if (!res.ok) return null;

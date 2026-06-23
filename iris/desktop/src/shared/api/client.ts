@@ -7,6 +7,19 @@ import { getTokenStorage } from '@/features/auth/lib/token-storage';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.parallax.kr';
 
+/**
+ * True when there's no stored access token — i.e. the user is browsing without
+ * logging in. The app is usable without an account: auth-required cloud calls
+ * are skipped, and asset operations fall back to the embedded local engine
+ * (see `shouldUseLocalEngine` in iris-local.ts). Logout/expireSession clear all
+ * tokens together, so absence of an access token is a reliable signal.
+ */
+export async function isLoggedOut(): Promise<boolean> {
+  const storage = getTokenStorage();
+  const token = await storage.getToken();
+  return !token;
+}
+
 interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
@@ -31,6 +44,11 @@ class ApiClient {
       return { Authorization: `Bearer ${token}` };
     }
     return {};
+  }
+
+  /** Envelope returned for auth-required requests made while logged out. */
+  private notAuthenticated<T>(): ApiResponse<T> {
+    return { success: false, error: 'Not authenticated', statusCode: 401 };
   }
 
   /**
@@ -128,6 +146,11 @@ class ApiClient {
     buildRequest: () => Promise<Response>,
     requireAuth: boolean
   ): Promise<ApiResponse<T>> {
+    // Browsing without an account: skip auth-required calls (no token to send).
+    if (requireAuth && (await isLoggedOut())) {
+      return this.notAuthenticated<T>();
+    }
+
     let response = await buildRequest();
 
     if (response.status === 401 && requireAuth) {
@@ -247,6 +270,10 @@ class ApiClient {
       }
       return fetch(`${API_BASE_URL}${endpoint}`, { method: 'GET', headers });
     };
+
+    if (options?.requireAuth && (await isLoggedOut())) {
+      return this.notAuthenticated<Blob>();
+    }
 
     try {
       let response = await buildRequest();
@@ -391,6 +418,10 @@ class ApiClient {
         };
       }
     };
+
+    if (options?.requireAuth && (await isLoggedOut())) {
+      return this.notAuthenticated<T>();
+    }
 
     let result = await sendXhr();
     if ('aborted' in result) {

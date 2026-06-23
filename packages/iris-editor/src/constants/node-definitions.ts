@@ -340,9 +340,10 @@ const ENABLED_NODE_TYPES: readonly string[] = [
   'TRIGGER_SCHEDULE',
   'TRIGGER_WEBHOOK',
   // Phase 3 — new entry points
-  'TRIGGER_CHAT',
   'TRIGGER_FORM',
-  'TRIGGER_EMAIL_RECEIVED',
+  // 'TRIGGER_CHAT', // Disabled: chat ingestion (websocket/SSE gateway) not yet implemented
+  // 'TRIGGER_EMAIL_RECEIVED', // Disabled: email ingestion (Gmail Push / IMAP poller) not yet implemented
+  // 'TRIGGER_DIRECTORY', // Disabled: desktop fs watcher not yet implemented
   // 'TRIGGER_EVENT', // Disabled: Event trigger not yet implemented
 
   // Generators

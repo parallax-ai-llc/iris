@@ -28,6 +28,7 @@ import { useI18n } from '@editor/hooks/usei18n';
 import { END_FRAME_SUPPORTED_MODELS } from '../../media/media.constants';
 import { ConfigField } from './NodeConfigPanel/ConfigField';
 import { WebhookUrlSettings } from './NodeConfigPanel/WebhookUrlSettings';
+import { FormUrlSettings } from './NodeConfigPanel/FormUrlSettings';
 import { ScheduleNodeSettings } from './NodeConfigPanel/ScheduleNodeSettings';
 
 // Category color classes (text-only variant used in this panel's header)
@@ -362,6 +363,11 @@ export function NodeConfigPanel() {
             {/* Webhook URL settings for TRIGGER_WEBHOOK */}
             {selectedNode.data.type === 'TRIGGER_WEBHOOK' && workflowId && (
               <WebhookUrlSettings workflowId={workflowId} />
+            )}
+
+            {/* Form URL settings for TRIGGER_FORM */}
+            {selectedNode.data.type === 'TRIGGER_FORM' && workflowId && (
+              <FormUrlSettings workflowId={workflowId} />
             )}
 
             {/* Schedule settings for TRIGGER_SCHEDULE */}

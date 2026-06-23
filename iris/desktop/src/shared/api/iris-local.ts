@@ -8,8 +8,23 @@
 
 import type { IrisAsset } from './types';
 import { IS_SELF_HOST } from '@/config/self-host';
+import { isLoggedOut } from './client';
 
 let baseUrlPromise: Promise<string> | null = null;
+
+/**
+ * Whether asset operations should route to the embedded local engine instead of
+ * the cloud API. True in two cases:
+ *   1. Self-host (open-source) builds — there is no cloud account at all.
+ *   2. Cloud builds where the user is browsing without logging in — their
+ *      uploads/assets live locally as file references on the local engine's
+ *      disk store rather than in cloud storage.
+ * The local daemon runs in both modes (it powers Workflows/Batch), so its asset
+ * endpoints are available regardless of `IS_SELF_HOST`.
+ */
+export async function shouldUseLocalEngine(): Promise<boolean> {
+  return IS_SELF_HOST || (await isLoggedOut());
+}
 
 /** Resolve (once) the embedded engine's base URL over IPC. */
 export function getIrisApiBaseUrl(): Promise<string> {

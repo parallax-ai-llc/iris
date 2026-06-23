@@ -5,6 +5,7 @@ import {
   FolderOpen,
   Home,
   LogOut,
+  LogIn,
   Film,
   LayoutTemplate,
   Layers,
@@ -46,7 +47,7 @@ const navItems: NavItem[] = [
 ].filter((item) => !(IS_SELF_HOST && item.selfHostHidden));
 
 export function Sidebar() {
-  const { currentPage, setCurrentPage } = useUIStore();
+  const { currentPage, setCurrentPage, openLogin } = useUIStore();
   const { user, logout } = useAuthStore();
   const isServerConnected = useConnectionStore((s) => s.isServerConnected);
   const { t } = useTranslation('common');
@@ -118,6 +119,20 @@ export function Sidebar() {
             <LogOut className="w-3.5 h-3.5" />
           </button>
         </div>
+      )}
+
+      {/* Not signed in (cloud mode): login is optional — offer a button.
+          Self-host has no cloud account, so nothing is shown there. */}
+      {!user && !IS_SELF_HOST && (
+        <button
+          type="button"
+          onClick={openLogin}
+          className="dt-rail-item"
+          title={t('buttons.login')}
+        >
+          <LogIn className="w-[18px] h-[18px] flex-shrink-0" />
+          <span>{t('buttons.login')}</span>
+        </button>
       )}
 
       <ConnectionStatus isExpanded={true} />

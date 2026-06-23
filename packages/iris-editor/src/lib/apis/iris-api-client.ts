@@ -155,6 +155,16 @@ export interface WebhookSettings {
   secret?: string | null;
   rateLimit?: number;
 }
+export interface FormInfo {
+  enabled: boolean;
+  hasToken: boolean;
+  formUrl: string | null;
+  rateLimit: number;
+}
+export interface FormTokenResponse {
+  token: string;
+  formUrl: string;
+}
 export interface ScheduleInfo {
   enabled: boolean;
   cron: string | null;
@@ -233,6 +243,8 @@ export interface IrisApiClient {
     workflowId: string,
     settings: WebhookSettings,
   ): Promise<boolean>;
+  getFormInfo?(workflowId: string): Promise<FormInfo | null>;
+  regenerateFormToken?(workflowId: string): Promise<FormTokenResponse | null>;
   getScheduleInfo?(workflowId: string): Promise<ScheduleInfo | null>;
   updateScheduleSettings?(
     workflowId: string,
@@ -288,6 +300,9 @@ export const irisApiClient: IrisApiClientProxy = {
     client().regenerateWebhookToken?.(id) ?? Promise.resolve(null),
   updateWebhookSettings: (id, s) =>
     client().updateWebhookSettings?.(id, s) ?? Promise.resolve(false),
+  getFormInfo: id => client().getFormInfo?.(id) ?? Promise.resolve(null),
+  regenerateFormToken: id =>
+    client().regenerateFormToken?.(id) ?? Promise.resolve(null),
   getScheduleInfo: id =>
     client().getScheduleInfo?.(id) ?? Promise.resolve(null),
   updateScheduleSettings: (id, s) =>

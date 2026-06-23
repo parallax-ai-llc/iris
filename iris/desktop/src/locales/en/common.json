@@ -21,6 +21,7 @@
     "generating": "Generating...",
     "processing": "Processing...",
     "logout": "Logout",
+    "login": "Sign in",
     "choose": "Choose Folder",
     "clear": "Clear",
     "checkUpdates": "Check for Updates",
@@ -132,6 +133,11 @@
     "library": "Library",
     "storage": "Storage",
     "settings": "Settings"
+  },
+  "auth": {
+    "loginRequiredTitle": "Sign in to continue",
+    "loginRequiredDesc": "This feature needs your Parallax account. You can keep using the local tools without signing in.",
+    "continueWithout": "Continue without signing in"
   },
   "titleBar": {
     "unsavedChanges": "Unsaved Changes",

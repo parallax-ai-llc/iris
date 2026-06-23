@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Eye, EyeOff, Loader2, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/shared/lib/utils';
 import { useAuthStore } from '@/features/auth/stores/auth.store';
 import { IrisLogo } from '@/shared/components/common/IrisLogo';
@@ -37,15 +38,27 @@ const AppleIcon = () => (
   </svg>
 );
 
-export function LoginPage() {
+interface LoginPageProps {
+  /** When provided, the page renders as a dismissable overlay with a close
+   *  button and auto-closes once the user is authenticated. */
+  onClose?: () => void;
+}
+
+export function LoginPage({ onClose }: LoginPageProps = {}) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<'google' | 'apple' | null>(null);
   const [oauthError, setOauthError] = useState<string | null>(null);
-  const { login, loginWithOAuth, isLoading, error } = useAuthStore();
+  const { login, loginWithOAuth, isLoading, error, isAuthenticated } = useAuthStore();
+  const { t } = useTranslation('common');
   const oauthTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const oauthCallbackReceivedRef = useRef(false);
+
+  // Dismiss the overlay automatically once login succeeds.
+  useEffect(() => {
+    if (isAuthenticated) onClose?.();
+  }, [isAuthenticated, onClose]);
 
   // Cancel ongoing OAuth loading state
   const cancelOAuthLoading = useCallback(() => {
@@ -146,8 +159,18 @@ export function LoginPage() {
   const displayError = oauthError || error;
 
   return (
-    <div className="h-screen flex flex-col bg-zinc-950">
+    <div className="fixed inset-0 z-50 flex flex-col bg-zinc-950">
       <TitleBar hideNav />
+      {onClose && (
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-12 right-4 z-10 p-2 rounded-full text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors no-drag"
+          title="Close"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      )}
       <div className="flex-1 flex items-center justify-center p-4 overflow-y-auto">
       <div className="w-full max-w-md">
         {/* Logo */}
@@ -335,6 +358,20 @@ export function LoginPage() {
             Sign up
           </a>
         </p>
+
+        {/* Proceed without an account — the app is fully usable for local tools. */}
+        {onClose && (
+          <div className="text-center mt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isLoading || oauthLoading !== null}
+              className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {t('auth.continueWithout')}
+            </button>
+          </div>
+        )}
       </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import i18n, { resolveInitialLanguage } from '@/shared/lib/i18n';
 import { AppLayout } from '@/app/layout/AppLayout';
@@ -17,6 +17,7 @@ import { LibraryPage } from '@/app/library/LibraryPage';
 import { StoragePage } from '@/app/storage/StoragePage';
 import { SettingsPage } from '@/app/settings/SettingsPage';
 import { LoginPage } from '@/app/auth/LoginPage';
+import { LoginRequired } from '@/app/auth/LoginRequired';
 import { ImageEditorPage } from '@/app/editor/ImageEditorPage';
 import { VideoEditorPage } from '@/app/editor/VideoEditorPage';
 import { ProjectsPage } from '@/app/projects/ProjectsPage';
@@ -30,7 +31,6 @@ import { useEditorTabsStore } from '@/features/image-editor/stores/editorTabs.st
 import { useImageEditorStore } from '@/features/image-editor/stores/imageEditor.store';
 import { useEditorStore } from '@/features/video-editor/stores/editor.store';
 import { useVideoProjectStore } from '@/features/video-editor/stores/videoProject.store';
-import { IrisLogo } from '@/shared/components/common/IrisLogo';
 import { IS_SELF_HOST } from '@/config/self-host';
 import './styles/globals.css';
 
@@ -44,7 +44,7 @@ const queryClient = new QueryClient({
 });
 
 function AppContent() {
-  const { isAuthenticated, isLoading, checkAuth } = useAuthStore();
+  const checkAuth = useAuthStore((state) => state.checkAuth);
   const { currentPage, editingWorkflowId, selectedBatchId, setSelectedBatchId, isCreatingBatch } = useUIStore();
   const isImageEditorOpen = useEditorTabsStore((state) => state.tabs.length > 0 && state.isEditorVisible);
   const isVideoEditorOpen = useEditorStore((state) => state.isEditorOpen);
@@ -68,6 +68,8 @@ function AppContent() {
 
   useEffect(() => {
     // Self-host (open-source) mode has no cloud account — skip auth entirely.
+    // In cloud mode we still restore any existing session in the background,
+    // but the app is usable without logging in (login is opt-in via a button).
     if (!IS_SELF_HOST) checkAuth();
   }, [checkAuth]);
 
@@ -83,25 +85,8 @@ function AppContent() {
     });
   }, []);
 
-  // Cloud mode only: show loading + login gate. Self-host has no login flow.
-  if (!IS_SELF_HOST) {
-    // Show loading state
-    if (isLoading) {
-      return (
-        <div className="h-screen flex items-center justify-center bg-zinc-900">
-          <div className="flex flex-col items-center gap-4">
-            <IrisLogo variant="white" size="xl" />
-            <p className="text-zinc-400 text-sm">Loading...</p>
-          </div>
-        </div>
-      );
-    }
-
-    // Show login if not authenticated
-    if (!isAuthenticated) {
-      return <LoginPage />;
-    }
-  }
+  // No login gate: the app is usable without an account. In cloud mode, login
+  // is opt-in via the "Sign in" button (renders <LoginOverlay /> on demand).
 
   // Show image editor if open (full-screen mode)
   if (isImageEditorOpen) {
@@ -171,15 +156,33 @@ function AppContent() {
       case 'extensions':
         return <ExtensionsPage />;
       case 'library':
-        // Library is a community (cloud) feature — unavailable when self-hosting.
-        return IS_SELF_HOST ? <WorkflowsPage /> : <LibraryPage />;
+        // Library is a community (cloud) feature — unavailable when self-hosting,
+        // and requires a signed-in account in cloud mode.
+        return IS_SELF_HOST ? (
+          <WorkflowsPage />
+        ) : (
+          <LoginGate>
+            <LibraryPage />
+          </LoginGate>
+        );
       case 'storage':
-        // Cloud GCS storage is unavailable when self-hosting.
-        return IS_SELF_HOST ? <WorkflowsPage /> : <StoragePage />;
+        // Cloud GCS storage is unavailable when self-hosting; needs login otherwise.
+        return IS_SELF_HOST ? (
+          <WorkflowsPage />
+        ) : (
+          <LoginGate>
+            <StoragePage />
+          </LoginGate>
+        );
       case 'settings':
         return <SettingsPage />;
       case 'profile':
-        return <ProfilePage />;
+        // Profile is the cloud account page — gate it behind login.
+        return (
+          <LoginGate>
+            <ProfilePage />
+          </LoginGate>
+        );
       default:
         return <HomePage />;
     }
@@ -188,11 +191,36 @@ function AppContent() {
   return <AppLayout>{renderPage()}</AppLayout>;
 }
 
+/**
+ * Gates a cloud-only page behind login. In cloud mode, an unauthenticated user
+ * sees a login prompt (which opens the overlay) instead of the page content.
+ * Self-host has no accounts, so it always renders the children.
+ */
+function LoginGate({ children }: { children: ReactNode }) {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  if (IS_SELF_HOST || isAuthenticated) return <>{children}</>;
+  return <LoginRequired />;
+}
+
+/**
+ * Opt-in login overlay (cloud mode only). The app runs without an account; the
+ * "Sign in" button in the sidebar opens this on demand. Rendered at the app root
+ * so it sits above every page, including the full-screen editors.
+ */
+function LoginOverlay() {
+  const isLoginOpen = useUIStore((state) => state.isLoginOpen);
+  const closeLogin = useUIStore((state) => state.closeLogin);
+
+  if (IS_SELF_HOST || !isLoginOpen) return null;
+  return <LoginPage onClose={closeLogin} />;
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <AppContent />
+        <LoginOverlay />
         <ToastContainer />
       </QueryClientProvider>
     </ErrorBoundary>

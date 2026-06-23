@@ -16,6 +16,9 @@ interface UIState {
   sidebarState: SidebarState;
   currentPage: string;
   isSettingsOpen: boolean;
+  /** Login overlay (cloud mode only). The app is usable without login; this is
+   *  opened on demand from the "Sign in" button. */
+  isLoginOpen: boolean;
   notifications: Notification[];
   /** Workflow currently open in the (local) iris-editor; null = list view. */
   editingWorkflowId: string | null;
@@ -30,6 +33,8 @@ interface UIActions {
   setCurrentPage: (page: string) => void;
   openSettings: () => void;
   closeSettings: () => void;
+  openLogin: () => void;
+  closeLogin: () => void;
   addNotification: (notification: Omit<Notification, 'id'>) => void;
   removeNotification: (id: string) => void;
   clearNotifications: () => void;
@@ -45,6 +50,7 @@ export const useUIStore = create<UIState & UIActions>((set, get) => ({
   // Self-host (open-source) opens on the local Workflows page; cloud opens Home.
   currentPage: IS_SELF_HOST ? 'workflows' : 'home',
   isSettingsOpen: false,
+  isLoginOpen: false,
   notifications: [],
   editingWorkflowId: null,
   selectedBatchId: null,
@@ -73,6 +79,9 @@ export const useUIStore = create<UIState & UIActions>((set, get) => ({
 
   openSettings: () => set({ isSettingsOpen: true }),
   closeSettings: () => set({ isSettingsOpen: false }),
+
+  openLogin: () => set({ isLoginOpen: true }),
+  closeLogin: () => set({ isLoginOpen: false }),
 
   addNotification: (notification) => {
     const id = crypto.randomUUID();

@@ -15,7 +15,8 @@ import {
   getImage,
 } from '../image.api';
 
-// Mock the apiClient
+// Mock the apiClient. `isLoggedOut` resolves false so asset ops take the cloud
+// path (shouldUseLocalEngine → false) that these tests assert against.
 vi.mock('../client', () => ({
   apiClient: {
     get: vi.fn(),
@@ -24,6 +25,7 @@ vi.mock('../client', () => ({
     delete: vi.fn(),
     uploadFile: vi.fn(),
   },
+  isLoggedOut: vi.fn().mockResolvedValue(false),
 }));
 
 // Mock asset data

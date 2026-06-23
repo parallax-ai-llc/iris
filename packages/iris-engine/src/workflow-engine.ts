@@ -814,6 +814,8 @@ export class WorkflowEngine extends EventEmitter {
         return 'DIRECTORY_WATCH';
       case 'api':
         return 'API';
+      case 'form':
+        return 'FORM';
       default:
         return 'MANUAL';
     }

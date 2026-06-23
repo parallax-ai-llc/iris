@@ -13,7 +13,7 @@ import {
 } from './types';
 import { useImageStore } from '@/features/images/stores/image.store';
 import { IS_SELF_HOST } from '@/config/self-host';
-import { irisLocalFetch, importLocalAsset } from './iris-local';
+import { irisLocalFetch, importLocalAsset, shouldUseLocalEngine } from './iris-local';
 
 // Re-export cache and asset functions for convenience
 export { invalidateAssetCache, clearAssetCache, replaceAssetFile } from './asset.api';
@@ -38,8 +38,8 @@ const buildQueryString = (params?: Record<string, unknown>): string => {
 export async function getImages(params?: AssetQueryParams): Promise<AssetListResponse | null> {
   const queryParams = { ...params, type: 'IMAGE' as const };
   const queryString = buildQueryString(queryParams as Record<string, unknown>);
-  // Self-host: assets live on the local engine's disk store, not the cloud.
-  if (IS_SELF_HOST) {
+  // Self-host or logged-out: assets live on the local engine's disk store.
+  if (await shouldUseLocalEngine()) {
     try {
       return await irisLocalFetch<AssetListResponse>(`/api/iris/assets${queryString}`);
     } catch {
@@ -57,7 +57,7 @@ export async function getImages(params?: AssetQueryParams): Promise<AssetListRes
  * Get single image by ID
  */
 export async function getImage(id: string): Promise<IrisAsset | null> {
-  if (IS_SELF_HOST) {
+  if (await shouldUseLocalEngine()) {
     try {
       return await irisLocalFetch<IrisAsset>(`/api/iris/assets/${id}`);
     } catch {
@@ -133,8 +133,9 @@ export async function uploadImage(
     name?: string;
   }
 ): Promise<IrisAsset | null> {
-  // Self-host: import the file into the local engine's disk asset store.
-  if (IS_SELF_HOST) {
+  // Self-host or logged-out: import the file into the local engine's disk asset
+  // store (a local file reference) instead of uploading to cloud storage.
+  if (await shouldUseLocalEngine()) {
     return importLocalAsset(file, 'IMAGE');
   }
 
@@ -400,7 +401,7 @@ export async function autoEnhanceImage(id: string): Promise<IrisAsset | null> {
  */
 export async function getAssetStatus(id: string): Promise<IAssetStatusResponse | null> {
   let asset: IrisAsset | null;
-  if (IS_SELF_HOST) {
+  if (await shouldUseLocalEngine()) {
     try {
       asset = await irisLocalFetch<IrisAsset>(`/api/iris/assets/${id}`);
     } catch {
