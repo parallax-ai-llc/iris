@@ -385,9 +385,11 @@ ipcMain.handle('app:getLocalMediaPort', () => localMediaPort);
 
 ipcMain.handle('auth:openOAuth', (_event, provider: 'google' | 'apple') => {
   const isDev = (process.env.NODE_ENV === 'development' || !app.isPackaged) && process.env.USE_BUILT !== 'true';
+  // Canonical API domain in prod (matches the renderer's VITE_API_URL and the
+  // OAuth redirect_uri registered in the Google/Apple console).
   const baseUrl = isDev
     ? 'http://localhost:4000'
-    : 'https://parallax-server-51831093911.us-east1.run.app';
+    : 'https://api.parallax.kr';
   shell.openExternal(`${baseUrl}/auth/desktop/${provider}`);
 });
 
