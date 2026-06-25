@@ -17,10 +17,13 @@ import {
   XCircle,
   ChevronLeft,
   AlertTriangle,
+  CheckSquare,
+  Square,
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { formatTime } from '@/shared/lib/utils/time';
 import { useEditorStore, type VideoClip } from '@/features/video-editor/stores/editor.store';
+import { buildExportRequest } from '@/features/video-editor/lib/buildExportRequest';
 import { useVideoProjectStore } from '@/features/video-editor/stores/videoProject.store';
 import { toLocalMediaUrl } from './localMediaUrl';
 import { useTranslation } from 'react-i18next';
@@ -64,6 +67,9 @@ export const SilenceRemovalModal = memo(function SilenceRemovalModal({
   const [isDetecting, setIsDetecting] = useState(false);
   const [detectError, setDetectError] = useState<string | null>(null);
   const [silentSegments, setSilentSegments] = useState<SilentSegment[]>([]);
+  // Which detected silent segments the user has chosen to remove (by index).
+  // Unselected segments are kept in the output.
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const [totalDuration, setTotalDuration] = useState(0);
 
   // Processing state
@@ -85,7 +91,6 @@ export const SilenceRemovalModal = memo(function SilenceRemovalModal({
   // Determine timeline state
   const tracks = useEditorStore((s) => s.tracks);
   const setClientProcessing = useEditorStore((s) => s.setClientProcessing);
-  const downloadAsset = useEditorStore((s) => s.downloadAsset);
 
   const videoClips = useMemo(() => {
     return tracks
@@ -119,11 +124,18 @@ export const SilenceRemovalModal = memo(function SilenceRemovalModal({
     return '';
   }, [isMultiClip, hasAdditionalTracks, t]);
 
-  // Calculate non-silent segments from silent segments
-  const nonSilentSegments = useMemo(() => {
-    if (silentSegments.length === 0 || totalDuration === 0) return [];
+  // Only the silent segments the user chose to remove are cut out; the rest
+  // are kept as part of the output (treated as non-silent).
+  const selectedSilentSegments = useMemo(
+    () => silentSegments.filter((_, i) => selectedIndices.has(i)),
+    [silentSegments, selectedIndices]
+  );
 
-    const sorted = [...silentSegments].sort((a, b) => a.start - b.start);
+  // Calculate non-silent (kept) segments from the SELECTED silent segments
+  const nonSilentSegments = useMemo(() => {
+    if (selectedSilentSegments.length === 0 || totalDuration === 0) return [];
+
+    const sorted = [...selectedSilentSegments].sort((a, b) => a.start - b.start);
     const segments: Array<{ start: number; end: number }> = [];
 
     let cursor = 0;
@@ -142,17 +154,37 @@ export const SilenceRemovalModal = memo(function SilenceRemovalModal({
     }
 
     return segments;
-  }, [silentSegments, totalDuration, padding]);
+  }, [selectedSilentSegments, totalDuration, padding]);
 
+  // Silence actually being removed = sum of the selected segments' durations.
   const totalSilenceDuration = useMemo(
-    () => silentSegments.reduce((sum, seg) => sum + seg.duration, 0),
-    [silentSegments]
+    () => selectedSilentSegments.reduce((sum, seg) => sum + seg.duration, 0),
+    [selectedSilentSegments]
   );
 
   const estimatedOutputDuration = useMemo(
     () => nonSilentSegments.reduce((sum, seg) => sum + (seg.end - seg.start), 0),
     [nonSilentSegments]
   );
+
+  const toggleSegment = useCallback((idx: number) => {
+    setSelectedIndices((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  }, []);
+
+  const allSelected = silentSegments.length > 0 && selectedIndices.size === silentSegments.length;
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIndices((prev) =>
+      prev.size === silentSegments.length
+        ? new Set()
+        : new Set(silentSegments.map((_, i) => i))
+    );
+  }, [silentSegments]);
 
   // Processing flag for window close protection
   const isProcessing = isDetecting || isRemoving || isMerging || isAnalyzing;
@@ -198,7 +230,7 @@ export const SilenceRemovalModal = memo(function SilenceRemovalModal({
   useEffect(() => {
     return () => {
       window.electronAPI?.silenceRemoval?.removeProgressListener();
-      window.electronAPI?.prerender?.removeProgressListener();
+      window.electronAPI?.videoExport?.removeProgressListener();
     };
   }, []);
 
@@ -221,10 +253,16 @@ export const SilenceRemovalModal = memo(function SilenceRemovalModal({
 
   // ==================== Merge Logic ====================
 
-  const handleMerge = useCallback(async () => {
-    if (!window.electronAPI?.prerender) {
+  /**
+   * Flatten the whole timeline to a single video by routing it through the
+   * SAME export renderer used by the Export modal — so the merged video honors
+   * identical text/audio/image/effect rules. We then run silence detection on
+   * that file. (Previously this used a separate, divergent FFmpeg merge.)
+   */
+  const handleMerge = useCallback(async (): Promise<string | null> => {
+    if (!window.electronAPI?.videoExport) {
       setDetectError(t('silenceRemovalModal.errors.desktopRequiredMerge'));
-      return false;
+      return null;
     }
 
     setIsMerging(true);
@@ -235,39 +273,33 @@ export const SilenceRemovalModal = memo(function SilenceRemovalModal({
       const width = project?.width || 1920;
       const height = project?.height || 1080;
       const frameRate = project?.frameRate || 30;
+      const { tracks: editorTracks, duration } = useEditorStore.getState();
+      const authToken = (await window.electronAPI.auth?.getToken?.()) ?? null;
 
-      // Resolve local file paths for each clip (downloads if needed)
-      const clipsWithUrls = await Promise.all(
-        videoClips.map(async (clip) => {
-          const localPath = await downloadAsset(clip.assetId);
-          if (!localPath) {
-            throw new Error(`Failed to download asset: ${clip.assetId}`);
-          }
-          return {
-            sourceUrl: localPath,
-            startTime: clip.startTime,
-            endTime: clip.endTime,
-            sourceStartTime: clip.sourceStartTime,
-            sourceEndTime: clip.sourceEndTime,
-            volume: clip.volume,
-            speed: clip.speed,
-          };
-        })
-      );
-
-      // Set up progress listener
-      window.electronAPI.prerender.onProgress((data) => {
-        setMergeProgress(data.progress);
-      });
-
-      const result = await window.electronAPI.prerender.mergeClips({
-        clips: clipsWithUrls,
+      const request = await buildExportRequest({
+        tracks: editorTracks,
+        duration,
         width,
         height,
         frameRate,
+        format: 'mp4',
+        quality: 'high',
+        codec: 'h264',
+        includeSubtitles: true,
+        subtitleFormat: 'burned',
+        outputPath: '', // main process renders to a temp file
+        authToken,
+        range: null,
       });
 
-      window.electronAPI.prerender.removeProgressListener();
+      // Set up progress listener (export shares the same progress shape)
+      window.electronAPI.videoExport.onProgress((data) => {
+        setMergeProgress(data.progress);
+      });
+
+      const result = await window.electronAPI.videoExport.start(request);
+
+      window.electronAPI.videoExport.removeProgressListener();
 
       if (!result.success || !result.outputPath) {
         setDetectError(
@@ -275,104 +307,25 @@ export const SilenceRemovalModal = memo(function SilenceRemovalModal({
             message: result.error || t('silenceRemovalModal.errors.mergeFailedUnknown'),
           })
         );
-        return false;
+        return null;
       }
 
       setMergedFilePath(result.outputPath);
       setInputFilePath(result.outputPath);
-      return true;
+      return result.outputPath;
     } catch (error) {
       console.error('Merge error:', error);
       setDetectError(t('silenceRemovalModal.errors.mergeFailed'));
-      return false;
+      return null;
     } finally {
       setIsMerging(false);
     }
-  }, [videoClips, t, downloadAsset]);
+  }, [t]);
 
   // ==================== Detect Logic ====================
 
-  const handleDetect = useCallback(async () => {
-    // If merge is needed, show confirmation first
-    if (needsMerge && !inputFilePath) {
-      setStep('merge-confirm');
-      return;
-    }
-
-    // Resolve input path for single-clip case
-    let filePath = inputFilePath;
-    if (!filePath && videoClips.length === 1) {
-      const clip = videoClips[0];
-      filePath = await downloadAsset(clip.assetId);
-      if (!filePath) {
-        setDetectError(t('silenceRemovalModal.errors.couldNotResolve'));
-        return;
-      }
-      setInputFilePath(filePath);
-    }
-
-    if (!filePath) {
-      setDetectError(t('silenceRemovalModal.errors.noInputFile'));
-      return;
-    }
-
-    if (!window.electronAPI?.silenceRemoval) {
-      setDetectError(t('silenceRemovalModal.errors.desktopRequired'));
-      return;
-    }
-
-    setIsDetecting(true);
-    setDetectError(null);
-
-    try {
-      // Set up progress listener
-      window.electronAPI.silenceRemoval.onProgress((_data) => {
-        // Progress tracked via detection result
-      });
-
-      const threshold = (await resolveThreshold(filePath)) ?? noiseThresholdDb;
-
-      const result = await window.electronAPI.silenceRemoval.detect({
-        inputPath: filePath,
-        noiseThresholdDb: threshold,
-        minSilenceDuration,
-      });
-
-      window.electronAPI.silenceRemoval.removeProgressListener();
-
-      if (!result.success) {
-        setDetectError(result.error || t('silenceRemovalModal.errors.detectFailed'));
-        return;
-      }
-
-      if (result.segments.length === 0) {
-        setDetectError(t('silenceRemovalModal.errors.noSegments'));
-        return;
-      }
-
-      setSilentSegments(result.segments);
-      setTotalDuration(result.totalDuration);
-      setStep('review');
-    } catch (error) {
-      console.error('Silence detection error:', error);
-      setDetectError(t('silenceRemovalModal.errors.analyzeFailed'));
-    } finally {
-      setIsDetecting(false);
-    }
-  }, [needsMerge, inputFilePath, videoClips, noiseThresholdDb, minSilenceDuration, resolveThreshold, t, downloadAsset]);
-
-  // Handle merge confirmation → proceed with detection
-  const handleConfirmMerge = useCallback(async () => {
-    const success = await handleMerge();
-    if (success) {
-      // After merge, go back to configure and auto-trigger detect
-      setStep('configure');
-      // inputFilePath is now set via handleMerge → we need to trigger detect
-      // Since state updates are async, we'll use a flag
-    }
-  }, [handleMerge]);
-
-  const handleDetectWithPath = useCallback(async (filePath: string) => {
+  // Run silence detection on an already-resolved (flattened) input file.
+  const runDetect = useCallback(async (filePath: string) => {
     if (!window.electronAPI?.silenceRemoval) {
       setDetectError(t('silenceRemovalModal.errors.desktopRequired'));
       return;
@@ -407,6 +360,8 @@ export const SilenceRemovalModal = memo(function SilenceRemovalModal({
       }
 
       setSilentSegments(result.segments);
+      // Select every detected segment for removal by default.
+      setSelectedIndices(new Set(result.segments.map((_, i) => i)));
       setTotalDuration(result.totalDuration);
       setStep('review');
     } catch (error) {
@@ -417,13 +372,33 @@ export const SilenceRemovalModal = memo(function SilenceRemovalModal({
     }
   }, [noiseThresholdDb, minSilenceDuration, resolveThreshold, t]);
 
-  // Auto-detect after merge completes
-  useEffect(() => {
-    if (inputFilePath && step === 'configure' && !isDetecting && silentSegments.length === 0) {
-      // Merged file is ready, trigger detection
-      handleDetectWithPath(inputFilePath);
+  const handleDetect = useCallback(async () => {
+    // Multi-clip / extra-track projects need an explicit (visible) merge confirm.
+    if (needsMerge && !inputFilePath) {
+      setStep('merge-confirm');
+      return;
     }
-  }, [inputFilePath, step, isDetecting, silentSegments.length, handleDetectWithPath]);
+
+    // Always analyze the flattened timeline, not the raw source media. Even a
+    // single clip is flattened so its in/out trim and speed are respected
+    // (otherwise detection runs against the full original source length).
+    let filePath = inputFilePath;
+    if (!filePath) {
+      filePath = await handleMerge();
+      if (!filePath) return; // error already surfaced by handleMerge
+    }
+
+    await runDetect(filePath);
+  }, [needsMerge, inputFilePath, handleMerge, runDetect]);
+
+  // Handle merge confirmation → proceed with detection on the merged file
+  const handleConfirmMerge = useCallback(async () => {
+    const filePath = await handleMerge();
+    if (filePath) {
+      setStep('configure');
+      await runDetect(filePath);
+    }
+  }, [handleMerge, runDetect]);
 
   // ==================== Remove Logic ====================
 
@@ -490,10 +465,11 @@ export const SilenceRemovalModal = memo(function SilenceRemovalModal({
   const handleCancel = useCallback(() => {
     window.electronAPI?.silenceRemoval?.cancel();
     window.electronAPI?.silenceRemoval?.removeProgressListener();
-    window.electronAPI?.prerender?.cancel();
-    window.electronAPI?.prerender?.removeProgressListener();
+    // The flatten step runs through the export renderer.
+    window.electronAPI?.videoExport?.cancel();
+    window.electronAPI?.videoExport?.removeProgressListener();
 
-    // Clean up merged file if any
+    // Clean up the flattened temp file if any (prerender.cleanup is a generic unlink).
     if (mergedFilePath) {
       window.electronAPI?.prerender?.cleanup(mergedFilePath).catch(() => {});
     }
@@ -762,8 +738,20 @@ export const SilenceRemovalModal = memo(function SilenceRemovalModal({
               {/* Review Step */}
               <div className="flex items-center justify-between">
                 <p className="text-sm text-zinc-400">
-                  {t('silenceRemovalModal.detectedCount', { count: silentSegments.length })}
+                  {t('silenceRemovalModal.selectedCount', {
+                    selected: selectedIndices.size,
+                    total: silentSegments.length,
+                  })}
                 </p>
+                <button
+                  onClick={toggleSelectAll}
+                  disabled={isRemoving}
+                  className="text-xs text-zinc-400 hover:text-white transition-colors disabled:opacity-50"
+                >
+                  {allSelected
+                    ? t('silenceRemovalModal.deselectAll')
+                    : t('silenceRemovalModal.selectAll')}
+                </button>
               </div>
 
               {/* Summary Stats */}
@@ -784,22 +772,38 @@ export const SilenceRemovalModal = memo(function SilenceRemovalModal({
 
               {/* Segment List */}
               <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                {silentSegments.map((seg, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between px-3 py-2 rounded-lg bg-zinc-800/50 border border-zinc-700/50"
-                  >
-                    <div className="flex items-center gap-2">
-                      <VolumeX className="w-3.5 h-3.5 text-zinc-500" />
-                      <span className="text-xs text-zinc-300">
-                        {formatTimePadded(seg.start)} — {formatTimePadded(seg.end)}
+                {silentSegments.map((seg, idx) => {
+                  const isSelected = selectedIndices.has(idx);
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => toggleSegment(idx)}
+                      disabled={isRemoving}
+                      className={cn(
+                        'w-full flex items-center justify-between px-3 py-2 rounded-lg border transition-colors text-left disabled:cursor-not-allowed',
+                        isSelected
+                          ? 'bg-zinc-800/50 border-zinc-700/50 hover:border-zinc-600'
+                          : 'bg-transparent border-zinc-800/50 opacity-50 hover:opacity-80'
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        {isSelected ? (
+                          <CheckSquare className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        ) : (
+                          <Square className="w-3.5 h-3.5 text-zinc-600 shrink-0" />
+                        )}
+                        <VolumeX className="w-3.5 h-3.5 text-zinc-500" />
+                        <span className="text-xs text-zinc-300">
+                          {formatTimePadded(seg.start)} — {formatTimePadded(seg.end)}
+                        </span>
+                      </div>
+                      <span className="text-xs text-zinc-500">
+                        {seg.duration.toFixed(1)}s
                       </span>
-                    </div>
-                    <span className="text-xs text-zinc-500">
-                      {seg.duration.toFixed(1)}s
-                    </span>
-                  </div>
-                ))}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Processing Progress */}

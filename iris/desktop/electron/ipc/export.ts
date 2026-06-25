@@ -2569,6 +2569,12 @@ export function setupExportHandlers() {
 
     const tempFiles: string[] = [];
     try {
+      // Allow callers (e.g. Silence Removal flattening the timeline) to omit a
+      // destination — render to a temp file and return its path.
+      if (!request.outputPath) {
+        request.outputPath = path.join(app.getPath('temp'), `iris-flatten-${Date.now()}.mp4`);
+      }
+
       // Ensure output directory exists
       const outputDir = path.dirname(request.outputPath);
       await fs.mkdir(outputDir, { recursive: true });

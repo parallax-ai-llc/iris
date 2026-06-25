@@ -84,6 +84,51 @@ async function resolveClipSources<T extends { sourceUrl: string }>(clips: T[]): 
 
 const findFFmpegPath = findFFmpegPathSync;
 
+// Check if a local file has an audio stream using ffmpeg -i (parses stderr).
+// Mirrors the export pipeline's probe so the concat never references a
+// non-existent [idx:a] pad (which fails with "matches no streams").
+function checkSourceHasAudio(ffmpegPath: string, filePath: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const proc = spawn(ffmpegPath, ['-i', filePath], { stdio: 'pipe' });
+    let stderr = '';
+    proc.stderr?.on('data', (d: Buffer) => { stderr += d.toString(); });
+    proc.on('close', () => resolve(stderr.includes('Audio:')));
+    proc.on('error', () => resolve(false));
+  });
+}
+
+// Normalize an audio chain so every concat/amix input shares the same
+// sample rate / layout / format (otherwise FFmpeg rejects mismatched inputs).
+const AUDIO_NORMALIZE = 'aresample=44100,aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo';
+
+/**
+ * The amount of source media a clip actually contributes.
+ *
+ * The clip's playable length on the timeline is `endTime - startTime`; that is
+ * the authoritative duration. The source out-point (`sourceEndTime`) can be
+ * larger than the timeline range (e.g. split/trimmed clips whose source window
+ * was never tightened) — using it directly would stretch the output to several
+ * times the real length. So we read exactly `timelineDuration * speed` seconds
+ * of source, never past the source out-point.
+ */
+function resolveClipWindow(clip: {
+  startTime: number;
+  endTime: number;
+  sourceStartTime: number;
+  sourceEndTime: number;
+  speed?: number;
+}): { speed: number; srcStart: number; srcEnd: number; outDuration: number } {
+  const speed = clip.speed && clip.speed > 0 ? clip.speed : 1;
+  const srcStart = clip.sourceStartTime;
+  const maxSrcDur = Math.max(0, clip.sourceEndTime - srcStart);
+  const timelineDur = Math.max(0, clip.endTime - clip.startTime);
+  // Prefer the timeline-derived length; fall back to the full source range when
+  // the timeline duration is missing/degenerate.
+  const wantSrcDur = timelineDur > 0 ? timelineDur * speed : maxSrcDur;
+  const srcDur = Math.min(maxSrcDur, wantSrcDur);
+  return { speed, srcStart, srcEnd: srcStart + srcDur, outDuration: srcDur / speed };
+}
+
 // ==================== Types ====================
 
 interface PrerenderClip {
@@ -208,13 +253,12 @@ async function renderSingleClip(
   outputPath: string,
 ): Promise<{ success: boolean; outputPath?: string; error?: string }> {
   const ffmpegPath = findFFmpegPath();
-  const speed = clip.speed || 1;
-  const clipDuration = (clip.sourceEndTime - clip.sourceStartTime) / speed;
+  const { speed, srcStart, srcEnd, outDuration: clipDuration } = resolveClipWindow(clip);
 
   const args: string[] = [
     '-y',
-    '-ss', String(clip.sourceStartTime),
-    '-t', String(clip.sourceEndTime - clip.sourceStartTime),
+    '-ss', String(srcStart),
+    '-t', String(srcEnd - srcStart),
     '-i', clip.sourceUrl,
   ];
 
@@ -268,6 +312,14 @@ async function renderMultiClipConcat(
 ): Promise<{ success: boolean; outputPath?: string; error?: string }> {
   const ffmpegPath = findFFmpegPath();
 
+  // Probe each source for an audio stream. Clips without audio (AI-generated
+  // video, extracted-and-deleted audio, images) get a synthesized silent track
+  // so every concat audio pad exists and shares the same format — otherwise
+  // FFmpeg fails with "matches no streams" or "do not match".
+  const hasAudioFlags = await Promise.all(
+    clips.map((c) => checkSourceHasAudio(ffmpegPath, c.sourceUrl))
+  );
+
   const args: string[] = ['-y'];
 
   // Add each clip as an input
@@ -282,13 +334,12 @@ async function renderMultiClipConcat(
   let totalDuration = 0;
 
   clips.forEach((clip, idx) => {
-    const speed = clip.speed || 1;
-    const clipDuration = (clip.sourceEndTime - clip.sourceStartTime) / speed;
+    const { speed, srcStart, srcEnd, outDuration: clipDuration } = resolveClipWindow(clip);
     totalDuration += clipDuration;
 
     // Video chain
     const vFilters: string[] = [];
-    vFilters.push(`trim=start=${clip.sourceStartTime}:end=${clip.sourceEndTime}`);
+    vFilters.push(`trim=start=${srcStart}:end=${srcEnd}`);
     vFilters.push('setpts=PTS-STARTPTS');
     if (speed !== 1) {
       vFilters.push(`setpts=${1 / speed}*PTS`);
@@ -302,18 +353,25 @@ async function renderMultiClipConcat(
     vLabels.push(`[${vLabel}]`);
 
     // Audio chain
-    const aFilters: string[] = [];
-    aFilters.push(`atrim=start=${clip.sourceStartTime}:end=${clip.sourceEndTime}`);
-    aFilters.push('asetpts=PTS-STARTPTS');
-    if (speed !== 1) {
-      aFilters.push(`atempo=${speed}`);
-    }
-    if (clip.volume !== undefined && clip.volume !== 1) {
-      aFilters.push(`volume=${clip.volume}`);
-    }
-
     const aLabel = `a${idx}`;
-    filterParts.push(`[${idx}:a]${aFilters.join(',')}[${aLabel}]`);
+    if (hasAudioFlags[idx]) {
+      const aFilters: string[] = [];
+      aFilters.push(`atrim=start=${srcStart}:end=${srcEnd}`);
+      aFilters.push('asetpts=PTS-STARTPTS');
+      if (speed !== 1) {
+        aFilters.push(`atempo=${speed}`);
+      }
+      if (clip.volume !== undefined && clip.volume !== 1) {
+        aFilters.push(`volume=${clip.volume}`);
+      }
+      aFilters.push(AUDIO_NORMALIZE);
+      filterParts.push(`[${idx}:a]${aFilters.join(',')}[${aLabel}]`);
+    } else {
+      // No audio stream: synthesize silence for this clip's duration.
+      filterParts.push(
+        `anullsrc=channel_layout=stereo:sample_rate=44100,atrim=end=${clipDuration},asetpts=PTS-STARTPTS,${AUDIO_NORMALIZE}[${aLabel}]`
+      );
+    }
     aLabels.push(`[${aLabel}]`);
   });
 

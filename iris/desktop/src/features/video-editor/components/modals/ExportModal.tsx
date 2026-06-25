@@ -24,8 +24,7 @@ import {
 import { cn } from '@/shared/lib/utils';
 import { useEditorStore } from '@/features/video-editor/stores/editor.store';
 import { useVideoProjectStore } from '@/features/video-editor/stores/videoProject.store';
-import { renderSubtitleClipToPng } from '@/features/video-editor/lib/renderSubtitlePng';
-import type { SubtitleClip } from '@/types/editor.types';
+import { buildExportRequest } from '@/features/video-editor/lib/buildExportRequest';
 
 export interface ExportOptions {
   format: 'mp4' | 'webm' | 'mov' | 'gif';
@@ -432,219 +431,30 @@ export const ExportModal = memo(function ExportModal({
       // Get auth token for authenticated downloads in main process
       const authToken = await window.electronAPI.auth.getToken();
 
-      // Collect all unique assetIds and map to authenticated download URLs
-      const allAssetIds = new Set<string>();
-      for (const track of tracks) {
-        for (const clip of track.clips) {
-          const assetId = (clip as { assetId?: string }).assetId;
-          if (assetId) allAssetIds.add(assetId);
-        }
-      }
-      const urlMap = new Map<string, string>();
-      for (const id of allAssetIds) {
-        if (id.startsWith('file://')) {
-          // file:// URL → local path
-          urlMap.set(id, decodeURIComponent(id.replace(/^file:\/\/\//, '')));
-        } else if (id.includes('/') || id.includes('\\')) {
-          // Already a local file path (e.g. separated audio)
-          urlMap.set(id, id);
-        } else {
-          // DB ID — export MUST always use the original master, never a
-          // low-res proxy. If the user has been editing in proxy mode the
-          // original may not be downloaded yet — in that case force a
-          // download here. Do NOT fall back to proxyPath.
-          let localPath = useEditorStore.getState().assetPaths.get(id) ?? null;
-          if (!localPath) {
-            const downloaded = await useEditorStore.getState().downloadAsset(id);
-            if (!downloaded) {
-              throw new Error(`Failed to download asset: ${id}`);
-            }
-            localPath = downloaded;
-          }
-          urlMap.set(id, localPath);
-        }
-      }
-
       setProgress({ status: 'preparing', progress: 5, message: 'Preparing...' });
 
-      // Range trim setup — when "Export marked range only" is enabled, trim
-      // clips to [inPoint, outPoint] and offset all timeline times by -inPoint.
+      // Build the export request through the shared builder so the render rules
+      // (asset resolution, track/clip conversion, subtitle rasterization, range
+      // trim) stay identical to every other consumer (e.g. Silence Removal).
       const rangeActive = useMarkedRange && hasMarkedRange;
-      const rangeStart = rangeActive ? (inPoint as number) : 0;
-      const rangeEnd = rangeActive ? (outPoint as number) : duration;
-      const exportDuration = rangeActive ? (rangeEnd - rangeStart) : duration;
-
-      // Build export request from editor state
-      const exportTracks = tracks.filter((track) => track.visible !== false).map((track) => ({
-        id: track.id,
-        type: track.type,
-        muted: track.muted,
-        volume: track.volume,
-        clips: track.clips
-          .filter((clip) => !rangeActive || (clip.endTime > rangeStart && clip.startTime < rangeEnd))
-          .map((clip) => {
-          // Compute trimmed timeline range relative to the export
-          const trimmedStart = Math.max(clip.startTime, rangeStart);
-          const trimmedEnd = Math.min(clip.endTime, rangeEnd);
-          const startTime = trimmedStart - rangeStart;
-          const endTime = trimmedEnd - rangeStart;
-
-          // Adjust source range by how much was trimmed off each side, scaled by speed
-          const speed = (clip as { speed?: number }).speed ?? 1;
-          const leftTrim = Math.max(0, rangeStart - clip.startTime);
-          const rightTrim = Math.max(0, clip.endTime - rangeEnd);
-          const sourceStartTime = clip.sourceStartTime + leftTrim * speed;
-          const sourceEndTime = clip.sourceEndTime - rightTrim * speed;
-
-          const base = {
-            id: clip.id,
-            type: clip.type,
-            startTime,
-            endTime,
-            sourceStartTime,
-            sourceEndTime,
-            sourceUrl: '',
-          };
-
-          if (clip.type === 'video') {
-            const vc = clip as import('@/features/video-editor/stores/editor.store').VideoClip;
-            return {
-              ...base,
-              sourceUrl: urlMap.get(vc.assetId) ?? vc.assetId,
-              mediaType: vc.mediaType,
-              // Natural pixel dimensions — required by the overlay compositor so image
-              // clips render at their source size rather than fitting the frame.
-              sourceWidth: vc.sourceWidth,
-              sourceHeight: vc.sourceHeight,
-              // Blend mode passed through for future compositor support.
-              blendMode: vc.blendMode,
-              // trackId lets the compositor determine which track each clip belongs to.
-              trackId: track.id,
-              volume: vc.volume,
-              // Audio extracted to a paired audio clip (now possibly deleted) →
-              // suppress the video's embedded audio in the render too.
-              muted: vc.muted || vc.audioExtracted === true,
-              speed: vc.speed,
-              transform: vc.transform,
-              effects: vc.effects.map((e) => ({
-                type: e.type,
-                enabled: e.enabled,
-                filterType: e.filterType,
-                filterIntensity: e.filterIntensity,
-                filterParams: e.filterParams,
-                transitionType: e.transitionType,
-                transitionPosition: e.transitionPosition,
-                transitionDuration: e.transitionDuration,
-                audioEffectType: e.audioEffectType,
-                audioParams: e.audioParams,
-              })),
-            };
-          }
-
-          if (clip.type === 'audio') {
-            const ac = clip as import('@/features/video-editor/stores/editor.store').AudioClip;
-            return {
-              ...base,
-              sourceUrl: urlMap.get(ac.assetId) ?? ac.assetId,
-              volume: ac.volume,
-              muted: ac.muted,
-              fadeIn: ac.fadeIn,
-              fadeOut: ac.fadeOut,
-              pan: ac.pan,
-              gain: ac.gain,
-            };
-          }
-
-          if (clip.type === 'subtitle') {
-            const sc = clip as import('@/features/video-editor/stores/editor.store').SubtitleClip;
-            return {
-              ...base,
-              text: sc.text,
-              style: sc.style,
-            };
-          }
-
-          if (clip.type === 'music') {
-            const mc = clip as import('@/features/video-editor/stores/editor.store').MusicClip;
-            return {
-              ...base,
-              sourceUrl: urlMap.get(mc.assetId) ?? mc.assetId,
-              volume: mc.volume,
-              fadeIn: mc.fadeIn,
-              fadeOut: mc.fadeOut,
-            };
-          }
-
-          if (clip.type === 'adjustment') {
-            const adjClip = clip as import('@/features/video-editor/stores/editor.store').AdjustmentClip;
-            return {
-              ...base,
-              effects: (adjClip.effects ?? []).map((e) => ({
-                type: e.type,
-                enabled: e.enabled,
-                filterType: e.filterType,
-                filterIntensity: e.filterIntensity,
-                filterParams: e.filterParams,
-                transitionType: e.transitionType,
-                transitionPosition: e.transitionPosition,
-                transitionDuration: e.transitionDuration,
-                audioEffectType: e.audioEffectType,
-                audioParams: e.audioParams,
-              })),
-            };
-          }
-
-          return base;
-        }),
-      }));
-
-      // Rasterize subtitle clips to full-frame PNGs for pixel-accurate burned export.
-      // Only generated when subtitleFormat === 'burned'; the PNG path replaces the ASS path.
-      let subtitleOverlays:
-        | Array<{ pngDataUrl: string; startTime: number; endTime: number }>
-        | undefined;
-
-      if (includeSubtitles && subtitleFormat === 'burned') {
-        const subtitleClips = tracks
-          .filter((t) => t.type === 'subtitle' && t.visible !== false)
-          .flatMap((t) => t.clips as SubtitleClip[])
-          .filter((c) => {
-            if (!c.text) return false;
-            if (!rangeActive) return true;
-            return c.endTime > rangeStart && c.startTime < rangeEnd;
-          });
-
-        if (subtitleClips.length > 0) {
-          const rendered = await Promise.all(
-            subtitleClips.map(async (clip) => {
-              const trimmedStart = Math.max(clip.startTime, rangeStart);
-              const trimmedEnd = Math.min(clip.endTime, rangeEnd);
-              const startTime = trimmedStart - rangeStart;
-              const endTime = trimmedEnd - rangeStart;
-              const pngDataUrl = await renderSubtitleClipToPng(clip, width, height);
-              return { pngDataUrl, startTime, endTime };
-            }),
-          );
-          subtitleOverlays = rendered;
-        }
-      }
-
-      await window.electronAPI.videoExport.start({
-        outputPath: savePath,
-        format,
-        quality,
-        frameRate,
+      const request = await buildExportRequest({
+        tracks,
+        duration,
         width,
         height,
-        duration: exportDuration,
-        tracks: exportTracks,
+        frameRate,
+        format,
+        quality,
+        codec,
+        proResProfile,
         includeSubtitles,
         subtitleFormat,
-        codec: (format === 'mp4' || format === 'mov') ? codec : undefined,
-        proResProfile: codec === 'prores' ? proResProfile : undefined,
-        authToken: authToken ?? undefined,
-        subtitleOverlays,
+        outputPath: savePath,
+        authToken,
+        range: rangeActive ? { start: inPoint as number, end: outPoint as number } : null,
       });
+
+      await window.electronAPI.videoExport.start(request);
     } catch (err) {
       setPhase('failed');
       setProgress((prev) => ({

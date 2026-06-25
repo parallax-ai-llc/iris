@@ -16,6 +16,8 @@ import { VideoEditorMenuBar } from '@/features/video-editor/components/VideoEdit
 import { NewVideoProjectModal } from '@/features/video-editor/components/modals/NewVideoProjectModal';
 import { OpenProjectModal } from '@/features/video-editor/components/modals/OpenProjectModal';
 import { SaveProjectModal } from '@/features/video-editor/components/modals/SaveProjectModal';
+import { SaveAsProjectModal } from '@/features/video-editor/components/modals/SaveAsProjectModal';
+import { reframeTimelineData } from '@/features/video-editor/lib/reframeTimeline';
 import { useToast } from '@/shared/components/ui/useToast';
 import { TitleBar } from '@/app/layout/TitleBar';
 import { Upload } from 'lucide-react';
@@ -327,7 +329,7 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
   const [showOpenProjectModal, setShowOpenProjectModal] = useState(false);
   const [showSaveProjectModal, setShowSaveProjectModal] = useState(false);
-  const [isSaveAsMode, setIsSaveAsMode] = useState(false);
+  const [showSaveAsModal, setShowSaveAsModal] = useState(false);
   const [showProjectAutoCaptions, setShowProjectAutoCaptions] = useState(false);
   const [showUnsavedModal, setShowUnsavedModal] = useState<'new' | 'open' | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
@@ -537,16 +539,29 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
     }
   }, [currentProject, isProvisional, saveTimeline, updateTimelineData, toast]);
 
-  // Handle save as — always show modal first to collect new project name
+  // Handle save as — provisional projects have nothing to copy yet, so they fall
+  // back to the plain "name" save modal; existing projects get the richer modal
+  // that also lets the user pick a different resolution / aspect ratio.
   const handleSaveAs = useCallback(() => {
-    setIsSaveAsMode(!isProvisional && !!currentProject);
-    setShowSaveProjectModal(true);
+    if (!isProvisional && currentProject) {
+      setShowSaveAsModal(true);
+    } else {
+      setShowSaveProjectModal(true);
+    }
   }, [currentProject, isProvisional]);
 
-  // Handle save as with a chosen name (for existing non-provisional projects)
-  // Duplicates the project and switches to the copy WITHOUT causing a page flash
-  const handleSaveAsWithName = useCallback(async (name: string) => {
+  // Handle save as with a chosen name + target resolution (for existing,
+  // non-provisional projects). Duplicates the project and switches to the copy
+  // WITHOUT causing a page flash. When the target ratio differs from the
+  // original, the copy's timeline is reframed so elements fit the new frame.
+  const handleSaveAsWithName = useCallback(async (name: string, targetWidth: number, targetHeight: number) => {
     if (!currentProject) return;
+
+    const oldW = currentProject.width;
+    const oldH = currentProject.height;
+    const newW = targetWidth || oldW;
+    const newH = targetHeight || oldH;
+    const ratioChanged = newW !== oldW || newH !== oldH;
 
     const currentTracks = useEditorStore.getState().tracks;
     const currentDuration = useEditorStore.getState().duration;
@@ -554,11 +569,12 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
     const timelineData = convertEditorTracksToTimelineData(currentTracks, currentMarkers);
     const thumbnail = await capturePreviewThumbnail();
 
-    // Save current state to the original project first (silent)
+    // Save current state to the original project first (silent) — the original
+    // keeps its own resolution and layout untouched.
     updateTimelineData(timelineData);
     await saveTimeline({ timelineData, duration: currentDuration, thumbnail: thumbnail || undefined });
 
-    // Duplicate project
+    // Duplicate project (clones the original layout at the original resolution)
     const duplicated = await duplicateProject(currentProject.id);
     if (!duplicated) {
       toast.error('Failed to save project as copy');
@@ -578,9 +594,21 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
 
     // Switch to the new project without navigating away (no page flash)
     useVideoProjectStore.setState({ currentProject: finalProject, isDirty: false });
+
+    // Apply the new resolution + reframed layout to the copy only.
+    if (ratioChanged) {
+      const reframed = reframeTimelineData(timelineData, oldW, oldH, newW, newH);
+      const projectStore = useVideoProjectStore.getState();
+      await projectStore.updateProject({ width: newW, height: newH });
+      updateTimelineData(reframed);
+      await projectStore.saveTimeline({ timelineData: reframed, duration: currentDuration });
+      // Refresh the live editor so the preview ratio + element positions update.
+      useEditorStore.getState().loadFromTimelineData(reframed, currentDuration);
+    }
+
     useVideoProjectStore.getState().fetchProjects();
 
-    toast.success(`Saved as: ${name}`);
+    toast.success(ratioChanged ? `Saved as: ${name} (${newW}×${newH})` : `Saved as: ${name}`);
   }, [currentProject, duplicateProject, updateTimelineData, saveTimeline, toast]);
 
   // Handle save with project name (first-time save or provisional → real)
@@ -629,14 +657,6 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
     }
   }, [isProvisional, createProject, saveTimeline, updateTimelineData, toast]);
 
-  // Modal save dispatcher — routes to save-as or regular save based on mode
-  const handleModalSave = useCallback((name: string) => {
-    if (isSaveAsMode) {
-      handleSaveAsWithName(name);
-    } else {
-      handleSaveWithName(name);
-    }
-  }, [isSaveAsMode, handleSaveAsWithName, handleSaveWithName]);
 
   // Handle export
   const handleExport = useCallback(async (exportOptions?: ExportOptions) => {
@@ -1079,11 +1099,21 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
 
       <SaveProjectModal
         isOpen={showSaveProjectModal}
-        onClose={() => { setShowSaveProjectModal(false); setIsSaveAsMode(false); }}
-        onSave={handleModalSave}
-        title={isSaveAsMode ? 'Save Project As' : 'Save Project'}
-        defaultName={isSaveAsMode && currentProject ? `${currentProject.name} Copy` : undefined}
+        onClose={() => setShowSaveProjectModal(false)}
+        onSave={handleSaveWithName}
+        title="Save Project"
       />
+
+      {currentProject && (
+        <SaveAsProjectModal
+          isOpen={showSaveAsModal}
+          onClose={() => setShowSaveAsModal(false)}
+          onSave={handleSaveAsWithName}
+          defaultName={`${currentProject.name} Copy`}
+          originalWidth={currentProject.width}
+          originalHeight={currentProject.height}
+        />
+      )}
 
       {showProjectAutoCaptions && (
         <ProjectAutoCaptionsModal
