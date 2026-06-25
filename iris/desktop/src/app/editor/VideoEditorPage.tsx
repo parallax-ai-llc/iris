@@ -134,14 +134,21 @@ function convertEditorTracksToTimelineData(
   markers: import('@/types/editor.types').Marker[] = [],
 ): TimelineData {
   const convertClip = (clip: Clip): TimelineClip => {
+    // Image clips are stored as VideoClip (mediaType: 'image') in the editor —
+    // persist them with the 'image' ClipType so the load path restores the flag
+    // (otherwise they reload as plain videos and fail to render as overlays).
+    const isImageClip = clip.type === 'video' && clip.mediaType === 'image';
+
     const baseClip: TimelineClip = {
       id: clip.id,
-      type: clip.type === 'music' ? 'audio' : clip.type,
+      type: clip.type === 'music' ? 'audio' : isImageClip ? 'image' : clip.type,
       trackId: clip.trackId,
       startTime: clip.startTime,
       endTime: clip.endTime,
       duration: clip.endTime - clip.startTime,
       sourceUrl: 'assetId' in clip ? clip.assetId : undefined,
+      sourceWidth: clip.type === 'video' ? clip.sourceWidth : undefined,
+      sourceHeight: clip.type === 'video' ? clip.sourceHeight : undefined,
       inPoint: clip.sourceStartTime,
       outPoint: clip.sourceEndTime,
       opacity: clip.type === 'video' ? clip.transform.opacity : (clip.type === 'adjustment' ? clip.opacity : 1),
@@ -171,6 +178,10 @@ function convertEditorTracksToTimelineData(
       baseClip.textAlign = clip.style.alignment;
       baseClip.textPositionX = clip.style.position.x;
       baseClip.textPositionY = clip.style.position.y;
+      baseClip.textWidth = clip.style.width;
+      baseClip.textHeight = clip.style.height;
+      baseClip.textPaddingX = clip.style.paddingX;
+      baseClip.textPaddingY = clip.style.paddingY;
       baseClip.verticalAlign = clip.style.verticalAlign;
     }
 
@@ -909,8 +920,15 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
         if (project.timelineData && project.timelineData.tracks?.length > 0) {
           useEditorStore.getState().loadFromTimelineData(project.timelineData, project.duration);
 
-          // Sync timeline clips to media pool - ensure all referenced assets are in the pool
-          const mediaPoolIds = new Set(project.mediaPool.map((m) => m.externalId));
+          // Sync timeline clips to media pool - ensure all referenced assets are in the pool.
+          // Index by BOTH externalId (cloud assets) and fileUrl (local references) — local
+          // media has a null externalId, so keying on externalId alone would re-add a blank
+          // placeholder entry for every local clip on each reopen.
+          const mediaPoolIds = new Set<string>();
+          for (const m of project.mediaPool) {
+            if (m.externalId) mediaPoolIds.add(m.externalId);
+            if (m.fileUrl) mediaPoolIds.add(m.fileUrl);
+          }
           for (const track of project.timelineData.tracks) {
             for (const clip of track.clips) {
               if (clip.sourceUrl && !mediaPoolIds.has(clip.sourceUrl)) {

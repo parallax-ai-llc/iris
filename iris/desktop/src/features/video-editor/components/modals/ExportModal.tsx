@@ -24,6 +24,8 @@ import {
 import { cn } from '@/shared/lib/utils';
 import { useEditorStore } from '@/features/video-editor/stores/editor.store';
 import { useVideoProjectStore } from '@/features/video-editor/stores/videoProject.store';
+import { renderSubtitleClipToPng } from '@/features/video-editor/lib/renderSubtitlePng';
+import type { SubtitleClip } from '@/types/editor.types';
 
 export interface ExportOptions {
   format: 'mp4' | 'webm' | 'mov' | 'gif';
@@ -510,6 +512,14 @@ export const ExportModal = memo(function ExportModal({
               ...base,
               sourceUrl: urlMap.get(vc.assetId) ?? vc.assetId,
               mediaType: vc.mediaType,
+              // Natural pixel dimensions — required by the overlay compositor so image
+              // clips render at their source size rather than fitting the frame.
+              sourceWidth: vc.sourceWidth,
+              sourceHeight: vc.sourceHeight,
+              // Blend mode passed through for future compositor support.
+              blendMode: vc.blendMode,
+              // trackId lets the compositor determine which track each clip belongs to.
+              trackId: track.id,
               volume: vc.volume,
               // Audio extracted to a paired audio clip (now possibly deleted) →
               // suppress the video's embedded audio in the render too.
@@ -588,6 +598,37 @@ export const ExportModal = memo(function ExportModal({
         }),
       }));
 
+      // Rasterize subtitle clips to full-frame PNGs for pixel-accurate burned export.
+      // Only generated when subtitleFormat === 'burned'; the PNG path replaces the ASS path.
+      let subtitleOverlays:
+        | Array<{ pngDataUrl: string; startTime: number; endTime: number }>
+        | undefined;
+
+      if (includeSubtitles && subtitleFormat === 'burned') {
+        const subtitleClips = tracks
+          .filter((t) => t.type === 'subtitle' && t.visible !== false)
+          .flatMap((t) => t.clips as SubtitleClip[])
+          .filter((c) => {
+            if (!c.text) return false;
+            if (!rangeActive) return true;
+            return c.endTime > rangeStart && c.startTime < rangeEnd;
+          });
+
+        if (subtitleClips.length > 0) {
+          const rendered = await Promise.all(
+            subtitleClips.map(async (clip) => {
+              const trimmedStart = Math.max(clip.startTime, rangeStart);
+              const trimmedEnd = Math.min(clip.endTime, rangeEnd);
+              const startTime = trimmedStart - rangeStart;
+              const endTime = trimmedEnd - rangeStart;
+              const pngDataUrl = await renderSubtitleClipToPng(clip, width, height);
+              return { pngDataUrl, startTime, endTime };
+            }),
+          );
+          subtitleOverlays = rendered;
+        }
+      }
+
       await window.electronAPI.videoExport.start({
         outputPath: savePath,
         format,
@@ -602,6 +643,7 @@ export const ExportModal = memo(function ExportModal({
         codec: (format === 'mp4' || format === 'mov') ? codec : undefined,
         proResProfile: codec === 'prores' ? proResProfile : undefined,
         authToken: authToken ?? undefined,
+        subtitleOverlays,
       });
     } catch (err) {
       setPhase('failed');

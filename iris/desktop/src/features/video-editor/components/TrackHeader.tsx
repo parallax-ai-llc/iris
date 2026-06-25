@@ -3,7 +3,7 @@
  * Shows track name, type icon, and control buttons
  */
 
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useState } from 'react';
 import {
   Video,
   Volume2,
@@ -75,6 +75,43 @@ export const TrackHeader = memo(function TrackHeader({
   const Icon = getTrackIcon(track.type);
   const color = getTrackColor(track.type);
 
+  // Track reorder via drag handle. The track array order IS the compositing
+  // z-order (top track = top layer), so reordering changes layering.
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const handleDragStart = useCallback(
+    (e: React.DragEvent) => {
+      e.dataTransfer.setData('application/x-iris-track', track.id);
+      e.dataTransfer.effectAllowed = 'move';
+    },
+    [track.id],
+  );
+
+  const handleHeaderDragOver = useCallback((e: React.DragEvent) => {
+    if (!e.dataTransfer.types.includes('application/x-iris-track')) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setIsDragOver(true);
+  }, []);
+
+  const handleHeaderDragLeave = useCallback(() => setIsDragOver(false), []);
+
+  const handleHeaderDrop = useCallback(
+    (e: React.DragEvent) => {
+      if (!e.dataTransfer.types.includes('application/x-iris-track')) return;
+      e.preventDefault();
+      setIsDragOver(false);
+      const draggedId = e.dataTransfer.getData('application/x-iris-track');
+      if (!draggedId || draggedId === track.id) return;
+      const { tracks, reorderTracks } = useEditorStore.getState();
+      const from = tracks.findIndex((t) => t.id === draggedId);
+      const to = tracks.findIndex((t) => t.id === track.id);
+      if (from === -1 || to === -1) return;
+      reorderTracks(from, to);
+    },
+    [track.id],
+  );
+
   const handleSelect = useCallback(() => {
     selectTrack(track.id);
   }, [track.id, selectTrack]);
@@ -142,13 +179,28 @@ export const TrackHeader = memo(function TrackHeader({
       className={cn(
         'flex items-center gap-2 px-2 border-b border-zinc-700',
         'bg-zinc-800/50 hover:bg-zinc-800 transition-colors cursor-pointer',
-        isSelected && 'bg-zinc-700/50 border-l-2 border-l-white/50'
+        isSelected && 'bg-zinc-700/50 border-l-2 border-l-white/50',
+        isDragOver && 'border-t-2 border-t-blue-500'
       )}
       style={{ height: `${track.height}px` }}
       onClick={handleSelect}
+      onDragOver={handleHeaderDragOver}
+      onDragLeave={handleHeaderDragLeave}
+      onDrop={handleHeaderDrop}
     >
+      {/* Drag handle for reordering tracks (changes compositing z-order) */}
+      <div
+        draggable
+        onDragStart={handleDragStart}
+        onClick={(e) => e.stopPropagation()}
+        title="Drag to reorder layer"
+        className="flex-shrink-0 cursor-grab active:cursor-grabbing"
+      >
+        <GripVertical className="w-3 h-3 text-zinc-600 hover:text-zinc-400" />
+      </div>
+
       {/* Track target indicator (V1/A1) */}
-      {targetLabel ? (
+      {targetLabel && (
         <button
           className={cn(
             'w-5 h-4 rounded text-[9px] font-bold flex items-center justify-center flex-shrink-0 transition-colors',
@@ -163,8 +215,6 @@ export const TrackHeader = memo(function TrackHeader({
         >
           {targetLabel}
         </button>
-      ) : (
-        <GripVertical className="w-3 h-3 text-zinc-600 cursor-grab flex-shrink-0" />
       )}
 
       {/* Track icon */}

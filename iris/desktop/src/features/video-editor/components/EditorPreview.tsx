@@ -4,7 +4,6 @@
  */
 
 import { memo, useRef, useCallback, useEffect, useState, useMemo } from 'react';
-import { Maximize } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import {
   useEditorStore,
@@ -23,6 +22,9 @@ import { ChromaKeyCanvas } from './ChromaKeyCanvas';
 import { HslSecondaryCanvas } from './HslSecondaryCanvas';
 import { AudioPlayer } from './AudioPlayer';
 import { SubtitleOverlay } from './SubtitleOverlay';
+import { OverlayLayer } from './OverlayLayer';
+import { PreviewZoomControls } from './PreviewZoomControls';
+import { usePreviewZoom, ZOOM_MIN, ZOOM_MAX } from '@/features/video-editor/hooks/usePreviewZoom';
 import { useVideoProjectStore } from '@/features/video-editor/stores/videoProject.store';
 import { interpolateKeyframes } from '@/shared/lib/utils/effectRenderer';
 import {
@@ -92,6 +94,30 @@ export const EditorPreview = memo(function EditorPreview({
   }, [containerSize, projectWidth, projectHeight]);
   const subtitleScale = videoRect.width / projectWidth;
 
+  // The visible "stage" is locked to the project aspect ratio and centred inside
+  // the (arbitrarily sized) preview panel. All video content, overlays and the
+  // safe-area guide live inside this stage so the output ratio stays fixed
+  // regardless of viewport / panel size.
+  const stageStyle = useMemo<React.CSSProperties>(() => ({
+    position: 'absolute',
+    left: videoRect.left,
+    top: videoRect.top,
+    width: videoRect.width,
+    height: videoRect.height,
+  }), [videoRect]);
+  // Inside the stage the video frame IS the full stage, so subtitles position
+  // against a zero-origin rect of the stage's pixel size.
+  const stageRect = useMemo(
+    () => ({ left: 0, top: 0, width: videoRect.width, height: videoRect.height }),
+    [videoRect],
+  );
+
+  // Viewport zoom & pan for the stage (view-only inspection aid).
+  const {
+    zoom, transform: zoomTransform, isPanning,
+    zoomIn, zoomOut, fit, setZoomLevel, onPanStart,
+  } = usePreviewZoom(videoRect, containerRef);
+
   // Ref to track last update time for manual timeline progression
   const lastUpdateRef = useRef<number>(Date.now());
 
@@ -104,18 +130,49 @@ export const EditorPreview = memo(function EditorPreview({
   // the playhead while playing).
   const lastRafTimelineRef = useRef<number>(-1);
 
-  // Get active video clip at current time
-  const activeVideoClip = useMemo(() => {
-    const videoTrack = tracks.find((t) => t.type === 'video' && t.visible);
-    if (!videoTrack) return null;
-
-    return (videoTrack.clips.find(
-      (clip) =>
-        clip.type === 'video' &&
-        currentTime >= clip.startTime &&
-        currentTime < clip.endTime
-    ) as VideoClip | undefined) || null;
+  // Active clip per visible video track at the current time. Index 0 is the
+  // top-most track (highest compositing layer).
+  const videoLayerEntries = useMemo(() => {
+    const videoTracks = tracks.filter((t) => t.type === 'video' && t.visible);
+    return videoTracks.map((track) => ({
+      track,
+      clip:
+        (track.clips.find(
+          (clip) =>
+            clip.type === 'video' &&
+            currentTime >= clip.startTime &&
+            currentTime < clip.endTime,
+        ) as VideoClip | undefined) || null,
+    }));
   }, [tracks, currentTime]);
+
+  // Base video clip — drives the primary <video> element (playback, audio,
+  // seeking, effects). It's the bottom-most visible video track that carries a
+  // real (non-image) video clip; image clips always composite as overlays.
+  const activeVideoClip = useMemo(() => {
+    for (let i = videoLayerEntries.length - 1; i >= 0; i--) {
+      const clip = videoLayerEntries[i].clip;
+      if (clip && clip.mediaType !== 'image') return clip;
+    }
+    return null;
+  }, [videoLayerEntries]);
+
+  // Overlay clips — every active video clip except the base, ordered
+  // bottom→top so the top-most track paints last (on top). Images render at
+  // natural size; non-base videos fit the frame.
+  const overlayLayers = useMemo(() => {
+    const baseId = activeVideoClip?.id;
+    return videoLayerEntries
+      .filter((e) => e.clip && e.clip.id !== baseId)
+      .reverse();
+  }, [videoLayerEntries, activeVideoClip]);
+
+  // True when the currently-selected clip is one of the overlay layers — used to
+  // un-clip the stage so its transform handles stay reachable for big images.
+  const overlaySelected = useMemo(
+    () => overlayLayers.some((e) => e.clip && e.clip.id === selectedClip?.id),
+    [overlayLayers, selectedClip?.id],
+  );
 
   // Extract the chroma-key effect from the active video clip (if present and enabled)
   const chromaKeyEffect = useMemo(() => {
@@ -373,13 +430,15 @@ export const EditorPreview = memo(function EditorPreview({
 
   // Compute video track volume (considering solo across all audio-producing tracks)
   const videoTrackVolume = useMemo(() => {
-    const videoTrack = tracks.find((t) => t.type === 'video');
+    const videoTrack =
+      tracks.find((t) => t.id === activeVideoClip?.trackId) ??
+      tracks.find((t) => t.type === 'video');
     if (!videoTrack) return 1;
     const hasSolo = tracks.some((t) => t.solo && (t.type === 'audio' || t.type === 'music' || t.type === 'video'));
     if (hasSolo && !videoTrack.solo) return 0;
     if (videoTrack.muted) return 0;
     return videoTrack.volume;
-  }, [tracks]);
+  }, [tracks, activeVideoClip?.trackId]);
 
   // Check if any audio/music track already has a clip playing the same asset.
   // When true the AudioPlayer handles audio → the <video> element must be muted
@@ -501,6 +560,15 @@ export const EditorPreview = memo(function EditorPreview({
     [updateSubtitleStyle]
   );
 
+  // Handle subtitle resize (updates anchor + the changed dimension; merges so the
+  // untouched dimension is preserved)
+  const handleSubtitleResize = useCallback(
+    (clipId: string, next: { position: { x: number; y: number }; width?: number; height?: number }) => {
+      updateSubtitleStyle(clipId, next);
+    },
+    [updateSubtitleStyle]
+  );
+
   // Handle subtitle selection
   const handleSubtitleSelect = useCallback(
     (clipId: string) => {
@@ -514,8 +582,18 @@ export const EditorPreview = memo(function EditorPreview({
     setVideoLoadFailed(true);
   }, []);
 
+  // Toggle fullscreen on the preview area (container element)
+  const handleToggleFullscreen = useCallback(() => {
+    if (!containerRef.current) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      containerRef.current.requestFullscreen();
+    }
+  }, []);
+
   return (
-    <div className={cn('relative bg-black rounded-lg overflow-hidden', className)}>
+    <div className={cn('relative flex flex-col overflow-hidden', className)}>
       {/* Hidden SVG for color correction filter definitions */}
       {svgColorFilterDefs && (
         <svg
@@ -525,8 +603,32 @@ export const EditorPreview = memo(function EditorPreview({
         />
       )}
 
-      {/* Video container */}
-      <div ref={containerRef} className="relative w-full h-full">
+      {/* Preview area — fills remaining height above the zoom section.
+          Floating overlays (fullscreen, speed HUD) position within this box. */}
+      <div className="relative flex-1 min-h-0">
+      {/* Video container — measures the available panel area + hosts zoom pan */}
+      <div
+        ref={containerRef}
+        className={cn(
+          'relative w-full h-full',
+          zoom > 1.0001 && (isPanning ? 'cursor-grabbing' : 'cursor-grab'),
+        )}
+        onMouseDown={onPanStart}
+      >
+        {/* Stage — locked to the project output ratio, centred via videoRect.
+            All video content + overlays + safe-area guide render inside it so the
+            preview frame never changes shape with the viewport. The zoom
+            transform scales/pans the whole stage around its centre. */}
+        <div
+          className={cn(
+            'absolute bg-black ring-1 ring-white/10',
+            // While an overlay clip is selected, let content + transform handles
+            // spill past the frame so larger-than-frame images stay editable
+            // (the outer preview panel still clips). Otherwise crop to frame.
+            overlaySelected ? 'overflow-visible' : 'overflow-hidden',
+          )}
+          style={{ ...stageStyle, transform: zoomTransform, transformOrigin: 'center center' }}
+        >
         {/* Video element - hidden when showing image */}
         <video
           ref={videoRef}
@@ -847,11 +949,31 @@ export const EditorPreview = memo(function EditorPreview({
           );
         })()}
 
-        {/* Black screen overlay when outside clip bounds */}
-        {showBlackScreen && !showingImage && (
+        {/* Black screen overlay when outside clip bounds (suppressed when an
+            overlay layer is providing the visible content). */}
+        {showBlackScreen && !showingImage && overlayLayers.length === 0 && (
           <div className="absolute inset-0 bg-black flex items-center justify-center">
             <span className="text-zinc-600 text-sm">No video at current time</span>
           </div>
+        )}
+
+        {/* Video/image overlay layers — composited above the base video in
+            track z-order (top track on top). Images keep natural size and are
+            interactively movable/resizable when selected. */}
+        {overlayLayers.map(({ clip }) =>
+          clip ? (
+            <OverlayLayer
+              key={clip.id}
+              clip={clip}
+              currentTime={currentTime}
+              isPlaying={isPlaying}
+              stageScale={subtitleScale}
+              projectWidth={projectWidth}
+              projectHeight={projectHeight}
+              isSelected={selectedClip?.id === clip.id}
+              onSelect={() => selectClip(clip.id)}
+            />
+          ) : null,
         )}
 
         {/* Subtitle overlays */}
@@ -863,40 +985,14 @@ export const EditorPreview = memo(function EditorPreview({
             isSelected={selectedClip?.id === subtitle.id}
             onSelect={() => handleSubtitleSelect(subtitle.id)}
             onPositionChange={(pos) => handleSubtitlePositionChange(subtitle.id, pos)}
+            onResize={(next) => handleSubtitleResize(subtitle.id, next)}
             scale={subtitleScale}
-            videoRect={videoRect}
+            videoRect={stageRect}
           />
         ))}
 
-        {/* No subtitles indicator */}
-        {activeSubtitles.length === 0 && tracks.some((t) => t.type === 'subtitle') && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1 bg-zinc-800/60 rounded text-xs text-zinc-500">
-            No subtitles at current time
-          </div>
-        )}
+        </div>
       </div>
-
-      {/* Preview controls overlay */}
-      <div className="absolute top-2 right-2 flex items-center gap-1">
-        <button
-          className="p-1.5 rounded bg-black/50 text-white/80 hover:text-white hover:bg-black/70 transition-colors"
-          title="Fullscreen"
-          onClick={() => {
-            if (containerRef.current) {
-              if (document.fullscreenElement) {
-                document.exitFullscreen();
-              } else {
-                containerRef.current.requestFullscreen();
-              }
-            }
-          }}
-        >
-          <Maximize className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* Safe area guide (optional) */}
-      <div className="absolute inset-0 pointer-events-none border border-dashed border-white/10 m-[5%]" />
 
       {/* Playback speed HUD */}
       {playbackRate !== 1 && isPlaying && (
@@ -904,6 +1000,19 @@ export const EditorPreview = memo(function EditorPreview({
           {playbackRate > 0 ? `${playbackRate}x ▶` : `${Math.abs(playbackRate)}x ◀`}
         </div>
       )}
+      </div>
+
+      {/* Zoom section — Ctrl/Cmd+wheel also zooms; drag to pan when zoomed in */}
+      <PreviewZoomControls
+        zoom={zoom}
+        min={ZOOM_MIN}
+        max={ZOOM_MAX}
+        onZoomIn={zoomIn}
+        onZoomOut={zoomOut}
+        onFit={fit}
+        onSetZoom={setZoomLevel}
+        onFullscreen={handleToggleFullscreen}
+      />
 
       {/* Audio players - hidden elements for audio playback */}
       {audioClipsWithTrackInfo.map(({ clip, trackVolume }) => (

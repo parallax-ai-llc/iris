@@ -553,3 +553,34 @@ describe('audioExtracted on paired-audio removal', () => {
     expect(video.audioExtracted).toBeFalsy();
   });
 });
+
+// ─── Clip move drag anchors the LEFT EDGE to the cursor (drop x) ──────────────
+
+describe('move drag left-edge anchoring', () => {
+  it('places the clip left edge at the cursor time, ignoring the grab offset', () => {
+    const clip = makeVideoClip({ id: 'v', startTime: 10, endTime: 20 });
+    useEditorStore.setState({
+      tracks: [makeTrack('video', [clip])],
+      snapToGrid: false,
+      selection: { clipIds: ['v'], trackIds: [] },
+      currentTime: 0,
+      markers: [],
+    });
+
+    // Grab the MIDDLE of the clip (t=15), then drag so the cursor is at t=30.
+    useEditorStore.getState().startDrag({
+      clipId: 'v',
+      trackId: clip.trackId,
+      operation: 'move',
+      startX: 0,
+      startTime: 15,
+      originalClip: { ...clip },
+    });
+    useEditorStore.getState().updateDrag(0, 30);
+
+    const moved = useEditorStore.getState().tracks.flatMap((t) => t.clips).find((c) => c.id === 'v') as VideoClip;
+    // Left edge follows the cursor (30), NOT cursor minus grab offset (30 - 5 = 25).
+    expect(moved.startTime).toBeCloseTo(30, 5);
+    expect(moved.endTime).toBeCloseTo(40, 5);
+  });
+});

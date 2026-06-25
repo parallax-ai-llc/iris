@@ -124,6 +124,17 @@ export interface EditorProjectData {
 
 export type { ExportOptions } from './modals/ExportModal';
 
+/** Hover tooltip for icon-only toolbar buttons — absolutely positioned so it
+ *  doesn't take layout space (matches the Add Track button). Parent button must
+ *  be `group relative`. */
+function ToolbarTip({ label }: { label: string }) {
+  return (
+    <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block whitespace-nowrap rounded bg-zinc-900 border border-zinc-700 px-2 py-1 text-xs text-white shadow-lg z-50">
+      {label}
+    </span>
+  );
+}
+
 
 export const VideoEditor = memo(function VideoEditor({
   assetId,
@@ -186,6 +197,41 @@ export const VideoEditor = memo(function VideoEditor({
   const leftResizeRef = useRef({ resizing: false, startX: 0, startWidth: 0 });
   const rightResizeRef = useRef({ resizing: false, startX: 0, startWidth: 0 });
   const bottomResizeRef = useRef({ resizing: false, startY: 0, startHeight: 0 });
+
+  // Drag-to-scroll for the left panel tab strip. When the tabs overflow the
+  // panel width, the user can grab the strip and drag left/right to scroll
+  // through them. A small movement threshold suppresses the trailing click so
+  // a drag doesn't accidentally switch the active tab.
+  const tabStripRef = useRef<HTMLDivElement>(null);
+  const handleTabStripMouseDown = useCallback((e: React.MouseEvent) => {
+    const el = tabStripRef.current;
+    if (!el || el.scrollWidth <= el.clientWidth) return; // nothing to scroll
+    const startX = e.clientX;
+    const startScroll = el.scrollLeft;
+    let moved = false;
+    const onMove = (ev: MouseEvent) => {
+      const dx = ev.clientX - startX;
+      if (Math.abs(dx) > 4) moved = true;
+      el.scrollLeft = startScroll - dx;
+    };
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      if (moved) {
+        const swallow = (ce: MouseEvent) => {
+          ce.stopPropagation();
+          ce.preventDefault();
+        };
+        el.addEventListener('click', swallow, { capture: true, once: true });
+      }
+    };
+    document.body.style.cursor = 'grabbing';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, []);
 
   // Generic vertical resize handler factory — drag down increases the height below it
   const startVerticalResize = useCallback(
@@ -1127,12 +1173,16 @@ export const VideoEditor = memo(function VideoEditor({
       <div className="flex-1 flex overflow-hidden">
         {/* Left: Media/Effects panel */}
         <div className="border-r border-zinc-800 flex-shrink-0 flex flex-col relative" style={{ width: leftPanelWidth }}>
-          {/* Panel tabs */}
-          <div className="flex border-b border-zinc-800">
+          {/* Panel tabs — drag left/right to scroll when they overflow */}
+          <div
+            ref={tabStripRef}
+            onMouseDown={handleTabStripMouseDown}
+            className="flex border-b border-zinc-800 overflow-x-auto overflow-y-hidden scrollbar-none cursor-grab active:cursor-grabbing"
+          >
             <button
               onClick={() => setLeftPanelTab('media')}
               className={cn(
-                'flex-1 px-3 py-2 text-xs font-medium transition-colors',
+                'flex-shrink-0 whitespace-nowrap px-3 py-2 text-xs font-medium transition-colors',
                 leftPanelTab === 'media'
                   ? 'bg-zinc-800 text-white'
                   : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'
@@ -1143,7 +1193,7 @@ export const VideoEditor = memo(function VideoEditor({
             <button
               onClick={() => setLeftPanelTab('effects')}
               className={cn(
-                'flex-1 px-3 py-2 text-xs font-medium transition-colors',
+                'flex-shrink-0 whitespace-nowrap px-3 py-2 text-xs font-medium transition-colors',
                 leftPanelTab === 'effects'
                   ? 'bg-zinc-800 text-white'
                   : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'
@@ -1154,7 +1204,7 @@ export const VideoEditor = memo(function VideoEditor({
             <button
               onClick={() => setLeftPanelTab('color')}
               className={cn(
-                'flex-1 px-3 py-2 text-xs font-medium transition-colors',
+                'flex-shrink-0 whitespace-nowrap px-3 py-2 text-xs font-medium transition-colors',
                 leftPanelTab === 'color'
                   ? 'bg-zinc-800 text-white'
                   : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'
@@ -1165,7 +1215,7 @@ export const VideoEditor = memo(function VideoEditor({
             <button
               onClick={() => setLeftPanelTab('history')}
               className={cn(
-                'flex-1 px-3 py-2 text-xs font-medium transition-colors',
+                'flex-shrink-0 whitespace-nowrap px-3 py-2 text-xs font-medium transition-colors',
                 leftPanelTab === 'history'
                   ? 'bg-zinc-800 text-white'
                   : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'
@@ -1176,7 +1226,7 @@ export const VideoEditor = memo(function VideoEditor({
             <button
               onClick={() => setLeftPanelTab('transcript')}
               className={cn(
-                'flex-1 px-3 py-2 text-xs font-medium transition-colors',
+                'flex-shrink-0 whitespace-nowrap px-3 py-2 text-xs font-medium transition-colors',
                 leftPanelTab === 'transcript'
                   ? 'bg-zinc-800 text-white'
                   : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'
@@ -1230,7 +1280,7 @@ export const VideoEditor = memo(function VideoEditor({
 
         {/* Left resize handle */}
         <div
-          className="w-1 flex-shrink-0 cursor-col-resize hover:bg-blue-500/50 active:bg-blue-500/70 transition-colors"
+          className="w-1.5 flex-shrink-0 cursor-col-resize hover:bg-blue-500/50 active:bg-blue-500/70 transition-colors"
           onMouseDown={(e) => {
             e.preventDefault();
             leftResizeRef.current = { resizing: true, startX: e.clientX, startWidth: leftPanelWidth };
@@ -1263,7 +1313,7 @@ export const VideoEditor = memo(function VideoEditor({
 
         {/* Right resize handle */}
         <div
-          className="w-1 flex-shrink-0 cursor-col-resize hover:bg-blue-500/50 active:bg-blue-500/70 transition-colors"
+          className="w-1.5 flex-shrink-0 cursor-col-resize hover:bg-blue-500/50 active:bg-blue-500/70 transition-colors"
           onMouseDown={(e) => {
             e.preventDefault();
             rightResizeRef.current = { resizing: true, startX: e.clientX, startWidth: rightPanelWidth };
@@ -1353,28 +1403,33 @@ export const VideoEditor = memo(function VideoEditor({
             </button>
           </div>
         )}
-        <div className="flex items-center justify-between border-b border-zinc-800">
-          <PlayheadControls className="flex-1" />
+        <EditorTimeline
+          className="flex-1 min-h-[150px]"
+          leadingToolbar={
+            <>
+              <PlayheadControls className="flex-1" />
           <button
             onClick={handleAddTitleClip}
-            className="px-2.5 h-full transition-colors border-l border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white hover:bg-zinc-800"
-            title="Title — Add title/text clip at playhead"
+            className="group relative px-2.5 h-full transition-colors border-l border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white hover:bg-zinc-800"
+            aria-label="Title"
           >
             <Type className="w-3.5 h-3.5" />
+            <ToolbarTip label="Title" />
           </button>
           {/* Lower Third preset picker */}
           <div ref={lowerThirdMenuRef} className="relative h-full">
             <button
               onClick={() => setShowLowerThirdMenu((v) => !v)}
               className={cn(
-                'px-2.5 h-full transition-colors border-l border-zinc-800 flex items-center justify-center',
+                'group relative px-2.5 h-full transition-colors border-l border-zinc-800 flex items-center justify-center',
                 showLowerThirdMenu
                   ? 'bg-zinc-700 text-white'
                   : 'text-zinc-500 hover:text-white hover:bg-zinc-800'
               )}
-              title="Lower Third — Add lower third subtitle preset at playhead"
+              aria-label="Lower Third"
             >
               <Captions className="w-3.5 h-3.5" />
+              <ToolbarTip label="Lower Third" />
             </button>
             {showLowerThirdMenu && (
               <div className="absolute bottom-full right-0 mb-1 w-56 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl z-50 overflow-hidden">
@@ -1408,26 +1463,28 @@ export const VideoEditor = memo(function VideoEditor({
           <button
             onClick={() => setShowMixer(!showMixer)}
             className={cn(
-              'px-2.5 h-full transition-colors border-l border-zinc-800 flex items-center justify-center',
+              'group relative px-2.5 h-full transition-colors border-l border-zinc-800 flex items-center justify-center',
               showMixer
                 ? 'bg-zinc-700 text-white'
                 : 'text-zinc-500 hover:text-white hover:bg-zinc-800'
             )}
-            title="Mixer — Audio mixer panel"
+            aria-label="Mixer"
           >
             <Sliders className="w-3.5 h-3.5" />
+            <ToolbarTip label="Mixer" />
           </button>
           <button
             onClick={() => setShowKeyframes(!showKeyframes)}
             className={cn(
-              'px-2.5 h-full transition-colors border-l border-zinc-800 flex items-center justify-center',
+              'group relative px-2.5 h-full transition-colors border-l border-zinc-800 flex items-center justify-center',
               showKeyframes
                 ? 'bg-zinc-700 text-white'
                 : 'text-zinc-500 hover:text-white hover:bg-zinc-800'
             )}
-            title="Keyframes — Animate clip properties"
+            aria-label="Keyframes"
           >
             <KeyRound className="w-3.5 h-3.5" />
+            <ToolbarTip label="Keyframes" />
           </button>
           <button
             onClick={() => {
@@ -1437,14 +1494,15 @@ export const VideoEditor = memo(function VideoEditor({
               if (!next && multicamEnabled) toggleMulticam();
             }}
             className={cn(
-              'px-2.5 h-full transition-colors border-l border-zinc-800 flex items-center justify-center',
+              'group relative px-2.5 h-full transition-colors border-l border-zinc-800 flex items-center justify-center',
               showMulticam
                 ? 'bg-sky-900/50 text-sky-400'
                 : 'text-zinc-500 hover:text-white hover:bg-zinc-800'
             )}
-            title="Multicam — Multi-camera angle switcher"
+            aria-label="Multicam"
           >
             <Camera className="w-3.5 h-3.5" />
+            <ToolbarTip label="Multicam" />
           </button>
           <button
             onClick={(e) => {
@@ -1465,17 +1523,19 @@ export const VideoEditor = memo(function VideoEditor({
               }
             }}
             className={cn(
-              'px-2.5 h-full transition-colors border-l border-zinc-800 flex items-center justify-center',
+              'group relative px-2.5 h-full transition-colors border-l border-zinc-800 flex items-center justify-center',
               proxyMode
                 ? 'bg-amber-900/50 text-amber-400'
                 : 'text-zinc-500 hover:text-white hover:bg-zinc-800'
             )}
-            title="Proxy — Use low-resolution previews for faster playback (Shift+Click to regenerate all)"
+            aria-label="Proxy"
           >
             <Zap className="w-3.5 h-3.5" />
+            <ToolbarTip label="Proxy (Shift+Click to regenerate all)" />
           </button>
-        </div>
-        <EditorTimeline className="flex-1 min-h-[150px]" />
+            </>
+          }
+        />
         {/* Panels Container — stacks vertically with scroll */}
         {(showKeyframes || showMixer || showMulticam) && (
           <div className="flex-shrink-0 overflow-y-auto border-t border-zinc-800">

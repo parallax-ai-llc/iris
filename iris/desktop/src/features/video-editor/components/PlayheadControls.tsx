@@ -13,7 +13,6 @@ import {
   FastForward,
   Volume2,
   VolumeX,
-  Settings,
   Maximize2,
   Grid3X3,
   Undo2,
@@ -133,7 +132,7 @@ export const PlayheadControls = memo(function PlayheadControls({
   return (
     <div
       className={cn(
-        'flex items-center gap-3 px-4 py-2 bg-zinc-800 border-t border-zinc-700',
+        'flex items-center gap-3 px-4 py-2 bg-zinc-800',
         className
       )}
     >
@@ -289,11 +288,10 @@ export const PlayheadControls = memo(function PlayheadControls({
       {/* Playback rate */}
       <div className="relative select-none">
         <button
-          className="p-1.5 rounded hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors flex items-center gap-1"
+          className="p-1.5 rounded hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors flex items-center"
           onClick={() => setShowSpeedMenu(!showSpeedMenu)}
           title="Playback speed"
         >
-          <Settings className="w-4 h-4" />
           <span className="text-xs">{playbackRate}x</span>
         </button>
 

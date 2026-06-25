@@ -33,7 +33,9 @@ export interface TimelineClip {
   // Media reference
   mediaId?: string; // reference to ProjectMedia
   sourceUrl?: string; // direct URL if no media pool reference
-  
+  sourceWidth?: number;  // image clips: natural pixel width (for original-size render)
+  sourceHeight?: number; // image clips: natural pixel height
+
   // Trim
   inPoint: number; // trim start within source
   outPoint: number; // trim end within source
@@ -55,6 +57,10 @@ export interface TimelineClip {
   textAlign?: 'left' | 'center' | 'right';
   textPositionX?: number;
   textPositionY?: number;
+  textWidth?: number; // box width as % of frame (undefined = auto-fit)
+  textHeight?: number; // box height as % of frame (undefined = auto-fit)
+  textPaddingX?: number; // horizontal inner padding in project px
+  textPaddingY?: number; // vertical inner padding in project px
   verticalAlign?: 'top' | 'middle' | 'bottom';
   
   // Speed

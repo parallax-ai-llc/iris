@@ -597,10 +597,14 @@ export const TimelineClip = memo(function TimelineClip({
     <div
       className={cn(
         'absolute h-full rounded-sm group cursor-pointer overflow-hidden',
-        'border transition-all',
+        // Only transition colors — never geometry. Transitioning left/width would
+        // make the clip edge lag behind the cursor while trimming/moving.
+        'border transition-colors',
         styles.border,
         isSelected && `ring-2 ${styles.ring} z-10`,
-        isDragging && 'cursor-grabbing opacity-70 scale-[1.02]',
+        // No transform scale while dragging: scaling from the centre pushes both
+        // edges out, so the trim handle stops matching the cursor.
+        isDragging && 'cursor-grabbing opacity-70',
         effectDragOver && 'ring-2 ring-sky-400/50',
         trackLocked && 'opacity-50 cursor-not-allowed'
       )}

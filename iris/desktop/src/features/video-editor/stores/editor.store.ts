@@ -64,6 +64,11 @@ function convertTimelineDataToEditorTracks(timelineData: TimelineData): Track[] 
       return {
         ...baseClip,
         type: 'video',
+        // Preserve the image flag so the preview composites it as an overlay
+        // image (and loads it as an image, not a video that would fail).
+        mediaType: clip.type === 'image' ? 'image' : 'video',
+        sourceWidth: clip.sourceWidth,
+        sourceHeight: clip.sourceHeight,
         assetId: clip.sourceUrl || clip.mediaId || '',
         transform: {
           scale: clip.scale ?? 1,
@@ -110,6 +115,10 @@ function convertTimelineDataToEditorTracks(timelineData: TimelineData): Track[] 
           position: { x: clip.textPositionX ?? 50, y: clip.textPositionY ?? 85 },
           alignment: clip.textAlign ?? 'center',
           verticalAlign: clip.verticalAlign ?? 'bottom',
+          width: clip.textWidth,
+          height: clip.textHeight,
+          paddingX: clip.textPaddingX,
+          paddingY: clip.textPaddingY,
         },
       } as SubtitleClip;
     }
@@ -153,7 +162,14 @@ function convertTimelineDataToEditorTracks(timelineData: TimelineData): Track[] 
   return timelineData.tracks.map(convertTrack);
 }
 
-function createDefaultTracks(assetId: string, duration: number, audioAssetId?: string): Track[] {
+function createDefaultTracks(
+  assetId: string,
+  duration: number,
+  audioAssetId?: string,
+  // When false (blank/placeholder projects) the video & audio tracks start
+  // empty — no placeholder "Main Video"/"Original Audio" clips are inserted.
+  includeMainClips = true,
+): Track[] {
   return [
     {
       id: 'track-video-1',
@@ -165,26 +181,28 @@ function createDefaultTracks(assetId: string, duration: number, audioAssetId?: s
       visible: true,
       volume: 1,
       height: 80,
-      clips: [
-        {
-          id: 'clip-video-main',
-          trackId: 'track-video-1',
-          type: 'video',
-          assetId,
-          name: 'Main Video',
-          startTime: 0,
-          endTime: duration,
-          sourceStartTime: 0,
-          sourceEndTime: duration,
-          transform: { ...DEFAULT_TRANSFORM },
-          volume: 1,
-          muted: false,
-          speed: 1,
-          blendMode: 'normal',
-          effects: [],
-          keyframes: [],
-        } as VideoClip,
-      ],
+      clips: includeMainClips
+        ? [
+            {
+              id: 'clip-video-main',
+              trackId: 'track-video-1',
+              type: 'video',
+              assetId,
+              name: 'Main Video',
+              startTime: 0,
+              endTime: duration,
+              sourceStartTime: 0,
+              sourceEndTime: duration,
+              transform: { ...DEFAULT_TRANSFORM },
+              volume: 1,
+              muted: false,
+              speed: 1,
+              blendMode: 'normal',
+              effects: [],
+              keyframes: [],
+            } as VideoClip,
+          ]
+        : [],
     },
     {
       id: 'track-audio-1',
@@ -196,25 +214,27 @@ function createDefaultTracks(assetId: string, duration: number, audioAssetId?: s
       visible: true,
       volume: 1,
       height: 60,
-      clips: [
-        {
-          id: 'clip-audio-main',
-          trackId: 'track-audio-1',
-          type: 'audio',
-          assetId: audioAssetId || assetId,
-          name: 'Original Audio',
-          startTime: 0,
-          endTime: duration,
-          sourceStartTime: 0,
-          sourceEndTime: duration,
-          volume: 1,
-          muted: false,
-          fadeIn: 0,
-          fadeOut: 0,
-          effects: [],
-          keyframes: [],
-        } as AudioClip,
-      ],
+      clips: includeMainClips
+        ? [
+            {
+              id: 'clip-audio-main',
+              trackId: 'track-audio-1',
+              type: 'audio',
+              assetId: audioAssetId || assetId,
+              name: 'Original Audio',
+              startTime: 0,
+              endTime: duration,
+              sourceStartTime: 0,
+              sourceEndTime: duration,
+              volume: 1,
+              muted: false,
+              fadeIn: 0,
+              fadeOut: 0,
+              effects: [],
+              keyframes: [],
+            } as AudioClip,
+          ]
+        : [],
     },
     {
       id: 'track-subtitle-1',
@@ -621,9 +641,13 @@ export const useEditorStore = create<EditorState & EditorActions>()(
     initializeProject: (asset, subtitleCues, durationOverride) => {
       const metadata = (asset.metadata || {}) as Record<string, unknown>;
       const isImage = asset.assetType === 'IMAGE';
+      // Blank/placeholder projects (created via "New Project") carry no real
+      // source media — start them with empty tracks instead of placeholder
+      // "Main Video"/"Original Audio" clips.
+      const isPlaceholder = asset.id.startsWith('blank-') || asset.id.startsWith('project-');
       const duration = durationOverride ?? (isImage ? 5 : ((metadata.duration as number) || 30));
 
-      const tracks = createDefaultTracks(asset.id, duration);
+      const tracks = createDefaultTracks(asset.id, duration, undefined, !isPlaceholder);
 
       // Import subtitle cues if provided
       if (subtitleCues && subtitleCues.length > 0) {
@@ -669,7 +693,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
       });
 
       // Separate audio from video in background
-      if (!isImage && window.electronAPI?.audioExtract?.separate) {
+      if (!isImage && !isPlaceholder && window.electronAPI?.audioExtract?.separate) {
         const videoPath = asset.id.startsWith('file://')
           ? decodeURIComponent(asset.id.replace(/^file:\/\/\//, ''))
           : get().assetPaths.get(asset.id) ?? get().proxyPaths.get(asset.id);
@@ -806,7 +830,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
 
     // ==================== Track Actions ====================
 
-    addTrack: (type, name) => {
+    addTrack: (type, name, opts) => {
       const { tracks } = get();
       const trackCount = tracks.filter((t) => t.type === type).length + 1;
       const defaultNames: Record<TrackType, string> = {
@@ -830,7 +854,12 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         clips: [],
       };
 
-      const updates: Partial<EditorState> = { tracks: [...tracks, newTrack] };
+      // atTop inserts the new track as the top-most layer (index 0). In the
+      // timeline the top track is the highest compositing layer (z-order), so
+      // image overlays added on top render above the base video.
+      const updates: Partial<EditorState> = {
+        tracks: opts?.atTop ? [newTrack, ...tracks] : [...tracks, newTrack],
+      };
       // Auto-set target track if none is set
       if (type === 'video' && !get().targetVideoTrackId) {
         updates.targetVideoTrackId = newTrack.id;
@@ -1583,6 +1612,12 @@ export const useEditorStore = create<EditorState & EditorActions>()(
       const { originalClip } = dragState;
       const clipDuration = originalClip.endTime - originalClip.startTime;
 
+      // Image clips have no intrinsic source duration — they can be stretched to
+      // any length. Exempt them from the source-duration trim clamp so the user
+      // can drag the end handle to extend an image indefinitely.
+      const isImageClip =
+        originalClip.type === 'video' && (originalClip as VideoClip).mediaType === 'image';
+
       // Helper: snap using clip edges, playhead, markers, and grid
       const doSnap = (time: number, excludeId: string) =>
         snapToEdges(time, tracks, excludeId, playhead, markers, pixelsPerSecond, gridSize, snap);
@@ -1595,8 +1630,9 @@ export const useEditorStore = create<EditorState & EditorActions>()(
       };
 
       if (dragState.operation === 'move') {
-        const clickOffset = dragState.startTime - originalClip.startTime;
-        const rawStart = currentTime - clickOffset;
+        // Anchor the clip's LEFT EDGE to the cursor (drop x position), regardless
+        // of where within the clip body the user grabbed it.
+        const rawStart = currentTime;
 
         // Only apply snap if user has moved clip more than a minimal threshold
         // This prevents the clip from jumping to a snap point immediately on click
@@ -1666,10 +1702,11 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         newEndTime = Math.max(originalClip.startTime + 0.1, newEndTime);
         set({ snapTarget: snapTargetEnd });
 
-        // Clamp: sourceEndTime cannot exceed sourceDuration
+        // Clamp: sourceEndTime cannot exceed sourceDuration (images are exempt —
+        // they have no source media length and may be stretched without limit).
         let newSourceEnd = originalClip.sourceEndTime + (newEndTime - originalClip.endTime);
         const maxDuration = originalClip.sourceDuration ?? 0;
-        if (maxDuration > 0 && newSourceEnd > maxDuration) {
+        if (!isImageClip && maxDuration > 0 && newSourceEnd > maxDuration) {
           newSourceEnd = maxDuration;
           newEndTime = originalClip.endTime + (maxDuration - originalClip.sourceEndTime);
         }
@@ -1688,7 +1725,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         const endDelta = newBoundary - originalClip.endTime;
         let newSourceEnd = originalClip.sourceEndTime + endDelta;
         const maxDur = originalClip.sourceDuration ?? 0;
-        if (maxDur > 0 && newSourceEnd > maxDur) {
+        if (!isImageClip && maxDur > 0 && newSourceEnd > maxDur) {
           newSourceEnd = maxDur;
           newBoundary = originalClip.endTime + (maxDur - originalClip.sourceEndTime);
         }
@@ -1961,7 +1998,14 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         t.id === targetTrack!.id ? { ...t, clips: [...t.clips, newClip] } : t
       );
 
-      set({ tracks: newTracks, duration: Math.max(calculateMaxEndTime(newTracks), 1) });
+      // Auto-select the new clip so the inspector populates and the overlay renders
+      // in its settled (fully visible) state immediately for editing.
+      set({
+        tracks: newTracks,
+        duration: Math.max(calculateMaxEndTime(newTracks), 1),
+        selection: { clipIds: [newClip.id], trackIds: [] },
+        selectedClip: newClip,
+      });
       get().pushHistory('Add Subtitle');
       return newClip;
     },

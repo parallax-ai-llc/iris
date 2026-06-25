@@ -38,7 +38,7 @@ export const SourceMonitorModal = memo(function SourceMonitorModal({
   const [inPoint, setInPoint] = useState(0);
   const [outPoint, setOutPoint] = useState(0);
 
-  const { addClip, tracks } = useEditorStore();
+  const { addClip, addTrack, tracks } = useEditorStore();
 
   // Use externalId for server assets, fileUrl for local files
   const mediaAssetRef = media?.externalId || media?.fileUrl || null;
@@ -108,22 +108,49 @@ export const SourceMonitorModal = memo(function SourceMonitorModal({
     const clipDuration = outPoint - inPoint;
     if (clipDuration <= 0) return;
 
+    const mediaDuration = media.duration || clipDuration;
+
+    // Images become resizable overlays on a NEW top-most video track (not
+    // appended behind the existing footage). They keep their natural pixel size.
+    if (media.mediaType === 'image') {
+      const newTrack = addTrack('video', undefined, { atTop: true });
+      addClip(newTrack.id, {
+        type: 'video',
+        name: media.name,
+        assetId: media.externalId || media.fileUrl || '',
+        startTime: 0,
+        endTime: clipDuration,
+        sourceStartTime: inPoint,
+        sourceEndTime: outPoint,
+        sourceDuration: mediaDuration,
+        transform: { scale: 1, rotation: 0, opacity: 1, x: 0, y: 0 },
+        volume: 1,
+        muted: false,
+        speed: 1,
+        blendMode: 'normal',
+        effects: [],
+        keyframes: [],
+        mediaType: 'image',
+        sourceWidth: media.width ?? undefined,
+        sourceHeight: media.height ?? undefined,
+        audioExtracted: true,
+      });
+      onClose();
+      return;
+    }
+
     // Find the first suitable track
     const targetTrack = tracks.find(
       (t) =>
         (media.mediaType === 'video' && t.type === 'video') ||
-        (media.mediaType === 'audio' && t.type === 'audio') ||
-        (media.mediaType === 'image' && t.type === 'video')
+        (media.mediaType === 'audio' && t.type === 'audio')
     );
     if (!targetTrack) return;
 
     // Find end of existing clips in that track
     const trackEnd = targetTrack.clips.reduce((max, c) => Math.max(max, c.endTime), 0);
 
-    const mediaDuration = media.duration || clipDuration;
-    const isImage = media.mediaType === 'image';
-
-    if (media.mediaType === 'video' || isImage) {
+    if (media.mediaType === 'video') {
       const videoClip = addClip(targetTrack.id, {
         type: 'video',
         name: media.name,
@@ -140,11 +167,11 @@ export const SourceMonitorModal = memo(function SourceMonitorModal({
         blendMode: 'normal',
         effects: [],
         keyframes: [],
-        mediaType: isImage ? 'image' : 'video',
+        mediaType: 'video',
       });
 
-      // Auto-create paired audio clip for video (not images)
-      if (!isImage && videoClip) {
+      // Auto-create paired audio clip for video
+      if (videoClip) {
         const audioTrack = tracks.find((t) => t.type === 'audio');
         if (audioTrack) {
           const audioClip = addClip(audioTrack.id, {
@@ -189,7 +216,7 @@ export const SourceMonitorModal = memo(function SourceMonitorModal({
     }
 
     onClose();
-  }, [media, inPoint, outPoint, tracks, addClip, onClose]);
+  }, [media, inPoint, outPoint, tracks, addClip, addTrack, onClose]);
 
   if (!isOpen || !media) return null;
 
@@ -197,15 +224,15 @@ export const SourceMonitorModal = memo(function SourceMonitorModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
       onClick={onClose}
     >
       <div
-        className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden"
+        className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 flex-shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <Maximize2 className="w-4 h-4 text-zinc-400 flex-shrink-0" />
             <h2 className="text-sm font-medium text-white truncate">{media.name}</h2>
@@ -215,8 +242,11 @@ export const SourceMonitorModal = memo(function SourceMonitorModal({
           </button>
         </div>
 
+        {/* Scrollable body — keeps the footer (Add to Timeline) reachable even
+            when the preview + controls are taller than the viewport. */}
+        <div className="flex-1 min-h-0 overflow-y-auto">
         {/* Video preview */}
-        <div className="relative bg-black aspect-video w-full">
+        <div className="relative bg-black aspect-video w-full max-h-[55vh]">
           {videoUrl ? (
             <video
               ref={videoRef}
@@ -324,9 +354,10 @@ export const SourceMonitorModal = memo(function SourceMonitorModal({
             </div>
           </div>
         </div>
+        </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-zinc-800">
+        <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-zinc-800 flex-shrink-0">
           <button
             onClick={onClose}
             className="px-3 py-1.5 rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"

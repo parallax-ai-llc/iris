@@ -3,7 +3,7 @@
  * Edit clip properties, subtitle styling, and effects
  */
 
-import { memo, useCallback, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Type,
   Palette,
@@ -459,6 +459,7 @@ const SubtitleProperties = memo(function SubtitleProperties({
             onChange={(e) => handleStyleChange('fontFamily', e.target.value)}
             className="px-2 py-1 rounded text-xs text-white bg-zinc-700 border border-zinc-600 focus:outline-none focus:ring-1 focus:ring-white/30"
           >
+            <option value="Inter">Inter</option>
             <option value="Arial">Arial</option>
             <option value="Helvetica">Helvetica</option>
             <option value="Times New Roman">Times New Roman</option>
@@ -594,6 +595,88 @@ const SubtitleProperties = memo(function SubtitleProperties({
           min={0}
           max={100}
           suffix="%"
+        />
+
+        {/* Box width — % of frame, or Auto (fit to text) */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-xs text-zinc-400">Width</label>
+            <button
+              type="button"
+              onClick={() =>
+                handleStyleChange('width', clip.style.width == null ? 60 : undefined)
+              }
+              className={cn(
+                'px-1.5 py-0.5 rounded text-[10px] transition-colors',
+                clip.style.width == null
+                  ? 'bg-white/10 text-white border border-white/20'
+                  : 'bg-zinc-700 text-zinc-400 hover:text-white'
+              )}
+              title="Auto-fit width to text"
+            >
+              Auto
+            </button>
+          </div>
+          {clip.style.width != null && (
+            <SliderField
+              label=""
+              value={clip.style.width}
+              onChange={(v) => handleStyleChange('width', v)}
+              min={5}
+              max={100}
+              suffix="%"
+            />
+          )}
+        </div>
+
+        {/* Box height — % of frame, or Auto (fit to text) */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-xs text-zinc-400">Height</label>
+            <button
+              type="button"
+              onClick={() =>
+                handleStyleChange('height', clip.style.height == null ? 30 : undefined)
+              }
+              className={cn(
+                'px-1.5 py-0.5 rounded text-[10px] transition-colors',
+                clip.style.height == null
+                  ? 'bg-white/10 text-white border border-white/20'
+                  : 'bg-zinc-700 text-zinc-400 hover:text-white'
+              )}
+              title="Auto-fit height to text"
+            >
+              Auto
+            </button>
+          </div>
+          {clip.style.height != null && (
+            <SliderField
+              label=""
+              value={clip.style.height}
+              onChange={(v) => handleStyleChange('height', v)}
+              min={5}
+              max={100}
+              suffix="%"
+            />
+          )}
+        </div>
+
+        {/* Inner padding (px) */}
+        <SliderField
+          label="Padding X"
+          value={clip.style.paddingX ?? 12}
+          onChange={(v) => handleStyleChange('paddingX', v)}
+          min={0}
+          max={100}
+          suffix="px"
+        />
+        <SliderField
+          label="Padding Y"
+          value={clip.style.paddingY ?? 4}
+          onChange={(v) => handleStyleChange('paddingY', v)}
+          min={0}
+          max={100}
+          suffix="px"
         />
 
         <div className="flex items-center justify-between">
@@ -1260,38 +1343,158 @@ const VideoProperties = memo(function VideoProperties({
   );
 });
 
-// Timing properties (common to all clips)
+// Parse a timecode string back to seconds. Accepts SMPTE (HH:MM:SS:FF),
+// HH:MM:SS, MM:SS, or a plain decimal number of seconds. Returns null if the
+// string can't be parsed.
+function parseTimecode(input: string, frameRate: number): number | null {
+  const str = input.trim();
+  if (!str) return null;
+  const neg = str.startsWith('-');
+  const body = neg ? str.slice(1) : str;
+
+  let secs: number;
+  if (body.includes(':')) {
+    const parts = body.split(':').map((p) => p.trim());
+    if (parts.some((p) => p === '' || isNaN(Number(p)))) return null;
+    const nums = parts.map(Number);
+    let h = 0, m = 0, s = 0, f = 0;
+    if (nums.length === 4) [h, m, s, f] = nums;
+    else if (nums.length === 3) [h, m, s] = nums;
+    else if (nums.length === 2) [m, s] = nums;
+    else if (nums.length === 1) [s] = nums;
+    else return null;
+    secs = h * 3600 + m * 60 + s + (frameRate > 0 ? f / frameRate : 0);
+  } else {
+    secs = Number(body);
+    if (isNaN(secs)) return null;
+  }
+  return neg ? -secs : secs;
+}
+
+// Editable timecode field — shows an SMPTE string, lets the user type a new
+// value, and commits the parsed seconds on Enter/blur (Escape reverts).
+const TimecodeInput = memo(function TimecodeInput({
+  label,
+  seconds,
+  frameRate,
+  onCommit,
+}: {
+  label: string;
+  seconds: number;
+  frameRate: number;
+  onCommit: (value: number) => void;
+}) {
+  const formatted = formatSMPTE(seconds, frameRate);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(formatted);
+
+  useEffect(() => {
+    if (!editing) setDraft(formatted);
+  }, [formatted, editing]);
+
+  const commit = useCallback(() => {
+    setEditing(false);
+    const parsed = parseTimecode(draft, frameRate);
+    if (parsed !== null && Number.isFinite(parsed)) onCommit(parsed);
+    else setDraft(formatted);
+  }, [draft, frameRate, onCommit, formatted]);
+
+  return (
+    <div className="flex items-center justify-between">
+      <label className="text-xs text-zinc-400">{label}</label>
+      <input
+        type="text"
+        value={editing ? draft : formatted}
+        onFocus={(e) => { setEditing(true); setDraft(formatted); e.currentTarget.select(); }}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.currentTarget.blur();
+          } else if (e.key === 'Escape') {
+            setDraft(formatted);
+            setEditing(false);
+            e.currentTarget.blur();
+          }
+        }}
+        spellCheck={false}
+        className="w-24 text-xs text-white font-mono bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-right focus:outline-none focus:border-zinc-500"
+      />
+    </div>
+  );
+});
+
+// Timing properties (common to all clips). Start/End/Duration are typeable —
+// committing a value trims the clip edge the same way dragging the handle does.
 const TimingProperties = memo(function TimingProperties({
   clip,
 }: {
   clip: Clip;
 }) {
   const frameRate = useEditorStore((s) => s.frameRate);
+  const updateClip = useEditorStore((s) => s.updateClip);
+  const pushHistory = useEditorStore((s) => s.pushHistory);
+
+  const isImage = clip.type === 'video' && clip.mediaType === 'image';
+  const MIN_DUR = 0.05;
+
+  // Apply the same update to the paired (linked) clip, matching drag-trim.
+  const applyToLinked = useCallback(
+    (updates: Partial<Clip>) => {
+      if (clip.linkedClipId) updateClip(clip.linkedClipId, updates);
+    },
+    [clip.linkedClipId, updateClip],
+  );
+
+  const commitStart = useCallback(
+    (value: number) => {
+      let newStart = Math.max(0, Math.min(clip.endTime - MIN_DUR, value));
+      let newSourceStart = clip.sourceStartTime + (newStart - clip.startTime);
+      // Non-image clips can't trim past the source in-point (0).
+      if (newSourceStart < 0) {
+        if (!isImage) {
+          newStart = Math.max(0, clip.startTime - clip.sourceStartTime);
+        }
+        newSourceStart = 0;
+      }
+      const updates = { startTime: newStart, sourceStartTime: newSourceStart };
+      updateClip(clip.id, updates);
+      applyToLinked(updates);
+      pushHistory('Edit Timing');
+    },
+    [clip, isImage, updateClip, applyToLinked, pushHistory],
+  );
+
+  const commitEnd = useCallback(
+    (value: number) => {
+      let newEnd = Math.max(clip.startTime + MIN_DUR, value);
+      let newSourceEnd = clip.sourceEndTime + (newEnd - clip.endTime);
+      const maxDuration = clip.sourceDuration ?? 0;
+      // Images stretch without limit; other media cap at the source length.
+      if (!isImage && maxDuration > 0 && newSourceEnd > maxDuration) {
+        newSourceEnd = maxDuration;
+        newEnd = clip.endTime + (maxDuration - clip.sourceEndTime);
+      }
+      const updates = { endTime: newEnd, sourceEndTime: newSourceEnd };
+      updateClip(clip.id, updates);
+      applyToLinked(updates);
+      pushHistory('Edit Timing');
+    },
+    [clip, isImage, updateClip, applyToLinked, pushHistory],
+  );
+
+  const commitDuration = useCallback(
+    (value: number) => commitEnd(clip.startTime + Math.max(MIN_DUR, value)),
+    [clip.startTime, commitEnd],
+  );
 
   return (
     <>
       <SectionHeader icon={Clock} title="Timing" />
       <div className="p-3 space-y-3 border-b border-zinc-700">
-        <div className="flex items-center justify-between">
-          <label className="text-xs text-zinc-400">Start</label>
-          <span className="text-xs text-white font-mono">
-            {formatSMPTE(clip.startTime, frameRate)}
-          </span>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <label className="text-xs text-zinc-400">End</label>
-          <span className="text-xs text-white font-mono">
-            {formatSMPTE(clip.endTime, frameRate)}
-          </span>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <label className="text-xs text-zinc-400">Duration</label>
-          <span className="text-xs text-white font-mono">
-            {formatSMPTE(clip.endTime - clip.startTime, frameRate)}
-          </span>
-        </div>
+        <TimecodeInput label="Start" seconds={clip.startTime} frameRate={frameRate} onCommit={commitStart} />
+        <TimecodeInput label="End" seconds={clip.endTime} frameRate={frameRate} onCommit={commitEnd} />
+        <TimecodeInput label="Duration" seconds={clip.endTime - clip.startTime} frameRate={frameRate} onCommit={commitDuration} />
       </div>
     </>
   );

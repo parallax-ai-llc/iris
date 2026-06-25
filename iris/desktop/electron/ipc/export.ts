@@ -13,6 +13,11 @@ import { spawn, type ChildProcess } from 'child_process';
 import https from 'https';
 import http from 'http';
 import { ensureFFmpegAvailable, findFFmpegPathSync, type EnsureProgress } from './ffmpeg-resolver';
+import {
+  buildOverlayCompositor,
+  type OverlayClip,
+  type OverlayTrack,
+} from './export-overlays';
 
 // Download a remote URL to a local temp file, returns local path
 async function downloadToTemp(url: string, ext: string, authToken?: string, redirectCount = 0): Promise<string> {
@@ -79,6 +84,17 @@ async function checkSourceHasAudio(ffmpegPath: string, filePath: string): Promis
 
 // ==================== Types ====================
 
+interface SubtitleOverlayEntry {
+  /** Base64 PNG data URL from the renderer (set by ExportModal before IPC call). */
+  pngDataUrl?: string;
+  /** Resolved temp file path written by the export handler. */
+  pngPath?: string;
+  /** Timeline-relative start time (seconds). */
+  startTime: number;
+  /** Timeline-relative end time (seconds). */
+  endTime: number;
+}
+
 interface ExportRequest {
   outputPath: string;
   format: 'mp4' | 'webm' | 'mov' | 'gif';
@@ -93,6 +109,12 @@ interface ExportRequest {
   codec?: 'h264' | 'h265' | 'prores' | 'vp9';
   proResProfile?: '422' | '422-hq' | '422-lt' | '422-proxy' | '4444';
   authToken?: string;
+  /**
+   * Pre-rasterized subtitle PNG overlays from the renderer.
+   * When present, these are composited via FFmpeg overlay instead of the ASS burned path,
+   * producing pixel-accurate output that matches the editor preview exactly.
+   */
+  subtitleOverlays?: SubtitleOverlayEntry[];
 }
 
 interface ExportTrack {
@@ -116,6 +138,16 @@ interface ExportClip {
   volume?: number;
   muted?: boolean;
   speed?: number;
+  /** Natural pixel dimensions of the source image (stored in VideoClip.sourceWidth/Height).
+   *  Required so image overlays render at their natural size rather than the full frame. */
+  sourceWidth?: number;
+  sourceHeight?: number;
+  /** CSS/canvas blend mode for overlay compositing. Only 'normal' is currently applied
+   *  (mapped to plain overlay filter). Other modes are accepted but fall back to normal. */
+  blendMode?: string;
+  /** The track that owns this clip. Populated by the ExportRequest builder so the
+   *  compositor can determine the base vs overlay tracks without re-scanning. */
+  trackId?: string;
   transform?: {
     scale: number;
     rotation: number;
@@ -137,6 +169,8 @@ interface ExportClip {
   }>;
   // Subtitle specific
   text?: string;
+  /** Full SubtitleStyle passed through from the editor. The width/height/paddingX/paddingY
+   *  fields are used by buildAssContent for lower-third positioning. */
   style?: {
     fontSize: number;
     fontFamily: string;
@@ -148,6 +182,19 @@ interface ExportClip {
     verticalAlign?: 'top' | 'middle' | 'bottom';
     fontWeight?: 'normal' | 'bold';
     fontStyle?: 'normal' | 'italic';
+    stroke?: { color: string; width: number };
+    dropShadow?: { color: string; offsetX: number; offsetY: number; blur: number };
+    letterSpacing?: number;
+    lineHeight?: number;
+    textTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
+    /** Width of the text box as % of the video frame width. */
+    width?: number;
+    /** Height of the text box as % of the video frame height. */
+    height?: number;
+    /** Horizontal inner padding in project px. */
+    paddingX?: number;
+    /** Vertical inner padding in project px. */
+    paddingY?: number;
   };
   // Audio/Music specific
   fadeIn?: number;  // seconds
@@ -1271,8 +1318,18 @@ function buildAssContent(subs: SubClip[], width: number, height: number): string
     const tags: string[] = [];
 
     if (style) {
-      // Alignment
-      tags.push(`\\an${toAssAlignment(style.verticalAlign, style.alignment)}`);
+      // Use \an5 (middle-center anchor) + \pos(x,y) to centre the box at (x%,y%).
+      // This matches the preview compositor which uses translate(-50%,-50%) at
+      // left=x%, top=y% — the element centre sits exactly at the percentage point.
+      // toAssAlignment is kept for the text justification within the box (not for
+      // anchor position — \an5 overrides that); we emit \q2 for left-justify only.
+      tags.push('\\an5');
+
+      if (style.position) {
+        const px = Math.round((style.position.x / 100) * width);
+        const py = Math.round((style.position.y / 100) * height);
+        tags.push(`\\pos(${px},${py})`);
+      }
 
       // Font
       if (style.fontSize) tags.push(`\\fs${Math.round(style.fontSize)}`);
@@ -1281,15 +1338,20 @@ function buildAssContent(subs: SubClip[], width: number, height: number): string
       if (style.fontWeight === 'bold') tags.push('\\b1');
       if (style.fontStyle === 'italic') tags.push('\\i1');
 
-      // Background (ASS uses BorderStyle=3 for opaque box, \\4c for box color, \\4a for box alpha)
+      // Background (ASS BorderStyle=3 = opaque box, \\4c = box colour, \\4a = box alpha).
+      // paddingX/paddingY are approximated via \\bord — ASS padding is not per-axis,
+      // so we take the larger of the two and use it as the symmetric border width.
       if (style.backgroundColor) {
         const bgAlpha = 1 - (style.backgroundOpacity ?? 0.7); // ASS alpha: 0=opaque, 1=transparent
         tags.push(`\\4c${hexToAssBGR(style.backgroundColor)}&`);
         tags.push(`\\4a&H${Math.round(bgAlpha * 255).toString(16).padStart(2, '0').toUpperCase()}&`);
-        tags.push('\\bord3'); // border width for box
+        const padX = style.paddingX ?? 12;
+        const padY = style.paddingY ?? 4;
+        const bord = Math.max(padX, padY, 2);
+        tags.push(`\\bord${bord}`);
       }
 
-      // Outline/stroke
+      // Outline/stroke (overrides bord set above if stroke is present — stroke takes priority)
       if (style.stroke) {
         tags.push(`\\3c${hexToAssBGR(style.stroke.color)}&`);
         tags.push(`\\bord${style.stroke.width}`);
@@ -1298,18 +1360,15 @@ function buildAssContent(subs: SubClip[], width: number, height: number): string
       // Drop shadow
       if (style.dropShadow) {
         tags.push(`\\shad${Math.round(style.dropShadow.blur)}`);
-        tags.push(`\\4c${hexToAssBGR(style.dropShadow.color)}&`);
+        // Shadow colour goes to \\4c; if we already set it for background, this
+        // will override it — acceptable for clips that have a shadow but no bg.
+        if (!style.backgroundColor) {
+          tags.push(`\\4c${hexToAssBGR(style.dropShadow.color)}&`);
+        }
       }
 
       // Letter spacing
       if (style.letterSpacing) tags.push(`\\fsp${style.letterSpacing}`);
-
-      // Position
-      if (style.position) {
-        const px = Math.round((style.position.x / 100) * width);
-        const py = Math.round((style.position.y / 100) * height);
-        tags.push(`\\pos(${px},${py})`);
-      }
     }
 
     const overrideTags = tags.length > 0 ? `{${tags.join('')}}` : '';
@@ -1330,10 +1389,78 @@ function buildAssContent(subs: SubClip[], width: number, height: number): string
 function buildFFmpegArgs(request: ExportRequest, sourcesWithAudio?: Set<string>): string[] {
   const args: string[] = ['-y']; // Overwrite output
 
-  // Collect all media inputs
-  const videoClips = request.tracks
+  // ── Determine base track vs overlay tracks ──────────────────────────────────
+  // Preview compositing model: tracks[0] = top layer, tracks[N-1] = bottom layer.
+  // The base video = the clip from the bottom-most (highest-index) visible video
+  // track that contains at least one non-image clip. Everything else is an overlay.
+  //
+  // request.tracks preserves the store order (index 0 = top-most layer).
+  const visibleVideoTracks = request.tracks
     .filter((t) => t.type === 'video' && !t.muted)
-    .flatMap((t) => t.clips.filter((c) => (c.type === 'video' || c.mediaType === 'image') && c.sourceUrl));
+    .map((t, storeIndex) => ({ track: t, storeIndex }));
+
+  // Bottom-most visible video track that has at least one non-image video clip
+  let baseTrackId: string | null = null;
+  for (let i = visibleVideoTracks.length - 1; i >= 0; i--) {
+    const { track } = visibleVideoTracks[i];
+    const hasRealVideo = track.clips.some(
+      (c) => (c.type === 'video' || c.mediaType !== 'image') && c.mediaType !== 'image' && c.sourceUrl,
+    );
+    if (hasRealVideo) {
+      baseTrackId = track.id;
+      break;
+    }
+  }
+
+  // Collect overlay clips: clips on non-base video tracks + image clips on the base track
+  const overlayTracks: OverlayTrack[] = [];
+  for (const { track, storeIndex } of visibleVideoTracks) {
+    const isBaseTrack = track.id === baseTrackId;
+    const overlayClips: OverlayClip[] = track.clips.filter((c) => {
+      if (!c.sourceUrl) return false;
+      // On the base track: only image clips become overlays (real video is handled by base)
+      if (isBaseTrack) return c.mediaType === 'image';
+      // On non-base tracks: all video/image clips are overlays
+      return c.type === 'video' || c.mediaType === 'image';
+    }).map((c) => ({
+      id: c.id,
+      mediaType: c.mediaType,
+      startTime: c.startTime,
+      endTime: c.endTime,
+      sourceStartTime: c.sourceStartTime,
+      sourceEndTime: c.sourceEndTime,
+      sourceUrl: c.sourceUrl,
+      sourceWidth: c.sourceWidth,
+      sourceHeight: c.sourceHeight,
+      speed: c.speed,
+      muted: c.muted,
+      effects: c.effects,
+      transform: c.transform,
+      blendMode: c.blendMode,
+    }));
+
+    if (overlayClips.length > 0) {
+      overlayTracks.push({ id: track.id, trackIndex: storeIndex, clips: overlayClips });
+    }
+  }
+
+  const hasOverlays = overlayTracks.length > 0;
+
+  // Collect base track clips (non-image video clips on the base track)
+  const baseTrack = request.tracks.find((t) => t.id === baseTrackId);
+  const baseVideoClips = baseTrack
+    ? baseTrack.clips.filter(
+        (c) => (c.type === 'video' || c.mediaType !== 'image') && c.mediaType !== 'image' && c.sourceUrl,
+      )
+    : [];
+
+  // For the "flat" path (no overlays), collect all video clips across all tracks
+  // (existing behaviour — flatten everything into one concat list).
+  const videoClips = hasOverlays
+    ? baseVideoClips
+    : request.tracks
+        .filter((t) => t.type === 'video' && !t.muted)
+        .flatMap((t) => t.clips.filter((c) => (c.type === 'video' || c.mediaType === 'image') && c.sourceUrl));
 
   const audioClips = request.tracks
     .filter((t) => (t.type === 'audio' || t.type === 'music') && !t.muted)
@@ -1342,7 +1469,7 @@ function buildFFmpegArgs(request: ExportRequest, sourcesWithAudio?: Set<string>)
     );
 
   // If no video clips, create a black background
-  if (videoClips.length === 0) {
+  if (videoClips.length === 0 && !hasOverlays) {
     args.push(
       '-f', 'lavfi',
       '-i', `color=c=black:s=${request.width}x${request.height}:d=${request.duration}:r=${request.frameRate}`
@@ -1351,7 +1478,7 @@ function buildFFmpegArgs(request: ExportRequest, sourcesWithAudio?: Set<string>)
 
   // Add each video clip as input
   const inputMap: Map<string, number> = new Map();
-  let inputIndex = videoClips.length === 0 ? 1 : 0;
+  let inputIndex = (videoClips.length === 0 && !hasOverlays) ? 1 : 0;
 
   for (const clip of videoClips) {
     if (!inputMap.has(clip.sourceUrl)) {
@@ -1375,8 +1502,18 @@ function buildFFmpegArgs(request: ExportRequest, sourcesWithAudio?: Set<string>)
     }
   }
 
+  // Overlay inputs are registered lazily inside buildOverlayCompositor via extraInputArgs.
+  // Those args must be prepended before the corresponding -i index is referenced, so we
+  // collect them into a staging array and splice into `args` after building the filter.
+
+  // When there are overlays we always use filter_complex (complex mode), regardless of
+  // how many base clips there are. The simple mode fast-path is only available when there
+  // are zero overlay clips AND at most 1 base video + 1 audio track.
+  const hasSubtitleOverlays = !!(request.subtitleOverlays && request.subtitleOverlays.length > 0);
+  const useSimpleMode = !hasOverlays && !hasSubtitleOverlays && videoClips.length <= 1 && audioClips.length <= 1;
+
   // If only one video and one audio from same source (simple case)
-  if (videoClips.length <= 1 && audioClips.length <= 1) {
+  if (useSimpleMode) {
     // Simple mode - just apply trim + effects
     const vClip = videoClips[0];
     if (vClip) {
@@ -1477,8 +1614,8 @@ function buildFFmpegArgs(request: ExportRequest, sourcesWithAudio?: Set<string>)
           args.push(...getQualityParams(request.quality, request.format, request.codec, request.proResProfile));
         }
       } else {
-        // Burn subtitles if available
-        if (request.includeSubtitles && request.subtitleFormat === 'burned') {
+        // Burn subtitles if available (ASS fallback — skipped when subtitleOverlays is present)
+        if (request.includeSubtitles && request.subtitleFormat === 'burned' && !hasSubtitleOverlays) {
           const allSubs = request.tracks
             .filter((t) => t.type === 'subtitle')
             .flatMap((t) => t.clips)
@@ -1562,13 +1699,25 @@ function buildFFmpegArgs(request: ExportRequest, sourcesWithAudio?: Set<string>)
       }
     }
   } else {
-    // Complex mode - multiple clips need filter_complex (concat)
+    // Complex mode — multiple clips or overlay tracks need filter_complex.
+    // When hasOverlays=true, the base track goes through the standard concat path
+    // (possibly just a single clip or a black canvas), and then overlay clips are
+    // composited on top via the buildOverlayCompositor helper.
+
+    // If there are overlays but no base video clips at all, synthesise a black canvas.
+    if (hasOverlays && videoClips.length === 0) {
+      // We do not push a lavfi input here — instead push a colour filter source
+      // directly into the filter_complex string below. Reserve input slot 0 for the
+      // first overlay clip so the lavfi black gen goes through filter_complex.
+    }
+
     const filterParts: string[] = [];
     const concatVideoLabels: string[] = [];
     const concatAudioLabels: string[] = [];
 
     // Check if the video track is muted — if so, skip audio from video sources
-    const videoTrack = request.tracks.find((t) => t.type === 'video' && !t.muted);
+    const videoTrack = request.tracks.find((t) => t.id === baseTrackId && !t.muted)
+      ?? request.tracks.find((t) => t.type === 'video' && !t.muted);
     const videoTrackMuted = !videoTrack || videoTrack.muted;
 
     // Sort by timeline position to detect gaps correctly
@@ -2057,21 +2206,126 @@ function buildFFmpegArgs(request: ExportRequest, sourcesWithAudio?: Set<string>)
       finalAudioLabel = allAudioToMix[0];
     }
 
-    // ---- Burned subtitles ----
-    // Write subtitle clips to a temp .ass file and overlay via the subtitles filter.
-    // Only applies when subtitleFormat === 'burned' and there are subtitle clips.
-    // Apply adjustment track effects to the final video output
-    let videoOutLabel = '[outv]';
+    // ---- Handle no-base-video case: synthesise black canvas in filter_complex ----
+    // When there are only overlay clips (no non-image video on the base track),
+    // the concat produced no [outv] — generate a black canvas of the project duration.
+    let baseVideoOutLabel = '[outv]';
+    if (hasOverlays && videoClips.length === 0) {
+      const bW = Math.floor(request.width / 2) * 2;
+      const bH = Math.floor(request.height / 2) * 2;
+      filterParts.push(
+        `color=c=black:s=${bW}x${bH}:d=${request.duration}:r=${request.frameRate},setsar=1,format=yuv420p[outv_black]`,
+      );
+      baseVideoOutLabel = '[outv_black]';
+    }
+
+    // ---- Overlay compositor ──────────────────────────────────────────────────
+    // Composite overlay tracks on top of the base video stream.
+    // Overlay inputs are collected via extraInputArgs which must be inserted into
+    // `args` before the -filter_complex argument so FFmpeg sees them in order.
+    let videoOutLabel = baseVideoOutLabel;
+
+    if (hasOverlays) {
+      const extraInputArgs: string[] = [];
+      const nextInputIndex = { value: inputIndex };
+
+      // The base stream (yuv420p) is passed directly to the overlay compositor.
+      // Overlay clips are in 'rgba' format so ffmpeg's overlay filter composites them
+      // correctly on top of the yuv420p base (no explicit format conversion needed here).
+      const baseAccLabel = baseVideoOutLabel.replace(/^\[|\]$/g, '');
+
+      const compositorParams = {
+        projectWidth: request.width,
+        projectHeight: request.height,
+        frameRate: request.frameRate,
+        accLabel: baseAccLabel,
+        filterParts,
+        inputMap,
+        nextInputIndex,
+        extraInputArgs,
+        videoSplitQueue,
+        audioSplitQueue,
+      };
+
+      const finalOverlayLabel = buildOverlayCompositor(
+        overlayTracks,
+        compositorParams,
+        buildEffectFilters,
+      );
+
+      // Convert back to yuv420p for the encoder
+      const finalYuvLabel = 'outv_composite';
+      filterParts.push(`[${finalOverlayLabel}]format=yuv420p[${finalYuvLabel}]`);
+      videoOutLabel = `[${finalYuvLabel}]`;
+
+      // Splice overlay inputs before the -filter_complex argument.
+      // We push them into `args` now — they will appear after the base inputs
+      // already in `args` but before -filter_complex (which we haven't pushed yet).
+      args.push(...extraInputArgs);
+
+      // The compositor consumed input slots via nextInputIndex — sync the outer
+      // counter so anything added afterwards (subtitle PNGs) gets a fresh slot
+      // instead of colliding with an overlay clip's input.
+      inputIndex = nextInputIndex.value;
+    }
+
+    // ---- Adjustment track effects applied to the final video output ----
     const adjTrackEffects = request.tracks
       .filter((t) => t.type === 'adjustment' && !t.muted)
       .flatMap((t) => t.clips.flatMap((c) => c.effects ?? []));
     const adjVideoFilters = buildEffectFilters(adjTrackEffects);
     if (adjVideoFilters.length > 0) {
-      filterParts.push(`[outv]${adjVideoFilters.join(',')}[outv_adj]`);
+      const adjIn = videoOutLabel.replace(/^\[|\]$/g, '');
+      filterParts.push(`[${adjIn}]${adjVideoFilters.join(',')}[outv_adj]`);
       videoOutLabel = '[outv_adj]';
     }
 
-    if (request.includeSubtitles && request.subtitleFormat === 'burned' && !isGif) {
+    // ---- Subtitle PNG overlays ----
+    // Full-frame transparent PNGs rasterized by the renderer and composited here.
+    // This path is taken when subtitleOverlays is present (pixel-accurate mode).
+    // Each PNG is a still image looped for the clip duration and overlaid at 0,0.
+    if (hasSubtitleOverlays && request.subtitleOverlays) {
+      const subtitleInputArgs: string[] = [];
+      let subInputIdx = inputIndex; // next free input slot after base + audio + overlay inputs
+
+      for (let si = 0; si < request.subtitleOverlays.length; si++) {
+        const subOv = request.subtitleOverlays[si];
+        if (!subOv.pngPath) continue;
+
+        const clipDur = subOv.endTime - subOv.startTime;
+        if (clipDur <= 0) continue;
+
+        subtitleInputArgs.push(
+          '-loop', '1',
+          '-f', 'image2',
+          '-framerate', String(request.frameRate),
+          '-i', subOv.pngPath,
+        );
+
+        const subProcLabel = `subpng${si}_proc`;
+        const subCompLabel = `subpng${si}_comp`;
+        // trim to clip duration, reset PTS, convert to rgba for alpha-aware overlay
+        filterParts.push(
+          `[${subInputIdx}:v]trim=end=${clipDur.toFixed(4)},setpts=PTS-STARTPTS,fps=${request.frameRate},format=rgba[${subProcLabel}]`,
+        );
+        const curLabel = videoOutLabel.replace(/^\[|\]$/g, '');
+        const enable = `between(t,${subOv.startTime.toFixed(4)},${subOv.endTime.toFixed(4)})`;
+        filterParts.push(
+          `[${curLabel}][${subProcLabel}]overlay=0:0:enable='${enable}'[${subCompLabel}]`,
+        );
+        videoOutLabel = `[${subCompLabel}]`;
+        subInputIdx++;
+      }
+
+      // Splice the subtitle PNG inputs into args before -filter_complex
+      args.push(...subtitleInputArgs);
+    }
+
+    // ---- Burned subtitles (ASS fallback) ----
+    // Write subtitle clips to a temp .ass file and overlay via the subtitles filter.
+    // Skipped when subtitleOverlays is present (PNG path is used instead).
+
+    if (request.includeSubtitles && request.subtitleFormat === 'burned' && !isGif && !hasSubtitleOverlays) {
       const allSubs = request.tracks
         .filter((t) => t.type === 'subtitle')
         .flatMap((t) => t.clips)
@@ -2326,6 +2580,14 @@ export function setupExportHandlers() {
 
           if (clip.sourceUrl.startsWith('file://')) {
             clip.sourceUrl = decodeURIComponent(clip.sourceUrl.replace(/^file:\/\/\//, ''));
+          } else if (clip.sourceUrl.startsWith('http://127.0.0.1:') && clip.sourceUrl.includes('path=')) {
+            // Local media server URL — the real local file path is in the ?path= query.
+            // Served over HTTP only so <video>/<audio> can Range-stream in the editor.
+            const localPath = new URL(clip.sourceUrl).searchParams.get('path');
+            if (!localPath) {
+              throw new Error(`Invalid local media URL: ${clip.sourceUrl}. Restart the project.`);
+            }
+            clip.sourceUrl = localPath;
           } else if (clip.sourceUrl.startsWith('http')) {
             throw new Error(`Asset not downloaded locally: ${clip.sourceUrl}. Restart the project.`);
           }
@@ -2343,6 +2605,24 @@ export function setupExportHandlers() {
       }
       if (missingFiles.length > 0) {
         console.error('[Export] Missing files:', missingFiles);
+      }
+
+      // Write subtitle PNG overlays to temp files (rasterized by the renderer)
+      if (request.subtitleOverlays && request.subtitleOverlays.length > 0) {
+        const subTempDir = path.join(app.getPath('temp'), 'iris-export');
+        await fs.mkdir(subTempDir, { recursive: true });
+        for (const overlay of request.subtitleOverlays) {
+          if (!overlay.pngDataUrl) continue;
+          const b64 = overlay.pngDataUrl.replace(/^data:image\/png;base64,/, '');
+          const buf = Buffer.from(b64, 'base64');
+          const tmpPng = path.join(
+            subTempDir,
+            `subtitle_${Date.now()}_${Math.random().toString(36).slice(2)}.png`,
+          );
+          await fs.writeFile(tmpPng, buf);
+          overlay.pngPath = tmpPng;
+          tempFiles.push(tmpPng);
+        }
       }
 
       // Export subtitles separately if needed

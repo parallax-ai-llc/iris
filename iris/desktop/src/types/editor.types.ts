@@ -59,6 +59,14 @@ export interface SubtitleStyle {
   letterSpacing?: number; // kerning (-5 to 20px)
   lineHeight?: number; // leading (0.8 to 3.0 multiplier)
   textTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
+  /** Text box width as % of the video frame width. Undefined = auto-fit to text. */
+  width?: number;
+  /** Text box height as % of the video frame height. Undefined = auto-fit to text. */
+  height?: number;
+  /** Horizontal inner padding in project px. Undefined = default (12). */
+  paddingX?: number;
+  /** Vertical inner padding in project px. Undefined = default (4). */
+  paddingY?: number;
 }
 
 // ==================== Clip Types ====================
@@ -85,6 +93,10 @@ export interface VideoClip extends BaseClip {
   thumbnailUrl?: string;
   transform: Transform;
   mediaType?: 'video' | 'image';
+  // Natural pixel dimensions of the source media. Used to render image clips at
+  // their original size (instead of fit-to-frame) in the preview compositor.
+  sourceWidth?: number;
+  sourceHeight?: number;
   volume: number;
   muted: boolean;
   // True when this video's audio was extracted to a separate (paired) audio clip.
@@ -776,7 +788,7 @@ export interface EditorActions {
   setScrollLeft: (scrollLeft: number) => void;
 
   // Tracks
-  addTrack: (type: TrackType, name?: string) => Track;
+  addTrack: (type: TrackType, name?: string, opts?: { atTop?: boolean }) => Track;
   removeTrack: (trackId: string) => void;
   updateTrack: (trackId: string, updates: Partial<Track>) => void;
   toggleTrackMute: (trackId: string) => void;

@@ -19,6 +19,7 @@ import type {
   ExportProgress,
 } from '@/types/videoProject.types';
 import * as videoProjectApi from '@/shared/api/videoProject.api';
+import { rehydrateLocalMediaUrl } from '@/features/video-editor/components/modals/localMediaUrl';
 
 // ==================== State Types ====================
 
@@ -120,6 +121,44 @@ export const PROVISIONAL_TIMELINE_DATA: TimelineData = {
   ],
 };
 
+// ==================== Helpers ====================
+
+/**
+ * Re-point every persisted local-media URL in a loaded project at the current
+ * Electron media-server port. Local imports store `fileUrl`/`thumbnailUrl` (and
+ * the timeline clips' `sourceUrl`) as `http://127.0.0.1:<port>/?path=...`, but
+ * that port is reassigned on every app launch — so a reopened project's URLs
+ * point at a dead port and the media renders as a placeholder. Rebuilding them
+ * against the live port (keeping the `?path=` payload) restores the references.
+ */
+async function rehydrateProjectLocalMedia(project: VideoProject): Promise<VideoProject> {
+  const mediaPool = await Promise.all(
+    project.mediaPool.map(async (m) => ({
+      ...m,
+      fileUrl: await rehydrateLocalMediaUrl(m.fileUrl),
+      thumbnailUrl: await rehydrateLocalMediaUrl(m.thumbnailUrl),
+    })),
+  );
+
+  let timelineData = project.timelineData;
+  if (timelineData?.tracks) {
+    const tracks = await Promise.all(
+      timelineData.tracks.map(async (track) => ({
+        ...track,
+        clips: await Promise.all(
+          track.clips.map(async (clip) => ({
+            ...clip,
+            sourceUrl: await rehydrateLocalMediaUrl(clip.sourceUrl),
+          })),
+        ),
+      })),
+    );
+    timelineData = { ...timelineData, tracks };
+  }
+
+  return { ...project, mediaPool, timelineData };
+}
+
 // ==================== Store ====================
 
 export const useVideoProjectStore = create<VideoProjectStore>()(
@@ -210,7 +249,9 @@ export const useVideoProjectStore = create<VideoProjectStore>()(
       const result = await videoProjectApi.getProject(projectId);
 
       if (result.success && result.data) {
-        const project = result.data;
+        // Re-point persisted local-media URLs at the live media-server port
+        // (the port changes every app launch, so stale URLs render as placeholders).
+        const project = await rehydrateProjectLocalMedia(result.data);
         set({
           currentProject: project,
           currentProjectLoading: false,
