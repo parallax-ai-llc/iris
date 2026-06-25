@@ -504,3 +504,52 @@ describe('seek', () => {
     expect(useEditorStore.getState().currentTime).toBe(60);
   });
 });
+
+// ─── Detach embedded audio when a paired audio clip is removed ────────────────
+// Regression: deleting a video's extracted audio clip must silence the surviving
+// video (set audioExtracted) so the <video> element stops playing embedded audio.
+
+describe('audioExtracted on paired-audio removal', () => {
+  // Video + audio sharing the same source asset, NOT linked (mirrors the
+  // unlink-then-delete / reloaded-project case where linkedClipId is absent).
+  function makePair() {
+    const videoClip = makeVideoClip({ id: 'v', assetId: 'shared-asset' });
+    const audioClip = makeAudioClip({ id: 'a', assetId: 'shared-asset' });
+    useEditorStore.setState({
+      tracks: [makeTrack('video', [videoClip]), makeTrack('audio', [audioClip])],
+    });
+  }
+
+  it('removeClip on the audio clip flags the surviving video as audioExtracted', () => {
+    makePair();
+    useEditorStore.getState().removeClip('a');
+
+    const tracks = useEditorStore.getState().tracks;
+    const video = tracks.flatMap((t) => t.clips).find((c) => c.id === 'v') as VideoClip;
+    expect(video).toBeDefined();
+    expect(video.audioExtracted).toBe(true);
+  });
+
+  it('deleteSelected on the audio clip flags the surviving video as audioExtracted', () => {
+    makePair();
+    useEditorStore.setState({ selection: { clipIds: ['a'], trackIds: [] } });
+    useEditorStore.getState().deleteSelected();
+
+    const tracks = useEditorStore.getState().tracks;
+    const video = tracks.flatMap((t) => t.clips).find((c) => c.id === 'v') as VideoClip;
+    expect(video).toBeDefined();
+    expect(video.audioExtracted).toBe(true);
+  });
+
+  it('does not flag a video whose source differs from the removed audio', () => {
+    const videoClip = makeVideoClip({ id: 'v', assetId: 'video-asset' });
+    const audioClip = makeAudioClip({ id: 'a', assetId: 'other-asset' });
+    useEditorStore.setState({
+      tracks: [makeTrack('video', [videoClip]), makeTrack('audio', [audioClip])],
+    });
+    useEditorStore.getState().removeClip('a');
+
+    const video = useEditorStore.getState().tracks.flatMap((t) => t.clips).find((c) => c.id === 'v') as VideoClip;
+    expect(video.audioExtracted).toBeFalsy();
+  });
+});

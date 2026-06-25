@@ -999,9 +999,32 @@ export const useEditorStore = create<EditorState & EditorActions>()(
       const found = findClipById(tracks, clipId);
       const linkedId = found?.clip.linkedClipId;
 
+      // Collect source assetIds of any audio/music clips being removed so that a
+      // surviving video clip from the same source stops playing its embedded
+      // audio (matched by assetId, robust to lost linkedClipId after reload/unlink).
+      const removedAudioAssetIds = new Set<string>();
+      for (const t of tracks) {
+        for (const c of t.clips) {
+          if (
+            (c.id === clipId || c.id === linkedId) &&
+            (c.type === 'audio' || c.type === 'music') &&
+            'assetId' in c &&
+            c.assetId
+          ) {
+            removedAudioAssetIds.add(c.assetId);
+          }
+        }
+      }
+
       const newTracks = tracks.map((t) => ({
         ...t,
-        clips: t.clips.filter((c) => c.id !== clipId && c.id !== linkedId),
+        clips: t.clips
+          .filter((c) => c.id !== clipId && c.id !== linkedId)
+          .map((c) =>
+            c.type === 'video' && 'assetId' in c && c.assetId && removedAudioAssetIds.has(c.assetId)
+              ? { ...c, audioExtracted: true }
+              : c
+          ),
       }));
 
       set({
@@ -1397,16 +1420,43 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         }
       }
 
-      // Also clear linkedClipId on surviving clips whose linked partner was deleted
+      // Collect source assetIds of audio/music clips being deleted so a surviving
+      // video clip from the same source stops playing its embedded audio.
+      const removedAudioAssetIds = new Set<string>();
+      for (const track of tracks) {
+        for (const clip of track.clips) {
+          if (
+            idsToDelete.has(clip.id) &&
+            (clip.type === 'audio' || clip.type === 'music') &&
+            'assetId' in clip &&
+            clip.assetId
+          ) {
+            removedAudioAssetIds.add(clip.assetId);
+          }
+        }
+      }
+
+      // Filter out deleted clips; clear stale linkedClipId; silence surviving
+      // video clips whose paired audio (same source) was removed.
       const newTracks = tracks.map((t) => ({
         ...t,
         clips: t.clips
           .filter((c) => !idsToDelete.has(c.id))
-          .map((c) =>
-            c.linkedClipId && idsToDelete.has(c.linkedClipId)
-              ? { ...c, linkedClipId: undefined }
-              : c
-          ),
+          .map((c) => {
+            let next = c;
+            if (c.linkedClipId && idsToDelete.has(c.linkedClipId)) {
+              next = { ...next, linkedClipId: undefined };
+            }
+            if (
+              c.type === 'video' &&
+              'assetId' in c &&
+              c.assetId &&
+              removedAudioAssetIds.has(c.assetId)
+            ) {
+              next = { ...(next as VideoClip), audioExtracted: true };
+            }
+            return next;
+          }),
       }));
 
       set({
