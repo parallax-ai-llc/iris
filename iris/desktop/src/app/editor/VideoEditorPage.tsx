@@ -155,6 +155,7 @@ function convertEditorTracksToTimelineData(
       speed: 'speed' in clip ? clip.speed ?? 1 : 1,
       effects: hasEffects(clip) ? clip.effects : [],
       keyframes: hasEffects(clip) ? clip.keyframes : [],
+      audioExtracted: clip.type === 'video' ? clip.audioExtracted : undefined,
       name: clip.name,
       locked: false,
     };

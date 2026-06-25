@@ -26,7 +26,6 @@ import { cn } from '@/shared/lib/utils';
 import { useEditorStore, type Track } from '@/features/video-editor/stores/editor.store';
 import { useVideoStore } from '@/features/videos/stores/video.store';
 import { useVideoProjectStore } from '@/features/video-editor/stores/videoProject.store';
-import { useLibraryStore } from '@/features/library/stores/library.store';
 import type { IrisAsset } from '@/shared/api/types';
 import { IS_SELF_HOST } from '@/config/self-host';
 import { assetDownloadUrl } from '@/shared/api/iris-local';
@@ -63,11 +62,20 @@ import { ProxyQueueIndicator } from './ProxyQueueIndicator';
 import { usePreRenderGate } from '@/features/video-editor/hooks/usePreRenderGate';
 import { VideoEditorChatPanel } from './Chat/VideoEditorChatPanel';
 
-// Allowed file types for drag-and-drop import
-const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska'];
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
-const ALLOWED_AUDIO_TYPES = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/aac', 'audio/flac'];
-const ALL_ALLOWED_TYPES = [...ALLOWED_VIDEO_TYPES, ...ALLOWED_IMAGE_TYPES, ...ALLOWED_AUDIO_TYPES];
+// Allowed extensions for drag-and-drop import (extension-based: dropped OS files
+// may report an empty MIME type, so classify by extension like ImportMediaModal).
+const VIDEO_EXTENSIONS = ['mp4', 'webm', 'mov', 'avi', 'mkv'];
+const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+const AUDIO_EXTENSIONS = ['mp3', 'wav', 'ogg', 'aac', 'flac'];
+
+/** Determine media type from a file path/name extension */
+function getMediaTypeFromPath(filePath: string): 'video' | 'image' | 'audio' | null {
+  const ext = filePath.split('.').pop()?.toLowerCase() ?? '';
+  if (VIDEO_EXTENSIONS.includes(ext)) return 'video';
+  if (IMAGE_EXTENSIONS.includes(ext)) return 'image';
+  if (AUDIO_EXTENSIONS.includes(ext)) return 'audio';
+  return null;
+}
 
 export interface VideoEditorProps {
   /** Asset ID for the video (used for URL resolution) */
@@ -212,7 +220,6 @@ export const VideoEditor = memo(function VideoEditor({
   // Video project store for media pool
   const addMedia = useVideoProjectStore((s) => s.addMedia);
   const currentProject = useVideoProjectStore((s) => s.currentProject);
-  const uploadFile = useLibraryStore((s) => s.uploadFile);
 
   // Sync frame rate from project to editor store
   useEffect(() => {
@@ -273,6 +280,7 @@ export const VideoEditor = memo(function VideoEditor({
         transform: { scale: 1, rotation: 0, opacity: 1, x: 0, y: 0 },
         volume: 1,
         muted: false,
+        audioExtracted: true, // audio lives on the paired audio clip below
         speed: 1,
         blendMode: 'normal',
         effects: [],
@@ -698,6 +706,28 @@ export const VideoEditor = memo(function VideoEditor({
     });
   }, []);
 
+  // Probe an audio file's duration via an <audio> element (no <video>, no thumbnail)
+  const probeAudioFile = useCallback((audioUrl: string): Promise<{ duration: number }> => {
+    return new Promise((resolve) => {
+      const audio = document.createElement('audio');
+      audio.preload = 'metadata';
+
+      const cleanup = () => { audio.src = ''; audio.load(); };
+      const fallback = () => { cleanup(); resolve({ duration: 0 }); };
+      const timeout = setTimeout(fallback, 15000);
+
+      audio.onloadedmetadata = () => {
+        clearTimeout(timeout);
+        const dur = isFinite(audio.duration) ? audio.duration : 0;
+        cleanup();
+        resolve({ duration: dur });
+      };
+
+      audio.onerror = () => { clearTimeout(timeout); fallback(); };
+      audio.src = audioUrl;
+    });
+  }, []);
+
   // Import handler - download gallery assets to local storage, then add to
   // media pool the same way local file imports do (fileUrl-based, not externalId).
   const handleImportMedia = useCallback(
@@ -780,6 +810,9 @@ export const VideoEditor = memo(function VideoEditor({
         } else if (mediaType === 'image') {
           duration = 5;
           thumbnailUrl = localFileUrl;
+        } else if (mediaType === 'audio') {
+          const probe = await probeAudioFile(localFileUrl);
+          duration = probe.duration > 0 ? probe.duration : null;
         }
 
         // Fall back to server metadata if probing produced nothing
@@ -799,7 +832,7 @@ export const VideoEditor = memo(function VideoEditor({
         });
       }
     },
-    [addMedia, probeVideoFile]
+    [addMedia, probeVideoFile, probeAudioFile]
   );
 
   // Import local files (reference only, no upload/copy)
@@ -825,6 +858,11 @@ export const VideoEditor = memo(function VideoEditor({
           thumbnailUrl = fileUrl; // image itself is the thumbnail
         }
 
+        if (file.mediaType === 'audio') {
+          const probe = await probeAudioFile(fileUrl);
+          duration = probe.duration > 0 ? probe.duration : null;
+        }
+
         await addMedia({
           mediaType: file.mediaType,
           name: file.name,
@@ -837,7 +875,7 @@ export const VideoEditor = memo(function VideoEditor({
         });
       }
     },
-    [addMedia, probeVideoFile]
+    [addMedia, probeVideoFile, probeAudioFile]
   );
 
   // File drag-and-drop handlers for OS file import
@@ -849,8 +887,11 @@ export const VideoEditor = memo(function VideoEditor({
   }, []);
 
   const handleFileDragLeave = useCallback((e: React.DragEvent) => {
+    // Mirror handleFileDragEnter, which only counts file drags. Decrementing on
+    // non-file drags would desync the counter and leave the overlay stuck.
+    if (!e.dataTransfer.types.includes('Files')) return;
     e.preventDefault();
-    dragCounterRef.current--;
+    dragCounterRef.current = Math.max(0, dragCounterRef.current - 1);
     if (dragCounterRef.current === 0) setIsFileDragging(false);
   }, []);
 
@@ -869,20 +910,25 @@ export const VideoEditor = memo(function VideoEditor({
     // Only handle OS file drops, not internal drags
     if (!e.dataTransfer.files.length) return;
 
-    const files = Array.from(e.dataTransfer.files).filter(f => ALL_ALLOWED_TYPES.includes(f.type));
-    if (files.length === 0) return;
-
-    const uploadedAssets: IrisAsset[] = [];
-    for (const file of files) {
-      const assetType = ALLOWED_VIDEO_TYPES.includes(file.type) || ALLOWED_AUDIO_TYPES.includes(file.type)
-        ? 'VIDEO' as const : 'IMAGE' as const;
-      const asset = await uploadFile(file, assetType);
-      if (asset) uploadedAssets.push(asset);
+    // Resolve OS file paths via Electron webUtils and import by reference —
+    // no cloud upload, so it works offline / logged-out (mirrors ImportMediaModal).
+    const localFiles: LocalFileImport[] = [];
+    for (const file of Array.from(e.dataTransfer.files)) {
+      try {
+        const filePath = window.electronAPI.files.getPathForFile(file);
+        if (!filePath) continue;
+        const mediaType = getMediaTypeFromPath(filePath);
+        if (!mediaType) continue;
+        const name = filePath.split(/[/\\]/).pop() || file.name;
+        localFiles.push({ path: filePath, name, type: file.type || '', size: file.size || 0, mediaType });
+      } catch {
+        // getPathForFile unavailable — skip this file
+      }
     }
-    if (uploadedAssets.length > 0) {
-      await handleImportMedia(uploadedAssets);
+    if (localFiles.length > 0) {
+      await handleImportLocalFiles(localFiles);
     }
-  }, [uploadFile, handleImportMedia]);
+  }, [handleImportLocalFiles]);
 
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < history.length - 1;

@@ -511,7 +511,9 @@ export const ExportModal = memo(function ExportModal({
               sourceUrl: urlMap.get(vc.assetId) ?? vc.assetId,
               mediaType: vc.mediaType,
               volume: vc.volume,
-              muted: vc.muted,
+              // Audio extracted to a paired audio clip (now possibly deleted) →
+              // suppress the video's embedded audio in the render too.
+              muted: vc.muted || vc.audioExtracted === true,
               speed: vc.speed,
               transform: vc.transform,
               effects: vc.effects.map((e) => ({

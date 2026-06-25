@@ -74,6 +74,7 @@ function convertTimelineDataToEditorTracks(timelineData: TimelineData): Track[] 
         },
         volume: clip.volume ?? 1,
         muted: false,
+        audioExtracted: clip.audioExtracted ?? false,
         speed: clip.speed ?? 1,
         blendMode: 'normal',
         effects: clip.effects ?? [],

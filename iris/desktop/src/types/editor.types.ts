@@ -87,6 +87,10 @@ export interface VideoClip extends BaseClip {
   mediaType?: 'video' | 'image';
   volume: number;
   muted: boolean;
+  // True when this video's audio was extracted to a separate (paired) audio clip.
+  // The <video> element must stay silent so audio plays only via the audio-track
+  // clip — and stays silent even after that audio clip is deleted/unlinked.
+  audioExtracted?: boolean;
   speed: number;
   pan?: number;   // stereo pan: -1 (Left) ~ 0 (Center) ~ 1 (Right)
   gain?: number;  // audio gain in dB: -∞ ~ +12, default 0

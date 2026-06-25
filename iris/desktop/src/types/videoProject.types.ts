@@ -64,6 +64,7 @@ export interface TimelineClip {
   volume: number; // 0-1
   fadeIn: number; // seconds
   fadeOut: number; // seconds
+  audioExtracted?: boolean; // video clip: audio moved to a paired audio clip → keep <video> silent
   
   // Effects & Keyframes
   effects: ClipEffect[];

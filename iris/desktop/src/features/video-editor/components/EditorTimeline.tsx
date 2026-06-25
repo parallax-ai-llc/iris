@@ -312,6 +312,10 @@ export const EditorTimeline = memo(function EditorTimeline({
   // Handle drag over for media drop
   const handleDragOver = useCallback(
     (e: React.DragEvent, trackId: string) => {
+      // Only handle internal media-pool drags. Let OS file drops bubble up to
+      // the editor root, which imports them into the media pool. Swallowing them
+      // here would leave the "Drop files to import" overlay stuck and drop nothing.
+      if (!e.dataTransfer.types.includes('application/json')) return;
       e.preventDefault();
       e.stopPropagation();
       e.dataTransfer.dropEffect = 'copy';
@@ -376,6 +380,9 @@ export const EditorTimeline = memo(function EditorTimeline({
   // Handle drop media from media pool
   const handleDrop = useCallback(
     (e: React.DragEvent, trackId: string) => {
+      // Only handle internal media-pool drags. OS file drops must bubble to the
+      // editor root (VideoEditor.handleFileDrop) so they import + clear the overlay.
+      if (!e.dataTransfer.types.includes('application/json')) return;
       e.preventDefault();
       e.stopPropagation();
       dropTargetRef.current = null;
@@ -418,6 +425,10 @@ export const EditorTimeline = memo(function EditorTimeline({
             thumbnailUrl: media.thumbnailUrl || undefined,
             transform: { scale: 1, rotation: 0, opacity: 1 },
             mediaType: isImage ? 'image' : 'video',
+            // Video media's audio is extracted to the paired audio clip below;
+            // images have no audio. Keeps the <video> silent even if that audio
+            // clip is later deleted/unlinked.
+            audioExtracted: !isImage,
           } as Omit<VideoClip, 'id' | 'trackId'>);
 
           // Auto-create paired audio clip for video media (not images)

@@ -4,8 +4,7 @@
  */
 
 import { apiClient } from './client';
-import { IS_SELF_HOST } from '@/config/self-host';
-import { localApiCall } from './iris-local';
+import { localApiCall, shouldUseLocalEngine } from './iris-local';
 import type {
   VideoProject,
   VideoProjectListItem,
@@ -23,7 +22,7 @@ import type {
 // ==================== Projects ====================
 
 export async function createProject(input: CreateVideoProjectInput) {
-  if (IS_SELF_HOST) return localApiCall<VideoProject>('POST', '/api/video-projects', input);
+  if (await shouldUseLocalEngine()) return localApiCall<VideoProject>('POST', '/api/video-projects', input);
   return apiClient.post<VideoProject>('/api/video-projects', input, { requireAuth: true });
 }
 
@@ -40,57 +39,57 @@ export async function getProjects(options?: {
   const query = params.toString();
   const endpoint = `/api/video-projects${query ? `?${query}` : ''}`;
 
-  if (IS_SELF_HOST) return localApiCall<VideoProjectsListResponse>('GET', endpoint);
+  if (await shouldUseLocalEngine()) return localApiCall<VideoProjectsListResponse>('GET', endpoint);
   return apiClient.get<VideoProjectsListResponse>(endpoint, { requireAuth: true });
 }
 
 export async function getProject(projectId: string) {
-  if (IS_SELF_HOST) return localApiCall<VideoProject>('GET', `/api/video-projects/${projectId}`);
+  if (await shouldUseLocalEngine()) return localApiCall<VideoProject>('GET', `/api/video-projects/${projectId}`);
   return apiClient.get<VideoProject>(`/api/video-projects/${projectId}`, { requireAuth: true });
 }
 
 export async function findProjectByAsset(externalId: string) {
   const endpoint = `/api/video-projects/by-asset/${encodeURIComponent(externalId)}`;
-  if (IS_SELF_HOST) return localApiCall<VideoProject>('GET', endpoint);
+  if (await shouldUseLocalEngine()) return localApiCall<VideoProject>('GET', endpoint);
   return apiClient.get<VideoProject>(endpoint, { requireAuth: true });
 }
 
 export async function updateProject(projectId: string, input: UpdateVideoProjectInput) {
-  if (IS_SELF_HOST) return localApiCall<VideoProject>('PATCH', `/api/video-projects/${projectId}`, input);
+  if (await shouldUseLocalEngine()) return localApiCall<VideoProject>('PATCH', `/api/video-projects/${projectId}`, input);
   return apiClient.patch<VideoProject>(`/api/video-projects/${projectId}`, input, { requireAuth: true });
 }
 
 export async function deleteProject(projectId: string) {
-  if (IS_SELF_HOST) return localApiCall<void>('DELETE', `/api/video-projects/${projectId}`);
+  if (await shouldUseLocalEngine()) return localApiCall<void>('DELETE', `/api/video-projects/${projectId}`);
   return apiClient.delete<void>(`/api/video-projects/${projectId}`, { requireAuth: true });
 }
 
 export async function duplicateProject(projectId: string) {
-  if (IS_SELF_HOST) return localApiCall<VideoProject>('POST', `/api/video-projects/${projectId}/duplicate`);
+  if (await shouldUseLocalEngine()) return localApiCall<VideoProject>('POST', `/api/video-projects/${projectId}/duplicate`);
   return apiClient.post<VideoProject>(`/api/video-projects/${projectId}/duplicate`, undefined, { requireAuth: true });
 }
 
 // ==================== Timeline ====================
 
 export async function saveTimeline(projectId: string, input: SaveTimelineInput) {
-  if (IS_SELF_HOST) return localApiCall<VideoProject>('PUT', `/api/video-projects/${projectId}/timeline`, input);
+  if (await shouldUseLocalEngine()) return localApiCall<VideoProject>('PUT', `/api/video-projects/${projectId}/timeline`, input);
   return apiClient.put<VideoProject>(`/api/video-projects/${projectId}/timeline`, input, { requireAuth: true });
 }
 
 // ==================== Media Pool ====================
 
 export async function getMediaPool(projectId: string) {
-  if (IS_SELF_HOST) return localApiCall<ProjectMedia[]>('GET', `/api/video-projects/${projectId}/media`);
+  if (await shouldUseLocalEngine()) return localApiCall<ProjectMedia[]>('GET', `/api/video-projects/${projectId}/media`);
   return apiClient.get<ProjectMedia[]>(`/api/video-projects/${projectId}/media`, { requireAuth: true });
 }
 
 export async function addMedia(projectId: string, input: AddMediaInput) {
-  if (IS_SELF_HOST) return localApiCall<ProjectMedia>('POST', `/api/video-projects/${projectId}/media`, input);
+  if (await shouldUseLocalEngine()) return localApiCall<ProjectMedia>('POST', `/api/video-projects/${projectId}/media`, input);
   return apiClient.post<ProjectMedia>(`/api/video-projects/${projectId}/media`, input, { requireAuth: true });
 }
 
 export async function removeMedia(projectId: string, mediaId: string) {
-  if (IS_SELF_HOST) return localApiCall<void>('DELETE', `/api/video-projects/${projectId}/media/${mediaId}`);
+  if (await shouldUseLocalEngine()) return localApiCall<void>('DELETE', `/api/video-projects/${projectId}/media/${mediaId}`);
   return apiClient.delete<void>(`/api/video-projects/${projectId}/media/${mediaId}`, { requireAuth: true });
 }
 
@@ -112,7 +111,7 @@ export async function updateMediaProxy(
   input: UpdateMediaProxyInput,
 ) {
   const endpoint = `/api/video-projects/${projectId}/media/${mediaId}/proxy`;
-  if (IS_SELF_HOST) return localApiCall<ProjectMedia>('PATCH', endpoint, input);
+  if (await shouldUseLocalEngine()) return localApiCall<ProjectMedia>('PATCH', endpoint, input);
   return apiClient.patch<ProjectMedia>(endpoint, input, { requireAuth: true });
 }
 

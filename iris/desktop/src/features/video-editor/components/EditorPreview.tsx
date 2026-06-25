@@ -405,9 +405,10 @@ export const EditorPreview = memo(function EditorPreview({
   useEffect(() => {
     const video = videoRef.current;
     if (video) {
-      if (audioHandledExternally || multicamHandlesAudio) {
-        // Audio is played by AudioPlayer or by the active multicam angle
-        // → silence the main <video> element to prevent double output.
+      if (audioHandledExternally || activeVideoClip?.audioExtracted || multicamHandlesAudio) {
+        // Audio is played by AudioPlayer or by the active multicam angle, or the
+        // clip's audio was extracted to a (possibly since-deleted) audio clip
+        // → silence the main <video> element to prevent double/lingering output.
         video.volume = 0;
         video.muted = true;
       } else {
