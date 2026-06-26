@@ -70,6 +70,9 @@ async function main(): Promise<void> {
     baseUrl,
     token,
     startedAt: new Date().toISOString(),
+    // Set by the embedder (desktop) at spawn so the next launch can detect an
+    // upgrade and refuse to reattach to a daemon running the old binary.
+    version: process.env.IRIS_DAEMON_VERSION,
   });
 
   // eslint-disable-next-line no-console

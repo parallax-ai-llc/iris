@@ -43,6 +43,17 @@ Var ShortcutCheck
     StrCpy $AssetsDir "$DOCUMENTS\Iris"
     StrCpy $ShortcutState 1
   !endif
+  ; Safety net for the background-daemon file lock. The local engine daemon runs
+  ; as a detached "Iris.exe" (ELECTRON_RUN_AS_NODE) that outlives the UI, so on an
+  ; in-place upgrade it can still be holding a lock on the install dir / its port
+  ; even after the app quit — failing the silent install. The in-app updater stops
+  ; it gracefully first, but this catches the cases that path can't: an orphan
+  ; daemon left by a crash, or running this installer manually (not via the app).
+  ; customInit runs at the very start of .onInit, before electron-builder spawns
+  ; the old uninstaller, so the daemon is gone before any file replacement begins.
+  ; Errors (e.g. nothing to kill on a fresh install) are ignored.
+  nsExec::Exec 'taskkill /F /T /IM Iris.exe'
+  Pop $0
 !macroend
 
 ; ── Insert custom options page after install-directory page ─────────────────

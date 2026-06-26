@@ -309,11 +309,42 @@ function spawnDaemon(): void {
       ...process.env,
       ELECTRON_RUN_AS_NODE: '1',
       IRIS_FLOW_DATA_DIR: dataDir,
+      // Stamp the spawning app's version into the daemon so the next launch can
+      // tell an upgrade apart from a restart and refuse to reattach to a daemon
+      // running the OLD binary (see ensureDaemon).
+      IRIS_DAEMON_VERSION: app.getVersion(),
     },
     detached: true,
     stdio: ['ignore', stdout, stdout],
   });
   child.unref();
+}
+
+/** SIGTERM a pid and wait for it to actually exit, escalating to SIGKILL.
+ *  Resolves once the process is gone (or the timeout lapses) so callers can rely
+ *  on its file locks / port being released — required before an in-place upgrade
+ *  overwrites the install dir. On Windows both signals map to TerminateProcess,
+ *  so the first kill is already forceful and the loop returns immediately. */
+async function killAndWait(pid: number, timeoutMs = 5000): Promise<void> {
+  try {
+    process.kill(pid, 'SIGTERM');
+  } catch {
+    return; // already gone
+  }
+  const deadline = Date.now() + timeoutMs;
+  let escalated = false;
+  while (Date.now() < deadline) {
+    if (!isProcessAlive(pid)) return;
+    if (!escalated && Date.now() > deadline - timeoutMs / 2) {
+      escalated = true;
+      try {
+        process.kill(pid, 'SIGKILL');
+      } catch {
+        return; // gone between checks
+      }
+    }
+    await new Promise(r => setTimeout(r, 100));
+  }
 }
 
 /** Poll the lockfile + health until the daemon is up (or time out). */
@@ -329,16 +360,30 @@ async function waitForDaemon(timeoutMs = 15000): Promise<DaemonLockfile> {
 
 /** Ensure a daemon is running: reattach to a live one, else spawn a new one. */
 async function ensureDaemon(): Promise<void> {
+  const currentVersion = app.getVersion();
   const existing = await readDaemonLockfile(dataDir);
   if (existing && isProcessAlive(existing.pid) && (await healthOk(existing.baseUrl))) {
-    apiBaseUrl = existing.baseUrl;
-    daemonToken = existing.token;
-    daemonPid = existing.pid;
-    await pushKeysToDaemon(); // re-sync in case keys changed since it started
-    console.log(`[IrisEngine] reattached to daemon ${apiBaseUrl} (pid ${daemonPid})`);
-    return;
+    // A live daemon started by a *different* app version is running the old,
+    // now-replaced binary (it survived the upgrade or its kill was missed).
+    // Reattaching would pin us to stale code, so stop it and spawn fresh.
+    // (No version on the lockfile = pre-this-feature daemon; leave the old
+    // reattach behaviour rather than churn on every launch.)
+    if (existing.version && existing.version !== currentVersion) {
+      console.log(
+        `[IrisEngine] daemon version ${existing.version} != app ${currentVersion}; restarting`,
+      );
+      await stopDaemon();
+    } else {
+      apiBaseUrl = existing.baseUrl;
+      daemonToken = existing.token;
+      daemonPid = existing.pid;
+      await pushKeysToDaemon(); // re-sync in case keys changed since it started
+      console.log(`[IrisEngine] reattached to daemon ${apiBaseUrl} (pid ${daemonPid})`);
+      return;
+    }
+  } else if (existing) {
+    await removeDaemonLockfile(dataDir); // stale lockfile
   }
-  if (existing) await removeDaemonLockfile(dataDir); // stale lockfile
 
   spawnDaemon();
   const lf = await waitForDaemon();
@@ -387,28 +432,38 @@ export async function stopIrisServer(): Promise<void> {
   }
 }
 
+/** Resolve the data dir without the full key/config load — so daemon control
+ *  (stop/probe) works even before startIrisServer ran, e.g. killing an orphan
+ *  daemon from a previous launch during an upgrade. */
+function ensureDataDir(): string {
+  if (!dataDir) dataDir = path.join(app.getPath('userData'), 'iris-flow');
+  return dataDir;
+}
+
 /** Whether a daemon is currently running (for the tray). */
 export async function isDaemonRunning(): Promise<boolean> {
   if (isTestMode) return !!server;
-  const lf = await readDaemonLockfile(dataDir);
+  const lf = await readDaemonLockfile(ensureDataDir());
   return !!(lf && isProcessAlive(lf.pid));
 }
 
-/** Explicitly stop the background daemon (tray "Stop background engine"). */
+/**
+ * Explicitly stop the background daemon. Used by the tray ("Stop background
+ * engine") and, crucially, before an in-place upgrade: the daemon runs the very
+ * `Iris.exe` the installer is about to overwrite, so it MUST be gone (binary +
+ * port released) before NSIS runs. Waits for the process to actually exit.
+ */
 export async function stopDaemon(): Promise<void> {
   if (isTestMode) {
     await stopIrisServer();
     return;
   }
-  const lf = await readDaemonLockfile(dataDir);
+  const dir = ensureDataDir();
+  const lf = await readDaemonLockfile(dir);
   if (lf && isProcessAlive(lf.pid)) {
-    try {
-      process.kill(lf.pid, 'SIGTERM');
-    } catch {
-      /* already gone */
-    }
+    await killAndWait(lf.pid);
   }
-  await removeDaemonLockfile(dataDir);
+  await removeDaemonLockfile(dir);
   apiBaseUrl = '';
   daemonPid = 0;
   daemonToken = '';

@@ -358,9 +358,17 @@ setupIrisHandlers();
 let updaterReady: Promise<unknown> = Promise.resolve();
 if (!isTestMode) {
   updaterReady = setupUpdaterHandlers({
-    // Awaited inside updater:installUpdate so child processes/file locks are
-    // released before NSIS runs the silent installer.
-    preQuit: () => extensionManager.shutdown(),
+    // Awaited inside updater:installUpdate (and the startup gate) so every child
+    // process that could hold a file lock on the install dir is released before
+    // NSIS runs the silent installer. This includes the detached local engine
+    // daemon: it normally outlives the app, but during an in-place upgrade it
+    // runs the very Iris.exe being overwritten, so it MUST die first — otherwise
+    // the binary stays locked, the install fails, and a stale-version daemon
+    // lingers. Run both teardowns concurrently and don't let one failing abort
+    // the other (or the quit-to-install sequence).
+    preQuit: async () => {
+      await Promise.allSettled([extensionManager.shutdown(), stopDaemon()]);
+    },
   }).catch(console.error);
 }
 
