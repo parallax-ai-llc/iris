@@ -433,12 +433,8 @@ export const VideoEditor = memo(function VideoEditor({
         return;
       }
 
-      // Ctrl/Cmd + S: Save
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
-        handleSave();
-        return;
-      }
+      // Ctrl/Cmd + S: Save is handled by VideoEditorPage (the parent owns the
+      // save/save-as/provisional flow). Handling it here too fired the toast twice.
 
       // Ctrl/Cmd + C: Copy selected clip
       if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
@@ -676,7 +672,7 @@ export const VideoEditor = memo(function VideoEditor({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo, clearSelection, deleteSelected, selectAll, splitClip, duplicateClip, seek, currentProject?.frameRate, enterCompoundClip, exitCompoundClip, handleSave]);
+  }, [undo, redo, clearSelection, deleteSelected, selectAll, splitClip, duplicateClip, seek, currentProject?.frameRate, enterCompoundClip, exitCompoundClip]);
 
   // Export handler
   const handleExport = useCallback(
