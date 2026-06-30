@@ -67,6 +67,20 @@ export function DrawingCanvas({
   const pixelSourceCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const bgEraserSampleRef = useRef<{ r: number; g: number; b: number } | null>(null);
 
+  // Live eraser preview: the eraser must erase in real time (like the brush
+  // previews paint), not only on pointer-up. The overlay canvas sits *above* the
+  // main canvas, so we can't preview an erase there — instead we apply a live
+  // destination-out onto the main canvas, restoring from a pristine snapshot
+  // each frame so the operation is non-destructive until commit.
+  // - eraserBackingRef: pristine snapshot of the main canvas at stroke start.
+  // - eraserMaskRef: alpha mask of what is actually erasable (active layer's
+  //   pixels, or the canvas content in legacy no-layer mode). Masking the stroke
+  //   by this prevents an erase "indication" over empty/transparent regions.
+  // - eraserTmpRef: reusable scratch canvas for building the masked stroke.
+  const eraserBackingRef = useRef<HTMLCanvasElement | null>(null);
+  const eraserMaskRef = useRef<HTMLCanvasElement | null>(null);
+  const eraserTmpRef = useRef<HTMLCanvasElement | null>(null);
+
   // Use refs for immediate access (state updates are async and can cause missed events)
   const isDrawingRef = useRef(false);
   const lastPointRef = useRef<Point | null>(null);
@@ -472,6 +486,40 @@ export function DrawingCanvas({
       const { canvas, ctx } = createOffscreenCanvas(imageWidth, imageHeight, true);
       strokeCanvasRef.current = canvas;
 
+      // Eraser/background-eraser: snapshot the pristine main canvas and build the
+      // "erasable" alpha mask (active layer pixels, or canvas content in legacy
+      // no-layer mode) so the stroke can be previewed live via destination-out.
+      if ((activeTool === 'eraser' || activeTool === 'background-eraser') && mainCanvasRef.current) {
+        const main = mainCanvasRef.current;
+        const backing = document.createElement('canvas');
+        backing.width = main.width;
+        backing.height = main.height;
+        backing.getContext('2d')?.drawImage(main, 0, 0);
+        eraserBackingRef.current = backing;
+
+        const { layers, activeLayerId } = useImageEditorStore.getState();
+        const activeLayer = activeLayerId ? layers.find(l => l.id === activeLayerId) : null;
+        if (activeLayer && activeLayer.imageData) {
+          // Mask = active layer's own alpha (loaded async; until ready the live
+          // preview simply doesn't erase, so empty layers never flash a mark).
+          eraserMaskRef.current = null;
+          const maskCanvas = document.createElement('canvas');
+          maskCanvas.width = main.width;
+          maskCanvas.height = main.height;
+          const maskCtx = maskCanvas.getContext('2d');
+          const img = new Image();
+          img.onload = () => {
+            maskCtx?.drawImage(img, activeLayer.x, activeLayer.y);
+            eraserMaskRef.current = maskCanvas;
+          };
+          img.onerror = () => { eraserMaskRef.current = maskCanvas; };
+          img.src = activeLayer.imageData;
+        } else {
+          // Legacy no-layer mode: the canvas content itself is what gets erased.
+          eraserMaskRef.current = backing;
+        }
+      }
+
       // Create brush tip
       if (activeTool === 'brush' || activeTool === 'eraser') {
         brushTipRef.current = createBrushTip({
@@ -525,7 +573,7 @@ export function DrawingCanvas({
       // Background eraser: first dab via color-matching mask
       if (activeTool === 'background-eraser') {
         paintBackgroundEraserDab(ctx, point.x, point.y);
-        updateOverlay();
+        renderStrokePreview();
         return;
       }
 
@@ -551,8 +599,8 @@ export function DrawingCanvas({
         ctx.moveTo(point.x, point.y);
       }
 
-      // Show preview on overlay
-      updateOverlay();
+      // Show preview (eraser erases live on the main canvas; others use overlay)
+      renderStrokePreview();
     },
     // updateOverlay/isSpacePanning are defined later in the component but are
     // only invoked from this callback when the user paints — by then all hooks
@@ -693,7 +741,7 @@ export function DrawingCanvas({
       // Update both ref and state
       lastPointRef.current = point;
       setLastPoint(point);
-      updateOverlay();
+      renderStrokePreview();
     },
     // updateOverlay/updateGradientPreview are defined later in the component
     // but are only invoked from this callback when the user paints — by then
@@ -812,6 +860,21 @@ export function DrawingCanvas({
         }
       }
 
+      // The live eraser preview mutated the main canvas in place. Restore the
+      // pristine snapshot so the commit path (which re-applies destination-out and
+      // re-composites layers) starts from a clean state and erases exactly once.
+      if (eraserBackingRef.current && mainCanvasRef.current) {
+        const mctx = mainCanvasRef.current.getContext('2d');
+        if (mctx) {
+          mctx.globalCompositeOperation = 'source-over';
+          mctx.globalAlpha = 1;
+          mctx.clearRect(0, 0, mainCanvasRef.current.width, mainCanvasRef.current.height);
+          mctx.drawImage(eraserBackingRef.current, 0, 0);
+        }
+        eraserBackingRef.current = null;
+        eraserMaskRef.current = null;
+      }
+
       // Commit stroke to main canvas
       if (strokeCanvasRef.current) {
         onCommitStroke(strokeCanvasRef.current);
@@ -840,7 +903,7 @@ export function DrawingCanvas({
         }
       }
     },
-    [activeTool, onCommitStroke, gradientStart, lastPoint, gradientSettings, brushSettings.color, imageWidth, imageHeight]
+    [activeTool, onCommitStroke, gradientStart, lastPoint, gradientSettings, brushSettings.color, imageWidth, imageHeight, mainCanvasRef]
   );
 
   // Update overlay canvas to show stroke preview
@@ -879,6 +942,74 @@ export function DrawingCanvas({
 
     ctx.restore();
   }, [zoom, imageWidth, imageHeight, containerWidth, containerHeight, panOffset, rotation, flipHorizontal, flipVertical, brushSettings.opacity]);
+
+  // Live eraser preview: restore the main canvas from its pristine snapshot, then
+  // apply the current stroke as destination-out (masked to the erasable region).
+  // This makes the eraser act in real time and leaves no mark where there is
+  // nothing to erase. Non-destructive: the snapshot is restored before commit.
+  const previewEraseOnMain = useCallback(() => {
+    const main = mainCanvasRef.current;
+    const backing = eraserBackingRef.current;
+    const stroke = strokeCanvasRef.current;
+    if (!main || !backing || !stroke) return;
+    const mctx = main.getContext('2d');
+    if (!mctx) return;
+
+    // Restore pristine pixels
+    mctx.globalCompositeOperation = 'source-over';
+    mctx.globalAlpha = 1;
+    mctx.clearRect(0, 0, main.width, main.height);
+    mctx.drawImage(backing, 0, 0);
+
+    // Build the erase source: the stroke clipped to the erasable alpha mask, so
+    // transparent/empty regions never show a phantom erase. If the mask isn't
+    // ready yet (active layer still loading), skip erasing this frame.
+    const mask = eraserMaskRef.current;
+    let eraseSrc: HTMLCanvasElement | null = null;
+    if (mask) {
+      const tmp = eraserTmpRef.current ?? document.createElement('canvas');
+      tmp.width = main.width;
+      tmp.height = main.height;
+      eraserTmpRef.current = tmp;
+      const tctx = tmp.getContext('2d');
+      if (tctx) {
+        tctx.globalCompositeOperation = 'source-over';
+        tctx.globalAlpha = 1;
+        tctx.clearRect(0, 0, tmp.width, tmp.height);
+        tctx.drawImage(stroke, 0, 0);
+        tctx.globalCompositeOperation = 'destination-in';
+        tctx.drawImage(mask, 0, 0);
+        tctx.globalCompositeOperation = 'source-over';
+        eraseSrc = tmp;
+      }
+    }
+
+    if (eraseSrc) {
+      mctx.globalCompositeOperation = 'destination-out';
+      // Mirror commit: regular eraser honors opacity; background-eraser uses the
+      // mask's own per-pixel erase strength at full alpha.
+      mctx.globalAlpha = activeTool === 'eraser' ? brushSettings.opacity / 100 : 1;
+      mctx.drawImage(eraseSrc, 0, 0);
+      mctx.globalAlpha = 1;
+      mctx.globalCompositeOperation = 'source-over';
+    }
+
+    // Keep the overlay clear so no stale white dabs / cursor remain on top.
+    if (canvasRef.current) {
+      const octx = canvasRef.current.getContext('2d');
+      octx?.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    }
+  }, [mainCanvasRef, activeTool, brushSettings.opacity]);
+
+  // Dispatch the in-stroke preview: eraser tools erase live on the main canvas,
+  // every other tool previews its stroke on the overlay as before.
+  const renderStrokePreview = useCallback(() => {
+    if (activeTool === 'eraser' || activeTool === 'background-eraser') {
+      previewEraseOnMain();
+    } else {
+      updateOverlay();
+    }
+  }, [activeTool, previewEraseOnMain, updateOverlay]);
 
   // Show brush cursor preview
   const handleMouseMove = useCallback(
