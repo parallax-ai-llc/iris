@@ -706,6 +706,11 @@ export const VideoEditor = memo(function VideoEditor({
   }> => {
     return new Promise((resolve) => {
       const video = document.createElement('video');
+      // Required so canvas.toDataURL() doesn't throw on a "tainted" canvas.
+      // The local media server sends Access-Control-Allow-Origin: *, but the
+      // browser only treats the frame as same-origin-readable when the element
+      // opts into CORS. Without this, thumbnail extraction silently fails.
+      video.crossOrigin = 'anonymous';
       video.preload = 'auto';
       video.muted = true;
       video.playsInline = true;

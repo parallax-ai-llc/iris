@@ -1546,7 +1546,7 @@ export const EditorTimeline = memo(function EditorTimeline({
             {/* Snap indicator */}
             {snapTarget !== null && dragState && (
               <div
-                className="absolute top-0 bottom-0 w-0.5 bg-yellow-400 z-29 pointer-events-none opacity-80"
+                className="absolute top-0 bottom-0 w-0.5 bg-yellow-400 z-30 pointer-events-none opacity-80"
                 style={{ left: `${timeToPosition(snapTarget)}px` }}
               />
             )}

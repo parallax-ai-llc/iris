@@ -1,6 +1,6 @@
 {
   "name": "iris-desktop",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "description": "Iris AI Media Generation Desktop App",
   "main": "dist-electron/main.js",
   "type": "module",

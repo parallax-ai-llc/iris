@@ -20,7 +20,7 @@ import {
 } from '@/features/video-editor/stores/editor.store';
 import { selectClipIdSet } from '@/features/video-editor/stores/editor/selectors';
 import { useCachedAssetUrlById } from '@/shared/hooks/useCachedAssetUrl';
-import { useWaveformAnalyzer } from '@/features/video-editor/hooks/useWaveformAnalyzer';
+import { useWaveformAnalyzer, MAX_WEB_DECODE_SECONDS } from '@/features/video-editor/hooks/useWaveformAnalyzer';
 import { createClipEffectFromDefinition } from '@/shared/lib/utils/effectUtils';
 
 // Cache for extracted video frames (shared across all clips)
@@ -323,7 +323,6 @@ export const TimelineClip = memo(function TimelineClip({
   const audioAssetId = audioOrMusicClip?.assetId ?? null;
   const existingWaveformData = audioOrMusicClip?.waveformData;
   const showWaveforms = useEditorStore((s) => s.showWaveforms);
-  const setClipWaveformData = useEditorStore((s) => s.setClipWaveformData);
 
   // This clip's window into the source. Peaks always span the FULL source
   // [0, sourceDuration]; after a split/trim the clip covers only part of it, so we
@@ -347,22 +346,42 @@ export const TimelineClip = memo(function TimelineClip({
     180000
   );
 
-  // Re-analyze whenever stored peaks are missing OR too coarse for the target
-  // resolution (e.g. low-res data persisted by an older build).
+  // Web Audio decoding holds the whole PCM in memory, so we skip it for very long
+  // sources (handled out-of-process instead) to avoid a multi-GB OOM spike.
+  const tooLongForWebDecode = sourceDuration > MAX_WEB_DECODE_SECONDS;
+
+  // Long sources are extracted out-of-process via ffmpeg in the main process. Only a
+  // direct file/http source is ffmpeg-readable — a bare server id or blob: URL is not.
+  const ffmpegReadableSrc =
+    audioAssetId &&
+    /^(file:|https?:|[A-Za-z]:[\\/]|\/)/.test(audioAssetId) &&
+    !audioAssetId.startsWith('blob:')
+      ? audioAssetId
+      : null;
+
+  // Peaks are no longer persisted on the clip (that bloated undo-history / project save
+  // via structuredClone and duplicated on every split). They live only in the
+  // analyzer's in-memory asset cache; `existingWaveformData` is read solely as a
+  // fallback for projects saved by older builds.
   const hasUsableExistingData =
     !!existingWaveformData && existingWaveformData.length >= targetSampleCount * 0.9;
-  const needsWaveformAnalysis = !!audioAssetId && showWaveforms && !hasUsableExistingData;
+  const needsWaveformAnalysis =
+    !!audioAssetId && showWaveforms && !hasUsableExistingData && !tooLongForWebDecode;
 
-  // Fetch the audio URL whenever we actually need to (re)analyze — NOT only when no
-  // stored data exists, otherwise coarse old data can never be upgraded.
   const { url: cachedAudioUrl, error: audioAssetError } = useCachedAssetUrlById(
     audioAssetId,
     'audio/*',
     { type: 'preview', enabled: needsWaveformAnalysis }
   );
+  // Selected clip jumps the analysis queue so the focused part resolves first.
   const { peaks: analyzedPeaks, isLoading: isAnalyzingWaveform } = useWaveformAnalyzer(
     needsWaveformAnalysis ? cachedAudioUrl : null,
-    targetSampleCount
+    targetSampleCount,
+    {
+      priority: isSelected ? 10 : 1,
+      sourceDuration,
+      mainSrc: tooLongForWebDecode ? ffmpegReadableSrc : undefined,
+    }
   );
 
   // Normalized waveform peaks (0..1) from real audio analysis only
@@ -438,13 +457,6 @@ export const TimelineClip = memo(function TimelineClip({
   // Detect missing media: asset has ID but failed to load (not just loading)
   const isVideoMediaMissing = !!videoAssetId && !cachedAssetUrl && !videoAssetLoading && !!videoAssetError;
   const isAudioMediaMissing = !!audioAssetId && !cachedAudioUrl && !!audioAssetError;
-
-  // Store analyzed peaks into the clip
-  useEffect(() => {
-    if (analyzedPeaks && clip.id && needsWaveformAnalysis) {
-      setClipWaveformData(clip.id, analyzedPeaks);
-    }
-  }, [analyzedPeaks, clip.id, needsWaveformAnalysis, setClipWaveformData]);
 
   // Extract video frames on mount or when clip changes (skip for images)
   const videoSourceStartTime = clip.type === 'video' ? (clip as VideoClip).sourceStartTime || 0 : 0;

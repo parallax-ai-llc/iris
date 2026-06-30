@@ -278,14 +278,15 @@ function snapToEdges(
   time: number,
   tracks: Track[],
   excludeClipId: string,
+  excludeLinkedClipId: string | null | undefined,
   currentTime: number,
   markers: Marker[],
   pixelsPerSecond: number,
   gridSize: number,
-  snapEnabled: boolean,
+  snapToGridEnabled: boolean,
 ): { snappedTime: number; snapTarget: number | null } {
-  if (!snapEnabled) return { snappedTime: time, snapTarget: null };
-
+  // Edge/playhead/marker snapping is ALWAYS active regardless of the snap-to-grid toggle.
+  // The snapToGridEnabled flag only controls whether the time-grid is also considered.
   const threshold = SNAP_THRESHOLD_PX / pixelsPerSecond;
   let bestSnap = time;
   let bestDist = threshold;
@@ -298,7 +299,10 @@ function snapToEdges(
   }
   for (const track of tracks) {
     for (const clip of track.clips) {
+      // Exclude the dragged clip AND its linked counterpart — snapping to your own
+      // paired audio/video clip is rarely useful and causes confusing near-self snaps.
       if (clip.id === excludeClipId) continue;
+      if (excludeLinkedClipId && clip.id === excludeLinkedClipId) continue;
       snapPoints.push(clip.startTime, clip.endTime);
     }
   }
@@ -312,8 +316,8 @@ function snapToEdges(
     }
   }
 
-  // Also check grid
-  if (gridSize > 0) {
+  // Also check grid — only when snap-to-grid is enabled
+  if (snapToGridEnabled && gridSize > 0) {
     const gridSnap = Math.round(time / gridSize) * gridSize;
     const gridDist = Math.abs(time - gridSnap);
     if (gridDist < bestDist) {
@@ -1650,9 +1654,11 @@ export const useEditorStore = create<EditorState & EditorActions>()(
       const isImageClip =
         originalClip.type === 'video' && (originalClip as VideoClip).mediaType === 'image';
 
-      // Helper: snap using clip edges, playhead, markers, and grid
+      // Helper: snap using clip edges, playhead, markers, and grid.
+      // Also excludes the dragged clip's linked counterpart to avoid self-snapping.
+      const linkedClipId = originalClip.linkedClipId ?? null;
       const doSnap = (time: number, excludeId: string) =>
-        snapToEdges(time, tracks, excludeId, playhead, markers, pixelsPerSecond, gridSize, snap);
+        snapToEdges(time, tracks, excludeId, linkedClipId, playhead, markers, pixelsPerSecond, gridSize, snap);
 
       // Helper: apply same updates to linked clip
       const applyToLinked = (updates: Partial<Clip>) => {
@@ -1713,9 +1719,15 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         set({ duration: Math.max(calculateMaxEndTime(latestTracks), 1) });
         return;
       } else if (dragState.operation === 'trim-start') {
-        const { snappedTime, snapTarget } = doSnap(currentTime, dragState.clipId);
+        const { snappedTime, snapTarget: rawSnapTarget } = doSnap(currentTime, dragState.clipId);
         let newStartTime = snappedTime;
-        newStartTime = Math.max(0, Math.min(originalClip.endTime - 0.1, newStartTime));
+        const clampedStartTime = Math.max(0, Math.min(originalClip.endTime - 0.1, newStartTime));
+        newStartTime = clampedStartTime;
+        // Only show the snap guide if the clamped position still matches the snap target —
+        // if clamping overrode the snap, the guide would render at the wrong position.
+        const snapTarget = rawSnapTarget !== null && Math.abs(clampedStartTime - rawSnapTarget) < 0.001
+          ? rawSnapTarget
+          : null;
         set({ snapTarget });
 
         // Clamp: sourceStartTime cannot go below 0
@@ -1729,9 +1741,14 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         get().updateClip(dragState.clipId, trimStartUpdates);
         applyToLinked(trimStartUpdates);
       } else if (dragState.operation === 'trim-end') {
-        const { snappedTime: snappedEnd, snapTarget: snapTargetEnd } = doSnap(currentTime, dragState.clipId);
+        const { snappedTime: snappedEnd, snapTarget: rawSnapTargetEnd } = doSnap(currentTime, dragState.clipId);
         let newEndTime = snappedEnd;
-        newEndTime = Math.max(originalClip.startTime + 0.1, newEndTime);
+        const clampedEndTime = Math.max(originalClip.startTime + 0.1, newEndTime);
+        newEndTime = clampedEndTime;
+        // Only show the snap guide if the clamped position still matches the snap target.
+        const snapTargetEnd = rawSnapTargetEnd !== null && Math.abs(clampedEndTime - rawSnapTargetEnd) < 0.001
+          ? rawSnapTargetEnd
+          : null;
         set({ snapTarget: snapTargetEnd });
 
         // Clamp: sourceEndTime cannot exceed sourceDuration (images are exempt —

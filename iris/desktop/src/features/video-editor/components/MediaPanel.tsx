@@ -282,6 +282,7 @@ const MediaItemList = memo(function MediaItemList({
         <CachedMediaThumbnail
           externalId={media.externalId}
           fileUrl={media.fileUrl}
+          thumbnailUrl={media.thumbnailUrl}
           mediaType={media.mediaType}
           fallbackIcon={Icon}
         />

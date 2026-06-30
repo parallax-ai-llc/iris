@@ -143,6 +143,10 @@ export interface ElectronAPI {
     separate: (inputPath: string, outputPath: string) => Promise<{ success: boolean; outputPath?: string; error?: string }>;
     cancel: () => Promise<{ cancelled: boolean }>;
   };
+  waveform: {
+    extractPeaks: (request: { src: string; sampleCount: number; authToken?: string }) =>
+      Promise<{ success: boolean; peaks?: number[]; error?: string }>;
+  };
   proxy: ProxyAPI;
   extensions: ExtensionsAPI;
   updater: UpdaterAPI;

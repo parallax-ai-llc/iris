@@ -211,6 +211,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     cancel: () => ipcRenderer.invoke('audio:extractCancel'),
   },
 
+  // Waveform peak extraction via ffmpeg (for long sources the renderer can't decode)
+  waveform: {
+    extractPeaks: (request: { src: string; sampleCount: number; authToken?: string }):
+      Promise<{ success: boolean; peaks?: number[]; error?: string }> =>
+      ipcRenderer.invoke('waveform:extractPeaks', request),
+  },
+
   // Video utilities (dimension probing for rotation correction)
   video: {
     probeDimensions: (url: string, authToken?: string) =>
@@ -428,6 +435,10 @@ export interface ElectronAPI {
     extract: (inputPath: string) => Promise<{ success: boolean; audioBuffer?: ArrayBuffer; error?: string }>;
     separate: (inputPath: string, outputPath: string) => Promise<{ success: boolean; outputPath?: string; error?: string }>;
     cancel: () => Promise<{ cancelled: boolean }>;
+  };
+  waveform: {
+    extractPeaks: (request: { src: string; sampleCount: number; authToken?: string }) =>
+      Promise<{ success: boolean; peaks?: number[]; error?: string }>;
   };
   proxy: {
     generate: (request: { sourceUrl: string; assetId: string; width?: number; height?: number }) =>
