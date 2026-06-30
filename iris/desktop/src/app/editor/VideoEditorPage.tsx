@@ -9,6 +9,10 @@ import { memo, useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useEditorStore, type Track, type Clip, hasEffects, hasVolume } from '@/features/video-editor/stores/editor.store';
 import { useVideoProjectStore } from '@/features/video-editor/stores/videoProject.store';
+import {
+  getOrCreateVideoChatStore,
+  useVideoEditorChatStore,
+} from '@/features/video-editor/stores/videoEditorChat.store';
 import { useUIStore } from '@/shared/stores/ui.store';
 import { assetDownloadUrl } from '@/shared/api/iris-local';
 import { VideoEditor } from '@/features/video-editor/components/VideoEditor';
@@ -20,7 +24,7 @@ import { SaveAsProjectModal } from '@/features/video-editor/components/modals/Sa
 import { reframeTimelineData } from '@/features/video-editor/lib/reframeTimeline';
 import { useToast } from '@/shared/components/ui/useToast';
 import { TitleBar } from '@/app/layout/TitleBar';
-import { Upload } from 'lucide-react';
+import { Upload, MessageSquare } from 'lucide-react';
 import { ConfirmDialog } from '@/shared/components/ui/Modal';
 import type { TimelineData, TimelineTrack, TimelineClip, ExportOptions } from '@/types/videoProject.types';
 import type { IrisAsset } from '@/shared/api/types';
@@ -226,6 +230,13 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
   const { t } = useTranslation('common');
   const { asset, closeEditor } = useEditorStore();
   const currentProject = useVideoProjectStore((state) => state.currentProject);
+
+  // AI assistant panel open/close state (per-project chat store) — reflected in
+  // the title-bar toggle button next to Export video.
+  const isChatCollapsed = useVideoEditorChatStore(currentProject?.id, (s) => s.isCollapsed);
+  const toggleChatPanel = useCallback(() => {
+    getOrCreateVideoChatStore(currentProject?.id).getState().toggleCollapsed();
+  }, [currentProject?.id]);
 
   // Hydrate the editor store's proxy maps from the persisted media pool whenever
   // the project loads or its media pool changes. This is what makes "the project
@@ -1020,14 +1031,29 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
       <TitleBar
         hideNav
         rightContent={
-          <button
-            onClick={() => setShowExportModal(true)}
-            className="h-7 px-4 inline-flex items-center gap-1.5 rounded-full bg-white text-zinc-900 text-xs font-semibold hover:bg-zinc-200 transition-colors shadow-sm"
-            title={t('file.exportVideo', { ns: 'menus' })}
-          >
-            <Upload className="w-3.5 h-3.5" />
-            {t('file.exportVideo', { ns: 'menus' })}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleChatPanel}
+              className={`h-7 px-3 inline-flex items-center gap-1.5 rounded-full text-xs font-semibold transition-colors ${
+                !isChatCollapsed
+                  ? 'bg-zinc-700 text-white'
+                  : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-white'
+              }`}
+              title="AI Assistant"
+              aria-pressed={!isChatCollapsed}
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              AI Assistant
+            </button>
+            <button
+              onClick={() => setShowExportModal(true)}
+              className="h-7 px-4 inline-flex items-center gap-1.5 rounded-full bg-white text-zinc-900 text-xs font-semibold hover:bg-zinc-200 transition-colors shadow-sm"
+              title={t('file.exportVideo', { ns: 'menus' })}
+            >
+              <Upload className="w-3.5 h-3.5" />
+              {t('file.exportVideo', { ns: 'menus' })}
+            </button>
+          </div>
         }
         leftContent={
           <VideoEditorMenuBar

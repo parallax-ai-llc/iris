@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { MessageSquare, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { MessageSquare, X, Trash2 } from 'lucide-react';
 import {
   getOrCreateVideoChatStore,
   useVideoEditorChatStore,
@@ -117,10 +117,10 @@ export function VideoEditorChatPanel({
   const isStreaming = useVideoEditorChatStore(storeKey, (s) => s.isStreaming);
   const streamingContent = useVideoEditorChatStore(storeKey, (s) => s.streamingContent);
   const isCollapsed = useVideoEditorChatStore(storeKey, (s) => s.isCollapsed);
-  const panelHeight = useVideoEditorChatStore(storeKey, (s) => s.panelHeight);
+  const panelWidth = useVideoEditorChatStore(storeKey, (s) => s.panelWidth);
 
   const chatStore = useMemo(() => getOrCreateVideoChatStore(storeKey), [storeKey]);
-  const resizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
+  const resizeRef = useRef<{ startX: number; startWidth: number } | null>(null);
 
   // Register modal handlers so chat commands can open them.
   useEffect(() => {
@@ -156,12 +156,13 @@ export function VideoEditorChatPanel({
   const handleResizeStart = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
-      resizeRef.current = { startY: e.clientY, startHeight: panelHeight };
+      resizeRef.current = { startX: e.clientX, startWidth: panelWidth };
 
       const onMouseMove = (ev: MouseEvent) => {
         if (!resizeRef.current) return;
-        const delta = resizeRef.current.startY - ev.clientY;
-        chatStore.getState().setPanelHeight(resizeRef.current.startHeight + delta);
+        // Dragging the left edge leftwards (smaller clientX) widens the panel.
+        const delta = resizeRef.current.startX - ev.clientX;
+        chatStore.getState().setPanelWidth(resizeRef.current.startWidth + delta);
       };
       const onMouseUp = () => {
         resizeRef.current = null;
@@ -172,77 +173,66 @@ export function VideoEditorChatPanel({
       document.addEventListener('mousemove', onMouseMove);
       document.addEventListener('mouseup', onMouseUp);
     },
-    [panelHeight, chatStore],
+    [panelWidth, chatStore],
   );
 
+  // Collapsed: the panel is hidden. It is opened from the AI Assistant button
+  // in the title bar (next to Export video).
   if (isCollapsed) {
-    return (
-      <div className="flex items-center justify-between px-3 py-1.5 bg-zinc-900 border-t border-zinc-800 select-none flex-shrink-0">
-        <button
-          onClick={handleToggle}
-          className="flex items-center gap-2 text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
-        >
-          <MessageSquare className="w-3.5 h-3.5" />
-          <span>AI Assistant</span>
-          {messages.length > 0 && (
-            <span className="px-1.5 py-0.5 rounded-full bg-zinc-700 text-[10px] text-zinc-300">
-              {messages.length}
-            </span>
-          )}
-          <ChevronUp className="w-3 h-3" />
-        </button>
-      </div>
-    );
+    return null;
   }
 
   return (
     <div
-      className="flex flex-col bg-zinc-900 border-t border-zinc-800 flex-shrink-0"
-      style={{ height: panelHeight }}
+      className="absolute top-0 right-0 bottom-0 z-30 flex flex-row bg-zinc-900 border-l border-zinc-800 shadow-2xl"
+      style={{ width: panelWidth }}
     >
+      {/* Resize handle on the left edge */}
       <div
         onMouseDown={handleResizeStart}
-        className="h-1 cursor-ns-resize hover:bg-zinc-600 transition-colors flex-shrink-0"
+        className="w-1 cursor-ew-resize hover:bg-zinc-600 transition-colors flex-shrink-0 self-stretch"
       >
-        <div className="mx-auto mt-[2px] w-8 h-[2px] rounded-full bg-zinc-700" />
+        <div className="my-auto ml-[2px] h-8 w-[2px] rounded-full bg-zinc-700" />
       </div>
 
-      <div className="flex items-center justify-between px-3 py-1 flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <MessageSquare className="w-3.5 h-3.5 text-zinc-400" />
-          <span className="text-xs font-medium text-zinc-300">AI Assistant</span>
-        </div>
-        <div className="flex items-center gap-1">
-          {messages.length > 0 && (
+      <div className="flex flex-col flex-1 min-w-0">
+        <div className="flex items-center justify-between px-3 py-2 flex-shrink-0 border-b border-zinc-800">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="w-3.5 h-3.5 text-zinc-400" />
+            <span className="text-xs font-medium text-zinc-300">AI Assistant</span>
+          </div>
+          <div className="flex items-center gap-1">
+            {messages.length > 0 && (
+              <button
+                onClick={handleClear}
+                className="p-1 rounded hover:bg-zinc-700 text-zinc-500 hover:text-zinc-300 transition-colors"
+                title="Clear chat"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+            )}
             <button
-              onClick={handleClear}
+              onClick={handleToggle}
               className="p-1 rounded hover:bg-zinc-700 text-zinc-500 hover:text-zinc-300 transition-colors"
-              title="Clear chat"
+              title="Close"
             >
-              <Trash2 className="w-3 h-3" />
+              <X className="w-3.5 h-3.5" />
             </button>
-          )}
-          <button
-            onClick={handleToggle}
-            className="p-1 rounded hover:bg-zinc-700 text-zinc-500 hover:text-zinc-300 transition-colors"
-            title="Collapse"
-          >
-            <ChevronDown className="w-3.5 h-3.5" />
-          </button>
+          </div>
         </div>
+
+        <ChatMessageList
+          messages={messages}
+          streamingContent={streamingContent}
+          isStreaming={isStreaming}
+        />
+
+        <ChatInput
+          onSend={handleSend}
+          onAbort={handleAbort}
+          isStreaming={isStreaming}
+        />
       </div>
-
-      <ChatMessageList
-        messages={messages}
-        streamingContent={streamingContent}
-        isStreaming={isStreaming}
-      />
-
-      <ChatInput
-        onSend={handleSend}
-        onAbort={handleAbort}
-        isStreaming={isStreaming}
-      />
     </div>
   );
 }

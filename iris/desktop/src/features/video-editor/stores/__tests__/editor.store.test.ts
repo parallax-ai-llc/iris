@@ -584,3 +584,68 @@ describe('move drag left-edge anchoring', () => {
     expect(moved.endTime).toBeCloseTo(40, 5);
   });
 });
+
+// ─── z-order (track order) ───────────────────────────────────────────────────
+
+describe('moveClipZOrder', () => {
+  function videoTrack(id: string, clips: VideoClip[]): Track {
+    return { id, type: 'video', name: id, locked: false, muted: false, solo: false, visible: true, volume: 1, height: 80, clips };
+  }
+
+  it("'up' swaps the clip's track with the video track above (lower index)", () => {
+    const top = makeVideoClip({ id: 'top', trackId: 't-top' });
+    const bottom = makeVideoClip({ id: 'bottom', trackId: 't-bottom' });
+    useEditorStore.setState({
+      tracks: [videoTrack('t-top', [top]), videoTrack('t-bottom', [bottom])],
+    });
+
+    useEditorStore.getState().moveClipZOrder('bottom', 'up');
+
+    const ids = useEditorStore.getState().tracks.map((t) => t.id);
+    expect(ids).toEqual(['t-bottom', 't-top']);
+  });
+
+  it("'down' swaps the clip's track with the video track below", () => {
+    const top = makeVideoClip({ id: 'top', trackId: 't-top' });
+    const bottom = makeVideoClip({ id: 'bottom', trackId: 't-bottom' });
+    useEditorStore.setState({
+      tracks: [videoTrack('t-top', [top]), videoTrack('t-bottom', [bottom])],
+    });
+
+    useEditorStore.getState().moveClipZOrder('top', 'down');
+
+    const ids = useEditorStore.getState().tracks.map((t) => t.id);
+    expect(ids).toEqual(['t-bottom', 't-top']);
+  });
+
+  it('is a no-op at the top of the video stack', () => {
+    const top = makeVideoClip({ id: 'top', trackId: 't-top' });
+    const bottom = makeVideoClip({ id: 'bottom', trackId: 't-bottom' });
+    useEditorStore.setState({
+      tracks: [videoTrack('t-top', [top]), videoTrack('t-bottom', [bottom])],
+    });
+
+    useEditorStore.getState().moveClipZOrder('top', 'up');
+
+    expect(useEditorStore.getState().tracks.map((t) => t.id)).toEqual(['t-top', 't-bottom']);
+  });
+
+  it('skips non-video tracks when finding the adjacent layer', () => {
+    const top = makeVideoClip({ id: 'top', trackId: 't-top' });
+    const bottom = makeVideoClip({ id: 'bottom', trackId: 't-bottom' });
+    const audio = makeAudioClip({ id: 'a', trackId: 't-audio' });
+    useEditorStore.setState({
+      tracks: [
+        videoTrack('t-top', [top]),
+        { id: 't-audio', type: 'audio', name: 'audio', locked: false, muted: false, solo: false, visible: true, volume: 1, height: 60, clips: [audio] },
+        videoTrack('t-bottom', [bottom]),
+      ],
+    });
+
+    useEditorStore.getState().moveClipZOrder('bottom', 'up');
+
+    // Bottom video swaps with the top video; the audio track stays put.
+    const ids = useEditorStore.getState().tracks.map((t) => t.id);
+    expect(ids).toEqual(['t-bottom', 't-audio', 't-top']);
+  });
+});

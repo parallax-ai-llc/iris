@@ -174,6 +174,13 @@ export const EditorPreview = memo(function EditorPreview({
     [overlayLayers, selectedClip?.id],
   );
 
+  // True when the base video clip is selected — used both to un-clip the stage
+  // (so scaled-up handles stay reachable) and to render the transform gizmo.
+  const baseSelected = useMemo(
+    () => !!activeVideoClip && activeVideoClip.id === selectedClip?.id,
+    [activeVideoClip, selectedClip?.id],
+  );
+
   // Extract the chroma-key effect from the active video clip (if present and enabled)
   const chromaKeyEffect = useMemo(() => {
     if (!activeVideoClip?.effects) return null;
@@ -622,10 +629,11 @@ export const EditorPreview = memo(function EditorPreview({
         <div
           className={cn(
             'absolute bg-black ring-1 ring-white/10',
-            // While an overlay clip is selected, let content + transform handles
-            // spill past the frame so larger-than-frame images stay editable
-            // (the outer preview panel still clips). Otherwise crop to frame.
-            overlaySelected ? 'overflow-visible' : 'overflow-hidden',
+            // While an overlay or the base video clip is selected, let content +
+            // transform handles spill past the frame so larger-than-frame media
+            // stays editable (the outer preview panel still clips). Otherwise
+            // crop to frame.
+            overlaySelected || baseSelected ? 'overflow-visible' : 'overflow-hidden',
           )}
           style={{ ...stageStyle, transform: zoomTransform, transformOrigin: 'center center' }}
         >
@@ -974,6 +982,25 @@ export const EditorPreview = memo(function EditorPreview({
               onSelect={() => selectClip(clip.id)}
             />
           ) : null,
+        )}
+
+        {/* Base video transform gizmo — gives the primary <video> the same
+            move/scale/rotate handles as overlay clips. Rendered only when the
+            base clip is selected; it paints no media (the base <video> above
+            provides the pixels), just the interactive handles on top. */}
+        {baseSelected && activeVideoClip && !showBlackScreen && !showingImage && (
+          <OverlayLayer
+            key={`base-gizmo-${activeVideoClip.id}`}
+            clip={activeVideoClip}
+            currentTime={currentTime}
+            isPlaying={isPlaying}
+            stageScale={subtitleScale}
+            projectWidth={projectWidth}
+            projectHeight={projectHeight}
+            isSelected
+            onSelect={() => selectClip(activeVideoClip.id)}
+            controlsOnly
+          />
         )}
 
         {/* Subtitle overlays */}

@@ -8,6 +8,8 @@
  */
 
 import { memo, useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
+import { ChevronUp, ChevronDown, Maximize2, RotateCcw } from 'lucide-react';
 import { useEditorStore, type VideoClip, type Transform } from '@/features/video-editor/stores/editor.store';
 import { useCachedAssetUrlById } from '@/shared/hooks/useCachedAssetUrl';
 import { useProxyAwareAssetId } from '@/features/video-editor/stores/editor/proxyResolve';
@@ -22,6 +24,14 @@ interface OverlayLayerProps {
   projectHeight: number;
   isSelected: boolean;
   onSelect: () => void;
+  /**
+   * Handles-only mode: render the transform gizmo (move / scale / rotate)
+   * WITHOUT its own media element. Used to give the base video clip the same
+   * resize handles as overlays — the primary <video> in EditorPreview already
+   * paints the pixels (and carries playback/effects), so this layer only adds
+   * the interactive gizmo on top of it.
+   */
+  controlsOnly?: boolean;
 }
 
 type DragMode = 'move' | 'scale' | 'rotate';
@@ -68,25 +78,28 @@ export const OverlayLayer = memo(function OverlayLayer({
   projectHeight,
   isSelected,
   onSelect,
+  controlsOnly = false,
 }: OverlayLayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const updateClip = useEditorStore((s) => s.updateClip);
   const pushHistory = useEditorStore((s) => s.pushHistory);
+  const moveClipZOrder = useEditorStore((s) => s.moveClipZOrder);
 
   const isImage = clip.mediaType === 'image';
 
   // Asset URL (proxy-aware for video; images use the original asset).
-  const playbackAssetId = useProxyAwareAssetId(isImage ? undefined : clip.assetId);
+  // In controls-only mode no media is rendered, so skip fetching entirely.
+  const playbackAssetId = useProxyAwareAssetId(isImage || controlsOnly ? undefined : clip.assetId);
   const { url: videoUrl } = useCachedAssetUrlById(
-    isImage ? undefined : (playbackAssetId ?? clip.assetId),
+    isImage || controlsOnly ? undefined : (playbackAssetId ?? clip.assetId),
     'video/mp4',
-    { type: 'preview', enabled: !isImage },
+    { type: 'preview', enabled: !isImage && !controlsOnly },
   );
   const { url: imageUrl } = useCachedAssetUrlById(
-    isImage ? clip.assetId : undefined,
+    isImage && !controlsOnly ? clip.assetId : undefined,
     'image/jpeg',
-    { type: 'preview', enabled: isImage },
+    { type: 'preview', enabled: isImage && !controlsOnly },
   );
 
   // Natural pixel size for images (fall back to the stored clip dims, then to a
@@ -223,6 +236,9 @@ export const OverlayLayer = memo(function OverlayLayer({
 
   const beginDrag = useCallback(
     (mode: DragMode, corner?: Corner) => (e: React.PointerEvent) => {
+      // Only the primary (left) button drives transforms — right-click opens the
+      // context menu, so it must not start a move/scale/rotate drag.
+      if (e.button !== 0) return;
       e.preventDefault();
       e.stopPropagation();
       onSelectRef.current();
@@ -283,6 +299,88 @@ export const OverlayLayer = memo(function OverlayLayer({
     window.removeEventListener('pointerup', handlePointerUp);
   }, [handlePointerMove, handlePointerUp]);
 
+  // ── Right-click context menu (z-order / size) ──────────────────────────────
+  const [menu, setMenu] = useState<{ x: number; y: number; canUp: boolean; canDown: boolean } | null>(null);
+
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      onSelectRef.current();
+      // Compute whether the clip's video track has a video track above/below it,
+      // so the bring-forward / send-backward items can be disabled at the ends.
+      const tracks = useEditorStore.getState().tracks;
+      const videoIdx = tracks.filter((t) => t.type === 'video').findIndex((t) =>
+        t.clips.some((c) => c.id === clip.id),
+      );
+      const videoCount = tracks.filter((t) => t.type === 'video').length;
+      setMenu({
+        x: e.clientX,
+        y: e.clientY,
+        canUp: videoIdx > 0,
+        canDown: videoIdx >= 0 && videoIdx < videoCount - 1,
+      });
+    },
+    [clip.id],
+  );
+
+  // Close the menu on any outside interaction.
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    window.addEventListener('pointerdown', close);
+    window.addEventListener('blur', close);
+    return () => {
+      window.removeEventListener('pointerdown', close);
+      window.removeEventListener('blur', close);
+    };
+  }, [menu]);
+
+  // "원본 사이즈로 되돌리기" — reset framing to 100% / centred (opacity kept).
+  const handleResetSize = useCallback(() => {
+    updateClip(clip.id, {
+      transform: { ...clip.transform, scale: 1, x: 0, y: 0, rotation: 0 },
+    } as Partial<VideoClip>);
+    pushHistory('Reset Size');
+    setMenu(null);
+  }, [clip.id, clip.transform, updateClip, pushHistory]);
+
+  // "채우기" — scale so the media covers the whole frame (no letterbox/pillarbox).
+  const handleFill = useCallback(() => {
+    const pw = projectWidth;
+    const ph = projectHeight;
+    let fillScale = 1;
+    if (isImage) {
+      // Image box == its natural size; cover the frame by the larger axis ratio.
+      const nw = naturalSize?.w ?? clip.sourceWidth;
+      const nh = naturalSize?.h ?? clip.sourceHeight;
+      if (nw && nh) fillScale = Math.max(pw / nw, ph / nh);
+    } else {
+      // Video box == frame with object-contain; the cover factor is the ratio of
+      // the larger to the smaller frame/source axis ratio.
+      const sw = clip.sourceWidth;
+      const sh = clip.sourceHeight;
+      if (sw && sh) {
+        const rw = pw / sw;
+        const rh = ph / sh;
+        fillScale = Math.max(rw, rh) / Math.min(rw, rh);
+      }
+    }
+    updateClip(clip.id, {
+      transform: { ...clip.transform, scale: fillScale, x: 0, y: 0, rotation: 0 },
+    } as Partial<VideoClip>);
+    pushHistory('Fill Frame');
+    setMenu(null);
+  }, [clip.id, clip.transform, clip.sourceWidth, clip.sourceHeight, isImage, naturalSize, projectWidth, projectHeight, updateClip, pushHistory]);
+
+  const handleMoveZ = useCallback(
+    (direction: 'up' | 'down') => {
+      moveClipZOrder(clip.id, direction);
+      setMenu(null);
+    },
+    [clip.id, moveClipZOrder],
+  );
+
   const wrapperStyle = useMemo<React.CSSProperties>(
     () => ({
       position: 'absolute',
@@ -292,13 +390,15 @@ export const OverlayLayer = memo(function OverlayLayer({
       height: `${displayH}px`,
       transform: `translate(-50%, -50%) translate(${offsetX}px, ${offsetY}px) rotate(${rotation}deg)`,
       transformOrigin: 'center center',
-      opacity,
+      // Keep the gizmo fully opaque in controls-only mode so the handles stay
+      // visible even when the underlying clip's opacity is reduced.
+      opacity: controlsOnly ? 1 : opacity,
       mixBlendMode:
         clip.blendMode && clip.blendMode !== 'normal'
           ? (clip.blendMode as React.CSSProperties['mixBlendMode'])
           : undefined,
     }),
-    [displayW, displayH, offsetX, offsetY, rotation, opacity, clip.blendMode],
+    [displayW, displayH, offsetX, offsetY, rotation, opacity, clip.blendMode, controlsOnly],
   );
 
   const handle = 'absolute w-2.5 h-2.5 bg-white border border-blue-500 rounded-sm';
@@ -308,28 +408,33 @@ export const OverlayLayer = memo(function OverlayLayer({
       ref={wrapperRef}
       style={wrapperStyle}
       onPointerDown={beginDrag('move')}
+      onContextMenu={handleContextMenu}
       className={isSelected ? 'cursor-move' : 'cursor-pointer'}
     >
-      {isImage
-        ? imageUrl && (
-            <img
-              src={imageUrl}
-              alt={clip.name}
-              onLoad={handleImageLoad}
-              draggable={false}
-              className="w-full h-full object-contain select-none pointer-events-none"
-            />
-          )
-        : videoUrl && (
-            <video
-              ref={videoRef}
-              src={videoUrl}
-              muted
-              playsInline
-              crossOrigin="anonymous"
-              className="w-full h-full object-contain select-none pointer-events-none"
-            />
-          )}
+      {/* Controls-only mode renders no media — the base <video> beneath this
+          gizmo provides the pixels. Otherwise paint the clip's own media. */}
+      {controlsOnly
+        ? null
+        : isImage
+          ? imageUrl && (
+              <img
+                src={imageUrl}
+                alt={clip.name}
+                onLoad={handleImageLoad}
+                draggable={false}
+                className="w-full h-full object-contain select-none pointer-events-none"
+              />
+            )
+          : videoUrl && (
+              <video
+                ref={videoRef}
+                src={videoUrl}
+                muted
+                playsInline
+                crossOrigin="anonymous"
+                className="w-full h-full object-contain select-none pointer-events-none"
+              />
+            )}
 
       {/* Selection box + transform handles */}
       {isSelected && (
@@ -350,6 +455,53 @@ export const OverlayLayer = memo(function OverlayLayer({
           />
         </>
       )}
+
+      {/* Right-click context menu — z-order + size. Rendered through a portal so
+          it isn't distorted by the wrapper's (and stage's) CSS transform. */}
+      {menu &&
+        createPortal(
+          <div
+            className="fixed z-[100] bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl py-1 min-w-[180px]"
+            style={{ left: menu.x, top: menu.y }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onContextMenu={(e) => e.preventDefault()}
+          >
+            <button
+              className="flex items-center gap-2 w-full px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-default disabled:hover:bg-transparent disabled:hover:text-zinc-300"
+              disabled={!menu.canUp}
+              onClick={() => handleMoveZ('up')}
+            >
+              <ChevronUp className="w-3 h-3" />
+              앞으로 가져오기 (위로)
+            </button>
+            <button
+              className="flex items-center gap-2 w-full px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-default disabled:hover:bg-transparent disabled:hover:text-zinc-300"
+              disabled={!menu.canDown}
+              onClick={() => handleMoveZ('down')}
+            >
+              <ChevronDown className="w-3 h-3" />
+              뒤로 보내기 (아래로)
+            </button>
+
+            <div className="border-t border-zinc-700 my-1" />
+
+            <button
+              className="flex items-center gap-2 w-full px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
+              onClick={handleResetSize}
+            >
+              <RotateCcw className="w-3 h-3" />
+              원본 사이즈로 되돌리기
+            </button>
+            <button
+              className="flex items-center gap-2 w-full px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
+              onClick={handleFill}
+            >
+              <Maximize2 className="w-3 h-3" />
+              프레임 채우기
+            </button>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 });

@@ -37,7 +37,7 @@ export interface VideoEditorChatState {
   isStreaming: boolean;
   streamingContent: string;
   isCollapsed: boolean;
-  panelHeight: number;
+  panelWidth: number;
   abortController: AbortController | null;
 }
 
@@ -46,7 +46,7 @@ export interface VideoEditorChatActions {
   abortStream: () => void;
   toggleCollapsed: () => void;
   setCollapsed: (collapsed: boolean) => void;
-  setPanelHeight: (height: number) => void;
+  setPanelWidth: (width: number) => void;
   clearHistory: () => void;
 }
 
@@ -55,7 +55,7 @@ export type VideoEditorChatStoreApi = StoreApi<VideoEditorChatStore>;
 
 // ==================== Defaults ====================
 
-const DEFAULT_PANEL_HEIGHT = 320;
+const DEFAULT_PANEL_WIDTH = 360;
 
 function createDefaultState(): VideoEditorChatState {
   return {
@@ -63,7 +63,7 @@ function createDefaultState(): VideoEditorChatState {
     isStreaming: false,
     streamingContent: '',
     isCollapsed: true,
-    panelHeight: DEFAULT_PANEL_HEIGHT,
+    panelWidth: DEFAULT_PANEL_WIDTH,
     abortController: null,
   };
 }
@@ -179,7 +179,7 @@ export function createVideoEditorChatStore(): VideoEditorChatStoreApi {
 
     toggleCollapsed: () => set((s) => ({ isCollapsed: !s.isCollapsed })),
     setCollapsed: (collapsed) => set({ isCollapsed: collapsed }),
-    setPanelHeight: (height) => set({ panelHeight: Math.max(180, Math.min(600, height)) }),
+    setPanelWidth: (width) => set({ panelWidth: Math.max(300, Math.min(640, width)) }),
     clearHistory: () => set({ messages: [], streamingContent: '' }),
   }));
 }

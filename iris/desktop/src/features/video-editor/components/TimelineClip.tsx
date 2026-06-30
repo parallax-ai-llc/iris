@@ -325,19 +325,41 @@ export const TimelineClip = memo(function TimelineClip({
   const showWaveforms = useEditorStore((s) => s.showWaveforms);
   const setClipWaveformData = useEditorStore((s) => s.setClipWaveformData);
 
-  // Get cached URL for audio/music clips (for waveform analysis)
+  // This clip's window into the source. Peaks always span the FULL source
+  // [0, sourceDuration]; after a split/trim the clip covers only part of it, so we
+  // slice the peaks to [sourceStartTime, sourceEndTime] at render time.
+  const clipDuration = Math.max(0.01, clip.endTime - clip.startTime);
+  const sourceDuration =
+    audioOrMusicClip?.sourceDuration && audioOrMusicClip.sourceDuration > 0
+      ? audioOrMusicClip.sourceDuration
+      : clipDuration;
+  const sourceWindowStart = audioOrMusicClip?.sourceStartTime ?? 0;
+  const sourceWindowEnd = audioOrMusicClip?.sourceEndTime ?? sourceDuration;
+
+  // Analyze the FULL source at a fixed TIME resolution (peaks-per-second), NOT clip
+  // pixel width. Tying density to width meant a long source collapsed into a handful
+  // of coarse samples (~0.2s each) and splitting sliced that down to almost nothing
+  // ("one bar"). At ~140 peaks/sec each sample is ~7ms, like pro editors — and it's
+  // stable across zoom/splits so the cached peaks are reused, not re-analyzed.
+  const WAVEFORM_PEAKS_PER_SECOND = 1200;
+  const targetSampleCount = Math.min(
+    Math.max(Math.round(sourceDuration * WAVEFORM_PEAKS_PER_SECOND), 2400),
+    180000
+  );
+
+  // Re-analyze whenever stored peaks are missing OR too coarse for the target
+  // resolution (e.g. low-res data persisted by an older build).
+  const hasUsableExistingData =
+    !!existingWaveformData && existingWaveformData.length >= targetSampleCount * 0.9;
+  const needsWaveformAnalysis = !!audioAssetId && showWaveforms && !hasUsableExistingData;
+
+  // Fetch the audio URL whenever we actually need to (re)analyze — NOT only when no
+  // stored data exists, otherwise coarse old data can never be upgraded.
   const { url: cachedAudioUrl, error: audioAssetError } = useCachedAssetUrlById(
     audioAssetId,
     'audio/*',
-    { type: 'preview', enabled: !!audioAssetId && showWaveforms && !existingWaveformData }
+    { type: 'preview', enabled: needsWaveformAnalysis }
   );
-
-  // Target sample density: 1 bar per pixel for crisp Premiere-style waveform
-  const targetSampleCount = Math.min(Math.max(Math.floor(width), 200), 2000);
-
-  // Analyze waveform when audio URL is available and existing data is too sparse
-  const hasUsableExistingData = !!existingWaveformData && existingWaveformData.length >= targetSampleCount;
-  const needsWaveformAnalysis = !!audioAssetId && showWaveforms && !hasUsableExistingData;
   const { peaks: analyzedPeaks, isLoading: isAnalyzingWaveform } = useWaveformAnalyzer(
     needsWaveformAnalysis ? cachedAudioUrl : null,
     targetSampleCount
@@ -351,25 +373,48 @@ export const TimelineClip = memo(function TimelineClip({
     return [];
   }, [clip.type, analyzedPeaks, existingWaveformData]);
 
-  // Build dense vertical-bar waveform path: one thin rect per sample
-  const waveformPath = useMemo(() => {
-    if (waveformPeaks.length < 2) return '';
-    const n = waveformPeaks.length;
+  // Slice the full-source peaks down to this clip's actual source window.
+  const visibleWaveformPeaks = useMemo<number[]>(() => {
+    const peaks = waveformPeaks;
+    if (peaks.length < 2 || sourceDuration <= 0) return peaks;
+    let startFrac = sourceWindowStart / sourceDuration;
+    let endFrac = sourceWindowEnd / sourceDuration;
+    startFrac = Math.max(0, Math.min(1, startFrac));
+    endFrac = Math.max(startFrac, Math.min(1, endFrac));
+    // Essentially the full range → no slicing needed (untrimmed clip).
+    if (startFrac <= 0.001 && endFrac >= 0.999) return peaks;
+    const startIdx = Math.floor(startFrac * peaks.length);
+    const endIdx = Math.max(startIdx + 2, Math.ceil(endFrac * peaks.length));
+    return peaks.slice(startIdx, endIdx);
+  }, [waveformPeaks, sourceWindowStart, sourceWindowEnd, sourceDuration]);
+
+  // Build a dense Premiere-style vertical-bar waveform. ~1 bar per 1.5px of clip width
+  // (fine division), each bar slightly narrower than its slot so a hairline gap shows
+  // the bars individually — a contiguous fill (old behavior) reads as a flat rectangle.
+  const { waveformPath, waveformViewBox } = useMemo(() => {
+    const src = visibleWaveformPeaks;
+    if (src.length < 2) return { waveformPath: '', waveformViewBox: '0 0 1 100' };
+    const barCount = Math.max(16, Math.min(Math.floor(width), src.length, 24000));
     const vbH = 100;
     const mid = vbH / 2;
     const maxAmp = mid - 1;
-    const barW = 1; // 1 viewBox unit per bar — viewBox width = n
+    const barW = 0.85; // bar width within each 1-unit slot → hairline gap between bars
     let d = '';
-    for (let i = 0; i < n; i++) {
-      const a = Math.pow(waveformPeaks[i], 1.4) * maxAmp;
-      if (a < 0.5) continue;
-      const x = i;
-      d += `M${x},${mid - a}h${barW}v${a * 2}h-${barW}z`;
+    for (let i = 0; i < barCount; i++) {
+      // Max-pool the source peaks that fall into this display bar.
+      const from = Math.floor((i / barCount) * src.length);
+      const to = Math.max(from + 1, Math.floor(((i + 1) / barCount) * src.length));
+      let peak = 0;
+      for (let j = from; j < to; j++) if (src[j] > peak) peak = src[j];
+      // Near-linear mapping so loud/quiet variation stays visible; keep a thin sliver
+      // for quiet-but-audible bars, and true silence (≈0) drops to a gap.
+      const a = peak > 0.015 ? Math.max(Math.pow(peak, 1.1) * maxAmp, 0.75) : 0;
+      if (a <= 0) continue;
+      const x = (i + (1 - barW) / 2).toFixed(2); // center bar in its slot
+      d += `M${x},${(mid - a).toFixed(2)}h${barW}v${(a * 2).toFixed(2)}h-${barW}z`;
     }
-    return d;
-  }, [waveformPeaks]);
-
-  const waveformViewBox = `0 0 ${Math.max(waveformPeaks.length, 1)} 100`;
+    return { waveformPath: d, waveformViewBox: `0 0 ${barCount} 100` };
+  }, [visibleWaveformPeaks, width]);
 
   // Calculate number of frames needed for video
   const frameCount = useMemo(() => {

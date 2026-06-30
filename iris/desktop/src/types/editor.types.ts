@@ -804,6 +804,13 @@ export interface EditorActions {
   removeClip: (clipId: string) => void;
   updateClip: (clipId: string, updates: Partial<Clip>) => void;
   moveClipToTrack: (clipId: string, targetTrackId: string) => void;
+  /**
+   * Move a visual clip up/down in z-order by swapping its video track with the
+   * adjacent video track. z-order is determined by track order (top track =
+   * highest layer), so 'up' = bring forward, 'down' = send backward. No-op when
+   * the clip's track is already at the top/bottom of the video stack.
+   */
+  moveClipZOrder: (clipId: string, direction: 'up' | 'down') => void;
   moveClip: (clipId: string, newTrackId: string, newStartTime: number) => void;
   splitClip: (clipId: string, splitTime: number) => void;
   duplicateClip: (clipId: string) => Clip | null;

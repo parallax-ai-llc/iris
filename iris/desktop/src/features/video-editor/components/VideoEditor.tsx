@@ -305,6 +305,17 @@ export const VideoEditor = memo(function VideoEditor({
   useEffect(() => {
     // Check if tracks already exist (to avoid reinitializing)
     if (tracks.length === 0) {
+      // Blank/placeholder projects (created via "New Project") have no real
+      // source media — they carry a placeholder asset id and a 0 duration.
+      // For those we create the empty tracks only; inserting the "Main Video"/
+      // "Original Audio" clips here would add a zero-length empty clip and floor
+      // the timeline to 1s. (Mirrors createDefaultTracks' includeMainClips guard.)
+      const isBlankProject =
+        !resolvedAssetId ||
+        resolvedAssetId.startsWith('blank-') ||
+        resolvedAssetId.startsWith('project-') ||
+        duration <= 0;
+
       // Set initial project duration only on first initialization
       setDuration(duration);
       // Create default tracks
@@ -312,48 +323,50 @@ export const VideoEditor = memo(function VideoEditor({
       const audioTrack = addTrack('audio', 'Audio');
       const subtitleTrack = addTrack('subtitle', 'Subtitles');
 
-      // Add main video clip
-      const videoClip = addClip(videoTrack.id, {
-        type: 'video',
-        name: title || 'Main Video',
-        startTime: 0,
-        endTime: duration,
-        sourceStartTime: 0,
-        sourceEndTime: duration,
-        sourceDuration: duration,
-        assetId: resolvedAssetId,
-        thumbnailUrl,
-        transform: { scale: 1, rotation: 0, opacity: 1, x: 0, y: 0 },
-        volume: 1,
-        muted: false,
-        audioExtracted: true, // audio lives on the paired audio clip below
-        speed: 1,
-        blendMode: 'normal',
-        effects: [],
-        keyframes: [],
-      });
+      if (!isBlankProject) {
+        // Add main video clip
+        const videoClip = addClip(videoTrack.id, {
+          type: 'video',
+          name: title || 'Main Video',
+          startTime: 0,
+          endTime: duration,
+          sourceStartTime: 0,
+          sourceEndTime: duration,
+          sourceDuration: duration,
+          assetId: resolvedAssetId,
+          thumbnailUrl,
+          transform: { scale: 1, rotation: 0, opacity: 1, x: 0, y: 0 },
+          volume: 1,
+          muted: false,
+          audioExtracted: true, // audio lives on the paired audio clip below
+          speed: 1,
+          blendMode: 'normal',
+          effects: [],
+          keyframes: [],
+        });
 
-      // Add main audio clip (extracted from video) — paired with video
-      const audioClip = addClip(audioTrack.id, {
-        type: 'audio',
-        name: 'Original Audio',
-        startTime: 0,
-        endTime: duration,
-        sourceStartTime: 0,
-        sourceEndTime: duration,
-        sourceDuration: duration,
-        assetId: resolvedAssetId,
-        volume: 1,
-        muted: false,
-        effects: [],
-        keyframes: [],
-        fadeIn: 0,
-        fadeOut: 0,
-        linkedClipId: videoClip.id,
-      });
+        // Add main audio clip (extracted from video) — paired with video
+        const audioClip = addClip(audioTrack.id, {
+          type: 'audio',
+          name: 'Original Audio',
+          startTime: 0,
+          endTime: duration,
+          sourceStartTime: 0,
+          sourceEndTime: duration,
+          sourceDuration: duration,
+          assetId: resolvedAssetId,
+          volume: 1,
+          muted: false,
+          effects: [],
+          keyframes: [],
+          fadeIn: 0,
+          fadeOut: 0,
+          linkedClipId: videoClip.id,
+        });
 
-      // Link video clip back to audio clip
-      useEditorStore.getState().updateClip(videoClip.id, { linkedClipId: audioClip.id });
+        // Link video clip back to audio clip
+        useEditorStore.getState().updateClip(videoClip.id, { linkedClipId: audioClip.id });
+      }
 
       // Add initial subtitles if provided
       if (initialSubtitles && initialSubtitles.length > 0) {
@@ -1603,7 +1616,7 @@ export const VideoEditor = memo(function VideoEditor({
         )}
       </div>
 
-      {/* AI chat assistant — collapsible bar at the bottom */}
+      {/* AI chat assistant — right-docked panel (opened from the title bar button) */}
       <VideoEditorChatPanel
         onOpenSilenceRemoval={onOpenSilenceRemoval}
         onOpenAutoCaptions={() => setShowAutoCaptions(true)}

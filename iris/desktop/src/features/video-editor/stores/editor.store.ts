@@ -1101,6 +1101,38 @@ export const useEditorStore = create<EditorState & EditorActions>()(
       set({ tracks: newTracks });
     },
 
+    moveClipZOrder: (clipId, direction) => {
+      const { tracks } = get();
+      const found = findClipById(tracks, clipId);
+      if (!found) return;
+      const sourceTrack = found.track;
+      // z-order only applies to visual (video/image) tracks.
+      if (sourceTrack.type !== 'video') return;
+
+      const fromIndex = tracks.findIndex((t) => t.id === sourceTrack.id);
+      if (fromIndex === -1) return;
+
+      // 'up' = bring forward = lower array index (index 0 is the top-most layer).
+      const step = direction === 'up' ? -1 : 1;
+      let targetIndex = -1;
+      for (let i = fromIndex + step; i >= 0 && i < tracks.length; i += step) {
+        if (tracks[i].type === 'video') {
+          targetIndex = i;
+          break;
+        }
+      }
+      // Already at the top/bottom of the video stack — nothing to do.
+      if (targetIndex === -1) return;
+
+      const newTracks = [...tracks];
+      [newTracks[fromIndex], newTracks[targetIndex]] = [
+        newTracks[targetIndex],
+        newTracks[fromIndex],
+      ];
+      set({ tracks: newTracks });
+      get().pushHistory(direction === 'up' ? 'Bring Forward' : 'Send Backward');
+    },
+
     updateClip: (clipId, updates) => {
       const { tracks, selectedClip } = get();
 
