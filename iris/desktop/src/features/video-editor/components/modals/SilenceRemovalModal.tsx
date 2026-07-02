@@ -26,6 +26,7 @@ import { useEditorStore, type VideoClip } from '@/features/video-editor/stores/e
 import { buildExportRequest } from '@/features/video-editor/lib/buildExportRequest';
 import { useVideoProjectStore } from '@/features/video-editor/stores/videoProject.store';
 import { toLocalMediaUrl } from './localMediaUrl';
+import { probeVideoFile } from '@/features/video-editor/lib/probeMediaFile';
 import { useTranslation } from 'react-i18next';
 
 // ==================== Types ====================
@@ -435,15 +436,18 @@ export const SilenceRemovalModal = memo(function SilenceRemovalModal({
       // Add result to media pool as a local file reference (no upload)
       try {
         const fileUrl = await toLocalMediaUrl(result.outputPath);
+        // Extract a poster frame so the media pool / timeline show a thumbnail
+        // (same as local file imports). Falls back to null if extraction fails.
+        const probe = await probeVideoFile(fileUrl);
         const store = useVideoProjectStore.getState();
         await store.addMedia({
           mediaType: 'video',
           name: `${store.currentProject?.name || 'Video'} (${t('silenceRemovalModal.outputNameSuffix')})`,
           fileUrl,
-          thumbnailUrl: null,
-          duration: Math.round(estimatedOutputDuration),
-          width: store.currentProject?.width || 1920,
-          height: store.currentProject?.height || 1080,
+          thumbnailUrl: probe.thumbnailUrl,
+          duration: probe.duration > 0 ? Math.round(probe.duration) : Math.round(estimatedOutputDuration),
+          width: probe.width || store.currentProject?.width || 1920,
+          height: probe.height || store.currentProject?.height || 1080,
           fileSize: null,
         });
 

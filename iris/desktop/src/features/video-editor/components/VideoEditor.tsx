@@ -57,6 +57,7 @@ import { KeyboardShortcutsModal } from './modals/KeyboardShortcutsModal';
 import { ExportModal, type ExportOptions } from './modals/ExportModal';
 import { ImportMediaModal, type LocalFileImport } from './modals/ImportMediaModal';
 import { toLocalMediaUrl } from './modals/localMediaUrl';
+import { probeVideoFile, probeAudioFile } from '@/features/video-editor/lib/probeMediaFile';
 import { ProxyGenerationModal } from './modals/ProxyGenerationModal';
 import { ProxyQueueIndicator } from './ProxyQueueIndicator';
 import { usePreRenderGate } from '@/features/video-editor/hooks/usePreRenderGate';
@@ -697,97 +698,6 @@ export const VideoEditor = memo(function VideoEditor({
     [onExport]
   );
 
-  // Probe video metadata (duration, dimensions) and extract a thumbnail frame
-  const probeVideoFile = useCallback((videoUrl: string): Promise<{
-    duration: number;
-    width: number;
-    height: number;
-    thumbnailUrl: string | null;
-  }> => {
-    return new Promise((resolve) => {
-      const video = document.createElement('video');
-      // Required so canvas.toDataURL() doesn't throw on a "tainted" canvas.
-      // The local media server sends Access-Control-Allow-Origin: *, but the
-      // browser only treats the frame as same-origin-readable when the element
-      // opts into CORS. Without this, thumbnail extraction silently fails.
-      video.crossOrigin = 'anonymous';
-      video.preload = 'auto';
-      video.muted = true;
-      video.playsInline = true;
-
-      const cleanup = () => { video.src = ''; video.load(); };
-      const fallback = () => { cleanup(); resolve({ duration: 0, width: 0, height: 0, thumbnailUrl: null }); };
-      const timeout = setTimeout(fallback, 15000);
-
-      video.onloadedmetadata = () => {
-        const dur = isFinite(video.duration) ? video.duration : 0;
-        const w = video.videoWidth || 0;
-        const h = video.videoHeight || 0;
-
-        if (dur <= 0) {
-          clearTimeout(timeout);
-          cleanup();
-          resolve({ duration: 0, width: w, height: h, thumbnailUrl: null });
-          return;
-        }
-
-        // Seek to 10% of duration for a representative thumbnail
-        video.currentTime = Math.min(dur * 0.1, 2);
-      };
-
-      video.onseeked = () => {
-        clearTimeout(timeout);
-        const dur = isFinite(video.duration) ? video.duration : 0;
-        const w = video.videoWidth || 0;
-        const h = video.videoHeight || 0;
-
-        // Extract frame to canvas
-        let thumbnailUrl: string | null = null;
-        try {
-          const canvas = document.createElement('canvas');
-          const scale = Math.min(1, 320 / Math.max(w, 1));
-          canvas.width = Math.round(w * scale);
-          canvas.height = Math.round(h * scale);
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            thumbnailUrl = canvas.toDataURL('image/jpeg', 0.7);
-          }
-        } catch {
-          // Canvas extraction may fail due to CORS
-        }
-
-        cleanup();
-        resolve({ duration: dur, width: w, height: h, thumbnailUrl });
-      };
-
-      video.onerror = () => { clearTimeout(timeout); fallback(); };
-      video.src = videoUrl;
-    });
-  }, []);
-
-  // Probe an audio file's duration via an <audio> element (no <video>, no thumbnail)
-  const probeAudioFile = useCallback((audioUrl: string): Promise<{ duration: number }> => {
-    return new Promise((resolve) => {
-      const audio = document.createElement('audio');
-      audio.preload = 'metadata';
-
-      const cleanup = () => { audio.src = ''; audio.load(); };
-      const fallback = () => { cleanup(); resolve({ duration: 0 }); };
-      const timeout = setTimeout(fallback, 15000);
-
-      audio.onloadedmetadata = () => {
-        clearTimeout(timeout);
-        const dur = isFinite(audio.duration) ? audio.duration : 0;
-        cleanup();
-        resolve({ duration: dur });
-      };
-
-      audio.onerror = () => { clearTimeout(timeout); fallback(); };
-      audio.src = audioUrl;
-    });
-  }, []);
-
   // Import handler - download gallery assets to local storage, then add to
   // media pool the same way local file imports do (fileUrl-based, not externalId).
   const handleImportMedia = useCallback(
@@ -892,7 +802,7 @@ export const VideoEditor = memo(function VideoEditor({
         });
       }
     },
-    [addMedia, probeVideoFile, probeAudioFile]
+    [addMedia]
   );
 
   // Import local files (reference only, no upload/copy)
@@ -935,7 +845,7 @@ export const VideoEditor = memo(function VideoEditor({
         });
       }
     },
-    [addMedia, probeVideoFile, probeAudioFile]
+    [addMedia]
   );
 
   // File drag-and-drop handlers for OS file import
