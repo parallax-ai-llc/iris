@@ -93,6 +93,8 @@ export interface ClipEffect {
   
   // Transition specific
   transitionType?: 'fade' | 'dissolve' | 'wipe' | 'slide' | 'zoom' | 'blur' | 'dip-to-black' | 'dip-to-white' | 'push' | 'film-dissolve' | 'iris' | 'clock-wipe' | 'gradient-wipe' | 'page-peel' | 'morph-cut'
+    // Panel definition ids whose legacy short forms above are kept for persisted projects
+    | 'blur-transition' | 'tr-iris' | 'tr-clock-wipe' | 'tr-gradient-wipe'
     // Phase 2 Batch 4: Transitions Expansion
     | 'additive-dissolve' | 'non-additive-dissolve'
     | 'iris-box' | 'iris-cross' | 'iris-diamond' | 'iris-star' | 'iris-points'

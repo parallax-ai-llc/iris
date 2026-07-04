@@ -21,7 +21,7 @@ import {
 import { selectClipIdSet } from '@/features/video-editor/stores/editor/selectors';
 import { useCachedAssetUrlById } from '@/shared/hooks/useCachedAssetUrl';
 import { useWaveformAnalyzer, MAX_WEB_DECODE_SECONDS } from '@/features/video-editor/hooks/useWaveformAnalyzer';
-import { createClipEffectFromDefinition } from '@/shared/lib/utils/effectUtils';
+import { createClipEffectFromDefinition } from '../lib/effectUtils';
 
 // Cache for extracted video frames (shared across all clips)
 const frameCache = new Map<string, string[]>();

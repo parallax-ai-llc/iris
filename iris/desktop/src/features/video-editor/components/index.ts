@@ -28,7 +28,7 @@ export { PlayheadControls } from './PlayheadControls';
 
 // Video Project Editor panels (Premiere Pro-style)
 export { MediaPanel } from './MediaPanel';
-export { EffectsPanel, EFFECT_CATEGORIES, type EffectDefinition } from './EffectsPanel';
+export { EffectsPanel, type EffectDefinition } from './EffectsPanel';
 export { KeyframeEditor } from './KeyframeEditor';
 export { AudioMixerPanel } from './AudioMixerPanel';
 

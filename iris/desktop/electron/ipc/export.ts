@@ -13,6 +13,9 @@ import { spawn, type ChildProcess } from 'child_process';
 import https from 'https';
 import http from 'http';
 import { ensureFFmpegAvailable, findFFmpegPathSync, type EnsureProgress } from './ffmpeg-resolver';
+// Pure data module shared with the renderer: transitionType → ffmpeg xfade
+// name, composed from the per-category effect definition files.
+import { XFADE_MAP } from '../../src/features/video-editor/effects/registry';
 import {
   buildOverlayCompositor,
   type OverlayClip,
@@ -987,6 +990,11 @@ function buildEffectFilters(effects: ExportClip['effects']): string[] {
         filters.push(`colorchannelmixer=${rr2}:${rg3}:${rb3}:0:${gr3}:${gg3}:${gb3}:0:${br4}:${bg4}:${bb3}:0`);
         break;
       }
+      default:
+        // A filter definition without an FFmpeg mapping renders in the panel
+        // and preview but would silently vanish from the export otherwise.
+        console.warn(`[export] No FFmpeg mapping for filter effect '${fx.filterType}' — skipped`);
+        break;
     }
   }
   return filters;
@@ -1793,25 +1801,6 @@ function buildFFmpegArgs(request: ExportRequest, sourcesWithAudio?: Set<string>)
       const q = audioSplitQueue.get(idx);
       if (!q || q.length === 0) return `${idx}:a`;
       return q.shift()!;
-    };
-
-    const XFADE_MAP: Record<string, string> = {
-      'slide': 'slideleft', 'zoom': 'zoomin', 'wipe': 'wipeleft',
-      'blur-transition': 'hblur', 'blur': 'hblur',
-      'dissolve': 'dissolve', 'fade': 'fade', 'dip-to-black': 'fadeblack', 'dip-to-white': 'fadewhite',
-      'additive-dissolve': 'distance', 'non-additive-dissolve': 'pixelize', 'film-dissolve': 'fadegrays',
-      'tr-iris': 'circlecrop', 'iris': 'circlecrop', 'iris-box': 'rectcrop', 'iris-cross': 'circlecrop',
-      'iris-diamond': 'circlecrop', 'iris-star': 'circlecrop', 'iris-points': 'circlecrop',
-      'tr-clock-wipe': 'radial', 'tr-gradient-wipe': 'hblur',
-      'barn-doors': 'horzopen', 'radial-wipe': 'radial', 'push': 'coverleft',
-      'slide-basic': 'slideleft', 'cross-zoom': 'zoomin', 'zoom-basic': 'zoomin', 'multi-spin': 'zoomin',
-      'band-slide': 'squeezeh', 'center-split': 'horzopen', 'center-merge': 'horzclose',
-      'band-wipe': 'wipetl', 'random-blocks': 'pixelize', 'random-wipe': 'wipetl',
-      'wipe-basic': 'wipeleft', 'linear-wipe': 'wipeleft', 'linear-wipe-transition': 'wipeleft',
-      'slash-slide': 'diagtl', 'split': 'vertopen', 'swap': 'hlslice',
-      'sliding-bands': 'squeezev', 'pinwheel': 'radial', 'venetian-blinds': 'vdslice',
-      'checker-wipe': 'pixelize', 'checkerboard-wipe': 'pixelize', 'inset': 'rectcrop',
-      'wedge-wipe': 'wipetl', 'whip-turn': 'smoothright',
     };
 
     // Helper: insert a black video + silent audio gap segment using inline filter sources

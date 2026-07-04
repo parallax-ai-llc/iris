@@ -35,7 +35,7 @@ import { EditorTimeline } from './EditorTimeline';
 import { PlayheadControls } from './PlayheadControls';
 import { MediaPanel } from './MediaPanel';
 import { EffectsPanel } from './EffectsPanel';
-import { createClipEffectFromDefinition, getEffectDefId } from '@/shared/lib/utils/effectUtils';
+import { createClipEffectFromDefinition, getEffectDefId } from '../lib/effectUtils';
 import { KeyframeEditor } from './KeyframeEditor';
 import { EditorHeader } from './EditorHeader';
 import { HistoryPanel } from './HistoryPanel';
