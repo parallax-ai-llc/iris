@@ -266,27 +266,76 @@ export class SunoAdapter extends BaseProviderAdapter {
     // Map model ID to Suno model version
     const modelVersion = this.mapModelVersion(request.model);
 
-    // Build request payload
-    const payload: SunoGenerateRequest = {
-      prompt,
-      model: modelVersion,
-      callBackUrl: 'https://api.parallax.kr/api/webhooks/suno', // Required by API, but we use polling
-    };
+    // Suno's two modes interpret `prompt` completely differently, so the field
+    // mapping must respect the mode (see docs.sunoapi.org/suno-api/generate-music):
+    //   - Non-custom mode (customMode:false): `prompt` is a DESCRIPTION of the
+    //     desired song (Suno auto-writes lyrics + picks a style). style/title
+    //     must be empty. Max 500 chars.
+    //   - Custom mode (customMode:true): `prompt` is STRICTLY the LYRICS that get
+    //     sung; `style` + `title` drive the music and are required (prompt only
+    //     required when instrumental is false).
+    // Our panel's main textarea is a music DESCRIPTION, with lyrics supplied
+    // separately. Feeding the description into `prompt` under custom mode (the
+    // old behavior) made Suno sing the description and ignore the intent — so we
+    // route the description into `style` and only use `prompt` for real lyrics.
+    const description = prompt.trim();
+    const lyrics = parameters.lyrics ? String(parameters.lyrics).trim() : '';
+    const styleTags = parameters.style ? String(parameters.style).trim() : '';
+    const title = parameters.title ? String(parameters.title).trim() : '';
+    const instrumental = parameters.instrumental === true;
 
-    // Custom mode is required when style or title is provided
-    const hasCustomParams =
-      Boolean(parameters.style) || Boolean(parameters.title);
-    payload.customMode = parameters.customMode === true || hasCustomParams;
+    // Char limits per model (V4 is tighter than V4.5+).
+    const styleLimit = modelVersion === 'V4' ? 200 : 1000;
+    const lyricsLimit = modelVersion === 'V4' ? 3000 : 5000;
+    const titleLimit = 80;
 
-    if (parameters.style) {
-      payload.style = String(parameters.style);
+    // The creative direction that actually shapes the music. Combine explicit
+    // genre/style tags with the natural-language description.
+    const combinedStyle = [styleTags, description]
+      .filter(Boolean)
+      .join('\n')
+      .slice(0, styleLimit);
+
+    let payload: SunoGenerateRequest;
+    if (instrumental) {
+      // No vocals: custom mode so style + title are honored; lyrics not needed.
+      payload = {
+        prompt: '', // ignored for instrumental tracks
+        customMode: true,
+        instrumental: true,
+        style: combinedStyle || description || 'instrumental',
+        title: (title || this.deriveTitle(description)).slice(0, titleLimit),
+        model: modelVersion,
+        callBackUrl: 'https://api.parallax.kr/api/webhooks/suno',
+      };
+    } else if (lyrics) {
+      // Vocals with user-provided lyrics: custom mode, prompt = lyrics.
+      payload = {
+        prompt: lyrics.slice(0, lyricsLimit),
+        customMode: true,
+        instrumental: false,
+        style: combinedStyle,
+        title: (title || this.deriveTitle(description)).slice(0, titleLimit),
+        model: modelVersion,
+        callBackUrl: 'https://api.parallax.kr/api/webhooks/suno',
+      };
+    } else {
+      // Vocals but no explicit lyrics: non-custom mode so Suno writes lyrics that
+      // match the idea. style/title must be empty here — fold tags into the idea.
+      const idea = [styleTags, description]
+        .filter(Boolean)
+        .join(', ')
+        .slice(0, 500);
+      payload = {
+        prompt: idea,
+        customMode: false,
+        instrumental: false,
+        model: modelVersion,
+        callBackUrl: 'https://api.parallax.kr/api/webhooks/suno',
+      };
     }
-    if (parameters.title) {
-      payload.title = String(parameters.title);
-    }
 
-    // Add other optional parameters - always set instrumental (default to false)
-    payload.instrumental = parameters.instrumental === true;
+    // Optional refinements accepted in either mode.
     if (parameters.negativeTags) {
       payload.negativeTags = String(parameters.negativeTags);
     }
@@ -396,6 +445,16 @@ export class SunoAdapter extends BaseProviderAdapter {
       })
       .metadata(this.name, request.model, startTime, taskId)
       .build();
+  }
+
+  /**
+   * Derive a short track title from the description when the user didn't supply
+   * one. Custom mode requires a non-empty title.
+   */
+  private deriveTitle(description: string): string {
+    const words = description.replace(/\s+/g, ' ').trim().split(' ');
+    const title = words.slice(0, 6).join(' ');
+    return title || 'Untitled';
   }
 
   /**

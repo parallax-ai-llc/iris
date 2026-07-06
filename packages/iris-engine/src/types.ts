@@ -270,6 +270,13 @@ export interface GenerationParameters {
   pitch?: number;
   stability?: number;
   similarity?: number;
+  // Music (Suno) parameters
+  title?: string;
+  /** Explicit lyrics to be sung (custom mode). Distinct from the description. */
+  lyrics?: string;
+  instrumental?: boolean;
+  negativeTags?: string;
+  vocalGender?: string;
 
   // Text parameters
   maxTokens?: number;
