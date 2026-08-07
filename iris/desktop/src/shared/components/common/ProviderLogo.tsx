@@ -21,7 +21,7 @@ const sizeClasses = {
 };
 
 // Seedance model IDs (use seedance-color.png instead of provider logo)
-const SEEDANCE_MODELS = ['seedance-2.0', 'seedance-2.0-fast'];
+const SEEDANCE_MODELS = ['seedance-2.5', 'seedance-2.0', 'seedance-2.0-fast'];
 
 function isSeedanceModel(modelId?: string): boolean {
   return modelId ? SEEDANCE_MODELS.includes(modelId) : false;

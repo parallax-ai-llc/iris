@@ -186,6 +186,33 @@ export abstract class BaseProviderAdapter implements IProviderAdapter {
         }
         break;
 
+      case 'reference-to-video':
+        // The prompt is what binds the references together ([Image1], [Video1], …),
+        // so it carries more weight here than in plain text-to-video.
+        if (!request.prompt) {
+          errors.push({
+            field: 'prompt',
+            message: 'Prompt is required',
+            code: 'MISSING_PROMPT',
+          });
+        }
+        if (
+          !request.inputImage &&
+          !request.inputImages?.length &&
+          !request.inputVideo &&
+          !request.inputVideos?.length &&
+          !request.inputAudio &&
+          !request.inputAudios?.length
+        ) {
+          errors.push({
+            field: 'inputImages',
+            message:
+              'At least one image, video, or audio reference is required',
+            code: 'MISSING_REFERENCE_INPUT',
+          });
+        }
+        break;
+
       case 'inpaint':
         if (!request.inputImage) {
           errors.push({

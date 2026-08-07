@@ -155,6 +155,8 @@ export type AICapability =
   | 'image-to-image'
   | 'image-to-video'
   | 'text-to-video'
+  /** Mixed image/video/audio references composed into one clip (Seedance 2.5) */
+  | 'reference-to-video'
   | 'text-to-speech'
   | 'speech-to-text'
   | 'text-to-music'
@@ -224,7 +226,11 @@ export interface AIRequest {
   inputImage?: MediaInput;
   inputImages?: MediaInput[];
   inputVideo?: MediaInput;
+  /** Multiple video references — reference-to-video only */
+  inputVideos?: MediaInput[];
   inputAudio?: MediaInput;
+  /** Multiple audio references — reference-to-video only */
+  inputAudios?: MediaInput[];
   maskImage?: MediaInput;
 
   /** Generation parameters */

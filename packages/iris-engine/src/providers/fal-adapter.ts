@@ -19,6 +19,15 @@ import {
 } from './response-builder.js';
 import { mediaInputToUrl } from './media-utils.js';
 
+/**
+ * Queue poll ceiling for video generation. Seedance 2.5 can be asked for a
+ * single 30-second pass, which routinely outruns a 10-minute budget.
+ */
+const FAL_VIDEO_POLL_MAX_WAIT_MS = 30 * 60 * 1000;
+
+/** fal caps Seedance 2.5 reference-to-video at 50 mixed references per request. */
+const FAL_MAX_VIDEO_REFERENCES = 50;
+
 export class FalAdapter extends BaseProviderAdapter {
   readonly name: ProviderName = 'fal';
   protected baseUrl = 'https://fal.run';
@@ -28,6 +37,7 @@ export class FalAdapter extends BaseProviderAdapter {
     'image-to-image',
     'text-to-video',
     'image-to-video',
+    'reference-to-video',
     'relight',
   ];
 
@@ -170,7 +180,31 @@ export class FalAdapter extends BaseProviderAdapter {
         duration: 3,
       },
     },
-    // Seedance 2.0 (ByteDance) video models via fal.ai
+    // Seedance (ByteDance) video models via fal.ai
+    {
+      id: 'seedance-2.5',
+      name: 'Seedance 2.5',
+      provider: 'fal',
+      capabilities: ['text-to-video', 'image-to-video', 'reference-to-video'],
+      inputTypes: ['text', 'image', 'video', 'audio'],
+      outputTypes: ['video'],
+      constraints: {
+        maxVideoDuration: 30,
+        supportedDurations: [4, 5, 6, 8, 10, 15, 20, 25, 30],
+        supportedFormats: ['mp4'],
+        supportedAspectRatios: ['21:9', '16:9', '4:3', '1:1', '3:4', '9:16'],
+      },
+      pricing: {
+        unit: 'second',
+        inputCost: 0,
+        // ~$0.473/s at the default 16:9 720p output (fal bills per token).
+        outputCost: 0.473,
+        currency: 'USD',
+      },
+      defaultParameters: {
+        duration: 5,
+      },
+    },
     {
       id: 'seedance-2.0',
       name: 'Seedance 2.0',
@@ -267,6 +301,8 @@ export class FalAdapter extends BaseProviderAdapter {
           return this.textToVideo(request, startTime);
         case 'image-to-video':
           return this.imageToVideo(request, startTime);
+        case 'reference-to-video':
+          return this.referenceToVideo(request, startTime);
         case 'relight':
           return this.handleRelight(request, startTime);
         default:
@@ -496,7 +532,7 @@ export class FalAdapter extends BaseProviderAdapter {
       const result = await this.pollFalQueue<{ video: { url: string } }>(
         statusUrl,
         responseUrl,
-        { interval: 5000, maxWait: 600000 } // 10 minutes for video generation
+        { interval: 5000, maxWait: FAL_VIDEO_POLL_MAX_WAIT_MS }
       );
 
       if (!result.video?.url) {
@@ -568,7 +604,7 @@ export class FalAdapter extends BaseProviderAdapter {
 
     try {
       // Map model ID to fal.ai endpoint
-      const endpoint = this.mapModelToEndpoint(model, true);
+      const endpoint = this.mapModelToEndpoint(model, 'image-to-video');
 
       // Get image URLs (start + optional end frame)
       const imageUrl = mediaInputToUrl(startFrameInput);
@@ -625,7 +661,7 @@ export class FalAdapter extends BaseProviderAdapter {
       const result = await this.pollFalQueue<{ video: { url: string } }>(
         statusUrl,
         responseUrl,
-        { interval: 5000, maxWait: 600000 }
+        { interval: 5000, maxWait: FAL_VIDEO_POLL_MAX_WAIT_MS }
       );
 
       if (!result.video?.url) {
@@ -669,15 +705,199 @@ export class FalAdapter extends BaseProviderAdapter {
   }
 
   /**
-   * Map model ID to fal.ai endpoint
+   * Reference-to-video: compose one clip from mixed image/video/audio references.
+   *
+   * Unlike image-to-video there is no single "start frame" — every reference is
+   * addressed positionally from the prompt ([Image1], [Video1], [Audio1]), so the
+   * per-type ordering the caller supplies is preserved verbatim.
    */
-  private mapModelToEndpoint(model: string, isImageToVideo = false): string {
+  private async referenceToVideo(
+    request: AIRequest,
+    startTime: number
+  ): Promise<AIResponse> {
+    const {
+      prompt = '',
+      inputImage,
+      inputImages = [],
+      inputVideo,
+      inputVideos = [],
+      inputAudio,
+      inputAudios = [],
+      parameters = {},
+    } = request;
+    const model = request.model || 'seedance-2.5';
+
+    if (!this.supportsReferenceToVideo(model)) {
+      return ResponseBuilder.unsupportedCapability(
+        'reference-to-video',
+        this.name,
+        request.model,
+        startTime
+      );
+    }
+
+    const validationError = InputValidator.requirePrompt(
+      request,
+      this.name,
+      startTime
+    );
+    if (validationError) return validationError;
+
+    // Singular fields are folded in first so a caller that only sets
+    // inputImage/inputVideo/inputAudio still lands as [Image1]/[Video1]/[Audio1].
+    // Explicit per-type default MIME so a raw-base64 reference becomes a data
+    // URI fal can actually read — the shared default is image/png.
+    const imageUrls = [...(inputImage ? [inputImage] : []), ...inputImages].map(
+      input => mediaInputToUrl(input, 'image/png')
+    );
+    const videoUrls = [...(inputVideo ? [inputVideo] : []), ...inputVideos].map(
+      input => mediaInputToUrl(input, 'video/mp4')
+    );
+    const audioUrls = [...(inputAudio ? [inputAudio] : []), ...inputAudios].map(
+      input => mediaInputToUrl(input, 'audio/mpeg')
+    );
+
+    const totalReferences =
+      imageUrls.length + videoUrls.length + audioUrls.length;
+    if (totalReferences === 0) {
+      return ResponseBuilder.missingInput(
+        'Image, video, or audio reference',
+        'reference-to-video',
+        this.name,
+        request.model,
+        startTime
+      );
+    }
+    // Truncating would silently desync the prompt's [ImageN] indices from the
+    // arrays, so reject instead.
+    if (totalReferences > FAL_MAX_VIDEO_REFERENCES) {
+      return ResponseBuilder.validationError(
+        'references',
+        `Seedance 2.5 accepts at most ${FAL_MAX_VIDEO_REFERENCES} references, got ${totalReferences}`,
+        this.name,
+        request.model,
+        startTime
+      );
+    }
+
+    try {
+      const endpoint = this.mapModelToEndpoint(model, 'reference-to-video');
+      const input = this.buildVideoInput(
+        model,
+        prompt,
+        parameters,
+        undefined,
+        undefined,
+        { imageUrls, videoUrls, audioUrls }
+      );
+
+      const response = await fetch(`https://queue.fal.run/${endpoint}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Key ${this.credentials!.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(input),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('[Fal.ai] API error:', errorData);
+        return ResponseBuilder.apiError(
+          this.name,
+          response.status,
+          (errorData as { detail?: string; message?: string }).detail ||
+            (errorData as { message?: string }).message ||
+            'Unknown error',
+          request.model,
+          startTime
+        );
+      }
+
+      const queueData = (await response.json()) as {
+        request_id: string;
+        status_url?: string;
+        response_url?: string;
+      };
+
+      const statusUrl =
+        queueData.status_url ||
+        `https://queue.fal.run/${endpoint}/requests/${queueData.request_id}/status`;
+      const responseUrl =
+        queueData.response_url ||
+        `https://queue.fal.run/${endpoint}/requests/${queueData.request_id}`;
+
+      const result = await this.pollFalQueue<{ video: { url: string } }>(
+        statusUrl,
+        responseUrl,
+        { interval: 5000, maxWait: FAL_VIDEO_POLL_MAX_WAIT_MS }
+      );
+
+      if (!result.video?.url) {
+        return ResponseBuilder.emptyResponse(
+          'video',
+          this.name,
+          request.model,
+          startTime,
+          result
+        );
+      }
+
+      const duration = (parameters.duration as number) ?? 6;
+      const outputs = [
+        OutputBuilder.video({
+          url: result.video.url,
+          duration,
+        }),
+      ];
+
+      const modelInfo = this.getModelInfo(model);
+      // fal applies a 0.6x multiplier when video references are present.
+      const baseRate = modelInfo?.pricing?.outputCost ?? 0.473;
+      const cost = CostCalculator.forVideo(
+        videoUrls.length > 0 ? baseRate * 0.6 : baseRate,
+        duration
+      );
+
+      return ResponseBuilder.success()
+        .outputs(outputs)
+        .usage({ durationSeconds: duration, estimatedCost: cost })
+        .metadata(this.name, request.model, startTime)
+        .build();
+    } catch (error) {
+      console.error('[Fal.ai] referenceToVideo error:', error);
+      return ResponseBuilder.providerError(
+        this.name,
+        error as Error,
+        request.model,
+        startTime
+      );
+    }
+  }
+
+  /**
+   * Map model ID to fal.ai endpoint.
+   *
+   * `mode` picks the endpoint suffix. 'reference-to-video' is Seedance 2.5 only —
+   * no other fal video model exposes it, so callers must gate on
+   * `supportsReferenceToVideo()` before asking for it.
+   */
+  private mapModelToEndpoint(
+    model: string,
+    mode: 'text-to-video' | 'image-to-video' | 'reference-to-video' = 'text-to-video'
+  ): string {
+    const isImageToVideo = mode === 'image-to-video';
+
     // Direct fal.ai model IDs
     if (model.startsWith('fal-ai/')) {
       return isImageToVideo ? `${model}/image-to-video` : model;
     }
 
     // Seedance endpoints include the full path already
+    if (model === 'seedance-2.5') {
+      // 2.5 is the only Seedance version with a reference-to-video endpoint.
+      return `bytedance/seedance-2.5/${mode}`;
+    }
     if (model === 'seedance-2.0') {
       return isImageToVideo
         ? 'bytedance/seedance-2.0/image-to-video'
@@ -700,6 +920,11 @@ export class FalAdapter extends BaseProviderAdapter {
     return isImageToVideo ? `${baseEndpoint}/image-to-video` : baseEndpoint;
   }
 
+  /** Models exposing fal's reference-to-video endpoint (mixed image/video/audio refs). */
+  private supportsReferenceToVideo(model: string): boolean {
+    return model === 'seedance-2.5';
+  }
+
   /**
    * Build video input parameters based on model
    */
@@ -708,13 +933,30 @@ export class FalAdapter extends BaseProviderAdapter {
     prompt: string,
     parameters: Record<string, unknown>,
     imageUrl?: string,
-    endImageUrl?: string
+    endImageUrl?: string,
+    references?: {
+      imageUrls?: string[];
+      videoUrls?: string[];
+      audioUrls?: string[];
+    }
   ): Record<string, unknown> {
     const input: Record<string, unknown> = { prompt };
 
     // Add image for image-to-video
     if (imageUrl) {
       input.image_url = imageUrl;
+    }
+
+    // reference-to-video takes parallel arrays; the prompt addresses them
+    // positionally as [Image1], [Video1], [Audio1], so order matters.
+    if (references?.imageUrls?.length) {
+      input.image_urls = references.imageUrls;
+    }
+    if (references?.videoUrls?.length) {
+      input.video_urls = references.videoUrls;
+    }
+    if (references?.audioUrls?.length) {
+      input.audio_urls = references.audioUrls;
     }
 
     // Map aspect ratio
@@ -739,6 +981,10 @@ export class FalAdapter extends BaseProviderAdapter {
       }
       if (parameters.seed !== undefined) {
         input.seed = parameters.seed;
+      }
+      // fal defaults generate_audio to true; only override when asked.
+      if (parameters.generateAudio !== undefined) {
+        input.generate_audio = parameters.generateAudio;
       }
       // Seedance image-to-video supports end_image_url for A-to-B transition
       if (endImageUrl) {

@@ -19,6 +19,7 @@ export const IMAGE_TO_VIDEO_SUPPORTED_MODELS = [
   'gen4_turbo',
   'gen3a_turbo',
   // Seedance (ByteDance via fal.ai) — supports both start and end frames
+  'seedance-2.5',
   'seedance-2.0',
   'seedance-2.0-fast',
 ] as const;
@@ -35,6 +36,7 @@ export const END_FRAME_SUPPORTED_MODELS = [
   'kling-2.1',
   'kling-1.6-pro',
   'kling-1.6-standard',
+  'seedance-2.5',
   'seedance-2.0',
   'seedance-2.0-fast',
 ] as const;
