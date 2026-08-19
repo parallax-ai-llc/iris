@@ -196,7 +196,7 @@ export const MODEL_OPTIONS: Record<string, Record<string, Array<{ value: string;
       { value: 'gemini-2.5-flash-image', label: 'Gemini 2.5 Flash Image' },
     ],
     xai: [
-      { value: 'grok-2-image', label: 'Grok 2 Image (Aurora)' },
+      { value: 'grok-imagine-image-2.0', label: 'Grok Imagine Image 2.0' },
     ],
     stability: [
       { value: 'sd3.5-large', label: 'SD 3.5 Large' },

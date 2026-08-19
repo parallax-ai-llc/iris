@@ -20,6 +20,46 @@ import {
 } from './response-builder.js';
 import { mediaInputToUrl, mediaInputToBase64 } from './media-utils.js';
 
+/**
+ * xAI error bodies are not uniform: schema rejections (422) come back as
+ * `{"detail": [...]}` or `{"code": "...", "error": "<string>"}`, and only the
+ * chat paths use the OpenAI-shaped `{"error": {"message": "..."}}`. Reading
+ * `error.message` alone collapsed every other shape into "Unknown error",
+ * which is exactly what surfaced to chat users when a request was rejected.
+ */
+async function readXAIErrorMessage(response: Response): Promise<string> {
+  const raw = await response.text().catch(() => '');
+  if (!raw.trim()) return response.statusText || 'Unknown error';
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return raw.slice(0, 500);
+  }
+
+  if (typeof parsed === 'string') return parsed.slice(0, 500);
+  if (!parsed || typeof parsed !== 'object') return raw.slice(0, 500);
+
+  const body = parsed as Record<string, unknown>;
+  const stringify = (value: unknown): string | undefined => {
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    if (value && typeof value === 'object') {
+      const message = (value as { message?: unknown }).message;
+      if (typeof message === 'string' && message.trim()) return message.trim();
+      return JSON.stringify(value).slice(0, 500);
+    }
+    return undefined;
+  };
+
+  for (const key of ['error', 'message', 'detail', 'code']) {
+    const message = stringify(body[key]);
+    if (message) return message;
+  }
+
+  return raw.slice(0, 500);
+}
+
 export class XAIAdapter extends BaseProviderAdapter {
   readonly name: ProviderName = 'xai';
   protected baseUrl = 'https://api.x.ai/v1';
@@ -113,8 +153,8 @@ export class XAIAdapter extends BaseProviderAdapter {
       defaultParameters: { maxTokens: 16000, temperature: 0.7 },
     },
     {
-      id: 'grok-2-image',
-      name: 'Grok 2 Image (Aurora)',
+      id: 'grok-imagine-image-2.0',
+      name: 'Grok Imagine Image 2.0',
       provider: 'xai',
       capabilities: ['text-to-image', 'image-to-image'],
       inputTypes: ['text', 'image'],
@@ -126,7 +166,7 @@ export class XAIAdapter extends BaseProviderAdapter {
       pricing: {
         unit: 'image',
         inputCost: 0,
-        outputCost: 0.07,
+        outputCost: 0.04,
         currency: 'USD',
       },
       defaultParameters: { numOutputs: 1 },
@@ -233,11 +273,10 @@ export class XAIAdapter extends BaseProviderAdapter {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
       return ResponseBuilder.apiError(
         this.name,
         response.status,
-        errorData.error?.message || 'Unknown error',
+        await readXAIErrorMessage(response),
         request.model,
         startTime
       );
@@ -281,7 +320,7 @@ export class XAIAdapter extends BaseProviderAdapter {
     startTime: number
   ): Promise<AIResponse> {
     const { prompt, parameters = {} } = request;
-    const model = request.model || 'grok-2-image';
+    const model = request.model || 'grok-imagine-image-2.0';
     const numOutputs = (parameters.numOutputs as number) || 1;
 
     const response = await fetch(`${this.baseUrl}/images/generations`, {
@@ -299,11 +338,10 @@ export class XAIAdapter extends BaseProviderAdapter {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
       return ResponseBuilder.apiError(
         this.name,
         response.status,
-        errorData.error?.message || 'Unknown error',
+        await readXAIErrorMessage(response),
         request.model,
         startTime
       );
@@ -324,7 +362,7 @@ export class XAIAdapter extends BaseProviderAdapter {
 
     const modelInfo = this.getModelInfo(model);
     const estimatedCost = CostCalculator.forImages(
-      modelInfo?.pricing?.outputCost ?? 0.07,
+      modelInfo?.pricing?.outputCost ?? 0.04,
       numOutputs
     );
 
@@ -347,14 +385,18 @@ export class XAIAdapter extends BaseProviderAdapter {
     );
     if (validationError) return validationError;
 
-    const { prompt, inputImage, parameters = {} } = request;
-    const model = request.model || 'grok-2-image';
-    const numOutputs = (parameters.numOutputs as number) || 1;
+    const { prompt, inputImage } = request;
+    const model = request.model || 'grok-imagine-image-2.0';
 
     // Get image as base64 data URL
     const imageData = await mediaInputToBase64(inputImage!);
     const imageDataUrl = `data:${imageData.mimeType};base64,${imageData.base64}`;
 
+    // `image` is an object (`{ url, type }`), not a bare string — sending the
+    // data URL directly is a schema violation and xAI answers 422. Only
+    // model/prompt/image are documented for this endpoint, so nothing else is
+    // sent: `n` and `response_format` would have matched the defaults anyway
+    // (1 image, url), and the response reader below accepts either form.
     const response = await fetch(`${this.baseUrl}/images/edits`, {
       method: 'POST',
       headers: {
@@ -364,18 +406,15 @@ export class XAIAdapter extends BaseProviderAdapter {
       body: JSON.stringify({
         model,
         prompt: prompt || 'Edit this image',
-        image: imageDataUrl,
-        n: numOutputs,
-        response_format: 'url',
+        image: { url: imageDataUrl, type: 'image_url' },
       }),
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
       return ResponseBuilder.apiError(
         this.name,
         response.status,
-        errorData.error?.message || 'Unknown error',
+        await readXAIErrorMessage(response),
         request.model,
         startTime
       );
@@ -404,15 +443,17 @@ export class XAIAdapter extends BaseProviderAdapter {
       );
     }
 
+    // Bill what came back, not what was asked for: the edits call always
+    // returns the API default of one image.
     const modelInfo = this.getModelInfo(model);
     const estimatedCost = CostCalculator.forImages(
-      modelInfo?.pricing?.outputCost ?? 0.07,
-      numOutputs
+      modelInfo?.pricing?.outputCost ?? 0.04,
+      outputs.length
     );
 
     return ResponseBuilder.success()
       .outputs(outputs)
-      .usage({ units: numOutputs, estimatedCost })
+      .usage({ units: outputs.length, estimatedCost })
       .rawResponse(data)
       .metadata(this.name, request.model, startTime)
       .build();
