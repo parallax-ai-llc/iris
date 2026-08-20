@@ -29,6 +29,7 @@ export class ExtensionHost extends EventEmitter {
     timer: ReturnType<typeof setTimeout>;
   }>();
   private requestCounter = 0;
+  private generationCounter = 0;
 
   /** Start the extension host process */
   async start(): Promise<void> {
@@ -36,11 +37,15 @@ export class ExtensionHost extends EventEmitter {
 
     const hostScript = path.join(__dirname, 'extensionHostProcess.mjs');
 
-    // Skip if the host script hasn't been built yet (dev mode)
+    // The host script is a build output (vite multi-entry). A missing file is a
+    // build/packaging bug — fail loudly instead of silently disabling extensions.
     const { existsSync } = await import('fs');
     if (!existsSync(hostScript)) {
-      console.warn('[ExtHost] extensionHostProcess.mjs not found, skipping extension host');
-      return;
+      const error = new Error(
+        `[ExtHost] extensionHostProcess.mjs not found at ${hostScript} — the extension host was not built (check vite.config.ts electron main entries)`
+      );
+      console.error(error.message);
+      throw error;
     }
 
     this.process = fork(hostScript, [], {
@@ -100,8 +105,12 @@ export class ExtensionHost extends EventEmitter {
 
     this.rejectAllPending('Extension host shutting down');
 
-    // Send shutdown signal
-    this.process.send({ type: 'lifecycle', payload: { action: 'shutdown' } });
+    // Send shutdown signal. `connected` guards the IPC channel: once it is
+    // closed (child already gone / exiting), send() emits an async
+    // "write EPIPE" error that pollutes stderr on every app quit.
+    if (this.process.connected) {
+      this.process.send({ type: 'lifecycle', payload: { action: 'shutdown' } });
+    }
 
     // Wait for graceful exit, then force kill
     await new Promise<void>((resolve) => {
@@ -125,25 +134,51 @@ export class ExtensionHost extends EventEmitter {
       console.warn('[ExtHost] Cannot send message — process not running');
       return;
     }
+    // Same EPIPE guard as stop(): the child can die between our last check and
+    // this send (crash, shutdown race), leaving a live object with a dead IPC
+    // channel.
+    if (!this.process.connected) {
+      console.warn('[ExtHost] Cannot send message — IPC channel is closed');
+      return;
+    }
     this.process.send(msg);
   }
 
   /** Activate an extension in the host */
   async activateExtension(extensionId: string, installPath: string, mainFile: string): Promise<void> {
+    // Identifies this activation attempt. The host process echoes it on every
+    // lifecycle message the worker it spawns emits, so a predecessor still
+    // dying under the same extensionId cannot settle this promise.
+    const generation = `gen_${++this.generationCounter}_${Date.now()}`;
+
     return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => reject(new Error(`Activation timeout for ${extensionId}`)), 30000);
+      const cleanup = () => {
+        clearTimeout(timeout);
+        this.process?.removeListener('message', onMessage);
+      };
+
+      const timeout = setTimeout(() => {
+        this.process?.removeListener('message', onMessage);
+        reject(new Error(`Activation timeout for ${extensionId}`));
+      }, 30000);
 
       const onMessage = (msg: ExtHostMessage) => {
         if (
           msg.type === 'lifecycle' &&
-          msg.extensionId === extensionId
+          msg.extensionId === extensionId &&
+          // extensionId alone is not identity: during an upgrade the superseded
+          // worker is still alive and emits under the same id. Only the
+          // generation we just asked for may settle this promise.
+          msg.payload.generation === generation
         ) {
-          clearTimeout(timeout);
-          this.process?.removeListener('message', onMessage);
-
+          // Only settle on terminal actions — other lifecycle messages for this
+          // extension (e.g. echoes of 'activate') must not tear down the
+          // listener, or the promise would hang until timeout.
           if (msg.payload.action === 'activated') {
+            cleanup();
             resolve();
           } else if (msg.payload.action === 'error') {
+            cleanup();
             reject(new Error(msg.payload.error || 'Activation failed'));
           }
         }
@@ -158,6 +193,7 @@ export class ExtensionHost extends EventEmitter {
           action: 'activate',
           installPath,
           mainFile,
+          generation,
         } as any,
       });
     });
@@ -167,7 +203,11 @@ export class ExtensionHost extends EventEmitter {
   async deactivateExtension(extensionId: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        resolve(); // Don't block on deactivation timeout
+        // Don't block on deactivation timeout — but drop the listener too, or a
+        // worker reporting 'deactivated' minutes later still runs it, and the
+        // listeners pile up on the host process across every upgrade.
+        this.process?.removeListener('message', onMessage);
+        resolve();
       }, 5000);
 
       const onMessage = (msg: ExtHostMessage) => {

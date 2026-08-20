@@ -24,7 +24,9 @@
     "installing": "설치 중...",
     "removing": "제거 중...",
     "retry": "재시도",
-    "official": "공식"
+    "official": "공식",
+    "update": "업데이트",
+    "updating": "업데이트 중..."
   },
   "detail": {
     "overview": "개요",
@@ -69,7 +71,15 @@
     "tagsPlaceholder": "태그1, 태그2, 태그3",
     "cancel": "취소",
     "submit": "등록하기",
-    "submitting": "등록 중..."
+    "submitting": "등록 중...",
+    "bundle": "확장 번들 (.iex)",
+    "bundleHint": "선택 사항 — `iris-ext package`로 확장을 패키징한 뒤 .iex 파일을 첨부해 주세요(최대 50MB). 업로드된 번들은 심사 후 공개됩니다.",
+    "chooseBundle": ".iex 파일 선택",
+    "bundleSelected": "{{name}} ({{size}})",
+    "bundleInvalidType": ".iex 번들 파일만 업로드할 수 있습니다.",
+    "bundleTooLarge": "번들이 50MB 제한을 초과했습니다.",
+    "bundleUploading": "번들 업로드 중...",
+    "bundleUploadError": "번들 업로드에 실패했습니다. 다시 시도해 주세요."
   },
   "my": {
     "loading": "내 확장 프로그램 불러오는 중...",
@@ -122,5 +132,44 @@
     "submit": "신고하기",
     "submitting": "신고 중...",
     "success": "신고가 접수되었습니다. 감사합니다!"
+  },
+  "local": {
+    "sectionTitle": "개발자",
+    "installFromDirectory": "로컬 폴더에서 설치",
+    "installing": "설치 중…",
+    "installSuccess": "확장이 설치되었습니다: {{id}}",
+    "installError": "설치에 실패했습니다: {{error}}"
+  },
+  "runtime": {
+    "inputSubmit": "확인",
+    "inputCancel": "취소",
+    "noActiveImage": "편집기에 열려 있는 이미지가 없습니다",
+    "putImageFailed": "확장 이미지를 삽입하지 못했습니다",
+    "contributionIgnored": "{{id}}: {{reason}}",
+    "hostError": "확장 호스트를 시작하지 못했습니다: {{error}}",
+    "closePanel": "패널 닫기"
+  },
+  "permissions": {
+    "title": "권한 요청",
+    "by": "제작: {{publisher}}",
+    "intro": "이 확장이 동작하려면 다음 권한이 필요합니다:",
+    "riskHigh": "높은 위험",
+    "riskMedium": "중간 위험",
+    "riskLow": "낮은 위험",
+    "cancel": "취소",
+    "allowSelected": "선택 항목 허용 ({{total}})"
+  },
+  "update": {
+    "available": "업데이트 가능 — 설치된 버전 v{{version}}",
+    "success": "확장이 업데이트되었습니다",
+    "error": "업데이트에 실패했습니다: {{error}}"
+  },
+  "installed": {
+    "title": "설치된 확장",
+    "runSuccess": "\"{{command}}\" 실행 완료",
+    "runError": "\"{{command}}\" 실행에 실패했습니다: {{error}}",
+    "commands": "커맨드",
+    "tools": "툴",
+    "noRunnable": "이 확장은 커맨드나 툴을 제공하지 않습니다."
   }
 }

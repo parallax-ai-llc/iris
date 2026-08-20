@@ -24,7 +24,9 @@
     "installing": "Installing...",
     "removing": "Removing...",
     "retry": "Retry",
-    "official": "Official"
+    "official": "Official",
+    "update": "Update",
+    "updating": "Updating..."
   },
   "detail": {
     "overview": "Overview",
@@ -69,7 +71,15 @@
     "tagsPlaceholder": "tag1, tag2, tag3",
     "cancel": "Cancel",
     "submit": "Submit",
-    "submitting": "Submitting..."
+    "submitting": "Submitting...",
+    "bundle": "Extension bundle (.iex)",
+    "bundleHint": "Optional — package your extension with `iris-ext package` and attach the .iex file (max 50MB). Uploaded bundles are reviewed before release.",
+    "chooseBundle": "Choose .iex file",
+    "bundleSelected": "{{name}} ({{size}})",
+    "bundleInvalidType": "Only .iex bundle files can be uploaded.",
+    "bundleTooLarge": "The bundle exceeds the 50MB limit.",
+    "bundleUploading": "Uploading bundle...",
+    "bundleUploadError": "Bundle upload failed. Please try again."
   },
   "my": {
     "loading": "Loading your extensions...",
@@ -122,5 +132,44 @@
     "submit": "Submit Report",
     "submitting": "Submitting...",
     "success": "Report submitted successfully. Thank you!"
+  },
+  "local": {
+    "sectionTitle": "Developer",
+    "installFromDirectory": "Install from local folder",
+    "installing": "Installing…",
+    "installSuccess": "Extension installed: {{id}}",
+    "installError": "Installation failed: {{error}}"
+  },
+  "runtime": {
+    "inputSubmit": "OK",
+    "inputCancel": "Cancel",
+    "noActiveImage": "No image is open in the editor",
+    "putImageFailed": "Failed to insert the extension's image",
+    "contributionIgnored": "{{id}}: {{reason}}",
+    "hostError": "Extension host failed to start: {{error}}",
+    "closePanel": "Close panel"
+  },
+  "permissions": {
+    "title": "Permission Request",
+    "by": "by {{publisher}}",
+    "intro": "This extension requires the following permissions to function:",
+    "riskHigh": "High Risk",
+    "riskMedium": "Medium Risk",
+    "riskLow": "Low Risk",
+    "cancel": "Cancel",
+    "allowSelected": "Allow selected ({{total}})"
+  },
+  "update": {
+    "available": "Update available — installed v{{version}}",
+    "success": "Extension updated",
+    "error": "Update failed: {{error}}"
+  },
+  "installed": {
+    "title": "Installed extensions",
+    "runSuccess": "Ran \"{{command}}\"",
+    "runError": "Failed to run \"{{command}}\": {{error}}",
+    "commands": "Commands",
+    "tools": "Tools",
+    "noRunnable": "This extension contributes no commands or tools."
   }
 }

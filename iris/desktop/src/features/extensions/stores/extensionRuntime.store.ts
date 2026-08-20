@@ -120,6 +120,18 @@ interface ExtensionRuntimeState {
   // Bulk clear for deactivation
   clearExtensionContributions: (extensionId: string) => void;
 
+  // Sync manifest-declared contributions (keybindings/menus) on activation.
+  // These are never sent as runtime contribution messages — the worker only
+  // emits command/tool/workflowNode/panel/statusBarItem — so they must be
+  // registered from the manifest when the extension becomes active.
+  syncManifestContributions: (
+    extensionId: string,
+    contributes?: {
+      keybindings?: { command: string; key: string; when?: string }[];
+      menus?: Record<string, { command: string; when?: string }[]>;
+    }
+  ) => void;
+
   // Handle contribution message from main process
   handleContributionMessage: (msg: {
     extensionId: string;
@@ -253,6 +265,39 @@ export const useExtensionRuntimeStore = create<ExtensionRuntimeState>((set, get)
           (m) => m.extensionId !== extensionId
         ),
       };
+    }),
+
+  // ─── Manifest contributions (keybindings / menus) ───
+  syncManifestContributions: (extensionId, contributes) =>
+    set((s) => {
+      // Idempotent: clear this extension's previous entries, then re-register.
+      const registeredKeybindings = s.registeredKeybindings.filter(
+        (kb) => kb.extensionId !== extensionId
+      );
+      const registeredMenuItems = s.registeredMenuItems.filter(
+        (m) => m.extensionId !== extensionId
+      );
+
+      for (const kb of contributes?.keybindings ?? []) {
+        registeredKeybindings.push({
+          command: kb.command,
+          key: kb.key,
+          when: kb.when,
+          extensionId,
+        });
+      }
+      for (const [menuId, items] of Object.entries(contributes?.menus ?? {})) {
+        for (const item of items) {
+          registeredMenuItems.push({
+            menuId,
+            command: item.command,
+            when: item.when,
+            extensionId,
+          });
+        }
+      }
+
+      return { registeredKeybindings, registeredMenuItems };
     }),
 
   // ─── Handle IPC contribution messages ───

@@ -27,6 +27,44 @@ const activeWorkers = new Map<string, ExtensionWorker>();
 const commandHandlers = new Map<string, string>(); // commandId → extensionId
 const toolHandlers = new Map<string, string>();     // toolId → extensionId
 
+/**
+ * True when `worker` is still the live worker for `extensionId`.
+ * Guards every teardown path: a superseded worker (upgrade / re-activate)
+ * emits 'exit' seconds later and must not touch the new generation's state.
+ */
+function isCurrentWorker(extensionId: string, worker: Worker): boolean {
+  return activeWorkers.get(extensionId)?.worker === worker;
+}
+
+/**
+ * Workers we terminated on purpose (deactivate, upgrade, app shutdown).
+ * `worker.terminate()` always yields exit code 1, which is indistinguishable
+ * from a crash at the 'exit' handler — without this the app logged a warning
+ * for every extension on every normal quit, burying real crashes.
+ */
+const retiredWorkers = new WeakSet<Worker>();
+
+/**
+ * Terminate a worker as an intentional, expected shutdown.
+ *
+ * Resolves only once the thread is really gone. Until it is, the worker still
+ * holds an OS handle on the extension's entry file; on Windows an upgrade that
+ * deletes and recreates the install directory before that handle is released
+ * leaves the directory "delete pending" and the recreate fails with EPERM.
+ * Anything that touches the extension's files must await this.
+ */
+function retireWorker(worker: Worker): Promise<void> {
+  retiredWorkers.add(worker);
+  // `terminate()` is a promise on Node, but normalize anyway so every caller
+  // can await it unconditionally.
+  return Promise.resolve(worker.terminate()).then(
+    () => undefined,
+    (err: unknown) => {
+      console.warn('[ExtHostProcess] Worker termination failed:', err);
+    },
+  );
+}
+
 /** Send message to Main Process */
 function sendToMain(msg: ExtHostMessage): void {
   process.send!(msg);
@@ -67,11 +105,15 @@ function handleLifecycle(msg: ExtHostLifecycle & { payload: { installPath?: stri
 
   switch (payload.action) {
     case 'activate': {
+      // Stamped onto every lifecycle message this worker generation emits, so
+      // the Main Process can ignore the ones it did not ask for.
+      const generation = payload.generation;
+
       if (activeWorkers.size >= RESOURCE_LIMITS.MAX_CONCURRENT_WORKERS) {
         sendToMain({
           type: 'lifecycle',
           extensionId,
-          payload: { action: 'error', error: 'Maximum concurrent extensions reached' },
+          payload: { action: 'error', error: 'Maximum concurrent extensions reached', generation },
         });
         return;
       }
@@ -91,25 +133,36 @@ function handleLifecycle(msg: ExtHostLifecycle & { payload: { installPath?: stri
       });
 
       worker.on('message', (workerMsg: ExtHostMessage) => {
-        handleWorkerMessage(extensionId, workerMsg);
+        handleWorkerMessage(extensionId, workerMsg, worker, generation);
       });
 
-      worker.on('error', (err) => {
+      worker.on('error', (err: unknown) => {
         console.error(`[ExtHostProcess] Worker error for ${extensionId}:`, err);
+        // A superseded worker routinely throws while it winds down. Relaying
+        // that to Main would reject the *new* generation's activation promise
+        // and mark a healthy extension as 'error' — the log is enough.
+        if (!isCurrentWorker(extensionId, worker)) return;
+
         activeWorkers.delete(extensionId);
         sendToMain({
           type: 'lifecycle',
           extensionId,
-          payload: { action: 'error', error: err.message },
+          payload: { action: 'error', error: err instanceof Error ? err.message : String(err), generation },
         });
       });
 
       worker.on('exit', (code) => {
-        activeWorkers.delete(extensionId);
-        if (code !== 0) {
+        // Only surface unexpected deaths — a retired worker's code 1 is normal.
+        if (code !== 0 && !retiredWorkers.has(worker)) {
           console.warn(`[ExtHostProcess] Worker for ${extensionId} exited with code ${code}`);
         }
-        // Clean up handlers registered by this extension
+        // An upgrade replaces the worker while the old one is still shutting
+        // down: its late 'exit' must NOT evict the new worker or the handlers
+        // the new worker has already registered. Only the current generation
+        // may clean up.
+        if (!isCurrentWorker(extensionId, worker)) return;
+
+        activeWorkers.delete(extensionId);
         for (const [cmdId, extId] of commandHandlers) {
           if (extId === extensionId) commandHandlers.delete(cmdId);
         }
@@ -118,7 +171,13 @@ function handleLifecycle(msg: ExtHostLifecycle & { payload: { installPath?: stri
         }
       });
 
+      // Replacing an existing entry (upgrade/reactivate): the superseded worker
+      // is retired here so it cannot keep handling messages.
+      const superseded = activeWorkers.get(extensionId);
       activeWorkers.set(extensionId, { worker, extensionId, installPath: payload.installPath! });
+      if (superseded && superseded.worker !== worker) {
+        void retireWorker(superseded.worker);
+      }
       break;
     }
 
@@ -126,10 +185,13 @@ function handleLifecycle(msg: ExtHostLifecycle & { payload: { installPath?: stri
       const ew = activeWorkers.get(extensionId);
       if (ew) {
         ew.worker.postMessage({ type: 'lifecycle', extensionId, payload: { action: 'deactivate' } });
-        // Worker will send 'deactivated' message, then we terminate
+        // Worker will send 'deactivated' message, then we terminate.
+        // The identity guard matters: by the time this fires, an upgrade may
+        // have installed a new worker under the same id — killing that one
+        // would take down the freshly activated extension.
         setTimeout(() => {
-          if (activeWorkers.has(extensionId)) {
-            ew.worker.terminate();
+          if (isCurrentWorker(extensionId, ew.worker)) {
+            void retireWorker(ew.worker);
             activeWorkers.delete(extensionId);
           }
         }, 5000);
@@ -142,7 +204,7 @@ function handleLifecycle(msg: ExtHostLifecycle & { payload: { installPath?: stri
     case 'shutdown' as any:
       // Gracefully shutdown all workers
       for (const ew of activeWorkers.values()) {
-        ew.worker.terminate();
+        void retireWorker(ew.worker);
       }
       activeWorkers.clear();
       process.exit(0);
@@ -150,28 +212,67 @@ function handleLifecycle(msg: ExtHostLifecycle & { payload: { installPath?: stri
   }
 }
 
-function handleWorkerMessage(extensionId: string, msg: ExtHostMessage): void {
+function handleWorkerMessage(
+  extensionId: string,
+  msg: ExtHostMessage,
+  worker: Worker,
+  generation?: string,
+): void {
+  // A worker superseded by an upgrade can still emit messages while it winds
+  // down. Request-scoped traffic (api-call/api-response) stays valid because it
+  // is keyed by requestId, but registry- and lifecycle-affecting messages from
+  // a dead generation would corrupt the live one.
+  const isCurrent = isCurrentWorker(extensionId, worker);
+
   switch (msg.type) {
     case 'api-call':
       // Worker calling iris.* API → forward to Main Process with permission check
       sendToMain({ ...msg, extensionId });
       break;
 
-    case 'lifecycle':
-      if (msg.payload.action === 'activated' || msg.payload.action === 'deactivated' || msg.payload.action === 'error') {
-        sendToMain({ ...msg, extensionId });
-        if (msg.payload.action === 'deactivated') {
-          const ew = activeWorkers.get(extensionId);
-          if (ew) {
-            ew.worker.terminate();
-            activeWorkers.delete(extensionId);
-          }
-        }
-      }
+    case 'api-response':
+      // Worker's reply to a Main-initiated executeLocal (command/tool run).
+      // Must be relayed back, or ExtensionHost.callApi in the Main Process
+      // never settles and rejects after ASYNC_API_TIMEOUT with the command's
+      // return value silently dropped.
+      sendToMain({ ...msg, extensionId });
       break;
 
+    case 'lifecycle': {
+      // Relayed lifecycle messages carry the generation token of the activation
+      // that spawned this worker, so Main can match them against the activation
+      // it is actually waiting on.
+      const relay = () =>
+        sendToMain({ ...msg, extensionId, payload: { ...msg.payload, generation } });
+
+      if (msg.payload.action === 'deactivated') {
+        // Always honour a shutdown from the sending worker…
+        const terminated = retireWorker(worker);
+        // …but a superseded worker's 'deactivated' must not reach Main: it
+        // would settle the live generation's deactivate promise and let the
+        // manager report a running extension as stopped.
+        if (isCurrent) {
+          activeWorkers.delete(extensionId);
+          // Relay only once the thread is really gone: Main reads
+          // 'deactivated' as "the extension's files are free now", and an
+          // upgrade wipes and recreates the install directory the moment it
+          // arrives.
+          void terminated.then(relay);
+        }
+      } else if (
+        isCurrent &&
+        (msg.payload.action === 'activated' || msg.payload.action === 'error')
+      ) {
+        relay();
+      }
+      break;
+    }
+
     case 'contribution':
-      // Extension registering a command/tool/node
+      // Extension registering a command/tool/node. A superseded worker's
+      // dispose() emits 'unregister' for ids the NEW worker has just claimed —
+      // acting on those would deregister the live extension's commands.
+      if (!isCurrent) break;
       handleContributionFromWorker(extensionId, msg);
       sendToMain({ ...msg, extensionId });
       break;

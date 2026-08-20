@@ -156,20 +156,125 @@ export interface ElectronAPI {
   };
 }
 
+/** Install options shared by the extension install channels. */
+export interface ExtensionInstallOptions {
+  /** Replace an already-installed extension with the same id. */
+  upgrade?: boolean;
+}
+
+export interface ExtensionInstallResult {
+  success: boolean;
+  error?: string;
+  extensionId?: string;
+}
+
+/** Manifest contribution points relevant to the renderer runtime. */
+export interface ExtensionManifestContributes {
+  commands?: { command: string; title: string; icon?: string; category?: string }[];
+  tools?: { id: string; name: string; category: string; icon: string; description: string }[];
+  panels?: { id: string; title: string; location: 'sidebar' | 'bottom' | 'floating'; icon?: string }[];
+  menus?: Record<string, { command: string; when?: string }[]>;
+  keybindings?: { command: string; key: string; when?: string }[];
+}
+
+export interface ExtensionManifestSummary {
+  id?: string;
+  name: string;
+  displayName?: string;
+  publisher: string;
+  version?: string;
+  contributes?: ExtensionManifestContributes;
+  permissions?: string[];
+}
+
+/** Runtime info sent with extensions:statusChanged (mirror of ExtensionRuntimeInfo). */
+export interface ExtensionRuntimeInfoData {
+  id: string;
+  manifest: ExtensionManifestSummary;
+  status: string;
+  installPath: string;
+  trustTier: string;
+  grantedPermissions: string[];
+  error?: string;
+}
+
+/**
+ * A contribution message. Identical shape on both paths: the live
+ * `extensions:contributionChanged` event and each entry of the
+ * `extensions:getContributions` snapshot.
+ */
+export interface ExtensionContributionMessage {
+  type?: 'contribution';
+  extensionId: string;
+  payload: {
+    action: 'register' | 'unregister';
+    contributionType: string;
+    data: unknown;
+  };
+}
+
+/**
+ * Runtime contribution snapshot returned by extensions:getContributions —
+ * replayable contributionChanged messages, every one with action 'register'
+ * (unregistered items are already dropped, workflowNode is never included).
+ */
+export type ExtensionContributionSnapshot = ExtensionContributionMessage[];
+
+/**
+ * Main → Renderer extension API request channels
+ * (sent by electron/extensions/apiHandlers/*, answered via sendResponse).
+ */
+export type ExtensionRequestChannel =
+  | 'extensions:getActiveImage'
+  | 'extensions:getSelection'
+  | 'extensions:getActiveFileInfo'
+  | 'extensions:putImage'
+  | 'extensions:executeAiModel'
+  | 'extensions:getAvailableModels'
+  | 'extensions:showMessage'
+  | 'extensions:showInputBox'
+  | 'extensions:createPanel'
+  | 'extensions:getExportPresets'
+  | 'extensions:applyExportPreset'
+  | 'extensions:getExportSettings'
+  | 'extensions:updateExportSettings';
+
 export interface ExtensionsAPI {
   getInstalled: () => Promise<unknown[]>;
-  install: (sourceDir: string, trustTier?: string) => Promise<{ success: boolean; error?: string; extensionId?: string }>;
+  /** Install from a local directory containing iris-extension.json. */
+  install: (sourceDir: string, trustTier?: string, opts?: ExtensionInstallOptions) => Promise<ExtensionInstallResult>;
+  /** Install from a .iex bundle — source is an http(s) URL or a local file path. */
+  installFromIex: (source: string, trustTier?: string, opts?: ExtensionInstallOptions) => Promise<ExtensionInstallResult>;
   uninstall: (extensionId: string) => Promise<{ success: boolean }>;
   enable: (extensionId: string) => Promise<{ success: boolean }>;
   disable: (extensionId: string) => Promise<{ success: boolean }>;
   getStatus: (extensionId: string) => Promise<unknown>;
+  /**
+   * Snapshot of runtime contributions registered before the renderer mounted
+   * (onStartup activations). Accepts either the flat entry form or the
+   * event-payload form — see normalizeContributionSnapshot.
+   */
+  getContributions: () => Promise<ExtensionContributionSnapshot>;
+  /**
+   * Drop a user-closed panel from the main-process contribution snapshot so a
+   * reload does not bring it back. Only the panel contribution is removed —
+   * commands/tools sharing the id are untouched. `success: false` means the id
+   * was not in the snapshot (already dismissed), which is not an error.
+   */
+  dismissPanel: (panelId: string) => Promise<{ success: boolean }>;
   grantPermissions: (extensionId: string, permissions: string[]) => Promise<{ success: boolean }>;
   executeCommand: (commandId: string, args?: unknown[]) => Promise<{ success: boolean; result?: unknown; error?: string }>;
   executeTool: (toolId: string, params: unknown) => Promise<{ success: boolean; result?: unknown; error?: string }>;
-  onStatusChanged: (callback: (data: { extensionId: string; info: { status: string; error?: string } | null }) => void) => void;
+  onStatusChanged: (callback: (data: { extensionId: string; info: ExtensionRuntimeInfoData | null }) => void) => void;
   onContributionChanged: (callback: (data: { extensionId: string; payload: { action: 'register' | 'unregister'; contributionType: string; data: unknown } }) => void) => void;
-  onPermissionRequired: (callback: (data: { extensionId: string; manifest: { displayName?: string; name: string; publisher: string }; requiredPermissions: string[] }) => void) => void;
+  onPermissionRequired: (callback: (data: { extensionId: string; manifest: ExtensionManifestSummary; requiredPermissions: string[] }) => void) => void;
+  onContributionIgnored: (callback: (data: { extensionId: string; contributionType: string; reason: string }) => void) => void;
+  onHostError: (callback: (data: { error: string }) => void) => void;
   removeAllListeners: () => void;
+  /** Subscribe to a Main → Renderer API request channel. Returns unsubscribe. */
+  onRequest: (channel: ExtensionRequestChannel, callback: (data: unknown) => void) => () => void;
+  /** Reply to a pending apiHandler request (extensions:<x>Result:<requestId>). */
+  sendResponse: (channel: string, data?: unknown) => void;
 }
 
 export interface ExportProgressData {

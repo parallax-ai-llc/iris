@@ -257,6 +257,10 @@ class MockCanvasRenderingContext2D {
   }
 }
 
+// DOM-dependent mocks only apply in jsdom-based tests. Electron main-process
+// tests (electron/**) run with `@vitest-environment node`, where `document`
+// does not exist — skip the DOM wiring there.
+if (typeof document !== 'undefined') {
 // Mock HTMLCanvasElement
 const originalCreateElement = document.createElement.bind(document);
 document.createElement = function (tagName: string, options?: ElementCreationOptions) {
@@ -335,6 +339,7 @@ globalThis.ResizeObserver = vi.fn().mockImplementation(() => ({
   unobserve: vi.fn(),
   disconnect: vi.fn(),
 }));
+} // end of jsdom-only mocks
 
 // Reset mocks between tests
 beforeEach(() => {

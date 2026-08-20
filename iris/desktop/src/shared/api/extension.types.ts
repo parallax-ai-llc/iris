@@ -18,6 +18,7 @@ export type InstallationStatus =
   | 'installing'
   | 'installed'
   | 'uninstalling'
+  | 'updating'
   | 'error';
 
 export interface Extension {
@@ -106,6 +107,43 @@ export interface ExtensionQueryParams {
   limit?: number;
   featured?: boolean;
   tag?: string;
+}
+
+/**
+ * Manifest payload the server stored alongside an uploaded .iex bundle
+ * (`iris-extension.json` contents). Only the fields the desktop client needs
+ * are typed; the runtime extension id is `id`, or `publisher.name` when absent.
+ */
+export interface ExtensionBundleManifest {
+  id?: string;
+  name?: string;
+  publisher?: string;
+  version?: string;
+  [key: string]: unknown;
+}
+
+/** `GET /extensions/:id/bundle` response — download info for the .iex bundle. */
+export interface ExtensionBundleInfo {
+  id: string;
+  bundleUrl: string | null;
+  permissions: string[];
+  engineVersion: string | null;
+  manifestData: ExtensionBundleManifest | null;
+}
+
+/** `POST /extensions/my/:id/bundle` 200 response. */
+export interface ExtensionBundleUploadResult {
+  bundleUrl: string;
+  version: string;
+  status: string;
+}
+
+/** Envelope for bundle uploads — the error message is surfaced in the submit UI. */
+export interface ExtensionBundleUploadResponse {
+  success: boolean;
+  data?: ExtensionBundleUploadResult;
+  error?: string;
+  statusCode?: number;
 }
 
 export type ReportReason = 'spam' | 'inappropriate' | 'misleading' | 'other';

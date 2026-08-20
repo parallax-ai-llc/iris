@@ -214,6 +214,13 @@ export interface ExtHostLifecycle {
   payload: {
     action: 'activate' | 'deactivate' | 'activated' | 'deactivated' | 'error';
     error?: string;
+    /**
+     * Generation token minted by the Main Process for one 'activate' request
+     * and echoed on every lifecycle message the resulting worker produces.
+     * Without it a dying predecessor's 'error' is indistinguishable from the
+     * new worker's, and rejects the healthy activation that replaced it.
+     */
+    generation?: string;
   };
 }
 
@@ -247,13 +254,42 @@ export type ExtHostMessage =
 
 // ─── IPC Messages (Renderer ↔ Main) ───
 
+/** Result shape shared by the install channels */
+export interface ExtensionInstallResult {
+  success: boolean;
+  error?: string;
+  extensionId?: string;
+}
+
+/** Options accepted by the install channels */
+export interface ExtensionInstallOptions {
+  /** Replace an already-installed extension with the same id (deactivate → replace → re-activate). Default: reject duplicates. */
+  upgrade?: boolean;
+}
+
 /** Renderer → Main: install/uninstall/enable/disable extensions */
 export interface ExtensionIpcChannels {
   'extensions:getInstalled': () => Promise<ExtensionRuntimeInfo[]>;
-  'extensions:install': (extensionId: string, bundleUrl: string) => Promise<{ success: boolean; error?: string }>;
+  /** Install from a local directory containing iris-extension.json (dev install / extracted bundle) */
+  'extensions:install': (sourceDir: string, trustTier?: TrustTier, opts?: ExtensionInstallOptions) => Promise<ExtensionInstallResult>;
+  /** Install from a .iex bundle (ZIP) — source is an http(s) URL or a local file path */
+  'extensions:installFromIex': (source: string, trustTier?: TrustTier, opts?: ExtensionInstallOptions) => Promise<ExtensionInstallResult>;
   'extensions:uninstall': (extensionId: string) => Promise<{ success: boolean }>;
   'extensions:enable': (extensionId: string) => Promise<{ success: boolean }>;
   'extensions:disable': (extensionId: string) => Promise<{ success: boolean }>;
+  /**
+   * Snapshot of runtime contributions registered by active extensions.
+   * Every entry is a replayable `extensions:contributionChanged` message with
+   * `payload.action === 'register'`, so the renderer can feed each one to the
+   * same handler it uses for live events. Excludes workflowNode (v1 non-goal).
+   */
+  'extensions:getContributions': () => Promise<ExtHostContribution[]>;
+  /**
+   * Forget a panel the user closed. Removes it from the contribution snapshot
+   * so a later `extensions:getContributions` does not resurrect it.
+   * `success` is false when no panel with that id was recorded.
+   */
+  'extensions:dismissPanel': (panelId: string) => Promise<{ success: boolean }>;
   'extensions:getStatus': (extensionId: string) => Promise<ExtensionRuntimeInfo | null>;
   'extensions:grantPermissions': (extensionId: string, permissions: Permission[]) => Promise<{ success: boolean }>;
   'extensions:executeCommand': (commandId: string, args?: unknown[]) => Promise<unknown>;

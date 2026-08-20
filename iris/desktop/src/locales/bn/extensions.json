@@ -24,7 +24,9 @@
     "installing": "Installing...",
     "removing": "Removing...",
     "retry": "Retry",
-    "official": "Official"
+    "official": "Official",
+    "update": "আপডেট",
+    "updating": "আপডেট হচ্ছে..."
   },
   "detail": {
     "overview": "Overview",
@@ -69,7 +71,15 @@
     "tagsPlaceholder": "tag1, tag2, tag3",
     "cancel": "Cancel",
     "submit": "Submit",
-    "submitting": "Submitting..."
+    "submitting": "Submitting...",
+    "bundle": "এক্সটেনশন বান্ডেল (.iex)",
+    "bundleHint": "ঐচ্ছিক — `iris-ext package` দিয়ে আপনার এক্সটেনশন প্যাকেজ করুন এবং .iex ফাইলটি সংযুক্ত করুন (সর্বোচ্চ 50MB)। আপলোড করা বান্ডেল প্রকাশের আগে পর্যালোচনা করা হয়।",
+    "chooseBundle": ".iex ফাইল বেছে নিন",
+    "bundleSelected": "{{name}} ({{size}})",
+    "bundleInvalidType": "শুধুমাত্র .iex বান্ডেল ফাইল আপলোড করা যাবে।",
+    "bundleTooLarge": "বান্ডেলটি 50MB সীমা অতিক্রম করেছে।",
+    "bundleUploading": "বান্ডেল আপলোড হচ্ছে...",
+    "bundleUploadError": "বান্ডেল আপলোড ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।"
   },
   "my": {
     "loading": "Loading your extensions...",
@@ -122,5 +132,44 @@
     "submit": "Submit Report",
     "submitting": "Submitting...",
     "success": "Report submitted successfully. Thank you!"
+  },
+  "local": {
+    "sectionTitle": "ডেভেলপার",
+    "installFromDirectory": "লোকাল ফোল্ডার থেকে ইনস্টল করুন",
+    "installing": "ইনস্টল হচ্ছে…",
+    "installSuccess": "এক্সটেনশন ইনস্টল হয়েছে: {{id}}",
+    "installError": "ইনস্টল ব্যর্থ হয়েছে: {{error}}"
+  },
+  "runtime": {
+    "inputSubmit": "ঠিক আছে",
+    "inputCancel": "বাতিল",
+    "noActiveImage": "এডিটরে কোনো ছবি খোলা নেই",
+    "putImageFailed": "এক্সটেনশনের ছবি যোগ করা যায়নি",
+    "contributionIgnored": "{{id}}: {{reason}}",
+    "hostError": "এক্সটেনশন হোস্ট চালু করা যায়নি: {{error}}",
+    "closePanel": "প্যানেল বন্ধ করুন"
+  },
+  "permissions": {
+    "title": "অনুমতির অনুরোধ",
+    "by": "{{publisher}} কর্তৃক",
+    "intro": "এই এক্সটেনশন কাজ করতে নিচের অনুমতিগুলি প্রয়োজন:",
+    "riskHigh": "উচ্চ ঝুঁকি",
+    "riskMedium": "মাঝারি ঝুঁকি",
+    "riskLow": "কম ঝুঁকি",
+    "cancel": "বাতিল",
+    "allowSelected": "নির্বাচিতগুলি অনুমোদন করুন ({{total}})"
+  },
+  "update": {
+    "available": "আপডেট উপলব্ধ — ইনস্টল করা v{{version}}",
+    "success": "এক্সটেনশন আপডেট হয়েছে",
+    "error": "আপডেট ব্যর্থ হয়েছে: {{error}}"
+  },
+  "installed": {
+    "title": "ইনস্টল করা এক্সটেনশন",
+    "runSuccess": "\"{{command}}\" চালানো হয়েছে",
+    "runError": "\"{{command}}\" চালাতে ব্যর্থ: {{error}}",
+    "commands": "কমান্ড",
+    "tools": "টুল",
+    "noRunnable": "এই এক্সটেনশনটি কোনো কমান্ড বা টুল সরবরাহ করে না।"
   }
 }

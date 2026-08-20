@@ -24,7 +24,9 @@
     "installing": "Installing...",
     "removing": "Removing...",
     "retry": "Retry",
-    "official": "Official"
+    "official": "Official",
+    "update": "अपडेट करा",
+    "updating": "अपडेट होत आहे..."
   },
   "detail": {
     "overview": "Overview",
@@ -69,7 +71,15 @@
     "tagsPlaceholder": "tag1, tag2, tag3",
     "cancel": "Cancel",
     "submit": "Submit",
-    "submitting": "Submitting..."
+    "submitting": "Submitting...",
+    "bundle": "एक्स्टेंशन बंडल (.iex)",
+    "bundleHint": "ऐच्छिक — `iris-ext package` ने तुमचे एक्स्टेंशन पॅकेज करा आणि .iex फाइल जोडा (कमाल 50MB). अपलोड केलेले बंडल प्रकाशनापूर्वी तपासले जातात.",
+    "chooseBundle": ".iex फाइल निवडा",
+    "bundleSelected": "{{name}} ({{size}})",
+    "bundleInvalidType": "फक्त .iex बंडल फाइल्स अपलोड करता येतात.",
+    "bundleTooLarge": "बंडल 50MB मर्यादेपेक्षा मोठे आहे.",
+    "bundleUploading": "बंडल अपलोड होत आहे...",
+    "bundleUploadError": "बंडल अपलोड अयशस्वी झाले. कृपया पुन्हा प्रयत्न करा."
   },
   "my": {
     "loading": "Loading your extensions...",
@@ -122,5 +132,44 @@
     "submit": "Submit Report",
     "submitting": "Submitting...",
     "success": "Report submitted successfully. Thank you!"
+  },
+  "local": {
+    "sectionTitle": "डेव्हलपर",
+    "installFromDirectory": "लोकल फोल्डरमधून इन्स्टॉल करा",
+    "installing": "इन्स्टॉल होत आहे…",
+    "installSuccess": "एक्स्टेंशन इन्स्टॉल झाले: {{id}}",
+    "installError": "इन्स्टॉल अयशस्वी: {{error}}"
+  },
+  "runtime": {
+    "inputSubmit": "ठीक आहे",
+    "inputCancel": "रद्द करा",
+    "noActiveImage": "एडिटरमध्ये कोणतीही इमेज उघडलेली नाही",
+    "putImageFailed": "एक्स्टेंशनची इमेज जोडता आली नाही",
+    "contributionIgnored": "{{id}}: {{reason}}",
+    "hostError": "एक्स्टेंशन होस्ट सुरू होऊ शकला नाही: {{error}}",
+    "closePanel": "पॅनेल बंद करा"
+  },
+  "permissions": {
+    "title": "परवानगी विनंती",
+    "by": "{{publisher}} द्वारे",
+    "intro": "हे एक्स्टेंशन चालण्यासाठी खालील परवानग्या आवश्यक आहेत:",
+    "riskHigh": "उच्च धोका",
+    "riskMedium": "मध्यम धोका",
+    "riskLow": "कमी धोका",
+    "cancel": "रद्द करा",
+    "allowSelected": "निवडलेल्या परवानग्या द्या ({{total}})"
+  },
+  "update": {
+    "available": "अपडेट उपलब्ध — इन्स्टॉल केलेली v{{version}}",
+    "success": "एक्स्टेंशन अपडेट झाले",
+    "error": "अपडेट अयशस्वी: {{error}}"
+  },
+  "installed": {
+    "title": "इन्स्टॉल केलेली एक्स्टेंशन्स",
+    "runSuccess": "\"{{command}}\" चालवले",
+    "runError": "\"{{command}}\" चालवण्यात अयशस्वी: {{error}}",
+    "commands": "कमांड",
+    "tools": "टूल्स",
+    "noRunnable": "हे एक्स्टेंशन कोणतीही कमांड किंवा टूल पुरवत नाही."
   }
 }

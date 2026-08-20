@@ -17,7 +17,15 @@ export default defineConfig({
     react(),
     electron({
       main: {
-        entry: 'electron/main.ts',
+        // Multi-entry: besides main.js, the extension host runtime is built as
+        // two standalone ESM files. File names are a hard contract:
+        //   - extensionHost.ts forks   dist-electron/extensionHostProcess.mjs
+        //   - the host process spawns  dist-electron/extensionHostWorker.mjs
+        entry: {
+          main: 'electron/main.ts',
+          extensionHostProcess: 'electron/extensions/extensionHostProcess.ts',
+          extensionHostWorker: 'electron/extensions/extensionHostWorker.ts',
+        },
         vite: {
           build: {
             outDir: 'dist-electron',
@@ -33,6 +41,12 @@ export default defineConfig({
                 'fastify', '@fastify/cors', '@fastify/static',
                 'iris-engine', 'iris-host-local', 'iris-nodes',
               ],
+              output: {
+                // Keep main.js (package.json "main"), emit the extension host
+                // entries as .mjs so fork()/new Worker() load them as ESM.
+                entryFileNames: (chunk) =>
+                  chunk.name === 'main' ? '[name].js' : '[name].mjs',
+              },
             },
           },
         },

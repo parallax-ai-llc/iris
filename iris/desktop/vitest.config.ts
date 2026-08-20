@@ -8,7 +8,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
-    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    include: ['src/**/*.{test,spec}.{ts,tsx}', 'electron/**/*.{test,spec}.ts'],
     exclude: ['node_modules', 'dist', 'dist-electron'],
     coverage: {
       provider: 'v8',
@@ -28,6 +28,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      '@electron': path.resolve(__dirname, './electron'),
       '@': path.resolve(__dirname, './src'),
     },
   },

@@ -1,8 +1,15 @@
-import { memo, useState, useCallback } from 'react';
-import { X } from 'lucide-react';
+import { memo, useState, useCallback, useRef } from 'react';
+import { X, Package, Upload } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useExtensionStore } from '@/features/extensions/stores/extension.store';
 import { ExtensionType, ExtensionCategory } from '@/shared/api/extension.types';
+import { MAX_EXTENSION_BUNDLE_BYTES } from '@/shared/api/extension.api';
+
+function formatBytes(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(0)}KB`;
+  return `${bytes}B`;
+}
 
 const TYPES: { value: ExtensionType; labelKey: string }[] = [
   { value: 'ai_tool', labelKey: 'categories.ai_tools' },
@@ -25,7 +32,8 @@ const CATEGORIES: { value: ExtensionCategory; label: string }[] = [
 ];
 
 export const ExtensionSubmitModal = memo(function ExtensionSubmitModal() {
-  const { isSubmitModalOpen, closeSubmitModal, submitExtension, openGuide } = useExtensionStore();
+  const { isSubmitModalOpen, closeSubmitModal, submitExtension, uploadBundle, openGuide } =
+    useExtensionStore();
   const { t } = useTranslation('extensions');
 
   const [name, setName] = useState('');
@@ -38,6 +46,15 @@ export const ExtensionSubmitModal = memo(function ExtensionSubmitModal() {
   const [price, setPrice] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // .iex bundle upload (step 2 of the submit flow)
+  const [bundleFile, setBundleFile] = useState<File | null>(null);
+  const [bundleError, setBundleError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  // Set once the metadata submit succeeds so a retry after a failed bundle
+  // upload doesn't register the extension a second time.
+  const [createdExtensionId, setCreatedExtensionId] = useState<string | null>(null);
+  const bundleInputRef = useRef<HTMLInputElement>(null);
+
   const resetForm = useCallback(() => {
     setName('');
     setDescription('');
@@ -47,29 +64,74 @@ export const ExtensionSubmitModal = memo(function ExtensionSubmitModal() {
     setIcon('');
     setTags('');
     setPrice(0);
+    setBundleFile(null);
+    setBundleError(null);
+    setUploadProgress(null);
+    setCreatedExtensionId(null);
+    if (bundleInputRef.current) bundleInputRef.current.value = '';
   }, []);
+
+  const handleBundleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setBundleError(null);
+    if (!file) {
+      setBundleFile(null);
+      return;
+    }
+    if (!file.name.toLowerCase().endsWith('.iex')) {
+      setBundleFile(null);
+      setBundleError(t('submit.bundleInvalidType'));
+      if (bundleInputRef.current) bundleInputRef.current.value = '';
+      return;
+    }
+    if (file.size > MAX_EXTENSION_BUNDLE_BYTES) {
+      setBundleFile(null);
+      setBundleError(t('submit.bundleTooLarge'));
+      if (bundleInputRef.current) bundleInputRef.current.value = '';
+      return;
+    }
+    setBundleFile(file);
+  };
 
   const handleSubmit = async () => {
     if (!name.trim() || !description.trim()) return;
     setIsSubmitting(true);
+    setBundleError(null);
     try {
-      const success = await submitExtension({
-        name: name.trim(),
-        description: description.trim(),
-        shortDescription: shortDescription.trim() || undefined,
-        type,
-        category,
-        icon: icon.trim() || undefined,
-        tags: tags
-          .split(',')
-          .map((t) => t.trim())
-          .filter(Boolean),
-        price,
-      });
-      if (success) {
-        resetForm();
-        closeSubmitModal();
+      // Step 1: register the metadata (skipped when retrying a failed upload).
+      let extensionId = createdExtensionId;
+      if (!extensionId) {
+        const created = await submitExtension({
+          name: name.trim(),
+          description: description.trim(),
+          shortDescription: shortDescription.trim() || undefined,
+          type,
+          category,
+          icon: icon.trim() || undefined,
+          tags: tags
+            .split(',')
+            .map((t) => t.trim())
+            .filter(Boolean),
+          price,
+        });
+        if (!created) return;
+        extensionId = created.id;
+        setCreatedExtensionId(created.id);
       }
+
+      // Step 2: upload the .iex bundle, if the developer attached one.
+      if (bundleFile) {
+        setUploadProgress(0);
+        const result = await uploadBundle(extensionId, bundleFile, setUploadProgress);
+        setUploadProgress(null);
+        if (!result.success) {
+          setBundleError(result.error ?? t('submit.bundleUploadError'));
+          return; // keep the modal open — metadata is registered, upload can be retried
+        }
+      }
+
+      resetForm();
+      closeSubmitModal();
     } finally {
       setIsSubmitting(false);
     }
@@ -223,6 +285,61 @@ export const ExtensionSubmitModal = memo(function ExtensionSubmitModal() {
               placeholder={t('submit.tagsPlaceholder')}
               className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500"
             />
+          </div>
+
+          {/* .iex bundle */}
+          <div>
+            <label className="block text-sm font-medium text-zinc-300 mb-1.5">
+              {t('submit.bundle')}
+            </label>
+            <input
+              ref={bundleInputRef}
+              type="file"
+              accept=".iex"
+              onChange={handleBundleChange}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => bundleInputRef.current?.click()}
+              disabled={isSubmitting}
+              className="flex items-center gap-2 w-full bg-zinc-800 border border-zinc-700 border-dashed rounded-lg px-3 py-2.5 text-sm text-zinc-400 hover:text-white hover:border-zinc-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {bundleFile ? (
+                <>
+                  <Package className="w-4 h-4 text-zinc-300 flex-shrink-0" />
+                  <span className="truncate text-zinc-200">
+                    {t('submit.bundleSelected', {
+                      name: bundleFile.name,
+                      size: formatBytes(bundleFile.size),
+                    })}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 flex-shrink-0" />
+                  {t('submit.chooseBundle')}
+                </>
+              )}
+            </button>
+            <p className="text-xs text-zinc-500 mt-1">{t('submit.bundleHint')}</p>
+            {uploadProgress !== null && (
+              <div className="mt-2">
+                <div className="flex items-center justify-between text-xs text-zinc-400 mb-1">
+                  <span>{t('submit.bundleUploading')}</span>
+                  <span>{uploadProgress}%</span>
+                </div>
+                <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-white rounded-full transition-all"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+            {bundleError && (
+              <p className="text-xs text-red-400 mt-1.5">{bundleError}</p>
+            )}
           </div>
         </div>
 

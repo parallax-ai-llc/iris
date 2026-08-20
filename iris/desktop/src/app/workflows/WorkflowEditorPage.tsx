@@ -2,6 +2,7 @@ import { memo, useCallback, useEffect, useState } from 'react';
 import { IrisEditorProvider, IrisWorkflowEditor } from 'iris-editor';
 import { useUIStore } from '@/shared/stores/ui.store';
 import { TitleBar } from '@/app/layout/TitleBar';
+import { FullScreenLayout } from '@/app/layout/FullScreenLayout';
 import { useDesktopEditorSeams } from '@/features/workflows/lib/desktop-seams';
 import { getIrisApiBaseUrl } from '@/features/workflows/lib/local-engine';
 
@@ -9,7 +10,8 @@ import { getIrisApiBaseUrl } from '@/features/workflows/lib/local-engine';
  * Desktop workflow editor — hosts the shared `iris-editor` against the embedded
  * local engine (BYOK, fully local). The editor is a complete shell (header /
  * canvas / panels / status bar / execution), so the page only adds the window
- * TitleBar above it.
+ * TitleBar above it, via the shared FullScreenLayout shell (which also keeps
+ * the extension panel dock from covering the editor).
  */
 export const WorkflowEditorPage = memo(function WorkflowEditorPage() {
   const editingWorkflowId = useUIStore((s) => s.editingWorkflowId);
@@ -33,11 +35,10 @@ export const WorkflowEditorPage = memo(function WorkflowEditorPage() {
   const seams = useDesktopEditorSeams(baseUrl ?? '', onClose);
 
   return (
-    <div
-      className="h-screen flex flex-col overflow-hidden"
+    <FullScreenLayout
       style={{ background: 'var(--bg-0)', color: 'var(--text-1)' }}
+      titleBar={<TitleBar />}
     >
-      <TitleBar />
       {editingWorkflowId && baseUrl ? (
         <div className="iris-editor-host">
           <IrisEditorProvider value={seams}>
@@ -51,7 +52,7 @@ export const WorkflowEditorPage = memo(function WorkflowEditorPage() {
           </p>
         </div>
       )}
-    </div>
+    </FullScreenLayout>
   );
 });
 

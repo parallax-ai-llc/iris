@@ -24,7 +24,9 @@
     "installing": "Installing...",
     "removing": "Removing...",
     "retry": "Retry",
-    "official": "Official"
+    "official": "Official",
+    "update": "புதுப்பிக்கவும்",
+    "updating": "புதுப்பிக்கிறது..."
   },
   "detail": {
     "overview": "Overview",
@@ -69,7 +71,15 @@
     "tagsPlaceholder": "tag1, tag2, tag3",
     "cancel": "Cancel",
     "submit": "Submit",
-    "submitting": "Submitting..."
+    "submitting": "Submitting...",
+    "bundle": "நீட்டிப்பு தொகுப்பு (.iex)",
+    "bundleHint": "விருப்பத்தேர்வு — `iris-ext package` மூலம் உங்கள் நீட்டிப்பைத் தொகுத்து .iex கோப்பை இணைக்கவும் (அதிகபட்சம் 50MB). பதிவேற்றிய தொகுப்புகள் வெளியீட்டுக்கு முன் மதிப்பாய்வு செய்யப்படும்.",
+    "chooseBundle": ".iex கோப்பைத் தேர்ந்தெடுக்கவும்",
+    "bundleSelected": "{{name}} ({{size}})",
+    "bundleInvalidType": ".iex தொகுப்புக் கோப்புகளை மட்டுமே பதிவேற்ற முடியும்.",
+    "bundleTooLarge": "தொகுப்பு 50MB வரம்பை மீறுகிறது.",
+    "bundleUploading": "தொகுப்பு பதிவேற்றப்படுகிறது...",
+    "bundleUploadError": "தொகுப்பு பதிவேற்றம் தோல்வியடைந்தது. மீண்டும் முயற்சிக்கவும்."
   },
   "my": {
     "loading": "Loading your extensions...",
@@ -122,5 +132,44 @@
     "submit": "Submit Report",
     "submitting": "Submitting...",
     "success": "Report submitted successfully. Thank you!"
+  },
+  "local": {
+    "sectionTitle": "டெவலப்பர்",
+    "installFromDirectory": "லோக்கல் கோப்புறையிலிருந்து நிறுவவும்",
+    "installing": "நிறுவப்படுகிறது…",
+    "installSuccess": "நீட்டிப்பு நிறுவப்பட்டது: {{id}}",
+    "installError": "நிறுவல் தோல்வியடைந்தது: {{error}}"
+  },
+  "runtime": {
+    "inputSubmit": "சரி",
+    "inputCancel": "ரத்து",
+    "noActiveImage": "எடிட்டரில் திறந்த படம் இல்லை",
+    "putImageFailed": "நீட்டிப்பின் படத்தைச் சேர்க்க முடியவில்லை",
+    "contributionIgnored": "{{id}}: {{reason}}",
+    "hostError": "நீட்டிப்பு ஹோஸ்டைத் தொடங்க முடியவில்லை: {{error}}",
+    "closePanel": "பலகத்தை மூடு"
+  },
+  "permissions": {
+    "title": "அனுமதி கோரிக்கை",
+    "by": "{{publisher}} வழங்கியது",
+    "intro": "இந்த நீட்டிப்பு செயல்பட பின்வரும் அனுமதிகள் தேவை:",
+    "riskHigh": "அதிக ஆபத்து",
+    "riskMedium": "நடுத்தர ஆபத்து",
+    "riskLow": "குறைந்த ஆபத்து",
+    "cancel": "ரத்து",
+    "allowSelected": "தேர்ந்தெடுத்தவற்றை அனுமதிக்கவும் ({{total}})"
+  },
+  "update": {
+    "available": "புதுப்பிப்பு உள்ளது — நிறுவப்பட்டது v{{version}}",
+    "success": "நீட்டிப்பு புதுப்பிக்கப்பட்டது",
+    "error": "புதுப்பிப்பு தோல்வியடைந்தது: {{error}}"
+  },
+  "installed": {
+    "title": "நிறுவப்பட்ட நீட்டிப்புகள்",
+    "runSuccess": "\"{{command}}\" இயக்கப்பட்டது",
+    "runError": "\"{{command}}\" இயக்க முடியவில்லை: {{error}}",
+    "commands": "கட்டளைகள்",
+    "tools": "கருவிகள்",
+    "noRunnable": "இந்த நீட்டிப்பு எந்தக் கட்டளையையும் கருவியையும் வழங்கவில்லை."
   }
 }

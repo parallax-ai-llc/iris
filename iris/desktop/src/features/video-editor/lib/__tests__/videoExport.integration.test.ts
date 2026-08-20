@@ -832,7 +832,7 @@ describe('Video Export - Overlay Compositor', () => {
     for (const f of outputFiles) {
       try { fs.unlinkSync(f); } catch { /* ignore */ }
     }
-    try { fs.rmdirSync(tmpDir, { recursive: true }); } catch { /* ignore */ }
+    try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch { /* ignore */ }
   });
 
   /**
@@ -1128,7 +1128,7 @@ describe('Video Export - Subtitle PNG Overlay', () => {
     for (const f of outputFiles) {
       try { fs.unlinkSync(f); } catch { /* ignore */ }
     }
-    try { fs.rmdirSync(tmpDir, { recursive: true }); } catch { /* ignore */ }
+    try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch { /* ignore */ }
   });
 
   it('filter_complex with subtitle PNG overlay contains overlay=0:0 with enable expression and no ass= filter', () => {

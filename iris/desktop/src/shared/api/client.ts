@@ -29,6 +29,18 @@ interface ApiResponse<T = unknown> {
 
 interface RequestOptions {
   requireAuth?: boolean;
+  /**
+   * Best-effort auth: attach the access token when one is stored, but still
+   * send the request (anonymously) when logged out. For endpoints that are
+   * public for some resources and owner/admin-only for others — e.g.
+   * `GET /extensions/:id/bundle`, which is public for approved extensions and
+   * restricted while a submission is pending review.
+   *
+   * Unlike `requireAuth`, a 401 never expires the session here: the call is
+   * legitimately usable without an account, so the 401 is returned as-is.
+   * Ignored when `requireAuth` is set.
+   */
+  optionalAuth?: boolean;
   headers?: Record<string, string>;
 }
 
@@ -141,10 +153,15 @@ class ApiClient {
    *
    * `buildRequest` must re-read the token from storage each invocation so the
    * retry picks up the freshly refreshed token.
+   *
+   * With `optionalAuth` the request is never skipped while logged out, and a
+   * 401 refreshes the token once but never expires the session — the endpoint
+   * is usable anonymously, so a 401 is a normal answer, not a dead session.
    */
   private async executeRequest<T>(
     buildRequest: () => Promise<Response>,
-    requireAuth: boolean
+    requireAuth: boolean,
+    optionalAuth = false
   ): Promise<ApiResponse<T>> {
     // Browsing without an account: skip auth-required calls (no token to send).
     if (requireAuth && (await isLoggedOut())) {
@@ -153,9 +170,12 @@ class ApiClient {
 
     let response = await buildRequest();
 
-    if (response.status === 401 && requireAuth) {
+    if (response.status === 401 && (requireAuth || optionalAuth)) {
       const refreshed = await this.refreshToken();
       if (!refreshed) {
+        if (optionalAuth && !requireAuth) {
+          return this.parseResponse<T>(response);
+        }
         await this.expireSession();
         return { success: false, error: 'Session expired', statusCode: 401 };
       }
@@ -163,6 +183,9 @@ class ApiClient {
       response = await buildRequest();
       if (response.status === 401) {
         // Still unauthorized after a successful refresh + retry — give up.
+        if (optionalAuth && !requireAuth) {
+          return this.parseResponse<T>(response);
+        }
         await this.expireSession();
         return { success: false, error: 'Session expired', statusCode: 401 };
       }
@@ -177,13 +200,19 @@ class ApiClient {
         'Content-Type': 'application/json',
         ...options?.headers,
       };
-      if (options?.requireAuth) {
+      // getAuthHeaders() yields {} when no token is stored, so optionalAuth
+      // degrades to an anonymous request instead of failing.
+      if (options?.requireAuth || options?.optionalAuth) {
         Object.assign(headers, await this.getAuthHeaders());
       }
       return fetch(`${API_BASE_URL}${endpoint}`, { method: 'GET', headers });
     };
 
-    return this.executeRequest<T>(buildRequest, !!options?.requireAuth);
+    return this.executeRequest<T>(
+      buildRequest,
+      !!options?.requireAuth,
+      !!options?.optionalAuth
+    );
   }
 
   async post<T>(endpoint: string, body?: unknown, options?: RequestOptions): Promise<ApiResponse<T>> {

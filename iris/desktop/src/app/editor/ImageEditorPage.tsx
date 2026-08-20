@@ -29,6 +29,7 @@ import { CanvasSizeModal } from '@/features/image-editor/components/modals/Canva
 import { ImageSizeModal } from '@/features/image-editor/components/modals/ImageSizeModal';
 import { ExportAsModal, ExportAsSettings } from '@/features/image-editor/components/modals/ExportAsModal';
 import { TitleBar } from '@/app/layout/TitleBar';
+import { FullScreenLayout } from '@/app/layout/FullScreenLayout';
 import { ConfirmDialog } from '@/shared/components/ui/Modal';
 import { PresetCreatorModal } from '@/features/tools/components/PresetCreatorModal';
 import { EditorChatPanel } from '@/features/image-editor/components/Chat/EditorChatPanel';
@@ -1253,62 +1254,65 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
 
   if (!sourceAsset) {
     return (
-      <div className="h-screen flex flex-col bg-zinc-900 overflow-hidden">
-        <TitleBar />
+      <FullScreenLayout className="bg-zinc-900" titleBar={<TitleBar />}>
         <div className="flex-1 flex items-center justify-center">
           <p className="text-zinc-500">No image selected</p>
         </div>
-      </div>
+      </FullScreenLayout>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col bg-zinc-950 overflow-hidden">
-      <TitleBar
-        hideNav
-        leftContent={
-          <EditorMenuBar
-            onNew={handleNew}
-            onOpen={handleOpen}
-            onSave={handleSaveClick}
-            onSaveAs={() => setShowSaveAsModal(true)}
-            onDownloadOriginal={handleDownloadOriginal}
-            onCopyToClipboard={handleCopyToClipboard}
-            onExportCmykTiff={handleExportCmykTiff}
-            onExportWebP={handleExportWebP}
-            onExportRgbTiff={handleExportRgbTiff}
-            onExportBmp={handleExportBmp}
-            onResetChanges={handleResetChanges}
-            onShowInfo={handleShowInfo}
-            onCloseTab={handleCloseTab}
-            onBackToGallery={handleBack}
-            onOpenPreset={setPresetMode}
-            onOpenFilterGallery={() => {
-              // Prefer the active raster layer; fall back to the composite canvas.
-              const state = useImageEditorStore.getState();
-              const activeLayer = state.layers.find((l) => l.id === state.activeLayerId && !!l.imageData)
-                ?? state.layers.find((l) => !!l.imageData);
-              if (activeLayer?.imageData) {
-                const img = new Image();
-                img.onload = () => {
-                  const c = document.createElement('canvas');
-                  c.width = img.naturalWidth;
-                  c.height = img.naturalHeight;
-                  const ctx = c.getContext('2d');
-                  if (ctx) ctx.drawImage(img, 0, 0);
-                  setFilterGallerySource(c);
+    <FullScreenLayout
+      className="bg-zinc-950"
+      titleBar={
+        <TitleBar
+          hideNav
+          leftContent={
+            <EditorMenuBar
+              onNew={handleNew}
+              onOpen={handleOpen}
+              onSave={handleSaveClick}
+              onSaveAs={() => setShowSaveAsModal(true)}
+              onDownloadOriginal={handleDownloadOriginal}
+              onCopyToClipboard={handleCopyToClipboard}
+              onExportCmykTiff={handleExportCmykTiff}
+              onExportWebP={handleExportWebP}
+              onExportRgbTiff={handleExportRgbTiff}
+              onExportBmp={handleExportBmp}
+              onResetChanges={handleResetChanges}
+              onShowInfo={handleShowInfo}
+              onCloseTab={handleCloseTab}
+              onBackToGallery={handleBack}
+              onOpenPreset={setPresetMode}
+              onOpenFilterGallery={() => {
+                // Prefer the active raster layer; fall back to the composite canvas.
+                const state = useImageEditorStore.getState();
+                const activeLayer = state.layers.find((l) => l.id === state.activeLayerId && !!l.imageData)
+                  ?? state.layers.find((l) => !!l.imageData);
+                if (activeLayer?.imageData) {
+                  const img = new Image();
+                  img.onload = () => {
+                    const c = document.createElement('canvas');
+                    c.width = img.naturalWidth;
+                    c.height = img.naturalHeight;
+                    const ctx = c.getContext('2d');
+                    if (ctx) ctx.drawImage(img, 0, 0);
+                    setFilterGallerySource(c);
+                    setShowFilterGalleryModal(true);
+                  };
+                  img.src = activeLayer.imageData;
+                } else {
+                  const composite = canvasRef.current?.getCanvas() ?? null;
+                  setFilterGallerySource(composite);
                   setShowFilterGalleryModal(true);
-                };
-                img.src = activeLayer.imageData;
-              } else {
-                const composite = canvasRef.current?.getCanvas() ?? null;
-                setFilterGallerySource(composite);
-                setShowFilterGalleryModal(true);
-              }
-            }}
-          />
-        }
-      />
+                }
+              }}
+            />
+          }
+        />
+      }
+    >
       {/* Tab bar */}
       <EditorTabBar />
 
@@ -1514,7 +1518,7 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
           },
         }}
       />
-    </div>
+    </FullScreenLayout>
   );
 });
 

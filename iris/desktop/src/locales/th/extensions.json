@@ -24,7 +24,9 @@
     "installing": "Installing...",
     "removing": "Removing...",
     "retry": "Retry",
-    "official": "Official"
+    "official": "Official",
+    "update": "อัปเดต",
+    "updating": "กำลังอัปเดต..."
   },
   "detail": {
     "overview": "Overview",
@@ -69,7 +71,15 @@
     "tagsPlaceholder": "tag1, tag2, tag3",
     "cancel": "Cancel",
     "submit": "Submit",
-    "submitting": "Submitting..."
+    "submitting": "Submitting...",
+    "bundle": "บันเดิลส่วนขยาย (.iex)",
+    "bundleHint": "ไม่บังคับ — แพ็กเกจส่วนขยายของคุณด้วย `iris-ext package` แล้วแนบไฟล์ .iex (สูงสุด 50MB) บันเดิลที่อัปโหลดจะถูกตรวจสอบก่อนเผยแพร่",
+    "chooseBundle": "เลือกไฟล์ .iex",
+    "bundleSelected": "{{name}} ({{size}})",
+    "bundleInvalidType": "อัปโหลดได้เฉพาะไฟล์บันเดิล .iex เท่านั้น",
+    "bundleTooLarge": "บันเดิลมีขนาดเกินขีดจำกัด 50MB",
+    "bundleUploading": "กำลังอัปโหลดบันเดิล...",
+    "bundleUploadError": "อัปโหลดบันเดิลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง"
   },
   "my": {
     "loading": "Loading your extensions...",
@@ -122,5 +132,44 @@
     "submit": "Submit Report",
     "submitting": "Submitting...",
     "success": "Report submitted successfully. Thank you!"
+  },
+  "local": {
+    "sectionTitle": "นักพัฒนา",
+    "installFromDirectory": "ติดตั้งจากโฟลเดอร์ในเครื่อง",
+    "installing": "กำลังติดตั้ง…",
+    "installSuccess": "ติดตั้งส่วนขยายแล้ว: {{id}}",
+    "installError": "ติดตั้งไม่สำเร็จ: {{error}}"
+  },
+  "runtime": {
+    "inputSubmit": "ตกลง",
+    "inputCancel": "ยกเลิก",
+    "noActiveImage": "ไม่มีรูปภาพที่เปิดอยู่ในตัวแก้ไข",
+    "putImageFailed": "ไม่สามารถแทรกรูปภาพของส่วนขยายได้",
+    "contributionIgnored": "{{id}}: {{reason}}",
+    "hostError": "ไม่สามารถเริ่มโฮสต์ส่วนขยายได้: {{error}}",
+    "closePanel": "ปิดแผง"
+  },
+  "permissions": {
+    "title": "คำขอสิทธิ์",
+    "by": "โดย {{publisher}}",
+    "intro": "ส่วนขยายนี้ต้องการสิทธิ์ต่อไปนี้เพื่อทำงาน:",
+    "riskHigh": "ความเสี่ยงสูง",
+    "riskMedium": "ความเสี่ยงปานกลาง",
+    "riskLow": "ความเสี่ยงต่ำ",
+    "cancel": "ยกเลิก",
+    "allowSelected": "อนุญาตที่เลือก ({{total}})"
+  },
+  "update": {
+    "available": "มีอัปเดตใหม่ — เวอร์ชันที่ติดตั้ง v{{version}}",
+    "success": "อัปเดตส่วนขยายแล้ว",
+    "error": "อัปเดตไม่สำเร็จ: {{error}}"
+  },
+  "installed": {
+    "title": "ส่วนขยายที่ติดตั้งแล้ว",
+    "runSuccess": "เรียกใช้ \"{{command}}\" แล้ว",
+    "runError": "เรียกใช้ \"{{command}}\" ไม่สำเร็จ: {{error}}",
+    "commands": "คำสั่ง",
+    "tools": "เครื่องมือ",
+    "noRunnable": "ส่วนขยายนี้ไม่มีคำสั่งหรือเครื่องมือให้ใช้งาน"
   }
 }

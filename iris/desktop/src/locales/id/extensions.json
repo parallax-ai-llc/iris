@@ -24,7 +24,9 @@
     "installing": "Installing...",
     "removing": "Removing...",
     "retry": "Retry",
-    "official": "Official"
+    "official": "Official",
+    "update": "Perbarui",
+    "updating": "Memperbarui..."
   },
   "detail": {
     "overview": "Overview",
@@ -69,7 +71,15 @@
     "tagsPlaceholder": "tag1, tag2, tag3",
     "cancel": "Cancel",
     "submit": "Submit",
-    "submitting": "Submitting..."
+    "submitting": "Submitting...",
+    "bundle": "Bundel ekstensi (.iex)",
+    "bundleHint": "Opsional — kemas ekstensi Anda dengan `iris-ext package` lalu lampirkan file .iex (maks. 50MB). Bundel yang diunggah akan ditinjau sebelum dirilis.",
+    "chooseBundle": "Pilih file .iex",
+    "bundleSelected": "{{name}} ({{size}})",
+    "bundleInvalidType": "Hanya file bundel .iex yang dapat diunggah.",
+    "bundleTooLarge": "Bundel melebihi batas 50MB.",
+    "bundleUploading": "Mengunggah bundel...",
+    "bundleUploadError": "Gagal mengunggah bundel. Silakan coba lagi."
   },
   "my": {
     "loading": "Loading your extensions...",
@@ -122,5 +132,44 @@
     "submit": "Submit Report",
     "submitting": "Submitting...",
     "success": "Report submitted successfully. Thank you!"
+  },
+  "local": {
+    "sectionTitle": "Pengembang",
+    "installFromDirectory": "Instal dari folder lokal",
+    "installing": "Menginstal…",
+    "installSuccess": "Ekstensi terinstal: {{id}}",
+    "installError": "Instalasi gagal: {{error}}"
+  },
+  "runtime": {
+    "inputSubmit": "OK",
+    "inputCancel": "Batal",
+    "noActiveImage": "Tidak ada gambar yang terbuka di editor",
+    "putImageFailed": "Gagal menyisipkan gambar dari ekstensi",
+    "contributionIgnored": "{{id}}: {{reason}}",
+    "hostError": "Gagal memulai host ekstensi: {{error}}",
+    "closePanel": "Tutup panel"
+  },
+  "permissions": {
+    "title": "Permintaan Izin",
+    "by": "oleh {{publisher}}",
+    "intro": "Ekstensi ini memerlukan izin berikut agar berfungsi:",
+    "riskHigh": "Risiko tinggi",
+    "riskMedium": "Risiko sedang",
+    "riskLow": "Risiko rendah",
+    "cancel": "Batal",
+    "allowSelected": "Izinkan yang dipilih ({{total}})"
+  },
+  "update": {
+    "available": "Pembaruan tersedia — terpasang v{{version}}",
+    "success": "Ekstensi berhasil diperbarui",
+    "error": "Pembaruan gagal: {{error}}"
+  },
+  "installed": {
+    "title": "Ekstensi terpasang",
+    "runSuccess": "\"{{command}}\" dijalankan",
+    "runError": "Gagal menjalankan \"{{command}}\": {{error}}",
+    "commands": "Perintah",
+    "tools": "Alat",
+    "noRunnable": "Ekstensi ini tidak menyediakan perintah atau alat."
   }
 }

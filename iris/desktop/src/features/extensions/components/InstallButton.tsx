@@ -1,5 +1,5 @@
 import { memo, useState } from 'react';
-import { Download, Check, Loader2, AlertCircle } from 'lucide-react';
+import { Download, Check, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/shared/lib/utils';
 import { InstallationStatus } from '@/shared/api/extension.types';
@@ -8,6 +8,9 @@ interface InstallButtonProps {
   status: InstallationStatus;
   onInstall: () => void;
   onUninstall: () => void;
+  /** Manual updates only (spec §5): show an Update button when a newer version exists. */
+  updateAvailable?: boolean;
+  onUpdate?: () => void;
   size?: 'sm' | 'lg';
 }
 
@@ -15,6 +18,8 @@ export const InstallButton = memo(function InstallButton({
   status,
   onInstall,
   onUninstall,
+  updateAvailable = false,
+  onUpdate,
   size = 'sm',
 }: InstallButtonProps) {
   const [isHovered, setIsHovered] = useState(false);
@@ -22,7 +27,13 @@ export const InstallButton = memo(function InstallButton({
 
   const sizeClasses = size === 'sm' ? 'px-3 py-1.5 text-xs' : 'px-5 py-2 text-sm';
 
-  if (status === 'installing' || status === 'uninstalling') {
+  if (status === 'installing' || status === 'uninstalling' || status === 'updating') {
+    const label =
+      status === 'installing'
+        ? t('card.installing')
+        : status === 'updating'
+          ? t('card.updating')
+          : t('card.removing');
     return (
       <button
         disabled
@@ -32,37 +43,54 @@ export const InstallButton = memo(function InstallButton({
         )}
       >
         <Loader2 className="w-3.5 h-3.5 animate-spin" />
-        {status === 'installing' ? t('card.installing') : t('card.removing')}
+        {label}
       </button>
     );
   }
 
   if (status === 'installed') {
     return (
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onUninstall();
-        }}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        className={cn(
-          'flex items-center gap-1.5 rounded-lg font-medium transition-all border',
-          isHovered
-            ? 'bg-red-900/30 text-red-400 border-red-800'
-            : 'bg-zinc-800 text-zinc-300 border-zinc-700',
-          sizeClasses
+      <div className="flex items-center gap-1.5">
+        {updateAvailable && onUpdate && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onUpdate();
+            }}
+            className={cn(
+              'flex items-center gap-1.5 rounded-lg font-medium bg-white text-zinc-900 hover:bg-zinc-200 transition-colors',
+              sizeClasses
+            )}
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            {t('card.update')}
+          </button>
         )}
-      >
-        {isHovered ? (
-          t('card.uninstall')
-        ) : (
-          <>
-            <Check className="w-3.5 h-3.5" />
-            {t('card.installed')}
-          </>
-        )}
-      </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onUninstall();
+          }}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          className={cn(
+            'flex items-center gap-1.5 rounded-lg font-medium transition-all border',
+            isHovered
+              ? 'bg-red-900/30 text-red-400 border-red-800'
+              : 'bg-zinc-800 text-zinc-300 border-zinc-700',
+            sizeClasses
+          )}
+        >
+          {isHovered ? (
+            t('card.uninstall')
+          ) : (
+            <>
+              <Check className="w-3.5 h-3.5" />
+              {t('card.installed')}
+            </>
+          )}
+        </button>
+      </div>
     );
   }
 

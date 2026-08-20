@@ -26,6 +26,7 @@ import { BatchPage } from '@/app/batch/BatchPage';
 import { BatchCreatePage } from '@/app/batch/BatchCreatePage';
 import { BatchDetailPage } from '@/app/batch/BatchDetailPage';
 import { ExtensionsPage } from '@/app/extensions/ExtensionsPage';
+import { ExtensionRuntimeHost } from '@/features/extensions/components/ExtensionRuntimeHost';
 import { ProfilePage } from '@/app/profile/ProfilePage';
 import { useEditorTabsStore } from '@/features/image-editor/stores/editorTabs.store';
 import { useImageEditorStore } from '@/features/image-editor/stores/imageEditor.store';
@@ -220,6 +221,10 @@ export default function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <AppContent />
+        {/* Extension runtime: IPC listeners + permission dialog/panels/status bar.
+            Mounted at the root so it stays alive across pages and the
+            full-screen editors. */}
+        <ExtensionRuntimeHost />
         <LoginOverlay />
         <ToastContainer />
       </QueryClientProvider>

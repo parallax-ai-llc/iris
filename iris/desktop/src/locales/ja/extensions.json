@@ -24,7 +24,9 @@
     "installing": "インストール中...",
     "removing": "削除中...",
     "retry": "再試行",
-    "official": "公式"
+    "official": "公式",
+    "update": "アップデート",
+    "updating": "アップデート中..."
   },
   "detail": {
     "overview": "概要",
@@ -69,7 +71,15 @@
     "tagsPlaceholder": "タグ1, タグ2, タグ3",
     "cancel": "キャンセル",
     "submit": "登録する",
-    "submitting": "登録中..."
+    "submitting": "登録中...",
+    "bundle": "拡張機能バンドル (.iex)",
+    "bundleHint": "任意 — `iris-ext package` で拡張機能をパッケージ化し、.iex ファイルを添付してください（最大50MB）。アップロードされたバンドルは審査後に公開されます。",
+    "chooseBundle": ".iex ファイルを選択",
+    "bundleSelected": "{{name}} ({{size}})",
+    "bundleInvalidType": ".iex バンドルファイルのみアップロードできます。",
+    "bundleTooLarge": "バンドルが50MBの上限を超えています。",
+    "bundleUploading": "バンドルをアップロード中...",
+    "bundleUploadError": "バンドルのアップロードに失敗しました。もう一度お試しください。"
   },
   "my": {
     "loading": "マイ拡張機能を読み込み中...",
@@ -122,5 +132,44 @@
     "submit": "通報する",
     "submitting": "通報中...",
     "success": "通報が受理されました。ありがとうございます！"
+  },
+  "local": {
+    "sectionTitle": "開発者",
+    "installFromDirectory": "ローカルフォルダからインストール",
+    "installing": "インストール中…",
+    "installSuccess": "拡張機能をインストールしました: {{id}}",
+    "installError": "インストールに失敗しました: {{error}}"
+  },
+  "runtime": {
+    "inputSubmit": "OK",
+    "inputCancel": "キャンセル",
+    "noActiveImage": "エディタで開いている画像がありません",
+    "putImageFailed": "拡張機能の画像を挿入できませんでした",
+    "contributionIgnored": "{{id}}: {{reason}}",
+    "hostError": "拡張機能ホストを起動できませんでした: {{error}}",
+    "closePanel": "パネルを閉じる"
+  },
+  "permissions": {
+    "title": "権限のリクエスト",
+    "by": "作成者: {{publisher}}",
+    "intro": "この拡張機能の動作には次の権限が必要です:",
+    "riskHigh": "高リスク",
+    "riskMedium": "中リスク",
+    "riskLow": "低リスク",
+    "cancel": "キャンセル",
+    "allowSelected": "選択した権限を許可 ({{total}})"
+  },
+  "update": {
+    "available": "アップデートあり — インストール済み v{{version}}",
+    "success": "拡張機能をアップデートしました",
+    "error": "アップデートに失敗しました: {{error}}"
+  },
+  "installed": {
+    "title": "インストール済みの拡張機能",
+    "runSuccess": "「{{command}}」を実行しました",
+    "runError": "「{{command}}」の実行に失敗しました: {{error}}",
+    "commands": "コマンド",
+    "tools": "ツール",
+    "noRunnable": "この拡張機能はコマンドやツールを提供していません。"
   }
 }

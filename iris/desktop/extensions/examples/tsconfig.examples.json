@@ -1,0 +1,19 @@
+{
+  // Shared typecheck config for every example extension.
+  // Used by build-examples.mjs (tsc --noEmit); esbuild does the actual emit.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    // Extensions run inside a Node worker thread (setInterval, btoa, …).
+    "types": ["node"]
+  },
+  "include": ["iris-globals.d.ts", "*/src/**/*.ts"]
+}

@@ -3,6 +3,7 @@ import { CheckCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Extension, InstallationStatus } from '@/shared/api/extension.types';
 import { formatTokenCost } from '@/shared/hooks/useTokenCost';
+import { useExtensionStore } from '@/features/extensions/stores/extension.store';
 import { StarRating } from './StarRating';
 import { InstallButton } from './InstallButton';
 
@@ -27,6 +28,10 @@ export const ExtensionCard = memo(function ExtensionCard({
   onViewDetail,
 }: ExtensionCardProps) {
   const { t } = useTranslation('extensions');
+  const updateAvailable = useExtensionStore((s) =>
+    s.updatableExtensionIds.has(extension.id)
+  );
+  const updateExtension = useExtensionStore((s) => s.updateExtension);
 
   return (
     <div
@@ -94,6 +99,8 @@ export const ExtensionCard = memo(function ExtensionCard({
         status={installStatus}
         onInstall={onInstall}
         onUninstall={onUninstall}
+        updateAvailable={updateAvailable}
+        onUpdate={() => void updateExtension(extension.id)}
       />
     </div>
   );

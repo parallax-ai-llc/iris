@@ -3,6 +3,13 @@ import { test, expect } from '../../fixtures/electron.fixture';
 /**
  * Auth setup — 직접 page API 사용, 헬퍼 추상화 없음.
  * 각 단계에서 console.log로 진행 상태 출력.
+ *
+ * ⚠️ 인증 여부는 `nav` 존재로 판별하면 안 된다.
+ * 데스크톱은 로그인 없이 사용 가능하고(로그인은 사이드바 "Sign in" 버튼으로
+ * 여는 선택 사항), 로그아웃 상태에서도 `nav`가 항상 렌더된다. 예전 로직은
+ * 로그아웃 상태를 "이미 인증됨"으로 오판해 로그인을 건너뛴 뒤 토큰 단언에서
+ * 실패했고, 그 결과 `authenticated` 프로젝트 전체가 실행 불가였다.
+ * 판별 기준은 오직 실제 액세스 토큰이다.
  */
 test('login and persist tokens', async ({ page }) => {
   const email = process.env.TEST_USER_EMAIL;
@@ -12,51 +19,63 @@ test('login and persist tokens', async ({ page }) => {
     throw new Error('TEST_USER_EMAIL and TEST_USER_PASSWORD must be set in e2e/.env');
   }
 
-  // Step 1: 로그인 폼 또는 이미 인증된 앱(nav)이 나타날 때까지 대기
-  console.log('[setup] waiting for email input or nav (already authenticated)...');
+  // Step 1: 렌더러 부팅 대기 — nav(비로그인 포함) 또는 로그인 폼 중 먼저 뜨는 것
+  console.log('[setup] waiting for renderer to boot...');
   await page.waitForSelector('input[type="email"], nav', { state: 'visible', timeout: 30_000 });
 
-  // 이미 로그인된 상태라면 토큰 확인 후 바로 종료
-  const isAlreadyAuthenticated = await page.locator('nav').isVisible().catch(() => false);
-  if (isAlreadyAuthenticated) {
-    console.log('[setup] already authenticated — skipping login');
-    const token = await page.evaluate(async () => {
-      return (await window.electronAPI?.auth?.getToken()) ?? null;
-    });
-    console.log('[setup] token:', token ? '[exists]' : 'null');
-    expect(token, 'Token should be persisted in auth.json').not.toBeNull();
+  const readToken = () =>
+    page.evaluate(async () => (await window.electronAPI?.auth?.getToken()) ?? null);
+
+  // Step 2: 실제 토큰으로 인증 상태 판별 (nav 존재 여부가 아님)
+  const existingToken = await readToken();
+  if (existingToken) {
+    console.log('[setup] already authenticated (token present) — skipping login');
     return;
   }
+  console.log('[setup] no token — logging in');
+
+  // Step 3: 로그인 폼 열기. 로그인은 선택 사항이라 오버레이가 닫혀 있을 수 있으므로
+  //         사이드바의 "Sign in" 버튼을 눌러 연다.
+  const emailInput = page.locator('input[type="email"]');
+  if (!(await emailInput.isVisible().catch(() => false))) {
+    console.log('[setup] opening login overlay...');
+    await page.getByRole('button', { name: /sign in/i }).first().click();
+  }
+  await emailInput.waitFor({ state: 'visible', timeout: 30_000 });
   console.log('[setup] email input visible');
 
-  // Step 2: 이메일 입력
+  // Step 4: 자격 증명 입력
   await page.fill('input[type="email"]', email);
   console.log('[setup] filled email');
 
-  // Step 3: 비밀번호 입력 (placeholder의 bullet 문자 • 로 특정)
   await page.fill('input[placeholder="••••••••"]', password);
   console.log('[setup] filled password');
 
-  // Step 4: Sign In 버튼 클릭
+  // Step 5: Sign In 제출
   await page.click('button[type="submit"]');
   console.log('[setup] clicked Sign In');
 
-  // Step 5: 로그인 성공 = nav(사이드바) 표시, 실패 = 에러 메시지
-  console.log('[setup] waiting for nav or error...');
-  await page.waitForSelector('nav, .text-red-400', { state: 'visible', timeout: 30_000 });
+  // Step 6: 성공 = 토큰 저장됨, 실패 = 에러 메시지.
+  //         nav는 로그인 전에도 보이므로 완료 신호로 쓸 수 없다.
+  console.log('[setup] waiting for token or error...');
+  await expect
+    .poll(
+      async () => {
+        if (await page.locator('.text-red-400').isVisible().catch(() => false)) {
+          return 'error';
+        }
+        return (await readToken()) ? 'token' : 'pending';
+      },
+      { timeout: 30_000, message: 'Login should persist an access token' }
+    )
+    .not.toBe('pending');
 
-  const hasError = await page.locator('.text-red-400').isVisible();
-  if (hasError) {
+  if (await page.locator('.text-red-400').isVisible().catch(() => false)) {
     const errorText = await page.locator('.text-red-400').textContent();
     throw new Error(`Login failed: ${errorText}`);
   }
-  console.log('[setup] nav visible — login succeeded');
 
-  // Step 6: 토큰이 auth.json에 저장됐는지 확인
-  const token = await page.evaluate(async () => {
-    return (await window.electronAPI?.auth?.getToken()) ?? null;
-  });
+  const token = await readToken();
   console.log('[setup] token:', token ? '[exists]' : 'null');
-
   expect(token, 'Token should be persisted in auth.json').not.toBeNull();
 });

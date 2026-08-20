@@ -3,17 +3,23 @@
  * Sends UI notifications/dialogs to the renderer.
  */
 import { BrowserWindow } from 'electron';
+import type { ExtHostContribution } from '../ipcProtocol';
+import { sendToWindow } from './sendToWindow';
+
+interface WindowApiManager {
+  registerApiHandler: (ns: string, method: string, handler: (extId: string, args: unknown[]) => Promise<unknown>) => void;
+  /** Optional so tests can pass a bare stub. */
+  recordContribution?: (msg: ExtHostContribution) => void;
+}
 
 export function registerWindowApi(
-  manager: { registerApiHandler: (ns: string, method: string, handler: (extId: string, args: unknown[]) => Promise<unknown>) => void },
+  manager: WindowApiManager,
   getMainWindow: () => BrowserWindow | null
 ): void {
   manager.registerApiHandler('iris.window', 'showMessage', async (extId, args) => {
     const [message, type] = args as [string, string];
     const win = getMainWindow();
-    if (win) {
-      win.webContents.send('extensions:showMessage', { extensionId: extId, message, type: type || 'info' });
-    }
+    sendToWindow(win, 'extensions:showMessage', { extensionId: extId, message, type: type || 'info' });
   });
 
   manager.registerApiHandler('iris.window', 'showInputBox', async (extId, args) => {
@@ -23,14 +29,10 @@ export function registerWindowApi(
 
     return new Promise<string | undefined>((resolve) => {
       const requestId = `input_${Date.now()}`;
-      const handler = (_event: any, data: { requestId: string; value?: string }) => {
-        if (data.requestId === requestId) {
-          win.webContents.ipc.removeHandler(`extensions:inputBoxResult`);
-          resolve(data.value);
-        }
-      };
-
-      win.webContents.send('extensions:showInputBox', { requestId, extensionId: extId, ...options });
+      if (!sendToWindow(win, 'extensions:showInputBox', { requestId, extensionId: extId, ...options })) {
+        resolve(undefined);
+        return;
+      }
 
       // Listen for result from renderer
       win.webContents.ipc.once(`extensions:inputBoxResult:${requestId}`, (_event, value) => {
@@ -48,26 +50,36 @@ export function registerWindowApi(
     if (!win) return '';
 
     const panelId = `${extId}.panel.${Date.now()}`;
-    win.webContents.send('extensions:createPanel', {
+    const title = options?.title || extId;
+    const location = options?.location || 'sidebar';
+    if (!sendToWindow(win, 'extensions:createPanel', {
       panelId,
       extensionId: extId,
       html,
-      title: options?.title || extId,
-      location: options?.location || 'sidebar',
+      title,
+      location,
+    })) {
+      return '';
+    }
+    // Panels are created through this api-call rather than a contribution
+    // message, so record them explicitly — otherwise a renderer reload loses
+    // every panel an extension opened.
+    manager.recordContribution?.({
+      type: 'contribution',
+      extensionId: extId,
+      payload: {
+        action: 'register',
+        contributionType: 'panel',
+        data: { id: panelId, title, location, html },
+      },
     });
     return panelId;
   });
 
-  manager.registerApiHandler('iris.window', 'setStatusBarItem', async (extId, args) => {
-    const [text, options] = args as [string, { tooltip?: string; priority?: number } | undefined];
-    const win = getMainWindow();
-    if (win) {
-      win.webContents.send('extensions:statusBarUpdate', {
-        extensionId: extId,
-        text,
-        tooltip: options?.tooltip,
-        priority: options?.priority,
-      });
-    }
-  });
+  // NOTE: there is deliberately no 'setStatusBarItem' handler here.
+  // iris.window.setStatusBarItem never produces an api-call — the worker
+  // (extensionHostWorker.ts) emits a 'statusBarItem' contribution message and
+  // returns a Disposable synchronously, so a main-process handler would be
+  // unreachable. Status bar items reach the renderer over the contribution
+  // path (and re-hydrate through 'extensions:getContributions').
 }

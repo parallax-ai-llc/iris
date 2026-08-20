@@ -36,6 +36,34 @@ interface UpdateDownloadedData {
   releaseNotes?: string | null;
 }
 
+/**
+ * Main → Renderer extension API request channels.
+ * Must stay in sync with the channels sent by
+ * electron/extensions/apiHandlers/{imageApi,aiApi,windowApi,exportApi}.ts.
+ */
+const EXTENSION_REQUEST_CHANNELS: string[] = [
+  // imageApi
+  'extensions:getActiveImage',
+  'extensions:getSelection',
+  'extensions:getActiveFileInfo',
+  'extensions:putImage',
+  // aiApi
+  'extensions:executeAiModel',
+  'extensions:getAvailableModels',
+  // windowApi
+  'extensions:showMessage',
+  'extensions:showInputBox',
+  'extensions:createPanel',
+  // NOTE: 'extensions:statusBarUpdate' is deliberately absent — the worker's
+  // setStatusBarItem emits a contribution message rather than an api-call, so
+  // the main-process sender for that channel never fires.
+  // exportApi
+  'extensions:getExportPresets',
+  'extensions:applyExportPreset',
+  'extensions:getExportSettings',
+  'extensions:updateExportSettings',
+];
+
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -248,11 +276,27 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Extensions
   extensions: {
     getInstalled: () => ipcRenderer.invoke('extensions:getInstalled'),
-    install: (sourceDir: string, trustTier?: string) => ipcRenderer.invoke('extensions:install', sourceDir, trustTier),
+    install: (sourceDir: string, trustTier?: string, opts?: { upgrade?: boolean }) =>
+      ipcRenderer.invoke('extensions:install', sourceDir, trustTier, opts),
+    installFromIex: (source: string, trustTier?: string, opts?: { upgrade?: boolean }) =>
+      ipcRenderer.invoke('extensions:installFromIex', source, trustTier, opts),
     uninstall: (extensionId: string) => ipcRenderer.invoke('extensions:uninstall', extensionId),
     enable: (extensionId: string) => ipcRenderer.invoke('extensions:enable', extensionId),
     disable: (extensionId: string) => ipcRenderer.invoke('extensions:disable', extensionId),
     getStatus: (extensionId: string) => ipcRenderer.invoke('extensions:getStatus', extensionId),
+    /**
+     * Snapshot of the runtime contributions registered so far.
+     * onStartup activations happen before the renderer's window contents load,
+     * so their `extensions:contributionChanged` events are lost — the renderer
+     * hydrates from this snapshot on mount.
+     */
+    getContributions: () => ipcRenderer.invoke('extensions:getContributions'),
+    /**
+     * Forget a panel the user closed so the contribution snapshot does not
+     * resurrect it on the next reload. `success: false` just means the id was
+     * not in the snapshot (already dismissed) — not an error.
+     */
+    dismissPanel: (panelId: string) => ipcRenderer.invoke('extensions:dismissPanel', panelId),
     grantPermissions: (extensionId: string, permissions: string[]) =>
       ipcRenderer.invoke('extensions:grantPermissions', extensionId, permissions),
     executeCommand: (commandId: string, args?: unknown[]) =>
@@ -268,10 +312,46 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onPermissionRequired: (callback: (data: { extensionId: string; manifest: any; requiredPermissions: string[] }) => void) => {
       ipcRenderer.on('extensions:permissionRequired', (_, data) => callback(data));
     },
+    onContributionIgnored: (callback: (data: { extensionId: string; contributionType: string; reason: string }) => void) => {
+      ipcRenderer.on('extensions:contributionIgnored', (_, data) => callback(data));
+    },
+    onHostError: (callback: (data: { error: string }) => void) => {
+      ipcRenderer.on('extensions:hostError', (_, data) => callback(data));
+    },
     removeAllListeners: () => {
       ipcRenderer.removeAllListeners('extensions:statusChanged');
       ipcRenderer.removeAllListeners('extensions:contributionChanged');
       ipcRenderer.removeAllListeners('extensions:permissionRequired');
+      ipcRenderer.removeAllListeners('extensions:contributionIgnored');
+      ipcRenderer.removeAllListeners('extensions:hostError');
+    },
+    /**
+     * Subscribe to a Main → Renderer extension API request channel.
+     * The main-process apiHandlers (electron/extensions/apiHandlers/*) send
+     * requests on these channels and wait for the renderer's reply on a
+     * dynamic `extensions:<x>Result:<requestId>` channel (see sendResponse).
+     * Returns an unsubscribe function.
+     */
+    onRequest: (channel: string, callback: (data: any) => void): (() => void) => {
+      if (!EXTENSION_REQUEST_CHANNELS.includes(channel)) {
+        return () => {};
+      }
+      const listener = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);
+      ipcRenderer.on(channel, listener);
+      return () => {
+        ipcRenderer.removeListener(channel, listener);
+      };
+    },
+    /**
+     * Send a response back to a main-process apiHandler waiting on a dynamic
+     * `extensions:<x>Result:<requestId>` channel. Only `extensions:`-prefixed
+     * channels are allowed through.
+     */
+    sendResponse: (channel: string, data?: unknown): void => {
+      if (typeof channel !== 'string' || !channel.startsWith('extensions:')) {
+        return;
+      }
+      ipcRenderer.send(channel, data);
     },
   },
 
@@ -446,18 +526,25 @@ export interface ElectronAPI {
   };
   extensions: {
     getInstalled: () => Promise<any[]>;
-    install: (sourceDir: string, trustTier?: string) => Promise<{ success: boolean; error?: string; extensionId?: string }>;
+    install: (sourceDir: string, trustTier?: string, opts?: { upgrade?: boolean }) => Promise<{ success: boolean; error?: string; extensionId?: string }>;
+    installFromIex: (source: string, trustTier?: string, opts?: { upgrade?: boolean }) => Promise<{ success: boolean; error?: string; extensionId?: string }>;
     uninstall: (extensionId: string) => Promise<{ success: boolean }>;
     enable: (extensionId: string) => Promise<{ success: boolean }>;
     disable: (extensionId: string) => Promise<{ success: boolean }>;
     getStatus: (extensionId: string) => Promise<any>;
+    getContributions: () => Promise<any>;
+    dismissPanel: (panelId: string) => Promise<{ success: boolean }>;
     grantPermissions: (extensionId: string, permissions: string[]) => Promise<{ success: boolean }>;
     executeCommand: (commandId: string, args?: unknown[]) => Promise<{ success: boolean; result?: unknown; error?: string }>;
     executeTool: (toolId: string, params: unknown) => Promise<{ success: boolean; result?: unknown; error?: string }>;
     onStatusChanged: (callback: (data: { extensionId: string; info: any }) => void) => void;
     onContributionChanged: (callback: (data: any) => void) => void;
     onPermissionRequired: (callback: (data: { extensionId: string; manifest: any; requiredPermissions: string[] }) => void) => void;
+    onContributionIgnored: (callback: (data: { extensionId: string; contributionType: string; reason: string }) => void) => void;
+    onHostError: (callback: (data: { error: string }) => void) => void;
     removeAllListeners: () => void;
+    onRequest: (channel: string, callback: (data: any) => void) => () => void;
+    sendResponse: (channel: string, data?: unknown) => void;
   };
   updater: {
     checkForUpdates: () => Promise<{ status: string; updateInfo?: { version: string; releaseDate: string } | null; message?: string }>;

@@ -43,6 +43,13 @@ export const ExtensionDetailModal = memo(function ExtensionDetailModal({
   const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const { t } = useTranslation('extensions');
   const openReportModal = useExtensionStore((s) => s.openReportModal);
+  const updateAvailable = useExtensionStore((s) =>
+    extension ? s.updatableExtensionIds.has(extension.id) : false
+  );
+  const localVersion = useExtensionStore((s) =>
+    extension ? s.localVersions.get(extension.id) : undefined
+  );
+  const updateExtension = useExtensionStore((s) => s.updateExtension);
 
   const tabs: { id: DetailTab; label: string }[] = [
     { id: 'overview', label: t('detail.overview') },
@@ -72,6 +79,11 @@ export const ExtensionDetailModal = memo(function ExtensionDetailModal({
               </div>
               <p className="text-sm text-zinc-400 mb-2">
                 {t('detail.by', { author: extension.author })} · {t('detail.version', { version: extension.currentVersion })}
+                {updateAvailable && localVersion && (
+                  <span className="ml-2 text-xs text-amber-400">
+                    {t('update.available', { version: localVersion })}
+                  </span>
+                )}
               </p>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1">
@@ -101,6 +113,8 @@ export const ExtensionDetailModal = memo(function ExtensionDetailModal({
                 status={installStatus}
                 onInstall={onInstall}
                 onUninstall={onUninstall}
+                updateAvailable={updateAvailable}
+                onUpdate={() => void updateExtension(extension.id)}
                 size="lg"
               />
             </div>

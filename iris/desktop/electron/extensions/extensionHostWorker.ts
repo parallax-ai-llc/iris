@@ -6,6 +6,7 @@
  */
 import { parentPort, workerData } from 'worker_threads';
 import path from 'path';
+import { pathToFileURL } from 'url';
 import type {
   ExtHostMessage,
   ExtHostApiCall,
@@ -377,15 +378,19 @@ async function handleLocalExecution(msg: ExtHostApiCall): Promise<void> {
 
 async function activate(): Promise<void> {
   try {
+    // Make the iris API available globally BEFORE loading/activating the
+    // extension module — extensions reference the global `iris` at module
+    // scope and inside activate(), so injecting afterwards crashes them
+    // with a ReferenceError.
+    (globalThis as any).iris = irisApi;
+
     const mainPath = path.resolve(installPath, mainFile);
-    const extensionModule = await import(mainPath);
+    // Use a file:// URL — the ESM loader rejects raw Windows absolute paths.
+    const extensionModule = await import(pathToFileURL(mainPath).href);
 
     if (typeof extensionModule.activate === 'function') {
       await extensionModule.activate(irisApi.context);
     }
-
-    // Make iris API available globally for the extension
-    (globalThis as any).iris = irisApi;
 
     parentPort!.postMessage({
       type: 'lifecycle',
@@ -410,7 +415,7 @@ async function deactivate(): Promise<void> {
   try {
     const mainPath = path.resolve(installPath, mainFile);
     try {
-      const extensionModule = await import(mainPath);
+      const extensionModule = await import(pathToFileURL(mainPath).href);
       if (typeof extensionModule.deactivate === 'function') {
         await extensionModule.deactivate();
       }

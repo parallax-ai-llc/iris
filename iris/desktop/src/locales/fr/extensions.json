@@ -24,7 +24,9 @@
     "installing": "Installing...",
     "removing": "Removing...",
     "retry": "Retry",
-    "official": "Official"
+    "official": "Official",
+    "update": "Mettre à jour",
+    "updating": "Mise à jour..."
   },
   "detail": {
     "overview": "Overview",
@@ -69,7 +71,15 @@
     "tagsPlaceholder": "tag1, tag2, tag3",
     "cancel": "Cancel",
     "submit": "Submit",
-    "submitting": "Submitting..."
+    "submitting": "Submitting...",
+    "bundle": "Paquet d'extension (.iex)",
+    "bundleHint": "Facultatif — empaquetez votre extension avec `iris-ext package` et joignez le fichier .iex (50 Mo max). Les paquets envoyés sont examinés avant publication.",
+    "chooseBundle": "Choisir un fichier .iex",
+    "bundleSelected": "{{name}} ({{size}})",
+    "bundleInvalidType": "Seuls les fichiers de paquet .iex peuvent être envoyés.",
+    "bundleTooLarge": "Le paquet dépasse la limite de 50 Mo.",
+    "bundleUploading": "Envoi du paquet...",
+    "bundleUploadError": "Échec de l'envoi du paquet. Veuillez réessayer."
   },
   "my": {
     "loading": "Loading your extensions...",
@@ -122,5 +132,44 @@
     "submit": "Submit Report",
     "submitting": "Submitting...",
     "success": "Report submitted successfully. Thank you!"
+  },
+  "local": {
+    "sectionTitle": "Développeur",
+    "installFromDirectory": "Installer depuis un dossier local",
+    "installing": "Installation…",
+    "installSuccess": "Extension installée : {{id}}",
+    "installError": "Échec de l'installation : {{error}}"
+  },
+  "runtime": {
+    "inputSubmit": "OK",
+    "inputCancel": "Annuler",
+    "noActiveImage": "Aucune image ouverte dans l'éditeur",
+    "putImageFailed": "Impossible d'insérer l'image de l'extension",
+    "contributionIgnored": "{{id}} : {{reason}}",
+    "hostError": "Impossible de démarrer l'hôte d'extensions : {{error}}",
+    "closePanel": "Fermer le panneau"
+  },
+  "permissions": {
+    "title": "Demande d'autorisations",
+    "by": "par {{publisher}}",
+    "intro": "Cette extension nécessite les autorisations suivantes pour fonctionner :",
+    "riskHigh": "Risque élevé",
+    "riskMedium": "Risque moyen",
+    "riskLow": "Risque faible",
+    "cancel": "Annuler",
+    "allowSelected": "Autoriser la sélection ({{total}})"
+  },
+  "update": {
+    "available": "Mise à jour disponible — version installée v{{version}}",
+    "success": "Extension mise à jour",
+    "error": "Échec de la mise à jour : {{error}}"
+  },
+  "installed": {
+    "title": "Extensions installées",
+    "runSuccess": "« {{command}} » exécutée",
+    "runError": "Échec de l'exécution de « {{command}} » : {{error}}",
+    "commands": "Commandes",
+    "tools": "Outils",
+    "noRunnable": "Cette extension ne fournit ni commande ni outil."
   }
 }

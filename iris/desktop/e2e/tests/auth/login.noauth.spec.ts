@@ -33,13 +33,27 @@ test.describe('Auth - Login', () => {
   });
 
   test('login page loads', async ({ page }) => {
-    // After the initial isLoading state resolves (checkAuth in App.tsx),
-    // the app shows LoginPage when isAuthenticated is false.
-    // Wait for the loading indicator to disappear first.
-    // The loading state shows text "Loading..." (App.tsx line 65).
-    await page.waitForSelector('text=Loading...', { state: 'hidden', timeout: 15_000 }).catch(() => {
-      // Loading may already be gone by the time we check
+    // ⚠️ The app is NOT login-gated: it boots straight into the shell and is
+    // usable without an account. LoginPage renders as an opt-in overlay
+    // (App.tsx <LoginOverlay />) that the sidebar "Sign in" button opens.
+    // Waiting for it to appear on its own hangs until timeout.
+    await page.waitForSelector('nav', { state: 'visible', timeout: 15_000 });
+
+    // The sidebar only offers "Sign in" when no user is stored, and tokens
+    // persist in electron-store across runs (e.g. a previous auth-setup).
+    // Force a logged-out shell so this test does not depend on leftover state.
+    // __ZUSTAND_STORES__ is exposed by App.tsx in dev mode for exactly this.
+    await page.evaluate(async () => {
+      const stores = (window as unknown as {
+        __ZUSTAND_STORES__?: { auth?: { getState: () => { logout: () => Promise<void> } } };
+      }).__ZUSTAND_STORES__;
+      await stores?.auth?.getState().logout();
     });
+
+    // Open the login overlay the way a user does.
+    const signInButton = page.getByRole('button', { name: /sign in/i }).first();
+    await signInButton.waitFor({ state: 'visible', timeout: 15_000 });
+    await signInButton.click();
 
     // Verify the heading "Welcome to Iris" is visible (LoginPage.tsx line 108)
     const headingVisible = await safeExpectVisible(
@@ -106,10 +120,11 @@ test.describe('Auth - Login', () => {
     );
     assertStep(dividerVisible);
 
-    // Verify the "Sign up" link exists (LoginPage.tsx line 255-260)
+    // Verify the "Sign up" link exists (LoginPage.tsx footer).
+    // Host is parallax.kr — the old parallax.ai selector was stale.
     const signUpLinkVisible = await safeExpectVisible(
       page,
-      'a[href="https://parallax.ai/signup"]:has-text("Sign up")',
+      'a[href="https://parallax.kr/signup"]:has-text("Sign up")',
       'Sign up link visible'
     );
     assertStep(signUpLinkVisible);

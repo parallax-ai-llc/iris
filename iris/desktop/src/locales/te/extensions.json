@@ -24,7 +24,9 @@
     "installing": "Installing...",
     "removing": "Removing...",
     "retry": "Retry",
-    "official": "Official"
+    "official": "Official",
+    "update": "అప్‌డేట్",
+    "updating": "అప్‌డేట్ అవుతోంది..."
   },
   "detail": {
     "overview": "Overview",
@@ -69,7 +71,15 @@
     "tagsPlaceholder": "tag1, tag2, tag3",
     "cancel": "Cancel",
     "submit": "Submit",
-    "submitting": "Submitting..."
+    "submitting": "Submitting...",
+    "bundle": "ఎక్స్‌టెన్షన్ బండిల్ (.iex)",
+    "bundleHint": "ఐచ్ఛికం — `iris-ext package` తో మీ ఎక్స్‌టెన్షన్‌ను ప్యాకేజ్ చేసి .iex ఫైల్‌ను జత చేయండి (గరిష్ఠంగా 50MB). అప్‌లోడ్ చేసిన బండిల్స్ విడుదలకు ముందు సమీక్షించబడతాయి.",
+    "chooseBundle": ".iex ఫైల్ ఎంచుకోండి",
+    "bundleSelected": "{{name}} ({{size}})",
+    "bundleInvalidType": ".iex బండిల్ ఫైళ్లను మాత్రమే అప్‌లోడ్ చేయగలరు.",
+    "bundleTooLarge": "బండిల్ 50MB పరిమితిని మించింది.",
+    "bundleUploading": "బండిల్ అప్‌లోడ్ అవుతోంది...",
+    "bundleUploadError": "బండిల్ అప్‌లోడ్ విఫలమైంది. దయచేసి మళ్లీ ప్రయత్నించండి."
   },
   "my": {
     "loading": "Loading your extensions...",
@@ -122,5 +132,44 @@
     "submit": "Submit Report",
     "submitting": "Submitting...",
     "success": "Report submitted successfully. Thank you!"
+  },
+  "local": {
+    "sectionTitle": "డెవలపర్",
+    "installFromDirectory": "లోకల్ ఫోల్డర్ నుండి ఇన్‌స్టాల్ చేయండి",
+    "installing": "ఇన్‌స్టాల్ అవుతోంది…",
+    "installSuccess": "ఎక్స్‌టెన్షన్ ఇన్‌స్టాల్ అయింది: {{id}}",
+    "installError": "ఇన్‌స్టాల్ విఫలమైంది: {{error}}"
+  },
+  "runtime": {
+    "inputSubmit": "సరే",
+    "inputCancel": "రద్దు",
+    "noActiveImage": "ఎడిటర్‌లో తెరిచిన చిత్రం లేదు",
+    "putImageFailed": "ఎక్స్‌టెన్షన్ చిత్రాన్ని చేర్చలేకపోయాం",
+    "contributionIgnored": "{{id}}: {{reason}}",
+    "hostError": "ఎక్స్‌టెన్షన్ హోస్ట్ ప్రారంభం కాలేదు: {{error}}",
+    "closePanel": "ప్యానెల్ మూసివేయండి"
+  },
+  "permissions": {
+    "title": "అనుమతి అభ్యర్థన",
+    "by": "{{publisher}} ద్వారా",
+    "intro": "ఈ ఎక్స్‌టెన్షన్ పనిచేయడానికి కింది అనుమతులు అవసరం:",
+    "riskHigh": "అధిక ప్రమాదం",
+    "riskMedium": "మధ్యస్థ ప్రమాదం",
+    "riskLow": "తక్కువ ప్రమాదం",
+    "cancel": "రద్దు",
+    "allowSelected": "ఎంచుకున్నవి అనుమతించండి ({{total}})"
+  },
+  "update": {
+    "available": "అప్‌డేట్ అందుబాటులో ఉంది — ఇన్‌స్టాల్ చేసినది v{{version}}",
+    "success": "ఎక్స్‌టెన్షన్ అప్‌డేట్ అయింది",
+    "error": "అప్‌డేట్ విఫలమైంది: {{error}}"
+  },
+  "installed": {
+    "title": "ఇన్‌స్టాల్ చేసిన ఎక్స్‌టెన్షన్‌లు",
+    "runSuccess": "\"{{command}}\" అమలు చేయబడింది",
+    "runError": "\"{{command}}\" అమలు విఫలమైంది: {{error}}",
+    "commands": "కమాండ్‌లు",
+    "tools": "టూల్స్",
+    "noRunnable": "ఈ ఎక్స్‌టెన్షన్ ఎలాంటి కమాండ్‌లు లేదా టూల్స్ అందించదు."
   }
 }

@@ -66,6 +66,10 @@ export function activate(context: IrisExtensionContext) {
   context.subscriptions.push(
     iris.commands.register('iris-official.export-presets.show-settings', async () => {
       const settings = await iris.export.getSettings();
+      if (!settings) {
+        await iris.window.showMessage('No editor window available for export settings.', 'warn');
+        return;
+      }
 
       const rows = [
         { label: 'Format', value: settings.format },

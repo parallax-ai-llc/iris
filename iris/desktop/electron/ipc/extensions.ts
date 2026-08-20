@@ -17,10 +17,19 @@ export function setupExtensionHandlers(extensionManager: ExtensionManager) {
     return extensionManager.getInstalledExtensions();
   });
 
-  // Install from a local directory (for development) or extracted bundle
-  ipcMain.handle('extensions:install', async (_event, sourceDir: string, trustTier?: string) => {
+  // Install from a local directory (for development) or extracted bundle.
+  // opts.upgrade replaces an already-installed extension with the same id
+  // (deactivate → replace → re-activate); without it, duplicates are rejected.
+  ipcMain.handle('extensions:install', async (_event, sourceDir: string, trustTier?: string, opts?: { upgrade?: boolean }) => {
     const tier: TrustTier = isValidTrustTier(trustTier) ? trustTier : 'community';
-    return extensionManager.installFromDirectory(sourceDir, tier);
+    return extensionManager.installFromDirectory(sourceDir, tier, { upgrade: opts?.upgrade === true });
+  });
+
+  // Install from a .iex bundle (ZIP) — `source` is an http(s) URL (downloaded)
+  // or a local file path. Extracted to a temp dir, then installed.
+  ipcMain.handle('extensions:installFromIex', async (_event, source: string, trustTier?: string, opts?: { upgrade?: boolean }) => {
+    const tier: TrustTier = isValidTrustTier(trustTier) ? trustTier : 'community';
+    return extensionManager.installFromIex(source, tier, { upgrade: opts?.upgrade === true });
   });
 
   // Uninstall an extension
@@ -36,6 +45,20 @@ export function setupExtensionHandlers(extensionManager: ExtensionManager) {
   // Disable an active extension
   ipcMain.handle('extensions:disable', async (_event, extensionId: string) => {
     return extensionManager.disableExtension(extensionId);
+  });
+
+  // Snapshot of runtime contributions currently registered by active
+  // extensions. onStartup activation runs before the renderer attaches its
+  // 'extensions:contributionChanged' listener, so the renderer pulls this once
+  // on mount to re-hydrate (status bar items, panels, commands, tools).
+  ipcMain.handle('extensions:getContributions', () => {
+    return extensionManager.getContributions();
+  });
+
+  // Forget a panel the user closed, so the contribution snapshot does not
+  // resurrect it on the next renderer reload.
+  ipcMain.handle('extensions:dismissPanel', (_event, panelId: string) => {
+    return extensionManager.dismissPanel(panelId);
   });
 
   // Get status of a specific extension

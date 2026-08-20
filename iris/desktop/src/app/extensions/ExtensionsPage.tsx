@@ -13,6 +13,8 @@ import { ExtensionSubmitModal } from '@/features/extensions/components/Extension
 import { ExtensionGuide } from '@/features/extensions/components/ExtensionGuide';
 import { ReportModal } from '@/features/extensions/components/ReportModal';
 import { MyExtensionsSection } from '@/features/extensions/components/MyExtensionsSection';
+import { InstallFromLocalButton } from '@/features/extensions/components/InstallFromLocalButton';
+import { InstalledExtensionsSection } from '@/features/extensions/components/InstalledExtensionsSection';
 import { cn } from '@/shared/lib/utils';
 
 type PageTab = 'browse' | 'my';
@@ -110,6 +112,8 @@ function ExtensionsPageContent() {
             <p className="text-sm text-zinc-400">{t('subtitle')}</p>
           </div>
           <div className="flex items-center gap-2">
+            {/* Developer: install an extension from a local directory */}
+            <InstallFromLocalButton />
             <button
               onClick={openGuide}
               className="flex items-center gap-1.5 px-3 py-2 text-sm text-zinc-400 hover:text-white border border-zinc-700 rounded-lg transition-colors"
@@ -161,6 +165,9 @@ function ExtensionsPageContent() {
 
         {activeTab === 'browse' ? (
           <>
+            {/* Installed extensions — run their contributed commands */}
+            <InstalledExtensionsSection />
+
             {/* Featured Banner */}
             {featuredExtensions.length > 0 && (
               <FeaturedBanner

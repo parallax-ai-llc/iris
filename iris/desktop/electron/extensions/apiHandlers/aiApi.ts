@@ -3,6 +3,7 @@
  * existing API client (which calls the Parallax server).
  */
 import { BrowserWindow } from 'electron';
+import { sendToWindow } from './sendToWindow';
 
 export function registerAiApi(
   manager: { registerApiHandler: (ns: string, method: string, handler: (extId: string, args: unknown[]) => Promise<unknown>) => void },
@@ -15,12 +16,19 @@ export function registerAiApi(
 
     return new Promise((resolve, reject) => {
       const requestId = `ai_${Date.now()}`;
-      win.webContents.send('extensions:executeAiModel', {
-        requestId,
-        extensionId: extId,
-        provider,
-        params,
-      });
+      // Fail fast rather than making the extension wait out the 2 minute
+      // timeout for a renderer that no longer exists.
+      if (
+        !sendToWindow(win, 'extensions:executeAiModel', {
+          requestId,
+          extensionId: extId,
+          provider,
+          params,
+        })
+      ) {
+        reject(new Error('Main window not available'));
+        return;
+      }
 
       win.webContents.ipc.once(`extensions:aiModelResult:${requestId}`, (_event, data: { result?: unknown; error?: string }) => {
         if (data.error) {
@@ -40,7 +48,10 @@ export function registerAiApi(
 
     return new Promise((resolve) => {
       const requestId = `ai_models_${Date.now()}`;
-      win.webContents.send('extensions:getAvailableModels', { requestId });
+      if (!sendToWindow(win, 'extensions:getAvailableModels', { requestId })) {
+        resolve([]);
+        return;
+      }
 
       win.webContents.ipc.once(`extensions:availableModelsResult:${requestId}`, (_event, data) => {
         resolve(data);

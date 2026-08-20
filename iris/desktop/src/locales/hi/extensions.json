@@ -24,7 +24,9 @@
     "installing": "Installing...",
     "removing": "Removing...",
     "retry": "Retry",
-    "official": "Official"
+    "official": "Official",
+    "update": "अपडेट करें",
+    "updating": "अपडेट हो रहा है..."
   },
   "detail": {
     "overview": "Overview",
@@ -69,7 +71,15 @@
     "tagsPlaceholder": "tag1, tag2, tag3",
     "cancel": "Cancel",
     "submit": "Submit",
-    "submitting": "Submitting..."
+    "submitting": "Submitting...",
+    "bundle": "एक्सटेंशन बंडल (.iex)",
+    "bundleHint": "वैकल्पिक — अपने एक्सटेंशन को `iris-ext package` से पैकेज करें और .iex फ़ाइल संलग्न करें (अधिकतम 50MB)। अपलोड किए गए बंडल रिलीज़ से पहले समीक्षा किए जाते हैं।",
+    "chooseBundle": ".iex फ़ाइल चुनें",
+    "bundleSelected": "{{name}} ({{size}})",
+    "bundleInvalidType": "केवल .iex बंडल फ़ाइलें ही अपलोड की जा सकती हैं।",
+    "bundleTooLarge": "बंडल 50MB की सीमा से अधिक है।",
+    "bundleUploading": "बंडल अपलोड हो रहा है...",
+    "bundleUploadError": "बंडल अपलोड विफल रहा। कृपया फिर से प्रयास करें।"
   },
   "my": {
     "loading": "Loading your extensions...",
@@ -122,5 +132,44 @@
     "submit": "Submit Report",
     "submitting": "Submitting...",
     "success": "Report submitted successfully. Thank you!"
+  },
+  "local": {
+    "sectionTitle": "डेवलपर",
+    "installFromDirectory": "लोकल फ़ोल्डर से इंस्टॉल करें",
+    "installing": "इंस्टॉल हो रहा है…",
+    "installSuccess": "एक्सटेंशन इंस्टॉल हुआ: {{id}}",
+    "installError": "इंस्टॉल विफल: {{error}}"
+  },
+  "runtime": {
+    "inputSubmit": "ठीक है",
+    "inputCancel": "रद्द करें",
+    "noActiveImage": "एडिटर में कोई इमेज खुली नहीं है",
+    "putImageFailed": "एक्सटेंशन की इमेज नहीं जोड़ी जा सकी",
+    "contributionIgnored": "{{id}}: {{reason}}",
+    "hostError": "एक्सटेंशन होस्ट शुरू नहीं हो सका: {{error}}",
+    "closePanel": "पैनल बंद करें"
+  },
+  "permissions": {
+    "title": "अनुमति अनुरोध",
+    "by": "{{publisher}} द्वारा",
+    "intro": "इस एक्सटेंशन को काम करने के लिए निम्न अनुमतियाँ चाहिए:",
+    "riskHigh": "उच्च जोखिम",
+    "riskMedium": "मध्यम जोखिम",
+    "riskLow": "कम जोखिम",
+    "cancel": "रद्द करें",
+    "allowSelected": "चयनित अनुमति दें ({{total}})"
+  },
+  "update": {
+    "available": "अपडेट उपलब्ध — इंस्टॉल किया गया v{{version}}",
+    "success": "एक्सटेंशन अपडेट हो गया",
+    "error": "अपडेट विफल: {{error}}"
+  },
+  "installed": {
+    "title": "इंस्टॉल किए गए एक्सटेंशन",
+    "runSuccess": "\"{{command}}\" चलाया गया",
+    "runError": "\"{{command}}\" चलाने में विफल: {{error}}",
+    "commands": "कमांड",
+    "tools": "टूल",
+    "noRunnable": "यह एक्सटेंशन कोई कमांड या टूल नहीं देता।"
   }
 }

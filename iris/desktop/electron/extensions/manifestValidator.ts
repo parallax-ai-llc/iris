@@ -110,6 +110,20 @@ export function validateManifest(data: unknown): ManifestValidationResult {
     }
   }
 
+  // Internal consistency: id must equal "<publisher>.<name>".
+  // Mirrors the server-side validator (core/server extension-manifest.ts) so a
+  // local/.iex install can't accept a manifest the marketplace would reject.
+  if (
+    typeof m.id === 'string' &&
+    typeof m.publisher === 'string' &&
+    typeof m.name === 'string' &&
+    m.id !== `${m.publisher}.${m.name}`
+  ) {
+    errors.push(
+      `"id" must equal "<publisher>.<name>". Got id="${m.id}" but publisher="${m.publisher}", name="${m.name}"`
+    );
+  }
+
   if (errors.length > 0) {
     return { valid: false, errors, warnings };
   }

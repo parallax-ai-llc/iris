@@ -13,6 +13,9 @@ import {
   InstalledExtension,
   ExtensionSubmitData,
   ExtensionUpdateData,
+  ExtensionBundleInfo,
+  ExtensionBundleUploadResult,
+  ExtensionBundleUploadResponse,
   ReportData,
 } from './extension.types';
 
@@ -111,6 +114,57 @@ export async function submitReview(
     { requireAuth: true }
   );
   return response.success ? response.data! : null;
+}
+
+// === Bundles (.iex) ===
+
+/** Server-side upload cap for .iex bundles (mirrors the 413 BUNDLE_TOO_LARGE limit). */
+export const MAX_EXTENSION_BUNDLE_BYTES = 50 * 1024 * 1024;
+
+/**
+ * Download info for an extension's .iex bundle — the desktop runtime consumes
+ * `bundleUrl` via extensions:installFromIex.
+ *
+ * The server gates this route: approved (`active`) extensions are public, while
+ * a pending/rejected one is visible only to its owner or an admin (404
+ * otherwise). Hence `optionalAuth` — the token is attached when the user is
+ * signed in, so an author can inspect their own submission, and the call still
+ * works anonymously for approved extensions.
+ */
+export async function getExtensionBundle(
+  id: string
+): Promise<ExtensionBundleInfo | null> {
+  const response = await apiClient.get<ExtensionBundleInfo>(
+    `/extensions/${id}/bundle`,
+    { optionalAuth: true }
+  );
+  return response.success ? response.data! : null;
+}
+
+/**
+ * Upload an .iex bundle for an extension the caller owns.
+ * multipart/form-data with file field `bundle`; the server re-validates the
+ * archive/manifest and moves the extension back to pending review.
+ */
+export async function uploadExtensionBundle(
+  id: string,
+  file: File,
+  onProgress?: (percent: number) => void
+): Promise<ExtensionBundleUploadResponse> {
+  const response = await apiClient.uploadFileWithProgress<ExtensionBundleUploadResult>(
+    `/extensions/my/${id}/bundle`,
+    file,
+    'bundle',
+    undefined,
+    { requireAuth: true },
+    onProgress
+  );
+  return {
+    success: response.success,
+    data: response.data,
+    error: response.error,
+    statusCode: response.statusCode,
+  };
 }
 
 // === User Submit ===

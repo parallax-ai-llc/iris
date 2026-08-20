@@ -24,6 +24,7 @@ import { SaveAsProjectModal } from '@/features/video-editor/components/modals/Sa
 import { reframeTimelineData } from '@/features/video-editor/lib/reframeTimeline';
 import { useToast } from '@/shared/components/ui/useToast';
 import { TitleBar } from '@/app/layout/TitleBar';
+import { FullScreenLayout } from '@/app/layout/FullScreenLayout';
 import { Upload, MessageSquare } from 'lucide-react';
 import { ConfirmDialog } from '@/shared/components/ui/Modal';
 import type { TimelineData, TimelineTrack, TimelineClip, ExportOptions } from '@/types/videoProject.types';
@@ -1027,53 +1028,56 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
   }, [handleNew, handleOpenProject, handleSave, handleSaveAs]);
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
-      <TitleBar
-        hideNav
-        rightContent={
-          <div className="flex items-center gap-2">
-            <button
-              onClick={toggleChatPanel}
-              className={`h-7 px-3 inline-flex items-center gap-1.5 rounded-full text-xs font-semibold transition-colors ${
-                !isChatCollapsed
-                  ? 'bg-zinc-700 text-white'
-                  : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-white'
-              }`}
-              title="AI Assistant"
-              aria-pressed={!isChatCollapsed}
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-              AI Assistant
-            </button>
-            <button
-              onClick={() => setShowExportModal(true)}
-              className="h-7 px-4 inline-flex items-center gap-1.5 rounded-full bg-white text-zinc-900 text-xs font-semibold hover:bg-zinc-200 transition-colors shadow-sm"
-              title={t('file.exportVideo', { ns: 'menus' })}
-            >
-              <Upload className="w-3.5 h-3.5" />
-              {t('file.exportVideo', { ns: 'menus' })}
-            </button>
-          </div>
-        }
-        leftContent={
-          <VideoEditorMenuBar
-            onNew={handleNew}
-            onOpenProject={handleOpenProject}
-            onClose={handleClose}
-            onSave={handleSave}
-            onSaveAs={handleSaveAs}
-            onGenerateAutoCaptions={() => setShowProjectAutoCaptions(true)}
-            onImportSubtitles={handleImportSubtitles}
-            onExportSubtitlesSrt={handleExportSubtitlesSrt}
-            onExportSubtitlesVtt={handleExportSubtitlesVtt}
-            onSilenceRemoval={() => setShowSilenceRemoval(true)}
-            hasAsset={!!asset?.id}
-            hasMediaClips={hasMediaClips}
-            hasSubtitleClips={hasSubtitleClips}
-            isSaving={false}
-          />
-        }
-      />
+    <FullScreenLayout
+      titleBar={
+        <TitleBar
+          hideNav
+          rightContent={
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleChatPanel}
+                className={`h-7 px-3 inline-flex items-center gap-1.5 rounded-full text-xs font-semibold transition-colors ${
+                  !isChatCollapsed
+                    ? 'bg-zinc-700 text-white'
+                    : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-white'
+                }`}
+                title="AI Assistant"
+                aria-pressed={!isChatCollapsed}
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                AI Assistant
+              </button>
+              <button
+                onClick={() => setShowExportModal(true)}
+                className="h-7 px-4 inline-flex items-center gap-1.5 rounded-full bg-white text-zinc-900 text-xs font-semibold hover:bg-zinc-200 transition-colors shadow-sm"
+                title={t('file.exportVideo', { ns: 'menus' })}
+              >
+                <Upload className="w-3.5 h-3.5" />
+                {t('file.exportVideo', { ns: 'menus' })}
+              </button>
+            </div>
+          }
+          leftContent={
+            <VideoEditorMenuBar
+              onNew={handleNew}
+              onOpenProject={handleOpenProject}
+              onClose={handleClose}
+              onSave={handleSave}
+              onSaveAs={handleSaveAs}
+              onGenerateAutoCaptions={() => setShowProjectAutoCaptions(true)}
+              onImportSubtitles={handleImportSubtitles}
+              onExportSubtitlesSrt={handleExportSubtitlesSrt}
+              onExportSubtitlesVtt={handleExportSubtitlesVtt}
+              onSilenceRemoval={() => setShowSilenceRemoval(true)}
+              hasAsset={!!asset?.id}
+              hasMediaClips={hasMediaClips}
+              hasSubtitleClips={hasSubtitleClips}
+              isSaving={false}
+            />
+          }
+        />
+      }
+    >
       {(isInitializing || !currentProject) ? (
         <div className="flex-1 flex flex-col items-center justify-center bg-zinc-900 gap-4">
           <div className="flex flex-col items-center gap-3">
@@ -1185,7 +1189,7 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
           onClick: handleUnsavedSave,
         }}
       />
-    </div>
+    </FullScreenLayout>
   );
 });
 

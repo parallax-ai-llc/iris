@@ -10,6 +10,7 @@ import {
   LayoutTemplate,
   Layers,
   HardDrive,
+  Puzzle,
   WifiOff,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -40,10 +41,13 @@ const navItems: NavItem[] = [
   // Workflows + Batch run on the local engine (BYOK) — no cloud connection needed.
   { id: 'workflows', labelKey: 'nav.workflows', icon: Workflow, path: '/workflows', kbd: '6' },
   { id: 'batch', labelKey: 'nav.batch', icon: Layers, path: '/batch', kbd: '7' },
+  // Extensions: marketplace needs the server, but the "install from local
+  // folder" developer loop lives here too — keep it visible when self-hosting.
+  { id: 'extensions', labelKey: 'nav.extensions', icon: Puzzle, path: '/extensions', requiresServer: true, kbd: '8' },
   // Library (community) + Storage (cloud GCS) require the Parallax cloud — not
   // meaningful when self-hosting.
-  { id: 'library', labelKey: 'nav.library', icon: FolderOpen, path: '/library', selfHostHidden: true, kbd: '8' },
-  { id: 'storage', labelKey: 'nav.storage', icon: HardDrive, path: '/storage', requiresServer: true, selfHostHidden: true, kbd: '9' },
+  { id: 'library', labelKey: 'nav.library', icon: FolderOpen, path: '/library', selfHostHidden: true, kbd: '9' },
+  { id: 'storage', labelKey: 'nav.storage', icon: HardDrive, path: '/storage', requiresServer: true, selfHostHidden: true, kbd: '0' },
 ].filter((item) => !(IS_SELF_HOST && item.selfHostHidden));
 
 export function Sidebar() {

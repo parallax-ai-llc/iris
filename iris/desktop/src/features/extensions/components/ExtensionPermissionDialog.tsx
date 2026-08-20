@@ -3,6 +3,7 @@
  */
 import { useState } from 'react';
 import { Shield, ShieldAlert, ShieldCheck, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const PERMISSION_RISK: Record<string, 'low' | 'medium' | 'high'> = {
   'commands:register': 'low',
@@ -48,6 +49,7 @@ export function ExtensionPermissionDialog({
   onApprove,
   onDeny,
 }: ExtensionPermissionDialogProps) {
+  const { t } = useTranslation('extensions');
   const [selectedPermissions, setSelectedPermissions] = useState<Set<string>>(
     new Set(requiredPermissions)
   );
@@ -82,7 +84,11 @@ export function ExtensionPermissionDialog({
       <div className="mb-3">
         <div className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium ${bgColor}`}>
           {icon}
-          {risk === 'high' ? 'High Risk' : risk === 'medium' ? 'Medium Risk' : 'Low Risk'}
+          {risk === 'high'
+            ? t('permissions.riskHigh')
+            : risk === 'medium'
+              ? t('permissions.riskMedium')
+              : t('permissions.riskLow')}
         </div>
         <div className="mt-2 space-y-1.5">
           {permissions.map((perm) => {
@@ -117,7 +123,7 @@ export function ExtensionPermissionDialog({
         <div className="flex items-center justify-between p-4 border-b border-zinc-800">
           <div className="flex items-center gap-3">
             <Shield className="w-5 h-5 text-blue-400" />
-            <h2 className="text-base font-semibold text-zinc-100">Permission Request</h2>
+            <h2 className="text-base font-semibold text-zinc-100">{t('permissions.title')}</h2>
           </div>
           <button
             onClick={onDeny}
@@ -131,10 +137,10 @@ export function ExtensionPermissionDialog({
         <div className="px-4 pt-4 pb-3">
           <p className="text-sm text-zinc-300">
             <span className="font-medium text-zinc-100">{extensionName}</span>
-            <span className="text-zinc-500"> by {publisher}</span>
+            <span className="text-zinc-500"> {t('permissions.by', { publisher })}</span>
           </p>
           <p className="text-xs text-zinc-500 mt-1">
-            This extension requires the following permissions to function:
+            {t('permissions.intro')}
           </p>
         </div>
 
@@ -166,14 +172,14 @@ export function ExtensionPermissionDialog({
             onClick={onDeny}
             className="flex-1 px-4 py-2 text-sm font-medium text-zinc-300 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
           >
-            Cancel
+            {t('permissions.cancel')}
           </button>
           <button
             onClick={handleApprove}
             disabled={selectedPermissions.size === 0}
             className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
           >
-            Allow Selected ({selectedPermissions.size})
+            {t('permissions.allowSelected', { total: selectedPermissions.size })}
           </button>
         </div>
       </div>

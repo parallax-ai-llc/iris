@@ -658,6 +658,38 @@
 .dt-page-wide { padding: 28px 32px 48px; }
 .dt-main-flush { padding: 0; height: 100%; }
 
+/* ── Extension panel dock (secondary right rail) ──
+   Extension panels must never cover app UI. `--ext-panel-width` is set on
+   <html> by ExtensionRuntimeHost while at least one panel is open, and every
+   surface underneath the dock reserves exactly that much room — so content
+   shrinks instead of being overlapped. Value is 0px whenever no panel is
+   open, making all of this inert.
+
+   Two inset carriers, one per shell:
+     .dt-shell-body  — the standard app shell (AppLayout).
+     .ext-dock-inset — the body of a full-screen surface rendered outside
+                       AppLayout (FullScreenLayout: image/video/workflow
+                       editors). Without it the dock covers the page.
+   Title bars are deliberately NOT inset in either shell: the window controls
+   stay pinned to the window's right edge. */
+.dt-shell-body,
+.ext-dock-inset { padding-right: var(--ext-panel-width, 0px); }
+
+.ext-panel-dock {
+  position: fixed;
+  top: 36px;              /* below the title bar — matches .dt-shell rows */
+  right: 0;
+  bottom: 0;
+  width: var(--ext-panel-width, 0px);
+  display: flex;
+  flex-direction: column;
+  z-index: 40;
+  /* No pointer-events: none escape hatch here. Panels are opaque and fill the
+     dock, so passing clicks through the gaps never worked; the rail simply
+     must not sit on top of app UI in the first place — that is what the
+     inset carriers above guarantee. */
+}
+
 /* Page header */
 .dt-page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 24px; flex-wrap: wrap; }
 .dt-page-eyebrow { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-4); margin-bottom: 6px; }

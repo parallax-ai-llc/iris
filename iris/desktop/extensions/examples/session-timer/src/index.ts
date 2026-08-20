@@ -19,11 +19,12 @@ export function activate(context: IrisExtensionContext) {
   let intervalId: ReturnType<typeof setInterval> | null = null;
   let pomodoroTarget = 0; // 0 = no pomodoro
 
-  const statusItem = iris.window.setStatusBarItem('Timer: 00:00', {
+  const STATUS_OPTIONS = {
     tooltip: 'Session Timer - Click Start/Pause (Ctrl+Shift+S)',
     priority: 20,
-  });
-  context.subscriptions.push(statusItem);
+  };
+  let statusItem = iris.window.setStatusBarItem('Timer: 00:00', STATUS_OPTIONS);
+  context.subscriptions.push({ dispose: () => statusItem.dispose() });
 
   function formatTime(seconds: number): string {
     const h = Math.floor(seconds / 3600);
@@ -39,7 +40,12 @@ export function activate(context: IrisExtensionContext) {
     const prefix = pomodoroTarget > 0 ? '🍅 ' : '';
     const suffix = pomodoroTarget > 0 ? ` / ${formatTime(pomodoroTarget)}` : '';
     const state = isRunning ? '▶' : '⏸';
-    statusItem.text = `${prefix}${state} ${formatTime(elapsed)}${suffix}`;
+    // Status bar items are immutable — replace the item to update its text.
+    statusItem.dispose();
+    statusItem = iris.window.setStatusBarItem(
+      `${prefix}${state} ${formatTime(elapsed)}${suffix}`,
+      STATUS_OPTIONS
+    );
   }
 
   function startTimer() {

@@ -1,0 +1,32 @@
+{
+  "id": "e2etest.e2e-probe",
+  "name": "e2e-probe",
+  "version": "__PROBE_SEMVER__",
+  "engineVersion": "^1.0.0",
+  "main": "./main.js",
+  "displayName": "E2E Probe",
+  "description": "E2E verification probe extension (iris/desktop e2e fixture)",
+  "publisher": "e2etest",
+  "activationEvents": ["onStartup"],
+  "contributes": {
+    "commands": [
+      {
+        "command": "e2etest.e2e-probe.hello",
+        "title": "E2E Probe: Hello"
+      },
+      {
+        "command": "e2etest.e2e-probe.fileInfo",
+        "title": "E2E Probe: Active File Info"
+      }
+    ],
+    "tools": [
+      {
+        "id": "e2etest.e2e-probe.probeTool",
+        "name": "E2E Probe Tool",
+        "category": "image",
+        "description": "E2E verification tool"
+      }
+    ]
+  },
+  "permissions": ["commands:register", "image:read", "ui:panel", "tools:register"]
+}

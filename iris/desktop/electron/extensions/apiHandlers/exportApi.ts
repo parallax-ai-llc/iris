@@ -4,6 +4,7 @@
  * Does NOT trigger actual export — only reads/modifies settings.
  */
 import { BrowserWindow } from 'electron';
+import { sendToWindow } from './sendToWindow';
 
 export function registerExportApi(
   manager: { registerApiHandler: (ns: string, method: string, handler: (extId: string, args: unknown[]) => Promise<unknown>) => void },
@@ -15,7 +16,12 @@ export function registerExportApi(
 
     return new Promise((resolve) => {
       const requestId = `exp_presets_${Date.now()}`;
-      win.webContents.send('extensions:getExportPresets', { requestId });
+      // Resolve immediately when the renderer is gone — no listener on a dead
+      // webContents, no waiting out the timeout below.
+      if (!sendToWindow(win, 'extensions:getExportPresets', { requestId })) {
+        resolve([]);
+        return;
+      }
 
       win.webContents.ipc.once(`extensions:exportPresetsResult:${requestId}`, (_event, data) => {
         resolve(data);
@@ -32,7 +38,10 @@ export function registerExportApi(
 
     return new Promise<void>((resolve) => {
       const requestId = `exp_apply_${Date.now()}`;
-      win.webContents.send('extensions:applyExportPreset', { requestId, presetId });
+      if (!sendToWindow(win, 'extensions:applyExportPreset', { requestId, presetId })) {
+        resolve();
+        return;
+      }
 
       win.webContents.ipc.once(`extensions:applyExportPresetResult:${requestId}`, () => {
         resolve();
@@ -48,7 +57,10 @@ export function registerExportApi(
 
     return new Promise((resolve) => {
       const requestId = `exp_settings_${Date.now()}`;
-      win.webContents.send('extensions:getExportSettings', { requestId });
+      if (!sendToWindow(win, 'extensions:getExportSettings', { requestId })) {
+        resolve(null);
+        return;
+      }
 
       win.webContents.ipc.once(`extensions:exportSettingsResult:${requestId}`, (_event, data) => {
         resolve(data);
@@ -65,7 +77,10 @@ export function registerExportApi(
 
     return new Promise<void>((resolve) => {
       const requestId = `exp_update_${Date.now()}`;
-      win.webContents.send('extensions:updateExportSettings', { requestId, settings });
+      if (!sendToWindow(win, 'extensions:updateExportSettings', { requestId, settings })) {
+        resolve();
+        return;
+      }
 
       win.webContents.ipc.once(`extensions:updateExportSettingsResult:${requestId}`, () => {
         resolve();

@@ -13,6 +13,7 @@ import { registerAiApi } from './aiApi';
 import { registerNetworkApi } from './networkApi';
 import { registerFilesApi } from './filesApi';
 import { registerExportApi } from './exportApi';
+import { registerClipboardApi } from './clipboardApi';
 
 export function registerAllApiHandlers(
   manager: ExtensionManager,
@@ -31,6 +32,7 @@ export function registerAllApiHandlers(
   registerNetworkApi(manager);
   registerFilesApi(manager);
   registerExportApi(manager, getMainWindow);
+  registerClipboardApi(manager);
 
   // Env API (read-only, no permission required)
   manager.registerApiHandler('iris.env', 'appVersion', async () => {

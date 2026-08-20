@@ -3,6 +3,7 @@
  * Communicates with the renderer to get/put image data.
  */
 import { BrowserWindow } from 'electron';
+import { sendToWindow } from './sendToWindow';
 
 export function registerImageApi(
   manager: { registerApiHandler: (ns: string, method: string, handler: (extId: string, args: unknown[]) => Promise<unknown>) => void },
@@ -14,7 +15,12 @@ export function registerImageApi(
 
     return new Promise((resolve) => {
       const requestId = `img_get_${Date.now()}`;
-      win.webContents.send('extensions:getActiveImage', { requestId });
+      // Bail out instead of registering a listener on a dead webContents —
+      // that would hang the extension until the timeout below.
+      if (!sendToWindow(win, 'extensions:getActiveImage', { requestId })) {
+        resolve(null);
+        return;
+      }
 
       win.webContents.ipc.once(`extensions:activeImageResult:${requestId}`, (_event, data) => {
         resolve(data);
@@ -29,7 +35,7 @@ export function registerImageApi(
     const win = getMainWindow();
     if (!win) return;
 
-    win.webContents.send('extensions:putImage', { imageData });
+    sendToWindow(win, 'extensions:putImage', { imageData });
   });
 
   manager.registerApiHandler('iris.image', 'getSelection', async () => {
@@ -38,7 +44,10 @@ export function registerImageApi(
 
     return new Promise((resolve) => {
       const requestId = `img_sel_${Date.now()}`;
-      win.webContents.send('extensions:getSelection', { requestId });
+      if (!sendToWindow(win, 'extensions:getSelection', { requestId })) {
+        resolve(null);
+        return;
+      }
 
       win.webContents.ipc.once(`extensions:selectionResult:${requestId}`, (_event, data) => {
         resolve(data);
@@ -54,7 +63,10 @@ export function registerImageApi(
 
     return new Promise((resolve) => {
       const requestId = `img_info_${Date.now()}`;
-      win.webContents.send('extensions:getActiveFileInfo', { requestId });
+      if (!sendToWindow(win, 'extensions:getActiveFileInfo', { requestId })) {
+        resolve(null);
+        return;
+      }
 
       win.webContents.ipc.once(`extensions:activeFileInfoResult:${requestId}`, (_event, data) => {
         resolve(data);

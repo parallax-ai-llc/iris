@@ -24,7 +24,9 @@
     "installing": "Installing...",
     "removing": "Removing...",
     "retry": "Retry",
-    "official": "Official"
+    "official": "Official",
+    "update": "Atualizar",
+    "updating": "Atualizando..."
   },
   "detail": {
     "overview": "Overview",
@@ -69,7 +71,15 @@
     "tagsPlaceholder": "tag1, tag2, tag3",
     "cancel": "Cancel",
     "submit": "Submit",
-    "submitting": "Submitting..."
+    "submitting": "Submitting...",
+    "bundle": "Pacote da extensão (.iex)",
+    "bundleHint": "Opcional — empacote sua extensão com `iris-ext package` e anexe o arquivo .iex (máx. 50MB). Pacotes enviados passam por revisão antes da publicação.",
+    "chooseBundle": "Escolher arquivo .iex",
+    "bundleSelected": "{{name}} ({{size}})",
+    "bundleInvalidType": "Apenas arquivos de pacote .iex podem ser enviados.",
+    "bundleTooLarge": "O pacote excede o limite de 50MB.",
+    "bundleUploading": "Enviando pacote...",
+    "bundleUploadError": "Falha ao enviar o pacote. Tente novamente."
   },
   "my": {
     "loading": "Loading your extensions...",
@@ -122,5 +132,44 @@
     "submit": "Submit Report",
     "submitting": "Submitting...",
     "success": "Report submitted successfully. Thank you!"
+  },
+  "local": {
+    "sectionTitle": "Desenvolvedor",
+    "installFromDirectory": "Instalar de pasta local",
+    "installing": "Instalando…",
+    "installSuccess": "Extensão instalada: {{id}}",
+    "installError": "Falha na instalação: {{error}}"
+  },
+  "runtime": {
+    "inputSubmit": "OK",
+    "inputCancel": "Cancelar",
+    "noActiveImage": "Nenhuma imagem aberta no editor",
+    "putImageFailed": "Não foi possível inserir a imagem da extensão",
+    "contributionIgnored": "{{id}}: {{reason}}",
+    "hostError": "Falha ao iniciar o host de extensões: {{error}}",
+    "closePanel": "Fechar painel"
+  },
+  "permissions": {
+    "title": "Solicitação de permissões",
+    "by": "por {{publisher}}",
+    "intro": "Esta extensão precisa das seguintes permissões para funcionar:",
+    "riskHigh": "Risco alto",
+    "riskMedium": "Risco médio",
+    "riskLow": "Risco baixo",
+    "cancel": "Cancelar",
+    "allowSelected": "Permitir selecionadas ({{total}})"
+  },
+  "update": {
+    "available": "Atualização disponível — instalada v{{version}}",
+    "success": "Extensão atualizada",
+    "error": "Falha na atualização: {{error}}"
+  },
+  "installed": {
+    "title": "Extensões instaladas",
+    "runSuccess": "\"{{command}}\" executado",
+    "runError": "Falha ao executar \"{{command}}\": {{error}}",
+    "commands": "Comandos",
+    "tools": "Ferramentas",
+    "noRunnable": "Esta extensão não fornece comandos nem ferramentas."
   }
 }

@@ -8,6 +8,9 @@ import {
   ExtensionReview,
   ExtensionSubmitData,
   ExtensionUpdateData,
+  ExtensionBundleInfo,
+  ExtensionBundleManifest,
+  InstalledExtension,
   ReportData,
 } from '@/shared/api/extension.types';
 import {
@@ -17,6 +20,8 @@ import {
   getInstalledExtensions,
   installExtension as installExtensionApi,
   uninstallExtension as uninstallExtensionApi,
+  getExtensionBundle,
+  uploadExtensionBundle,
   getExtensionReviews,
   submitReview as submitReviewApi,
   submitExtension as submitExtensionApi,
@@ -26,6 +31,43 @@ import {
   reportExtension as reportExtensionApi,
   reportReview as reportReviewApi,
 } from '@/shared/api/extension.api';
+import { isNewerVersion } from '@/features/extensions/lib/semver';
+import { toast } from '@/shared/lib/toast';
+import i18n from '@/shared/lib/i18n';
+import type { ExtensionRuntimeInfoData } from '@/types/electron';
+
+// ─── Local (Electron) runtime helpers ───
+
+type DesktopTrustTier = 'official' | 'verified' | 'community';
+
+const getDesktopExtensionsApi = () =>
+  typeof window !== 'undefined' ? window.electronAPI?.extensions : undefined;
+
+/**
+ * Map the server catalog's trust markers onto the runtime trust tier.
+ * The Extension model only carries `isOfficial` (no verified flag), so
+ * everything else installs as 'community' — deny-by-default.
+ */
+const trustTierFor = (
+  ext: Pick<Extension, 'isOfficial'> | undefined | null
+): DesktopTrustTier => (ext?.isOfficial ? 'official' : 'community');
+
+/** Runtime extension id (`publisher.name`) from server-stored manifest data. */
+const manifestIdOf = (
+  manifest: ExtensionBundleManifest | null | undefined
+): string | null => {
+  if (!manifest) return null;
+  if (typeof manifest.id === 'string' && manifest.id) return manifest.id;
+  if (
+    typeof manifest.publisher === 'string' &&
+    manifest.publisher &&
+    typeof manifest.name === 'string' &&
+    manifest.name
+  ) {
+    return `${manifest.publisher}.${manifest.name}`;
+  }
+  return null;
+};
 
 interface ExtensionState {
   // Browsing data
@@ -58,6 +100,14 @@ interface ExtensionState {
   // Installation state
   installationStatus: Map<string, InstallationStatus>;
 
+  // Local (Electron) install state, keyed by marketplace extension id
+  /** marketplace id → locally installed runtime id (`publisher.name`) */
+  localExtensionIds: Map<string, string>;
+  /** marketplace id → locally installed manifest version */
+  localVersions: Map<string, string>;
+  /** marketplace ids whose server currentVersion is newer than the local install */
+  updatableExtensionIds: Set<string>;
+
   // My extensions
   myExtensions: Extension[];
   isMyExtensionsLoading: boolean;
@@ -87,7 +137,10 @@ interface ExtensionActions {
 
   installExtension: (id: string) => Promise<void>;
   uninstallExtension: (id: string) => Promise<void>;
+  updateExtension: (id: string) => Promise<void>;
   getInstallStatus: (id: string) => InstallationStatus;
+  /** Reconcile server install records with the local Electron runtime. */
+  syncLocalInstallState: (installed: InstalledExtension[]) => Promise<void>;
 
   openDetail: (id: string) => Promise<void>;
   closeDetail: () => void;
@@ -101,7 +154,12 @@ interface ExtensionActions {
 
   // My extensions
   fetchMyExtensions: () => Promise<void>;
-  submitExtension: (data: ExtensionSubmitData) => Promise<boolean>;
+  submitExtension: (data: ExtensionSubmitData) => Promise<Extension | null>;
+  uploadBundle: (
+    extensionId: string,
+    file: File,
+    onProgress?: (percent: number) => void
+  ) => Promise<{ success: boolean; error?: string }>;
   updateMyExtension: (id: string, data: ExtensionUpdateData) => Promise<boolean>;
   deleteMyExtension: (id: string) => Promise<boolean>;
 
@@ -141,6 +199,9 @@ export const useExtensionStore = create<ExtensionState & ExtensionActions>((set,
   isDetailOpen: false,
   isDetailLoading: false,
   installationStatus: new Map(),
+  localExtensionIds: new Map(),
+  localVersions: new Map(),
+  updatableExtensionIds: new Set(),
   myExtensions: [],
   isMyExtensionsLoading: false,
   isSubmitModalOpen: false,
@@ -193,8 +254,60 @@ export const useExtensionStore = create<ExtensionState & ExtensionActions>((set,
       const items = await getInstalledExtensions();
       const ids = new Set(items.map((i) => i.extensionId));
       set({ installedExtensionIds: ids });
+      await get().syncLocalInstallState(items);
     } catch {
       // Silent fail
+    }
+  },
+
+  syncLocalInstallState: async (installed: InstalledExtension[]) => {
+    const api = getDesktopExtensionsApi();
+    if (!api || installed.length === 0) {
+      set({
+        localExtensionIds: new Map(),
+        localVersions: new Map(),
+        updatableExtensionIds: new Set(),
+      });
+      return;
+    }
+
+    try {
+      const localInfos = (await api.getInstalled()) as ExtensionRuntimeInfoData[];
+      const localById = new Map<string, ExtensionRuntimeInfoData>();
+      for (const info of localInfos) localById.set(info.id, info);
+
+      const localExtensionIds = new Map<string, string>();
+      const localVersions = new Map<string, string>();
+      const updatableExtensionIds = new Set<string>();
+
+      await Promise.all(
+        installed.map(async (item) => {
+          let bundle: ExtensionBundleInfo | null = null;
+          try {
+            bundle = await getExtensionBundle(item.extensionId);
+          } catch {
+            return; // network hiccup — skip this entry, keep the rest
+          }
+          const localId = manifestIdOf(bundle?.manifestData);
+          if (!localId) return;
+          const local = localById.get(localId);
+          if (!local) return; // recorded on the server but not installed on this machine
+
+          localExtensionIds.set(item.extensionId, localId);
+          const localVersion = local.manifest?.version;
+          if (typeof localVersion === 'string' && localVersion) {
+            localVersions.set(item.extensionId, localVersion);
+            const serverVersion = item.extension?.currentVersion;
+            if (serverVersion && isNewerVersion(serverVersion, localVersion)) {
+              updatableExtensionIds.add(item.extensionId);
+            }
+          }
+        })
+      );
+
+      set({ localExtensionIds, localVersions, updatableExtensionIds });
+    } catch {
+      // Silent fail — the marketplace still works from the server records alone
     }
   },
 
@@ -224,53 +337,132 @@ export const useExtensionStore = create<ExtensionState & ExtensionActions>((set,
   },
 
   installExtension: async (id: string) => {
-    const { installationStatus } = get();
-    const newStatus = new Map(installationStatus);
-    newStatus.set(id, 'installing');
-    set({ installationStatus: newStatus });
+    const setStatus = (status: InstallationStatus) => {
+      const statusMap = new Map(get().installationStatus);
+      statusMap.set(id, status);
+      set({ installationStatus: statusMap });
+    };
+    setStatus('installing');
 
     try {
-      const success = await installExtensionApi(id);
-      if (success) {
-        newStatus.set(id, 'installed');
-        const { installedExtensionIds } = get();
-        const newIds = new Set(installedExtensionIds);
-        newIds.add(id);
-        set({
-          installationStatus: new Map(newStatus),
-          installedExtensionIds: newIds,
-          extensions: get().extensions.map((ext) =>
-            ext.id === id
-              ? { ...ext, isInstalled: true, downloadCount: ext.downloadCount + 1 }
-              : ext
-          ),
-        });
-      } else {
-        newStatus.set(id, 'error');
-        set({ installationStatus: new Map(newStatus) });
+      // 1) Record the install on the server (download count, user library).
+      const recorded = await installExtensionApi(id);
+      if (!recorded) {
+        setStatus('error');
+        return;
       }
+
+      // 2) Download + install the .iex bundle into the local Electron runtime.
+      const api = getDesktopExtensionsApi();
+      if (api) {
+        const bundle = await getExtensionBundle(id);
+        if (bundle?.bundleUrl) {
+          const catalogEntry =
+            get().extensions.find((e) => e.id === id) ??
+            get().featuredExtensions.find((e) => e.id === id) ??
+            (get().selectedExtension?.id === id ? get().selectedExtension : null);
+          const result = await api.installFromIex(
+            bundle.bundleUrl,
+            trustTierFor(catalogEntry),
+            { upgrade: false }
+          );
+          if (!result.success) {
+            // Local install failed — roll back the server record so both
+            // sides stay consistent and the user can retry cleanly.
+            try {
+              await uninstallExtensionApi(id);
+            } catch {
+              // Rollback is best-effort; the retry path re-records the install.
+            }
+            setStatus('error');
+            toast.error(
+              i18n.t('extensions:local.installError', {
+                error: result.error ?? 'unknown',
+              })
+            );
+            return;
+          }
+
+          const localId = result.extensionId ?? manifestIdOf(bundle.manifestData);
+          const localExtensionIds = new Map(get().localExtensionIds);
+          if (localId) localExtensionIds.set(id, localId);
+          const localVersions = new Map(get().localVersions);
+          const bundleVersion = bundle.manifestData?.version;
+          if (typeof bundleVersion === 'string' && bundleVersion) {
+            localVersions.set(id, bundleVersion);
+          }
+          const updatableExtensionIds = new Set(get().updatableExtensionIds);
+          updatableExtensionIds.delete(id);
+          set({ localExtensionIds, localVersions, updatableExtensionIds });
+        }
+        // No bundleUrl: metadata-only listing (no runtime code uploaded yet).
+        // Keep the server install record — there is nothing to run locally.
+      }
+
+      setStatus('installed');
+      const newIds = new Set(get().installedExtensionIds);
+      newIds.add(id);
+      set({
+        installedExtensionIds: newIds,
+        extensions: get().extensions.map((ext) =>
+          ext.id === id
+            ? { ...ext, isInstalled: true, downloadCount: ext.downloadCount + 1 }
+            : ext
+        ),
+      });
     } catch {
-      newStatus.set(id, 'error');
-      set({ installationStatus: new Map(newStatus) });
+      setStatus('error');
     }
   },
 
   uninstallExtension: async (id: string) => {
-    const { installationStatus } = get();
-    const newStatus = new Map(installationStatus);
-    newStatus.set(id, 'uninstalling');
-    set({ installationStatus: newStatus });
+    const setStatus = (status: InstallationStatus) => {
+      const statusMap = new Map(get().installationStatus);
+      statusMap.set(id, status);
+      set({ installationStatus: statusMap });
+    };
+    setStatus('uninstalling');
 
     try {
+      // 1) Remove the local runtime install (best-effort id resolution — the
+      //    runtime is keyed by the manifest id, not the marketplace id).
+      const api = getDesktopExtensionsApi();
+      if (api) {
+        let localId = get().localExtensionIds.get(id) ?? null;
+        if (!localId) {
+          try {
+            const bundle = await getExtensionBundle(id);
+            localId = manifestIdOf(bundle?.manifestData);
+          } catch {
+            localId = null;
+          }
+        }
+        if (localId) {
+          try {
+            await api.uninstall(localId);
+          } catch {
+            // Not installed locally (or already removed) — server removal still applies.
+          }
+        }
+      }
+
+      // 2) Remove the server install record.
       const success = await uninstallExtensionApi(id);
       if (success) {
-        newStatus.set(id, 'not_installed');
-        const { installedExtensionIds } = get();
-        const newIds = new Set(installedExtensionIds);
+        setStatus('not_installed');
+        const newIds = new Set(get().installedExtensionIds);
         newIds.delete(id);
+        const localExtensionIds = new Map(get().localExtensionIds);
+        localExtensionIds.delete(id);
+        const localVersions = new Map(get().localVersions);
+        localVersions.delete(id);
+        const updatableExtensionIds = new Set(get().updatableExtensionIds);
+        updatableExtensionIds.delete(id);
         set({
-          installationStatus: new Map(newStatus),
           installedExtensionIds: newIds,
+          localExtensionIds,
+          localVersions,
+          updatableExtensionIds,
           extensions: get().extensions.map((ext) =>
             ext.id === id
               ? { ...ext, isInstalled: false, downloadCount: Math.max(0, ext.downloadCount - 1) }
@@ -278,12 +470,65 @@ export const useExtensionStore = create<ExtensionState & ExtensionActions>((set,
           ),
         });
       } else {
-        newStatus.set(id, 'error');
-        set({ installationStatus: new Map(newStatus) });
+        setStatus('error');
       }
     } catch {
-      newStatus.set(id, 'error');
-      set({ installationStatus: new Map(newStatus) });
+      setStatus('error');
+    }
+  },
+
+  updateExtension: async (id: string) => {
+    const api = getDesktopExtensionsApi();
+    if (!api) return;
+
+    const setStatus = (status: InstallationStatus) => {
+      const statusMap = new Map(get().installationStatus);
+      statusMap.set(id, status);
+      set({ installationStatus: statusMap });
+    };
+    setStatus('updating');
+
+    // A failed update leaves the previous version installed and running.
+    const failBackToInstalled = (error: string) => {
+      setStatus('installed');
+      toast.error(i18n.t('extensions:update.error', { error }));
+    };
+
+    try {
+      const bundle = await getExtensionBundle(id);
+      if (!bundle?.bundleUrl) {
+        failBackToInstalled('bundle unavailable');
+        return;
+      }
+      const catalogEntry =
+        get().extensions.find((e) => e.id === id) ??
+        get().featuredExtensions.find((e) => e.id === id) ??
+        (get().selectedExtension?.id === id ? get().selectedExtension : null);
+      const result = await api.installFromIex(
+        bundle.bundleUrl,
+        trustTierFor(catalogEntry),
+        { upgrade: true }
+      );
+      if (!result.success) {
+        failBackToInstalled(result.error ?? 'unknown');
+        return;
+      }
+
+      const localId = result.extensionId ?? manifestIdOf(bundle.manifestData);
+      const localExtensionIds = new Map(get().localExtensionIds);
+      if (localId) localExtensionIds.set(id, localId);
+      const localVersions = new Map(get().localVersions);
+      const bundleVersion = bundle.manifestData?.version;
+      if (typeof bundleVersion === 'string' && bundleVersion) {
+        localVersions.set(id, bundleVersion);
+      }
+      const updatableExtensionIds = new Set(get().updatableExtensionIds);
+      updatableExtensionIds.delete(id);
+      set({ localExtensionIds, localVersions, updatableExtensionIds });
+      setStatus('installed');
+      toast.success(i18n.t('extensions:update.success'));
+    } catch {
+      failBackToInstalled('unknown');
     }
   },
 
@@ -359,12 +604,29 @@ export const useExtensionStore = create<ExtensionState & ExtensionActions>((set,
       if (result) {
         get().fetchMyExtensions();
         get().fetchExtensions();
-        return true;
+        return result;
       }
-      return false;
+      return null;
     } catch {
       set({ error: 'Failed to submit extension' });
-      return false;
+      return null;
+    }
+  },
+
+  uploadBundle: async (extensionId, file, onProgress) => {
+    try {
+      const result = await uploadExtensionBundle(extensionId, file, onProgress);
+      if (result.success) {
+        // Version/status changed server-side (back to pending review).
+        get().fetchMyExtensions();
+        return { success: true };
+      }
+      return { success: false, error: result.error };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Upload failed',
+      };
     }
   },
 

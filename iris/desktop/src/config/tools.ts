@@ -286,25 +286,3 @@ export const IMAGE_PRESET_TOOLS: IrisTool[] = [
 export const ALL_IMAGE_TOOLS: IrisTool[] = [...IMAGE_AI_TOOLS, ...IMAGE_PRESET_TOOLS];
 export const ALL_VIDEO_TOOLS: IrisTool[] = VIDEO_TOOLS;
 export const ALL_TOOLS: IrisTool[] = [...VIDEO_TOOLS, ...ALL_IMAGE_TOOLS];
-
-/**
- * Merge extension-registered tools with built-in tools.
- * Extension tools appear after built-in tools in the same category.
- */
-export function mergeExtensionTools(
-  builtInTools: IrisTool[],
-  extensionTools: { id: string; name: string; category: string; icon?: string; description?: string }[]
-): IrisTool[] {
-  const extAsIrisTools: IrisTool[] = extensionTools.map((et) => ({
-    id: et.id,
-    title: et.name,
-    description: et.description || '',
-    thumbnailUrl: '',
-    category: (et.category === 'video' ? 'video' : 'image') as 'video' | 'image',
-    badge: undefined,
-    mode: et.id,
-    toolType: 'ai' as const,
-  }));
-
-  return [...builtInTools, ...extAsIrisTools];
-}
