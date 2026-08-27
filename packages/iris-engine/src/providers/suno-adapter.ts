@@ -87,6 +87,17 @@ interface SunoStatusResponse {
 // ADAPTER
 // ============================================================
 
+/**
+ * sunoapi.org bills a flat 12 credits per /generate request at $0.005/credit
+ * ($0.06), regardless of model version, and every request returns exactly
+ * 2 tracks — so the per-track cost is $0.03. Verified 2026-08-27 against
+ * sunoapi.org's credit packages ($5 / 1,000 credits) and kie.ai's Generate
+ * Music endpoint ("12 credits per request (≈ $0.06)"). The previous
+ * per-version values (0.1 / 0.12 / 0.15 / 0.2) were guesses and overstated
+ * spend by 3-6x; neither vendor prices versions differently.
+ */
+const SUNO_COST_PER_TRACK = 0.03;
+
 export class SunoAdapter extends BaseProviderAdapter {
   readonly name: ProviderName = 'suno';
   protected baseUrl = 'https://api.sunoapi.org/api/v1';
@@ -108,7 +119,7 @@ export class SunoAdapter extends BaseProviderAdapter {
       pricing: {
         unit: 'request',
         inputCost: 0,
-        outputCost: 0.1, // estimated per track
+        outputCost: SUNO_COST_PER_TRACK,
         currency: 'USD',
       },
       defaultParameters: {
@@ -130,7 +141,7 @@ export class SunoAdapter extends BaseProviderAdapter {
       pricing: {
         unit: 'request',
         inputCost: 0,
-        outputCost: 0.12,
+        outputCost: SUNO_COST_PER_TRACK,
         currency: 'USD',
       },
       defaultParameters: {
@@ -152,7 +163,7 @@ export class SunoAdapter extends BaseProviderAdapter {
       pricing: {
         unit: 'request',
         inputCost: 0,
-        outputCost: 0.15,
+        outputCost: SUNO_COST_PER_TRACK,
         currency: 'USD',
       },
       defaultParameters: {
@@ -174,7 +185,7 @@ export class SunoAdapter extends BaseProviderAdapter {
       pricing: {
         unit: 'request',
         inputCost: 0,
-        outputCost: 0.15,
+        outputCost: SUNO_COST_PER_TRACK,
         currency: 'USD',
       },
       defaultParameters: {
@@ -196,7 +207,7 @@ export class SunoAdapter extends BaseProviderAdapter {
       pricing: {
         unit: 'request',
         inputCost: 0,
-        outputCost: 0.2,
+        outputCost: SUNO_COST_PER_TRACK,
         currency: 'USD',
       },
       defaultParameters: {
@@ -434,7 +445,7 @@ export class SunoAdapter extends BaseProviderAdapter {
 
     // Calculate cost (per track)
     const modelInfo = this.getModelInfo(request.model);
-    const costPerTrack = modelInfo?.pricing?.outputCost ?? 0.1;
+    const costPerTrack = modelInfo?.pricing?.outputCost ?? SUNO_COST_PER_TRACK;
     const totalCost = costPerTrack * outputs.length;
 
     return ResponseBuilder.success()

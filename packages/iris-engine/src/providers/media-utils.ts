@@ -313,6 +313,8 @@ export function mapAspectRatio(
   aspectRatio: string | undefined,
   format: 'standard' | 'sora' | 'ideogram' | 'runway' = 'standard'
 ): string {
+  // @deprecated The `'sora'` format is retired on 2026-09-24 when OpenAI
+  // shuts down the Sora Videos API — drop those branches then.
   if (!aspectRatio) {
     return format === 'sora' ? 'landscape' : '16:9';
   }

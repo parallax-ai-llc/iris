@@ -55,6 +55,9 @@ export const REPLICATE_MODELS: ModelInfo[] = [
     },
   },
   // Video models via Replicate
+  // @deprecated `openai/sora-2` proxies OpenAI's Videos API, which OpenAI
+  // shuts down on 2026-09-24 — Replicate carries the same notice. Delete this
+  // entry (and the `sora` branches in replicate-utils.ts) after that date.
   {
     id: 'openai/sora-2',
     name: 'Sora 2 (via Replicate)',
@@ -76,6 +79,11 @@ export const REPLICATE_MODELS: ModelInfo[] = [
     defaultParameters: {
       duration: 5,
       aspectRatio: '16:9',
+    },
+    deprecated: {
+      sunsetAt: '2026-09-24T00:00:00.000Z',
+      reason:
+        'Replicate proxies OpenAI Sora 2, which OpenAI shuts down on 2026-09-24',
     },
   },
   {

@@ -377,7 +377,11 @@ export class ReplicateAdapter extends BaseProviderAdapter {
     startTime: number
   ): Promise<AIResponse> {
     const { prompt = '', parameters = {} } = request;
-    const model = request.model || 'openai/sora-2';
+    // Default moved off 'openai/sora-2': OpenAI shuts the Sora Videos API
+    // (which Replicate proxies) down on 2026-09-24, so an unspecified model
+    // would start failing. Kling 2.6 is the current Replicate text-to-video
+    // flagship and also covers image-to-video.
+    const model = request.model || 'kling-2.6';
 
     // Validate prompt
     const validationError = InputValidator.requirePrompt(

@@ -413,6 +413,17 @@ export interface ModelInfo {
 
   defaultParameters?: GenerationParameters;
   isPreview?: boolean;
+
+  /**
+   * Set when the provider has announced the model's retirement. The entry
+   * stays listed (and callable) until `sunsetAt` so existing integrations keep
+   * working through the notice period; delete it once the date passes.
+   */
+  deprecated?: {
+    /** ISO-8601 instant after which the provider stops serving the model. */
+    sunsetAt: string;
+    reason: string;
+  };
 }
 
 /** Provider credentials */

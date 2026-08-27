@@ -1,7 +1,17 @@
 /**
  * Parallax Iris - OpenAI Provider Adapter
- * Supports: text-to-text, text-to-image, text-to-video (Sora), speech-to-text, text-to-speech, image-analysis
+ * Supports: text-to-text, text-to-image, text-to-video (Sora — deprecated,
+ * retired 2026-09-24), speech-to-text, text-to-speech, image-analysis
  */
+
+/**
+ * OpenAI discontinues the Sora Videos API (`sora-2`, `sora-2-pro`) on
+ * 2026-09-24 — announced 2026-03-24, with the consumer app closed 2026-04-26.
+ * There is no replacement OpenAI video model, so `text-to-video` leaves this
+ * adapter entirely on that date.
+ * @see https://help.openai.com/en/articles/20001152-what-to-know-about-the-sora-discontinuation
+ */
+const SORA_SUNSET_AT = new Date('2026-09-24T00:00:00.000Z');
 
 import { BaseProviderAdapter } from './base-adapter.js';
 import {
@@ -241,6 +251,12 @@ export class OpenAIAdapter extends BaseProviderAdapter {
       },
       defaultParameters: { voice: 'alloy', speed: 1.0 },
     },
+    // @deprecated Both Sora entries retire on 2026-09-24, when OpenAI shuts
+    // down the Videos API. OpenAI has no replacement video model, so
+    // `text-to-video` disappears from this adapter entirely — delete the two
+    // entries, handleVideoGeneration() and pollVideoCompletion() after that
+    // date, and drop 'text-to-video' from the adapter's capabilities.
+    // https://help.openai.com/en/articles/20001152-what-to-know-about-the-sora-discontinuation
     {
       id: 'sora-2',
       name: 'Sora 2',
@@ -258,6 +274,10 @@ export class OpenAIAdapter extends BaseProviderAdapter {
         inputCost: 0,
         outputCost: 0.5,
         currency: 'USD',
+      },
+      deprecated: {
+        sunsetAt: '2026-09-24T00:00:00.000Z',
+        reason: 'OpenAI shuts down the Sora Videos API on 2026-09-24',
       },
     },
     {
@@ -277,6 +297,10 @@ export class OpenAIAdapter extends BaseProviderAdapter {
         inputCost: 0,
         outputCost: 1.0,
         currency: 'USD',
+      },
+      deprecated: {
+        sunsetAt: '2026-09-24T00:00:00.000Z',
+        reason: 'OpenAI shuts down the Sora Videos API on 2026-09-24',
       },
     },
   ];
@@ -863,11 +887,29 @@ export class OpenAIAdapter extends BaseProviderAdapter {
       .build();
   }
 
+  /**
+   * @deprecated OpenAI shuts the Sora Videos API down on
+   * {@link SORA_SUNSET_AT}; this method (and `pollVideoCompletion`) goes with
+   * it, since OpenAI has no replacement video model.
+   */
   private async handleVideoGeneration(
     request: AIRequest,
     startTime: number
   ): Promise<AIResponse> {
     const model = request.model || 'sora-2';
+
+    // Deprecated path — fail with a message that names the shutdown instead
+    // of relaying OpenAI's bare 404 once the API is gone.
+    if (Date.now() >= SORA_SUNSET_AT.getTime()) {
+      return ResponseBuilder.error(
+        'MODEL_RETIRED',
+        `${model} is no longer available: OpenAI shut down the Sora Videos API on 2026-09-24. OpenAI has no replacement video model — use another provider (e.g. Google Veo, Kling, Luma).`
+      )
+        .retryable(false)
+        .metadata(this.name, model, startTime)
+        .build();
+    }
+
     const seconds = (request.parameters?.duration as number) ?? 4;
 
     // Determine size based on aspect ratio (Sora uses WxH format)

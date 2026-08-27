@@ -36,6 +36,8 @@ export function mapAspectRatio(
   aspectRatio: string | undefined,
   model: string
 ): string {
+  // @deprecated The `'sora'` format is retired on 2026-09-24 together with
+  // Replicate's openai/sora-2 — drop those branches then.
   if (!aspectRatio) return model === 'sora' ? 'landscape' : '16:9';
 
   if (model === 'sora') {
@@ -64,6 +66,7 @@ export function buildVideoInput(
 ): Record<string, unknown> {
   const input: Record<string, unknown> = { prompt };
 
+  // @deprecated `sora` branch — remove after the 2026-09-24 Sora shutdown.
   if (model.includes('sora')) {
     const requestedDuration = (parameters.duration as number) || 5;
     if (requestedDuration <= 4) {
