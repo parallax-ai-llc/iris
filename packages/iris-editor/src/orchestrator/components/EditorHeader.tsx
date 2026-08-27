@@ -10,6 +10,7 @@ import {
   Play,
   Save,
   Workflow,
+  MessageSquare,
 } from 'lucide-react';
 import { cn } from '@editor/lib/convert/string';
 import { useI18n } from '@editor/hooks/usei18n';
@@ -241,6 +242,7 @@ export function EditorHeader({
       {/* Mobile Actions */}
       <div className="flex md:hidden items-center" style={{ gap: 4 }}>
         <button onClick={onOpenChat} className={iconBtnClass} title={t('iris.editor.aiAssistant')}>
+          <MessageSquare size={16} />
         </button>
         <button
           onClick={onSave}

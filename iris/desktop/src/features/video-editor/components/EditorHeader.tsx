@@ -188,6 +188,7 @@ export const EditorHeader = memo(function EditorHeader({
             )}
             title={isServerDisabled ? t('header.serverRequired') : t('header.autocut')}
           >
+            <Scissors className="w-4 h-4" />
           </button>
         )}
 
