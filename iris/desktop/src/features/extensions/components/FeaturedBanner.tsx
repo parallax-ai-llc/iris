@@ -1,5 +1,5 @@
 import { memo, useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/shared/lib/utils';
 import { Extension } from '@/shared/api/extension.types';
@@ -71,7 +71,6 @@ export const FeaturedBanner = memo(function FeaturedBanner({
                 {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                     <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">
                       {t('featured')}
                     </span>

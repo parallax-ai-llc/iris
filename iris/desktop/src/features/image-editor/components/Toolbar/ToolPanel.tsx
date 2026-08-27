@@ -24,7 +24,6 @@ import {
   ZoomIn,
   Wand2,
   Bandage,
-  Sparkles,
   Lasso,
   Pentagon,
   Brush,
@@ -113,7 +112,7 @@ const TOOL_GROUPS: ToolGroup[] = [
     groupId: 'healing',
     shortcut: 'J',
     items: [
-      { id: 'spot-healing', label: 'Spot Healing', icon: <Sparkles className={ICON_SIZE} />, action: { type: 'drawTool', tool: 'spot-healing' } },
+      { id: 'spot-healing', label: 'Spot Healing', icon: <Bandage className={ICON_SIZE} />, action: { type: 'drawTool', tool: 'spot-healing' } },
       { id: 'healing', label: 'Healing Brush', icon: <Bandage className={ICON_SIZE} />, action: { type: 'drawTool', tool: 'healing' } },
       { id: 'red-eye-removal', label: 'Red Eye Removal', icon: <EyeOff className={ICON_SIZE} />, action: { type: 'drawTool', tool: 'red-eye-removal' } },
     ],

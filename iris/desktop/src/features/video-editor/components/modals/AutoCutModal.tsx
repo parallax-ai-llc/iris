@@ -10,7 +10,6 @@ import { memo, useState, useCallback } from 'react';
 import {
   X,
   Scissors,
-  Sparkles,
   Loader2,
   CheckCircle2,
   XCircle,
@@ -496,7 +495,6 @@ export const AutoCutModal = memo(function AutoCutModal({
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-4 h-4" />
                   Analyze Video
                 </>
               )}

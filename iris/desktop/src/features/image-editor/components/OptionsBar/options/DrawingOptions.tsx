@@ -3,7 +3,7 @@
  */
 
 import { memo, useCallback } from 'react';
-import { PenTool, Pencil, Eraser, Droplet, PaintBucket, Copy, Sun, Moon, Droplets, Wind, ZoomIn, Wand2, Bandage, Sparkles, Eye, Hash, ArrowLeftRight, Grid3X3, RotateCcw, Palette, Trash2, EyeOff, ArrowRight, Circle, Diamond, RotateCw } from 'lucide-react';
+import { PenTool, Pencil, Eraser, Droplet, PaintBucket, Copy, Sun, Moon, Droplets, Wind, ZoomIn, Wand2, Bandage, Eye, Hash, ArrowLeftRight, Grid3X3, RotateCcw, Palette, Trash2, EyeOff, ArrowRight, Circle, Diamond, RotateCw } from 'lucide-react';
 import { useImageEditorStore, type DrawTool, type GradientType } from '@/features/image-editor/stores/imageEditor.store';
 import { PillButtonGroup, CompactSlider, BarSeparator } from '../shared';
 
@@ -31,7 +31,7 @@ const LOCAL_ADJUST_OPTIONS = [
 ];
 
 const HEAL_TOOL_OPTIONS = [
-  { id: 'spot-healing', label: 'Spot Heal', icon: <Sparkles className="w-3 h-3" /> },
+  { id: 'spot-healing', label: 'Spot Heal', icon: <Bandage className="w-3 h-3" /> },
   { id: 'healing', label: 'Healing', icon: <Bandage className="w-3 h-3" /> },
   { id: 'red-eye-removal', label: 'Red Eye', icon: <EyeOff className="w-3 h-3" /> },
 ];

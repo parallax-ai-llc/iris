@@ -9,12 +9,12 @@ import {
   Crop,
   SunMedium,
   Palette,
-  Sparkles,
   Eraser,
   Wand2,
   Smile,
   Droplets,
   Info,
+  ArrowUpCircle,
 } from 'lucide-react';
 
 const QUICK_ACTIONS = [
@@ -24,7 +24,7 @@ const QUICK_ACTIONS = [
 ];
 
 const AI_ACTIONS = [
-  { id: 'upscale', label: 'Upscale', icon: <Sparkles className="w-5 h-5" />, mode: 'upscale' as const },
+  { id: 'upscale', label: 'Upscale', icon: <ArrowUpCircle className="w-5 h-5" />, mode: 'upscale' as const },
   { id: 'bgRemove', label: 'Remove BG', icon: <Eraser className="w-5 h-5" />, mode: 'bgRemove' as const },
   { id: 'inpaint', label: 'Inpaint', icon: <Wand2 className="w-5 h-5" />, mode: 'inpaint' as const },
   { id: 'faceRestore', label: 'Face Restore', icon: <Smile className="w-5 h-5" />, mode: 'faceRestore' as const },

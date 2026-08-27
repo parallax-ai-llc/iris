@@ -4,11 +4,11 @@
  */
 
 import { memo } from 'react';
-import { Sparkles, Eraser, Wand2, ImagePlus, Smile, Droplets } from 'lucide-react';
+import { Eraser, Wand2, ImagePlus, Smile, Droplets, ArrowUpCircle } from 'lucide-react';
 import { useImageEditorStore } from '@/features/image-editor/stores/imageEditor.store';
 
 const AI_MODE_INFO: Record<string, { label: string; icon: React.ReactNode; hint: string }> = {
-  upscale: { label: 'AI Upscale', icon: <Sparkles className="w-3.5 h-3.5" />, hint: 'Configure upscale settings in the floating panel' },
+  upscale: { label: 'AI Upscale', icon: <ArrowUpCircle className="w-3.5 h-3.5" />, hint: 'Configure upscale settings in the floating panel' },
   bgRemove: { label: 'Remove Background', icon: <Eraser className="w-3.5 h-3.5" />, hint: 'Configure settings in the floating panel' },
   inpaint: { label: 'AI Inpaint', icon: <Wand2 className="w-3.5 h-3.5" />, hint: 'Draw a mask on canvas, configure in floating panel' },
   outpaint: { label: 'AI Outpaint', icon: <ImagePlus className="w-3.5 h-3.5" />, hint: 'Configure expansion settings in the floating panel' },

@@ -8,7 +8,6 @@ import {
   X,
   Upload,
   Loader2,
-  Sparkles,
   FolderOpen,
   Coins,
   AlertCircle,
@@ -201,7 +200,6 @@ export const PresetCreatorModal = memo(function PresetCreatorModal({
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
             <div className="flex items-center gap-3">
-              <Sparkles className="w-5 h-5 text-white/60" />
               <div>
                 <h2 className="text-lg font-semibold text-white">{template.title}</h2>
                 <p className="text-xs text-zinc-400">{template.description}</p>
@@ -375,7 +373,6 @@ export const PresetCreatorModal = memo(function PresetCreatorModal({
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-5 h-5" />
                   Generate {template.title}
                 </>
               )}

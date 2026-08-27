@@ -5,7 +5,7 @@
 import { memo, useCallback, useState, useRef, useEffect } from 'react';
 import { cn } from '@/shared/lib/utils';
 import { useImageEditorStore } from '@/features/image-editor/stores/imageEditor.store';
-import { Sparkles, Info } from 'lucide-react';
+import { Info } from 'lucide-react';
 import { upscaleImage, getAssetStatus } from '@/shared/api/image.api';
 import { toast } from '@/shared/lib/toast';
 import { useTokenCost, formatTokenCost } from '@/shared/hooks/useTokenCost';
@@ -263,7 +263,6 @@ export const UpscalePanel = memo(function UpscalePanel() {
           'disabled:opacity-50 disabled:cursor-not-allowed'
         )}
       >
-        <Sparkles className="w-4 h-4" />
         {isProcessing ? 'Processing...' : `Upscale ${upscaleSettings.scale}×`}
       </button>
     </div>

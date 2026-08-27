@@ -9,7 +9,6 @@ import {
   Menu,
   Play,
   Save,
-  Sparkles,
   Workflow,
 } from 'lucide-react';
 import { cn } from '@editor/lib/convert/string';
@@ -143,7 +142,6 @@ export function EditorHeader({
       {/* Desktop Actions */}
       <div className="hidden md:flex items-center" style={{ gap: 8 }}>
         <button onClick={onOpenChat} className={chipClass} type="button">
-          <Sparkles size={14} />
           <span>{t('iris.editor.aiAssistant')}</span>
         </button>
 
@@ -243,7 +241,6 @@ export function EditorHeader({
       {/* Mobile Actions */}
       <div className="flex md:hidden items-center" style={{ gap: 4 }}>
         <button onClick={onOpenChat} className={iconBtnClass} title={t('iris.editor.aiAssistant')}>
-          <Sparkles size={16} />
         </button>
         <button
           onClick={onSave}

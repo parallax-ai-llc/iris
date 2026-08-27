@@ -8,7 +8,6 @@ import {
   Plus,
   Upload,
   Download,
-  Sparkles,
   Languages,
   ChevronDown,
   Loader2,
@@ -265,11 +264,7 @@ export const SubtitleControls = memo(function SubtitleControls({
           disabled={isGenerating}
           title="Generate subtitles using AI (Whisper)"
         >
-          {isGenerating ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Sparkles className="w-4 h-4" />
-          )}
+          {isGenerating && <Loader2 className="w-4 h-4 animate-spin" />}
           {isGenerating ? 'Generating...' : 'AI Generate'}
         </button>
       </div>

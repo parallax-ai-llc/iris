@@ -11,7 +11,7 @@
 
 import { memo, useState, useCallback, useMemo } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { Sparkles, Search, X, ChevronRight, ChevronDown } from 'lucide-react';
+import { Search, X, ChevronRight, ChevronDown, Palette } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import type { VideoEffectDefinition } from '../effects/types';
 import { EFFECT_CATEGORY_DEFINITIONS } from '../effects/registry';
@@ -38,10 +38,10 @@ const EFFECT_CATEGORIES: Record<string, { name: string; icon: LucideIcon; effect
       c.key,
       {
         name: c.name,
-        icon: CATEGORY_ICONS[c.key] ?? Sparkles,
+        icon: CATEGORY_ICONS[c.key] ?? Palette,
         effects: c.effects.map((e) => ({
           ...e,
-          icon: EFFECT_ICONS[e.id] ?? CATEGORY_ICONS[c.key] ?? Sparkles,
+          icon: EFFECT_ICONS[e.id] ?? CATEGORY_ICONS[c.key] ?? Palette,
         })),
       },
     ])
@@ -103,7 +103,7 @@ const CategorySection = memo(function CategorySection({
   onEffectDragStart,
   onEffectApply,
 }: {
-  category: { name: string; icon: typeof Sparkles };
+  category: { name: string; icon: typeof Palette };
   effects: EffectDefinition[];
   isExpanded: boolean;
   onToggle: () => void;
@@ -173,11 +173,11 @@ export const EffectsPanel = memo(function EffectsPanel({
   // Filter effects by search
   const filteredCategories = useMemo(() => {
     if (!searchQuery.trim()) {
-      return EFFECT_CATEGORIES as Record<string, { name: string; icon: typeof Sparkles; effects: EffectDefinition[] }>;
+      return EFFECT_CATEGORIES as Record<string, { name: string; icon: typeof Palette; effects: EffectDefinition[] }>;
     }
 
     const query = searchQuery.toLowerCase();
-    const result: Record<string, { name: string; icon: typeof Sparkles; effects: EffectDefinition[] }> = {};
+    const result: Record<string, { name: string; icon: typeof Palette; effects: EffectDefinition[] }> = {};
 
     for (const [key, category] of Object.entries(EFFECT_CATEGORIES)) {
       const filteredEffects = category.effects.filter(
@@ -204,7 +204,6 @@ export const EffectsPanel = memo(function EffectsPanel({
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-zinc-400" />
           <h3 className="text-sm font-medium text-white">Effects</h3>
         </div>
       </div>
@@ -235,7 +234,6 @@ export const EffectsPanel = memo(function EffectsPanel({
       <div className="flex-1 overflow-auto">
         {!hasResults ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-4">
-            <Sparkles className="w-12 h-12 text-zinc-600 mb-3" />
             <p className="text-sm text-zinc-400 mb-1">No effects found</p>
             <p className="text-xs text-zinc-500">Try a different search term</p>
           </div>

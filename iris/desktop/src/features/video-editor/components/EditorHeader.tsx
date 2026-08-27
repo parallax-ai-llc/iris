@@ -16,7 +16,6 @@ import {
   Paintbrush,
   Scissors,
   Captions,
-  Sparkles,
   Crop,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -189,7 +188,6 @@ export const EditorHeader = memo(function EditorHeader({
             )}
             title={isServerDisabled ? t('header.serverRequired') : t('header.autocut')}
           >
-            <Sparkles className="w-4 h-4" />
           </button>
         )}
 

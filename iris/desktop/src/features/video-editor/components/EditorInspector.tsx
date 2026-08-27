@@ -24,7 +24,6 @@ import {
   Gauge,
   Eye,
   EyeOff,
-  Sparkles,
   Clapperboard,
   Bold,
   Italic,
@@ -1566,7 +1565,7 @@ const AdjustmentProperties = memo(function AdjustmentProperties({
       </div>
 
       {/* Applied effects list */}
-      <SectionHeader icon={Sparkles} title="Effects" />
+      <SectionHeader icon={Palette} title="Effects" />
       <div className="p-3 space-y-2 border-b border-zinc-700">
         {(clip.effects?.length ?? 0) === 0 ? (
           <p className="text-[11px] text-zinc-500 py-2 text-center">No effects — add one below</p>
@@ -1611,7 +1610,7 @@ const AdjustmentProperties = memo(function AdjustmentProperties({
       </div>
 
       {/* Add effect presets */}
-      <SectionHeader icon={Sparkles} title="Add Effect" />
+      <SectionHeader icon={Palette} title="Add Effect" />
       <div className="p-3 border-b border-zinc-700">
         <div className="grid grid-cols-2 gap-1">
           {ADJUSTMENT_FILTER_PRESETS.map((preset) => (
@@ -1815,7 +1814,6 @@ export const EditorInspector = memo(function EditorInspector({
               if (!effects || effects.length === 0) {
                 return (
                   <div className="py-6 text-center">
-                    <Sparkles className="w-8 h-8 text-zinc-600 mx-auto mb-2" />
                     <p className="text-xs text-zinc-500">No effects applied</p>
                     <p className="text-[10px] text-zinc-600 mt-1">Double-click an effect in the left panel to add</p>
                   </div>

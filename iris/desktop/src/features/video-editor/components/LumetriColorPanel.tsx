@@ -21,8 +21,8 @@ import {
   Layers,
   X,
   Wand2,
-  Sparkles,
   BarChart3,
+  Brush,
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import {
@@ -1104,7 +1104,7 @@ export const LumetriColorPanel = memo(function LumetriColorPanel({
       />
 
       {/* Creative */}
-      <Section title="Creative" icon={Sparkles}>
+      <Section title="Creative" icon={Brush}>
         <div className="space-y-1.5">
           <ColorSlider
             label="Faded Film"
