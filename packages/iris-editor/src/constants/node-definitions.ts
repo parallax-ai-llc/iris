@@ -78,6 +78,7 @@ import {
   FileSpreadsheet,
   CodeXml,
   Rss,
+  MessagesSquare,
   type LucideIcon,
 } from 'lucide-react';
 import {
@@ -119,8 +120,8 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Search, BookOpen, TextSearch, Tags, Youtube,
   // Phase 3 — new triggers / media-edit / outputs
   MessageCircle, ClipboardList, Inbox, AudioLines, Speech, MessageSquareText, Sheet,
-  // Phase 4 — file & data processing + credential-free sources
-  FileSpreadsheet, CodeXml, Rss,
+  // Phase 4 — file & data processing + credential-free sources + outputs
+  FileSpreadsheet, CodeXml, Rss, MessagesSquare,
 };
 
 function withIcon(shared: SharedNodeDefinition): NodeDefinition {
@@ -427,11 +428,13 @@ const ENABLED_NODE_TYPES: readonly string[] = [
   // Outputs
   'OUTPUT_STORAGE',
   'OUTPUT_WEBHOOK',
-  // 'OUTPUT_EMAIL',        // TODO: 이메일 발송 기능 구현 후 활성화
+  'OUTPUT_EMAIL', // Phase 4 — host.handlers.sendEmail seam (서버 SMTP)
   // 'OUTPUT_NOTIFICATION', // TODO: 알림 기능 구현 후 활성화
   // Phase 3 — Slack post + Google Sheet append
   'OUTPUT_SLACK_POST',
   'OUTPUT_SHEET_APPEND',
+  // Phase 4 — Discord Incoming Webhook
+  'OUTPUT_DISCORD',
 ];
 
 export const NODE_DEFINITIONS: Record<string, NodeDefinition> = Object.fromEntries(

@@ -122,7 +122,9 @@ export type IrisNodeType =
   | 'OUTPUT_EMAIL'
   | 'OUTPUT_NOTIFICATION'
   | 'OUTPUT_SLACK_POST'
-  | 'OUTPUT_SHEET_APPEND';
+  | 'OUTPUT_SHEET_APPEND'
+  // Phase 4: 발신 채널 확장
+  | 'OUTPUT_DISCORD';
 
 export type IrisExecutionStatus =
   | 'PENDING'

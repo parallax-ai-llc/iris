@@ -144,6 +144,8 @@ export {
   // Phase 3: 통합 출력 확장
   OUTPUT_SLACK_POST,
   OUTPUT_SHEET_APPEND,
+  // Phase 4: 발신 채널 확장
+  OUTPUT_DISCORD,
 } from './nodes/output.js';
 
 import type { NodeDefinition } from './types.js';

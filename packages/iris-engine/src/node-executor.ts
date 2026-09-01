@@ -3501,9 +3501,18 @@ export class NodeExecutor {
       }
 
       case 'OUTPUT_EMAIL': {
-        // TODO: Send email using your email service with inputs.content
-        // Will use: this.resolveValue(config.to, variables), this.resolveValue(config.subject, variables)
-        outputs.sent = true;
+        // SMTP credentials + the fixed platform sender live with the host —
+        // the engine only routes through the seam (501 when unsupported).
+        if (!this.host.handlers?.sendEmail) {
+          throw new AppError(
+            'OUTPUT_EMAIL is not supported by this host',
+            501,
+            'NODE_NOT_SUPPORTED'
+          );
+        }
+        const r = await this.host.handlers.sendEmail(node, inputs, context);
+        Object.assign(outputs, r.outputs);
+        assets.push(...r.assets);
         break;
       }
 
@@ -3516,6 +3525,15 @@ export class NodeExecutor {
       }
       case 'OUTPUT_SHEET_APPEND': {
         const r = await this.executeSheetAppend(node, inputs);
+        Object.assign(outputs, r.outputs);
+        assets.push(...r.assets);
+        break;
+      }
+
+      // ─── Phase 4: 발신 채널 확장 ──────────────────────────────────────
+      case 'OUTPUT_DISCORD': {
+        const { outputDiscordPost } = await import('./integration-handlers.js');
+        const r = await outputDiscordPost(node, inputs);
         Object.assign(outputs, r.outputs);
         assets.push(...r.assets);
         break;

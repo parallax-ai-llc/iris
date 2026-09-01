@@ -63,19 +63,31 @@ export const OUTPUT_WEBHOOK: NodeDefinition = {
   ],
 };
 
+/**
+ * 워크플로우 결과를 이메일로 발송. 발신 주소는 플랫폼 도메인 고정
+ * (호스트의 SMTP 설정 — 사용자가 임의 발신자를 사칭할 수 없다).
+ * 실제 발송은 host.handlers.sendEmail seam — SMTP 자격이 서버에 있어
+ * 엔진이 직접 보내지 않는다. 미지원 호스트는 NODE_NOT_SUPPORTED 501.
+ *
+ * attachments는 data URL 문자열, { file, filename } (UTIL_FILE_CONVERT
+ * 출력 그대로), 또는 그 배열을 받는다 (합계 10MB 상한).
+ */
 export const OUTPUT_EMAIL: NodeDefinition = {
   type: 'OUTPUT_EMAIL',
   category: 'OUTPUT',
   label: 'Send Email',
-  description: 'Send results via email',
+  description: 'Send results via email (플랫폼 발신 주소 고정)',
   iconName: 'Mail',
   color: 'teal',
   inputs: [
     { name: 'content', type: 'text', label: 'Content', required: true },
+    { name: 'subject', type: 'text', label: 'Subject (override)' },
+    { name: 'to', type: 'text', label: 'To (override)' },
     { name: 'attachments', type: 'any', label: 'Attachments' },
   ],
   outputs: [
     { name: 'sent', type: 'any', label: 'Sent' },
+    { name: 'recipients', type: 'any', label: 'Recipient Count', hideHandle: true },
   ],
   configFields: [
     {
@@ -83,13 +95,76 @@ export const OUTPUT_EMAIL: NodeDefinition = {
       label: 'To',
       type: 'text',
       required: true,
-      placeholder: 'email@example.com',
+      placeholder: 'a@example.com, b@example.com',
+      description: '쉼표 구분, 최대 5명. `to` input이 연결되면 그것이 우선.',
     },
     {
       name: 'subject',
       label: 'Subject',
       type: 'text',
       required: true,
+    },
+    {
+      name: 'contentType',
+      label: 'Content Type',
+      type: 'select',
+      options: [
+        { value: 'text', label: 'Plain Text' },
+        { value: 'html', label: 'HTML' },
+      ],
+      defaultValue: 'text',
+    },
+  ],
+};
+
+/**
+ * Discord Incoming Webhook 발송 — OAuth·봇 토큰 불필요, 사용자가 자기
+ * 서버의 웹훅 URL만 붙여넣으면 된다 (자격증명 볼트 이전의 발신 채널).
+ * discord.com/api/webhooks/ URL만 허용 — 임의 URL은 OUTPUT_WEBHOOK을 쓴다.
+ */
+export const OUTPUT_DISCORD: NodeDefinition = {
+  type: 'OUTPUT_DISCORD',
+  category: 'OUTPUT',
+  label: 'Discord Post',
+  description: 'Discord 채널에 메시지 발행 (Incoming Webhook URL)',
+  iconName: 'MessagesSquare',
+  color: 'teal',
+  inputs: [
+    { name: 'message', type: 'text', label: 'Message', required: true },
+    { name: 'embeds', type: 'json', label: 'Embeds (override)' },
+  ],
+  outputs: [
+    { name: 'sent', type: 'any', label: 'Sent' },
+    { name: 'messageId', type: 'text', label: 'Message ID', hideHandle: true },
+  ],
+  configFields: [
+    {
+      name: 'webhookUrl',
+      label: 'Webhook URL',
+      type: 'text',
+      required: true,
+      placeholder: 'https://discord.com/api/webhooks/...',
+      description: 'Discord 채널 설정 → 연동 → 웹후크에서 발급.',
+    },
+    {
+      name: 'username',
+      label: 'Display Name',
+      type: 'text',
+      placeholder: 'Workflow Bot',
+      description: '웹훅 기본 이름 대신 표시할 발신자 이름.',
+    },
+    {
+      name: 'avatarUrl',
+      label: 'Avatar URL',
+      type: 'text',
+      placeholder: 'https://...png',
+    },
+    {
+      name: 'embedsTemplate',
+      label: 'Embeds (JSON)',
+      type: 'textarea',
+      placeholder: '[{ "title": "Report", "description": "...", "color": 5814783 }]',
+      description: 'Discord embed 객체 JSON 배열. `embeds` input이 연결되면 그것이 우선.',
     },
   ],
 };
@@ -161,8 +236,8 @@ export const OUTPUT_SLACK_POST: NodeDefinition = {
       label: 'Channel / User',
       type: 'text',
       required: true,
-      placeholder: '#general or @username or C01234567',
-      description: '채널 이름(#prefix), 사용자(@prefix), 또는 ID.',
+      placeholder: '#general, @username, C01234567, or https://hooks.slack.com/...',
+      description: '채널 이름(#prefix), 사용자(@prefix), ID — 또는 Slack Incoming Webhook URL을 넣으면 봇 토큰 없이 자신의 워크스페이스로 발송.',
     },
     {
       name: 'username',

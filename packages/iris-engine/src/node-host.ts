@@ -262,6 +262,14 @@ export interface ExtraNodeHandlers {
     node: NodeDefinition,
     inputs: Record<string, unknown>,
   ): Promise<HostNodeResult>;
+  /** OUTPUT_EMAIL — SMTP credentials and the fixed platform sender live with
+   *  the host, so the engine never sends mail directly. A host without an
+   *  email stack omits this and the node returns NODE_NOT_SUPPORTED. */
+  sendEmail?(
+    node: NodeDefinition,
+    inputs: Record<string, unknown>,
+    context: HandlerExecutionContext,
+  ): Promise<HostNodeResult>;
 }
 
 /** Everything node-executor + handlers need from their host, assembled once. */
