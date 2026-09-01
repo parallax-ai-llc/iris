@@ -132,6 +132,130 @@ export const WEB_SCRAPER: NodeDefinition = {
   ],
 };
 
+// ─── Phase 4: 크레덴셜 없는 데이터 소스 ─────────────────────────────────────
+
+/**
+ * RSS/Atom 피드 → 항목 배열. 자격증명이 전혀 필요 없는 무료 소스라
+ * TRIGGER_SCHEDULE과 궁합이 가장 좋다 (뉴스/모니터링 봇의 뼈대).
+ *
+ * v1 중복 제거는 `sinceHours` 필터(스케줄 간격에 맞춤)로 한정 — 워크플로우
+ * 간 지속 상태 저장이 없기 때문. 영구 dedupe는 실행 상태 인프라 이후.
+ * 파싱은 엔진 내 cheerio(xmlMode), fetch는 safe-http SSRF 가드 경유.
+ */
+export const WEB_RSS_READ: NodeDefinition = {
+  type: 'WEB_RSS_READ',
+  category: 'WEB',
+  label: 'RSS Read',
+  description: 'RSS/Atom 피드를 읽어 항목 배열로 반환 (자격증명 불필요)',
+  iconName: 'Rss',
+  color: 'indigo',
+  canBeTool: true,
+  inputs: [
+    { name: 'url', type: 'text', label: 'Feed URL (override)' },
+  ],
+  outputs: [
+    // Shape: [{ title, link, description, publishedAt, id, author }, ...]
+    { name: 'items', type: 'json', label: 'Items' },
+    { name: 'feedTitle', type: 'text', label: 'Feed Title', hideHandle: true },
+    { name: 'count', type: 'any', label: 'Item Count', hideHandle: true },
+  ],
+  configFields: [
+    {
+      name: 'url',
+      label: 'Feed URL',
+      type: 'text',
+      required: true,
+      placeholder: 'https://example.com/feed.xml',
+      description: '`url` input이 연결되면 그것이 우선.',
+    },
+    {
+      name: 'limit',
+      label: 'Max Items',
+      type: 'number',
+      min: 1,
+      max: 100,
+      defaultValue: 20,
+    },
+    {
+      name: 'sinceHours',
+      label: 'Only Items From Last N Hours',
+      type: 'number',
+      min: 0,
+      max: 720,
+      defaultValue: 0,
+      description: '0 = 필터 없음. 스케줄 간격에 맞추면 실행 간 중복을 피할 수 있다 (발행일 없는 항목은 통과).',
+    },
+    {
+      name: 'includeContent',
+      label: 'Include Full Content',
+      type: 'toggle',
+      defaultValue: false,
+      description: 'content:encoded / Atom content 본문을 items[].content로 포함.',
+    },
+  ],
+};
+
+/**
+ * Google Sheets 읽기 — OUTPUT_SHEET_APPEND와 동일한 서비스 계정 경로
+ * (googleapis, host.handlers seam). OAuth 자격증명 볼트 이전까지의
+ * "경량 DB 읽기" 담당. 사용자는 시트를 서비스 계정 이메일과 공유한다.
+ */
+export const SHEET_READ: NodeDefinition = {
+  type: 'SHEET_READ',
+  category: 'WEB',
+  label: 'Sheet Read',
+  description: 'Google Sheets에서 rows 읽기 (시트를 서비스 계정과 공유)',
+  iconName: 'Sheet',
+  color: 'indigo',
+  canBeTool: true,
+  inputs: [
+    { name: 'range', type: 'text', label: 'Range (override)' },
+  ],
+  outputs: [
+    { name: 'rows', type: 'json', label: 'Rows (array)' },
+    { name: 'headers', type: 'json', label: 'Headers', hideHandle: true },
+    { name: 'rowCount', type: 'any', label: 'Row Count', hideHandle: true },
+  ],
+  configFields: [
+    {
+      name: 'sheetId',
+      label: 'Spreadsheet ID',
+      type: 'text',
+      required: true,
+      placeholder: '1abc...XYZ',
+      description: 'Sheets URL의 /d/{ID}/ 부분.',
+    },
+    {
+      name: 'sheetName',
+      label: 'Sheet (Tab) Name',
+      type: 'text',
+      defaultValue: 'Sheet1',
+    },
+    {
+      name: 'range',
+      label: 'Range',
+      type: 'text',
+      defaultValue: 'A:Z',
+      description: 'A1 표기. `range` input이 연결되면 그것이 우선.',
+    },
+    {
+      name: 'hasHeader',
+      label: 'First Row is Header',
+      type: 'toggle',
+      defaultValue: true,
+      description: 'on이면 rows가 header 키의 객체 배열, off면 셀 배열.',
+    },
+    {
+      name: 'maxRows',
+      label: 'Max Rows',
+      type: 'number',
+      min: 1,
+      max: 10000,
+      defaultValue: 1000,
+    },
+  ],
+};
+
 /**
  * YouTube URL → 자막 텍스트. 공식 자막이 있으면 그것을, 없으면 Whisper로
  * fallback. 시간 정보 포함 옵션은 비디오 인덱싱/요약 워크플로우에서 유용.

@@ -113,6 +113,9 @@ export type IrisNodeType =
   | 'WEB_SEARCH'
   | 'WEB_SCRAPER'
   | 'WEB_YOUTUBE_TRANSCRIPT'
+  // Phase 4: credential-free data sources
+  | 'WEB_RSS_READ'
+  | 'SHEET_READ'
   // Output
   | 'OUTPUT_STORAGE'
   | 'OUTPUT_WEBHOOK'

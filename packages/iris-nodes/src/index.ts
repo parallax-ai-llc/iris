@@ -130,6 +130,9 @@ export {
   // Phase 2
   WEB_SCRAPER,
   WEB_YOUTUBE_TRANSCRIPT,
+  // Phase 4: credential-free data sources
+  WEB_RSS_READ,
+  SHEET_READ,
 } from './nodes/web.js';
 
 // Outputs

@@ -77,6 +77,7 @@ import {
   Sheet,
   FileSpreadsheet,
   CodeXml,
+  Rss,
   type LucideIcon,
 } from 'lucide-react';
 import {
@@ -118,8 +119,8 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Search, BookOpen, TextSearch, Tags, Youtube,
   // Phase 3 — new triggers / media-edit / outputs
   MessageCircle, ClipboardList, Inbox, AudioLines, Speech, MessageSquareText, Sheet,
-  // Phase 4 — file & data processing
-  FileSpreadsheet, CodeXml,
+  // Phase 4 — file & data processing + credential-free sources
+  FileSpreadsheet, CodeXml, Rss,
 };
 
 function withIcon(shared: SharedNodeDefinition): NodeDefinition {
@@ -419,6 +420,9 @@ const ENABLED_NODE_TYPES: readonly string[] = [
   'WEB_SEARCH',
   'WEB_SCRAPER',
   'WEB_YOUTUBE_TRANSCRIPT',
+  // Phase 4 — credential-free data sources
+  'WEB_RSS_READ',
+  'SHEET_READ',
 
   // Outputs
   'OUTPUT_STORAGE',

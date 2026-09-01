@@ -256,6 +256,12 @@ export interface ExtraNodeHandlers {
     node: NodeDefinition,
     inputs: Record<string, unknown>,
   ): Promise<HostNodeResult>;
+  /** Google Sheets values.get (SHEET_READ) — same googleapis service-account
+   *  path as sheetAppend, so it shares the seam rationale. */
+  sheetRead?(
+    node: NodeDefinition,
+    inputs: Record<string, unknown>,
+  ): Promise<HostNodeResult>;
 }
 
 /** Everything node-executor + handlers need from their host, assembled once. */

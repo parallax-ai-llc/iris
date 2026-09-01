@@ -176,6 +176,36 @@ function dedupeHeaders(raw: string[]): string[] {
   });
 }
 
+/**
+ * Cell-matrix → rows (objects when hasHeader, cell arrays otherwise).
+ * Shared by SHEET_READ (Sheets values.get returns exactly this shape) and
+ * any future matrix-shaped source. Header names are deduped/filled like the
+ * CSV path so object keys never collide.
+ */
+export function valuesToRows(
+  values: unknown[][],
+  opts: { hasHeader: boolean; maxRows: number }
+): TabularParseResult {
+  let headers: string[] = [];
+  let dataRecords = values;
+  if (opts.hasHeader && values.length > 0) {
+    headers = dedupeHeaders(values[0].map(cell => String(cell ?? '')));
+    dataRecords = values.slice(1);
+  }
+  const truncated = dataRecords.length > opts.maxRows;
+  if (truncated) dataRecords = dataRecords.slice(0, opts.maxRows);
+
+  const rows = dataRecords.map(cells => {
+    if (!opts.hasHeader) return cells.map(cellToString);
+    const obj: Record<string, string> = {};
+    headers.forEach((h, idx) => {
+      obj[h] = cellToString(cells[idx]);
+    });
+    return obj;
+  });
+  return { rows, headers, rowCount: rows.length, truncated };
+}
+
 // ============================================================
 // Row normalization (shared by convert + XLSX build)
 // ============================================================

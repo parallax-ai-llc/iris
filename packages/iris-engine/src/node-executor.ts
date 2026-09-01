@@ -2421,6 +2421,20 @@ export class NodeExecutor {
         break;
       }
 
+      // ─── Phase 4: credential-free data sources ────────────────────────
+      case 'WEB_RSS_READ': {
+        const result = await this.executeRssRead(node, inputs);
+        outputs.items = result.items;
+        outputs.feedTitle = result.feedTitle;
+        outputs.count = result.count;
+        break;
+      }
+      case 'SHEET_READ': {
+        const result = await this.executeSheetRead(node, inputs);
+        Object.assign(outputs, result.outputs);
+        break;
+      }
+
       // ─── Phase 4: file & data processing ──────────────────────────────
       case 'UTIL_FILE_EXTRACT': {
         const result = await this.executeFileExtract(node, inputs);
@@ -3286,6 +3300,76 @@ export class NodeExecutor {
       );
     }
     return this.host.handlers.sheetAppend(node, inputs);
+  }
+
+  // ============================================================
+  // PHASE 4: CREDENTIAL-FREE DATA SOURCES
+  // ============================================================
+
+  private async executeRssRead(
+    node: NodeDefinition,
+    inputs: Record<string, unknown>
+  ): Promise<{ items: unknown[]; feedTitle: string; count: number }> {
+    const { parseRssFeed, filterRssItems } = await import('./rss-handlers.js');
+
+    const url = String(
+      (inputs.url as string | undefined) ??
+        this.pickConfigField<string>(node.config, 'url') ??
+        ''
+    ).trim();
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      throw new Error('RSS Read: a valid http(s) feed URL is required');
+    }
+    const limit = Math.max(
+      1,
+      Math.min(
+        100,
+        Number(this.pickConfigField<number>(node.config, 'limit') ?? 20) || 20
+      )
+    );
+    const sinceHours = Math.max(
+      0,
+      Math.min(
+        720,
+        Number(this.pickConfigField<number>(node.config, 'sinceHours') ?? 0) || 0
+      )
+    );
+    const includeContent =
+      this.pickConfigField<boolean>(node.config, 'includeContent') ?? false;
+
+    // Feeds are small text documents — tighten the media-fetch defaults
+    // (host policy still wins when it sets explicit values).
+    const fetched = await fetchMediaAsBuffer(
+      { type: 'url', value: url },
+      {
+        ...this.host.http,
+        timeoutMs: this.host.http?.timeoutMs ?? 30_000,
+        maxResponseBytes: this.host.http?.maxResponseBytes ?? 5 * 1024 * 1024,
+      }
+    );
+    if ('error' in fetched) {
+      throw new Error(`RSS Read: ${fetched.error}`);
+    }
+
+    const feed = await parseRssFeed(fetched.buffer.toString('utf8'), {
+      includeContent,
+    });
+    const items = filterRssItems(feed.items, { limit, sinceHours });
+    return { items, feedTitle: feed.feedTitle, count: items.length };
+  }
+
+  private async executeSheetRead(
+    node: NodeDefinition,
+    inputs: Record<string, unknown>
+  ): Promise<{ outputs: Record<string, unknown>; assets: AssetReference[] }> {
+    if (!this.host.handlers?.sheetRead) {
+      throw new AppError(
+        'SHEET_READ is not supported by this host',
+        501,
+        'NODE_NOT_SUPPORTED'
+      );
+    }
+    return this.host.handlers.sheetRead(node, inputs);
   }
 
   private async executeOutput(
