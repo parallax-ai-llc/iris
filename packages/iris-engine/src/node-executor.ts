@@ -16,6 +16,7 @@ import {
 import type { IrisNodeType } from './types.js';
 import { createAdapter } from './providers/index.js';
 import type { NodeExecutorHost, PublicStoreSource } from './node-host.js';
+import { safeHttpFetch } from './safe-http.js';
 import { AppError } from './app-error.js';
 import { fetchMediaAsBuffer } from './media-source.js';
 import sharp from 'sharp';
@@ -1544,7 +1545,8 @@ export class NodeExecutor {
 
     switch (node.type) {
       case 'UTIL_DELAY': {
-        const delayMs = (config.delay as number) ?? 1000;
+        const delayMs =
+          this.pickConfigField<number>(config, 'duration') ?? 1000;
         await new Promise(resolve => setTimeout(resolve, delayMs));
         outputs.output = inputs.input;
         break;
@@ -1875,14 +1877,22 @@ export class NodeExecutor {
         };
 
         try {
-          const response = await fetch(url, {
-            method: methodUpper,
-            headers: finalHeaders,
-            body: fetchBody,
-          });
+          // Guarded fetch: SSRF validation (re-checked per redirect hop),
+          // overall deadline, and a response-size cap. Policy comes from the
+          // host seam — strict by default; self-host relaxes the network
+          // guard only.
+          const response = await safeHttpFetch(
+            url,
+            {
+              method: methodUpper,
+              headers: finalHeaders,
+              body: fetchBody,
+            },
+            this.host.http
+          );
 
           outputs.status = response.status;
-          outputs.response = await response.text();
+          outputs.response = response.bodyText;
 
           try {
             outputs.response = JSON.parse(outputs.response as string);

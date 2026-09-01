@@ -50,6 +50,12 @@ export interface LocalNodeHostOptions {
   getPublicBaseUrl: () => string;
   /** Constant single-user id (default "local"). */
   userId?: string;
+  /** Whether UTIL_HTTP_REQUEST may call private / loopback addresses.
+   *  Default `true`: self-host runs on the user's own machine, where hitting
+   *  localhost services is legitimate. Set `false` to restore the engine's
+   *  strict SSRF guard (e.g. when exposing the local host to others). The
+   *  engine's timeout and response-size caps apply either way. */
+  allowPrivateNetworkHttp?: boolean;
 }
 
 /** Sidecar metadata stored next to every persisted asset (one dir per asset). */
@@ -446,5 +452,8 @@ export function createLocalNodeHost(
     // handlers intentionally omitted: ffmpeg video/audio editors and the Sheets
     // append pull heavy/non-portable deps. The engine surfaces a clear
     // NODE_NOT_SUPPORTED (501) for those node types on this host (trap #1).
+    // Self-host relaxes only the SSRF network guard (localhost is the user's
+    // own machine); timeout and response-size caps stay at engine defaults.
+    http: { allowPrivateNetwork: opts.allowPrivateNetworkHttp ?? true },
   };
 }
