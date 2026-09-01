@@ -26,33 +26,20 @@ export interface RssFeed {
   items: RssItem[];
 }
 
-/** Structural view of the cheerio surface this module touches. */
-interface XmlSelectionLike {
-  length: number;
-  each(cb: (index: number, el: unknown) => void): unknown;
-  first(): XmlSelectionLike;
-  find(selector: string): XmlSelectionLike;
-  children(): XmlSelectionLike;
-  text(): string;
-  attr(name: string): string | undefined;
-  prop(name: string): unknown;
-}
-type XmlRootLike = (target: unknown) => XmlSelectionLike;
+// Shared lazy cheerio loader + structural types live in file-handlers —
+// this module only adds `{ xmlMode: true }`.
+import {
+  loadCheerio,
+  type CheerioRootLike,
+  type CheerioSelectionLike,
+} from './file-handlers.js';
 
-async function loadXml(xml: string): Promise<XmlRootLike> {
-  const mod = (await import('cheerio')) as unknown as {
-    load?: (content: string, options?: Record<string, unknown>) => XmlRootLike;
-    default?: {
-      load?: (content: string, options?: Record<string, unknown>) => XmlRootLike;
-    };
-  };
-  const load = mod.load ?? mod.default?.load;
-  if (!load) throw new Error('cheerio: load() not found');
-  return load(xml, { xmlMode: true });
+function loadXml(xml: string): Promise<CheerioRootLike> {
+  return loadCheerio(xml, { xmlMode: true });
 }
 
 /** First non-empty text among the given child selectors of `scope`. */
-function pickText(scope: XmlSelectionLike, selectors: string[]): string {
+function pickText(scope: CheerioSelectionLike, selectors: string[]): string {
   for (const selector of selectors) {
     const found = scope.find(selector).first();
     if (found.length > 0) {
@@ -144,7 +131,7 @@ export async function parseRssFeed(
   return { feedTitle, items };
 }
 
-function pickFeedTitle($: XmlRootLike, isAtom: boolean): string {
+function pickFeedTitle($: CheerioRootLike, isAtom: boolean): string {
   if (isAtom) {
     // Atom: the feed's own <title>, not an entry's — direct-child selector
     // keeps entry titles out.

@@ -613,6 +613,10 @@ export interface ExecutionState {
   /** Owner of the run — set by the engine at execute() time so failure
    *  events can carry it without a store round-trip. */
   userId?: string;
+  /** True once `execution:failed` has been emitted for this run — guards
+   *  against a second emit when finalizeExecution throws after the failed
+   *  branch already fired the event. */
+  failedEmitted?: boolean;
   status:
     | 'pending'
     | 'running'

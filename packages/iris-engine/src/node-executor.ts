@@ -2454,9 +2454,15 @@ export class NodeExecutor {
         const { runCryptoOperation } = await import('./crypto-utils.js');
         const operation = (this.pickConfigField<string>(config, 'operation') ??
           'hash') as 'hash' | 'hmac' | 'uuid' | 'randomString';
+        // Objects must hash by their JSON form — String() would collapse
+        // every object to "[object Object]" and give identical digests.
+        const rawCryptoData = inputs.data ?? inputs.text ?? '';
         outputs.result = runCryptoOperation({
           operation,
-          data: String(inputs.data ?? inputs.text ?? ''),
+          data:
+            typeof rawCryptoData === 'string'
+              ? rawCryptoData
+              : JSON.stringify(rawCryptoData),
           algorithm: this.pickConfigField<string>(config, 'algorithm'),
           encoding: this.pickConfigField<string>(config, 'encoding'),
           secret:
@@ -2762,6 +2768,7 @@ export class NodeExecutor {
       parseDelimited,
       parseXlsxBuffer,
       normalizeRows,
+      toDelimited,
       MAX_FILE_EXTRACT_BYTES,
     } = await import('./file-handlers.js');
 
@@ -2830,7 +2837,6 @@ export class NodeExecutor {
           maxRows,
         });
         // Text view: CSV-ish render so text-port consumers still get content.
-        const { toDelimited } = await import('./file-handlers.js');
         const text = toDelimited(normalizeRows(parsed.rows), {});
         return {
           data: parsed.rows,
@@ -2901,6 +2907,13 @@ export class NodeExecutor {
     const extension = extensionByFormat[format];
     if (!extension) {
       throw new Error(`File Convert: unsupported format "${format}"`);
+    }
+
+    // The `data` port is required by the definition, but the engine does not
+    // enforce port wiring — fail with a node-level message instead of letting
+    // JSON.stringify(undefined) reach Buffer.from as a TypeError.
+    if (inputs.data === undefined || inputs.data === null) {
+      throw new Error('File Convert: `data` input is required');
     }
 
     const rawName =

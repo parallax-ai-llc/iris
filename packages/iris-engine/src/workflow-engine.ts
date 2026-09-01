@@ -575,6 +575,7 @@ export class WorkflowEngine extends EventEmitter {
         });
 
         // Phase 4: let the host dispatch TRIGGER_ERROR handler workflows.
+        state.failedEmitted = true;
         this.emit('execution:failed', {
           executionId,
           workflowId: state.workflowId,
@@ -1555,7 +1556,10 @@ export class WorkflowEngine extends EventEmitter {
     // dispatchers when the state is known. `triggerData` is unavailable here,
     // so dispatchers cannot rely on it alone for recursion guarding — the
     // server-side dispatcher also checks the execution row when needed.
-    if (state) {
+    // `failedEmitted` prevents a duplicate event when the failed branch of
+    // runExecution already fired and a later step (finalize) threw.
+    if (state && !state.failedEmitted) {
+      state.failedEmitted = true;
       this.emit('execution:failed', {
         executionId,
         workflowId: state.workflowId,

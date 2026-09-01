@@ -40,14 +40,17 @@ export interface AdapterOutput {
 
 /**
  * Parse a data URL (data:type/subtype;base64,data) into its components.
+ * Accepts optional media-type parameters (`data:text/csv;charset=utf-8;base64,…`)
+ * — the mime type is the segment before the first `;`.
  */
 export function parseDataUrl(
   dataUrl: string
 ): { mimeType: string; base64Data: string } | null {
-  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+  const match = dataUrl.match(/^data:([^,]*);base64,(.+)$/);
   if (!match) return null;
+  const mimeType = match[1].split(';')[0].trim() || 'application/octet-stream';
   return {
-    mimeType: match[1],
+    mimeType,
     base64Data: match[2],
   };
 }

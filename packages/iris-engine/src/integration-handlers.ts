@@ -17,6 +17,7 @@
  */
 
 import type { NodeDefinition, AssetReference } from './types.js';
+import { parseDataUrl } from './media-source.js';
 
 interface SlackBlock {
   type: string;
@@ -70,9 +71,17 @@ export function buildDiscordPostRequest(
 
   const message = String(inputs.message ?? '');
   const truncated = message.length > DISCORD_CONTENT_LIMIT;
-  const content = truncated
-    ? `${message.slice(0, DISCORD_CONTENT_LIMIT - 1)}…`
-    : message;
+  let content = message;
+  if (truncated) {
+    let sliced = message.slice(0, DISCORD_CONTENT_LIMIT - 1);
+    // Don't end on the high half of a surrogate pair (emoji etc.) — a lone
+    // surrogate renders as � and can fail Discord-side validation.
+    const lastCode = sliced.charCodeAt(sliced.length - 1);
+    if (lastCode >= 0xd800 && lastCode <= 0xdbff) {
+      sliced = sliced.slice(0, -1);
+    }
+    content = `${sliced}…`;
+  }
 
   // embeds input port overrides the config template (Slack blocks precedent).
   let embeds: Array<Record<string, unknown>> | undefined;
@@ -207,16 +216,16 @@ export function normalizeEmailAttachments(input: unknown): EmailAttachment[] {
   let totalBytes = 0;
 
   const pushDataUrl = (dataUrl: string, filename?: string) => {
-    const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-    if (!match) {
+    const parsed = parseDataUrl(dataUrl);
+    if (!parsed) {
       throw new Error(
         'OUTPUT_EMAIL: attachment string must be a base64 data URL'
       );
     }
     attachments.push({
       filename: filename || `attachment-${attachments.length + 1}`,
-      base64: match[2],
-      mimeType: match[1],
+      base64: parsed.base64Data,
+      mimeType: parsed.mimeType,
     });
   };
 

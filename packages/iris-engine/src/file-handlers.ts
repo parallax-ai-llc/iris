@@ -494,9 +494,10 @@ export interface HtmlExtractResult {
   first: string;
 }
 
-/** Minimal structural view of the cheerio surface we touch, so the
- *  dependency stays lazy at both runtime and type level. */
-interface CheerioSelectionLike {
+/** Minimal structural view of the cheerio surface the engine touches, so the
+ *  dependency stays lazy at both runtime and type level. Shared with
+ *  rss-handlers (xmlMode) — extend here rather than re-declaring. */
+export interface CheerioSelectionLike {
   length: number;
   each(cb: (index: number, el: unknown) => void): unknown;
   first(): CheerioSelectionLike;
@@ -507,16 +508,23 @@ interface CheerioSelectionLike {
   html(): string | null;
   attr(name: string): string | undefined;
 }
-type CheerioRootLike = (target: unknown) => CheerioSelectionLike;
+export type CheerioRootLike = (target: unknown) => CheerioSelectionLike;
 
-async function loadCheerio(html: string): Promise<CheerioRootLike> {
+/** Lazily load cheerio and parse `content`. `options` passes through to
+ *  cheerio.load (e.g. `{ xmlMode: true }` for RSS/Atom). */
+export async function loadCheerio(
+  content: string,
+  options?: Record<string, unknown>
+): Promise<CheerioRootLike> {
   const mod = (await import('cheerio')) as unknown as {
-    load?: (html: string) => CheerioRootLike;
-    default?: { load?: (html: string) => CheerioRootLike };
+    load?: (content: string, options?: Record<string, unknown>) => CheerioRootLike;
+    default?: {
+      load?: (content: string, options?: Record<string, unknown>) => CheerioRootLike;
+    };
   };
   const load = mod.load ?? mod.default?.load;
   if (!load) throw new Error('cheerio: load() not found');
-  return load(html);
+  return load(content, options);
 }
 
 export async function htmlExtract(
@@ -754,9 +762,12 @@ export function detectFileFormat(
   if (buffer.length >= 4 && buffer.subarray(0, 4).toString('ascii') === '%PDF') {
     return 'pdf';
   }
-  // ZIP container (xlsx/docx both) — without a mime/extension hint we can't
-  // tell them apart cheaply; xlsx is the likelier workflow payload.
+  // ZIP container (xlsx/docx both). Entry names are stored uncompressed in
+  // the local file headers / central directory, so scanning for the
+  // characteristic top-level folders tells the two OOXML flavors apart
+  // without unzipping. Fallback: xlsx (the likelier workflow payload).
   if (buffer.length >= 2 && buffer[0] === 0x50 && buffer[1] === 0x4b) {
+    if (buffer.includes('word/')) return 'docx';
     return 'xlsx';
   }
 
