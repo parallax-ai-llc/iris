@@ -30,6 +30,8 @@ export {
   TRIGGER_CHAT,
   TRIGGER_FORM,
   TRIGGER_EMAIL_RECEIVED,
+  // Phase 4: reliability
+  TRIGGER_ERROR,
 } from './nodes/trigger.js';
 
 // Generators
@@ -122,6 +124,8 @@ export {
   UTIL_FILE_EXTRACT,
   UTIL_FILE_CONVERT,
   UTIL_HTML_EXTRACT,
+  // Phase 4: reliability & security
+  UTIL_CRYPTO,
 } from './nodes/utility.js';
 
 // Web data collection (Phase 1+)

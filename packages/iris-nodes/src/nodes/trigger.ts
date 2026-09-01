@@ -344,3 +344,41 @@ export const TRIGGER_EMAIL_RECEIVED: NodeDefinition = {
     },
   ],
 };
+
+// ─── Phase 4: reliability ───────────────────────────────────────────────────
+
+/**
+ * 다른 워크플로우 실행이 실패했을 때 발화하는 에러 핸들러 트리거 (n8n의
+ * Error Trigger). 서버가 실패 이벤트를 받아 같은 사용자의 TRIGGER_ERROR
+ * 워크플로우를 찾아 실행한다 (`sourceWorkflowIds` 필터, 자기 자신 제외).
+ *
+ * 재귀 가드: 에러 핸들러 실행 자체가 실패해도 다시 트리거되지 않는다
+ * (trigger data의 __errorHandler 플래그로 판별).
+ */
+export const TRIGGER_ERROR: NodeDefinition = {
+  type: 'TRIGGER_ERROR',
+  category: 'TRIGGER',
+  label: 'Error Trigger',
+  description: '다른 워크플로우 실행이 실패하면 실행 (에러 핸들러)',
+  iconName: 'TriangleAlert',
+  color: 'green',
+  inputs: [],
+  outputs: [
+    { name: 'trigger', type: 'trigger', label: 'Trigger' },
+    { name: 'error', type: 'json', label: 'Error { message, nodeId, code }' },
+    { name: 'message', type: 'text', label: 'Error Message' },
+    { name: 'workflowId', type: 'text', label: 'Failed Workflow ID' },
+    { name: 'workflowName', type: 'text', label: 'Failed Workflow Name' },
+    { name: 'executionId', type: 'text', label: 'Failed Execution ID', hideHandle: true },
+    { name: 'failedAt', type: 'text', label: 'Failed At (ISO)', hideHandle: true },
+  ],
+  configFields: [
+    {
+      name: 'sourceWorkflowIds',
+      label: 'Watch Workflows',
+      type: 'textarea',
+      placeholder: 'wf_abc123\nwf_def456   (비워두면 내 모든 워크플로우)',
+      description: '감시할 워크플로우 ID 목록 (쉼표/줄바꿈 구분). 비워두면 이 워크플로우를 제외한 내 모든 워크플로우의 실패에 반응.',
+    },
+  ],
+};

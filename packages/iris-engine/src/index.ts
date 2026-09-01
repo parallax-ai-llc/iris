@@ -24,6 +24,7 @@ export * from './agent-runtime.js';
 export * from './doc-handlers.js';
 export * from './file-handlers.js';
 export * from './rss-handlers.js';
+export * from './crypto-utils.js';
 export * from './analyzer-handlers.js';
 export * from './media-gen-handlers.js';
 export * from './integration-handlers.js';

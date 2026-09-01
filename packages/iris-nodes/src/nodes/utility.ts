@@ -999,3 +999,80 @@ export const UTIL_SUB_WORKFLOW: NodeDefinition = {
     },
   ],
 };
+
+// ─── Phase 4: reliability & security ────────────────────────────────────────
+
+/**
+ * 해시/HMAC/UUID/랜덤 문자열 — Node 내장 crypto만 사용(의존성 제로).
+ * 웹훅 서명 생성·검증, dedupe 키 생성, 요청 ID 발급 등에 쓰인다.
+ */
+export const UTIL_CRYPTO: NodeDefinition = {
+  type: 'UTIL_CRYPTO',
+  category: 'UTILITY',
+  label: 'Crypto',
+  description: 'Hash / HMAC / UUID / random string (Node built-in crypto)',
+  iconName: 'KeyRound',
+  color: 'gray',
+  canBeTool: true,
+  inputs: [
+    { name: 'data', type: 'text', label: 'Data' },
+    { name: 'key', type: 'text', label: 'Secret (override, HMAC)' },
+  ],
+  outputs: [
+    { name: 'result', type: 'text', label: 'Result' },
+  ],
+  configFields: [
+    {
+      name: 'operation',
+      label: 'Operation',
+      type: 'select',
+      options: [
+        { value: 'hash', label: 'Hash' },
+        { value: 'hmac', label: 'HMAC' },
+        { value: 'uuid', label: 'UUID v4' },
+        { value: 'randomString', label: 'Random String' },
+      ],
+      defaultValue: 'hash',
+    },
+    {
+      name: 'algorithm',
+      label: 'Algorithm',
+      type: 'select',
+      options: [
+        { value: 'sha256', label: 'SHA-256' },
+        { value: 'sha512', label: 'SHA-512' },
+        { value: 'sha1', label: 'SHA-1' },
+        { value: 'md5', label: 'MD5' },
+      ],
+      defaultValue: 'sha256',
+      description: 'hash / hmac 에서만 사용.',
+    },
+    {
+      name: 'encoding',
+      label: 'Output Encoding',
+      type: 'select',
+      options: [
+        { value: 'hex', label: 'Hex' },
+        { value: 'base64', label: 'Base64' },
+      ],
+      defaultValue: 'hex',
+      description: 'hash / hmac 에서만 사용.',
+    },
+    {
+      name: 'secret',
+      label: 'Secret',
+      type: 'text',
+      placeholder: 'HMAC secret',
+      description: 'hmac 전용. `key` input이 연결되면 그것이 우선.',
+    },
+    {
+      name: 'length',
+      label: 'Length',
+      type: 'number',
+      min: 1,
+      max: 256,
+      defaultValue: 32,
+      description: 'randomString 전용.',
+    },
+  ],
+};

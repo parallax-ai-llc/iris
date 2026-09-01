@@ -109,6 +109,9 @@ export type IrisNodeType =
   | 'UTIL_FILE_EXTRACT'
   | 'UTIL_FILE_CONVERT'
   | 'UTIL_HTML_EXTRACT'
+  // Phase 4: reliability & security
+  | 'TRIGGER_ERROR'
+  | 'UTIL_CRYPTO'
   // Web
   | 'WEB_SEARCH'
   | 'WEB_SCRAPER'
@@ -582,7 +585,7 @@ export interface ExecutionOptions {
 
   /** Trigger context */
   trigger?: {
-    type: 'manual' | 'webhook' | 'schedule' | 'directory' | 'api' | 'form';
+    type: 'manual' | 'webhook' | 'schedule' | 'directory' | 'api' | 'form' | 'error';
     data?: unknown;
   };
 
@@ -607,6 +610,9 @@ export interface ExecutionOptions {
 export interface ExecutionState {
   id: string;
   workflowId: string;
+  /** Owner of the run — set by the engine at execute() time so failure
+   *  events can carry it without a store round-trip. */
+  userId?: string;
   status:
     | 'pending'
     | 'running'

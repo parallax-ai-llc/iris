@@ -404,6 +404,34 @@ export class NodeExecutor {
       outputs.prompt = outputs.body;
     }
 
+    // ─── Phase 4: error-handler trigger ───────────────────────────────────
+    // The host's failure dispatcher invokes the handler workflow with the
+    // failed execution's context under `_triggerError*` variables.
+    if (node.type === 'TRIGGER_ERROR') {
+      const errorInfo = (variables._triggerError ?? variables.error ?? {}) as
+        | Record<string, unknown>
+        | string;
+      const errorObj =
+        typeof errorInfo === 'string' ? { message: errorInfo } : errorInfo;
+      outputs.error = errorObj;
+      outputs.message = String(errorObj.message ?? '');
+      outputs.workflowId = String(
+        variables._triggerErrorWorkflowId ?? variables.sourceWorkflowId ?? ''
+      );
+      outputs.workflowName = String(
+        variables._triggerErrorWorkflowName ?? variables.sourceWorkflowName ?? ''
+      );
+      outputs.executionId = String(
+        variables._triggerErrorExecutionId ?? variables.sourceExecutionId ?? ''
+      );
+      outputs.failedAt = String(
+        variables._triggerErrorFailedAt ?? variables.failedAt ?? ''
+      );
+      // Convenience aliases for downstream LLM/notification nodes.
+      outputs.text = outputs.message;
+      outputs.prompt = outputs.message;
+    }
+
     return { outputs, assets: [] };
   }
 
@@ -2418,6 +2446,24 @@ export class NodeExecutor {
         outputs.context = result.context;
         outputs.count = result.count;
         if (result.truncated) outputs.truncated = true;
+        break;
+      }
+
+      // ─── Phase 4: reliability & security ──────────────────────────────
+      case 'UTIL_CRYPTO': {
+        const { runCryptoOperation } = await import('./crypto-utils.js');
+        const operation = (this.pickConfigField<string>(config, 'operation') ??
+          'hash') as 'hash' | 'hmac' | 'uuid' | 'randomString';
+        outputs.result = runCryptoOperation({
+          operation,
+          data: String(inputs.data ?? inputs.text ?? ''),
+          algorithm: this.pickConfigField<string>(config, 'algorithm'),
+          encoding: this.pickConfigField<string>(config, 'encoding'),
+          secret:
+            (inputs.key as string | undefined) ??
+            this.pickConfigField<string>(config, 'secret'),
+          length: this.pickConfigField<number>(config, 'length'),
+        });
         break;
       }
 

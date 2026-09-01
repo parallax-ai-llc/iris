@@ -79,6 +79,8 @@ import {
   CodeXml,
   Rss,
   MessagesSquare,
+  TriangleAlert,
+  KeyRound,
   type LucideIcon,
 } from 'lucide-react';
 import {
@@ -122,6 +124,8 @@ const ICON_MAP: Record<string, LucideIcon> = {
   MessageCircle, ClipboardList, Inbox, AudioLines, Speech, MessageSquareText, Sheet,
   // Phase 4 — file & data processing + credential-free sources + outputs
   FileSpreadsheet, CodeXml, Rss, MessagesSquare,
+  // Phase 4 — reliability & security
+  TriangleAlert, KeyRound,
 };
 
 function withIcon(shared: SharedNodeDefinition): NodeDefinition {
@@ -347,6 +351,8 @@ const ENABLED_NODE_TYPES: readonly string[] = [
   'TRIGGER_WEBHOOK',
   // Phase 3 — new entry points
   'TRIGGER_FORM',
+  // Phase 4 — error handler (서버 execution:failed 디스패치)
+  'TRIGGER_ERROR',
   // 'TRIGGER_CHAT', // Disabled: chat ingestion (websocket/SSE gateway) not yet implemented
   // 'TRIGGER_EMAIL_RECEIVED', // Disabled: email ingestion (Gmail Push / IMAP poller) not yet implemented
   // 'TRIGGER_DIRECTORY', // Disabled: desktop fs watcher not yet implemented
@@ -416,6 +422,8 @@ const ENABLED_NODE_TYPES: readonly string[] = [
   'UTIL_FILE_EXTRACT',
   'UTIL_FILE_CONVERT',
   'UTIL_HTML_EXTRACT',
+  // Phase 4 — reliability & security
+  'UTIL_CRYPTO',
 
   // Web (Phase 1 + 2)
   'WEB_SEARCH',

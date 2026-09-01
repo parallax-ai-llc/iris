@@ -43,6 +43,18 @@ export interface WorkflowEngineEvents {
   };
   'execution:cancelled': { executionId: string };
   'execution:error': { executionId: string; error: string };
+  /** Emitted whenever an execution ends as failed (node failure, timeout, or
+   *  unexpected crash). Hosts use it to dispatch TRIGGER_ERROR handler
+   *  workflows — `triggerData` carries the failed run's trigger payload so
+   *  dispatchers can skip error-handler runs (`__errorHandler` flag). */
+  'execution:failed': {
+    executionId: string;
+    workflowId: string;
+    userId: string;
+    workflowName?: string;
+    error: { nodeId: string; message: string; code?: string };
+    triggerData: Record<string, unknown>;
+  };
   'node:started': { executionId: string; nodeId: string };
   'node:completed': { executionId: string; nodeId: string; result: NodeResult };
   'node:failed': { executionId: string; nodeId: string; error: string };
@@ -132,6 +144,7 @@ export class WorkflowEngine extends EventEmitter {
     const state: ExecutionState = {
       id: execution.id,
       workflowId,
+      userId,
       status: 'pending',
       completedNodes: new Set(),
       nodeResults: new Map(),
@@ -559,6 +572,16 @@ export class WorkflowEngine extends EventEmitter {
             errorCode: state.error.code,
           },
           duration: totalDuration,
+        });
+
+        // Phase 4: let the host dispatch TRIGGER_ERROR handler workflows.
+        this.emit('execution:failed', {
+          executionId,
+          workflowId: state.workflowId,
+          userId: state.userId ?? '',
+          workflowName: workflow.name,
+          error: state.error,
+          triggerData: (options.trigger?.data ?? {}) as Record<string, unknown>,
         });
       } else if ((state.status as string) === 'cancelled') {
         // Log cancelled execution
@@ -1528,6 +1551,23 @@ export class WorkflowEngine extends EventEmitter {
     this.activeExecutions.delete(executionId);
 
     this.emit('execution:error', { executionId, error: error.message });
+    // Unexpected-crash path: still surface the failure to error-handler
+    // dispatchers when the state is known. `triggerData` is unavailable here,
+    // so dispatchers cannot rely on it alone for recursion guarding — the
+    // server-side dispatcher also checks the execution row when needed.
+    if (state) {
+      this.emit('execution:failed', {
+        executionId,
+        workflowId: state.workflowId,
+        userId: state.userId ?? '',
+        error: state.error ?? {
+          nodeId: 'unknown',
+          message: error.message,
+          code: 'EXECUTION_ERROR',
+        },
+        triggerData: {},
+      });
+    }
 
     // Log the error
     this.createLog(executionId, {
