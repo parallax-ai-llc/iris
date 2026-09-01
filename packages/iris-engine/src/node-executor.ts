@@ -2421,6 +2421,30 @@ export class NodeExecutor {
         break;
       }
 
+      // ─── Phase 4: file & data processing ──────────────────────────────
+      case 'UTIL_FILE_EXTRACT': {
+        const result = await this.executeFileExtract(node, inputs);
+        outputs.data = result.data;
+        outputs.text = result.text;
+        outputs.rowCount = result.rowCount;
+        if (result.truncated) outputs.truncated = true;
+        break;
+      }
+      case 'UTIL_FILE_CONVERT': {
+        const result = await this.executeFileConvert(node, inputs);
+        outputs.file = result.file;
+        outputs.text = result.text;
+        outputs.filename = result.filename;
+        break;
+      }
+      case 'UTIL_HTML_EXTRACT': {
+        const result = await this.executeHtmlExtract(node, inputs);
+        outputs.data = result.data;
+        outputs.first = result.first;
+        outputs.count = result.count;
+        break;
+      }
+
       // ─── Phase 2: web scrapers / extractors ───────────────────────────
       case 'WEB_SCRAPER': {
         const result = await this.executeWebScraper(node, inputs);
@@ -2657,6 +2681,292 @@ export class NodeExecutor {
       contextLines,
       maxMatches,
     });
+  }
+
+  // ============================================================
+  // PHASE 4: FILE & DATA PROCESSING
+  // ============================================================
+
+  private async executeFileExtract(
+    node: NodeDefinition,
+    inputs: Record<string, unknown>
+  ): Promise<{
+    data: unknown[];
+    text: string;
+    rowCount: number;
+    truncated: boolean;
+  }> {
+    const {
+      resolveFileToBuffer,
+      detectFileFormat,
+      parseDelimited,
+      parseXlsxBuffer,
+      normalizeRows,
+      MAX_FILE_EXTRACT_BYTES,
+    } = await import('./file-handlers.js');
+
+    const configFormat =
+      this.pickConfigField<string>(node.config, 'format') ?? 'auto';
+    const hasHeader =
+      this.pickConfigField<boolean>(node.config, 'hasHeader') ?? true;
+    const delimiter = this.pickConfigField<string>(node.config, 'delimiter');
+    const sheetName = this.pickConfigField<string>(node.config, 'sheetName');
+    const maxRows = Math.max(
+      1,
+      Math.min(
+        100000,
+        Number(this.pickConfigField<number>(node.config, 'maxRows') ?? 10000) ||
+          10000
+      )
+    );
+
+    const resolved = await resolveFileToBuffer(inputs.file, this.host);
+    if (resolved.buffer.byteLength > MAX_FILE_EXTRACT_BYTES) {
+      throw new Error(
+        `File Extract: file is ${Math.round(resolved.buffer.byteLength / 1024 / 1024)}MB — the limit is ${MAX_FILE_EXTRACT_BYTES / 1024 / 1024}MB`
+      );
+    }
+
+    const format =
+      configFormat === 'auto'
+        ? detectFileFormat(resolved.mimeType, resolved.nameHint, resolved.buffer)
+        : configFormat;
+
+    switch (format) {
+      case 'csv':
+      case 'tsv': {
+        const text = resolved.buffer.toString('utf8');
+        const parsed = parseDelimited(text, {
+          delimiter: delimiter || (format === 'tsv' ? '\t' : undefined),
+          hasHeader,
+          maxRows,
+        });
+        return {
+          data: parsed.rows,
+          text,
+          rowCount: parsed.rowCount,
+          truncated: parsed.truncated,
+        };
+      }
+      case 'json': {
+        const text = resolved.buffer.toString('utf8');
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(text);
+        } catch (err) {
+          throw new Error(
+            `File Extract: invalid JSON — ${(err as Error).message}`
+          );
+        }
+        const list = Array.isArray(parsed) ? parsed : [parsed];
+        const truncated = list.length > maxRows;
+        const data = truncated ? list.slice(0, maxRows) : list;
+        return { data, text, rowCount: data.length, truncated };
+      }
+      case 'xlsx': {
+        const parsed = await parseXlsxBuffer(resolved.buffer, {
+          sheetName: sheetName || undefined,
+          hasHeader,
+          maxRows,
+        });
+        // Text view: CSV-ish render so text-port consumers still get content.
+        const { toDelimited } = await import('./file-handlers.js');
+        const text = toDelimited(normalizeRows(parsed.rows), {});
+        return {
+          data: parsed.rows,
+          text,
+          rowCount: parsed.rowCount,
+          truncated: parsed.truncated,
+        };
+      }
+      case 'pdf':
+      case 'docx': {
+        const { extractFromBuffer } = await import('./doc-handlers.js');
+        const mime =
+          format === 'pdf'
+            ? 'application/pdf'
+            : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        const extracted = await extractFromBuffer(resolved.buffer, mime);
+        return {
+          data: [],
+          text: extracted.text,
+          rowCount: 0,
+          truncated: false,
+        };
+      }
+      default: {
+        // Plain text with no tabular structure — expose it, keep data empty.
+        return {
+          data: [],
+          text: resolved.buffer.toString('utf8'),
+          rowCount: 0,
+          truncated: false,
+        };
+      }
+    }
+  }
+
+  private async executeFileConvert(
+    node: NodeDefinition,
+    inputs: Record<string, unknown>
+  ): Promise<{ file: string; text: string; filename: string }> {
+    const {
+      normalizeRows,
+      toDelimited,
+      toMarkdownTable,
+      buildXlsxBuffer,
+      MAX_FILE_CONVERT_BYTES,
+    } = await import('./file-handlers.js');
+
+    const format = (
+      this.pickConfigField<string>(node.config, 'format') ?? 'csv'
+    ).toLowerCase();
+    const includeHeader =
+      this.pickConfigField<boolean>(node.config, 'includeHeader') ?? true;
+    const sheetName =
+      this.pickConfigField<string>(node.config, 'sheetName') || 'Data';
+
+    const extensionByFormat: Record<string, string> = {
+      csv: 'csv',
+      xlsx: 'xlsx',
+      markdown: 'md',
+      json: 'json',
+    };
+    const mimeByFormat: Record<string, string> = {
+      csv: 'text/csv',
+      xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      markdown: 'text/markdown',
+      json: 'application/json',
+    };
+    const extension = extensionByFormat[format];
+    if (!extension) {
+      throw new Error(`File Convert: unsupported format "${format}"`);
+    }
+
+    const rawName =
+      (typeof inputs.filename === 'string' && inputs.filename.trim()) ||
+      this.pickConfigField<string>(node.config, 'filename') ||
+      'export';
+    const base = String(rawName)
+      .trim()
+      .replace(/[/\\<>:"|?*\s]/g, '_');
+    const filename = base.toLowerCase().endsWith(`.${extension}`)
+      ? base
+      : `${base}.${extension}`;
+
+    let buffer: Buffer;
+    let text = '';
+    if (format === 'json') {
+      // Preserve the payload as-is for JSON (objects, nesting, etc.).
+      text = JSON.stringify(inputs.data, null, 2);
+      buffer = Buffer.from(text, 'utf8');
+    } else {
+      const normalized = normalizeRows(inputs.data);
+      if (format === 'csv') {
+        text = toDelimited(normalized, { includeHeader });
+        buffer = Buffer.from(text, 'utf8');
+      } else if (format === 'markdown') {
+        text = toMarkdownTable(normalized, { includeHeader });
+        buffer = Buffer.from(text, 'utf8');
+      } else {
+        buffer = await buildXlsxBuffer(normalized, {
+          sheetName,
+          includeHeader,
+        });
+      }
+    }
+
+    if (buffer.byteLength > MAX_FILE_CONVERT_BYTES) {
+      throw new Error(
+        `File Convert: output is ${Math.round(buffer.byteLength / 1024 / 1024)}MB — the limit is ${MAX_FILE_CONVERT_BYTES / 1024 / 1024}MB`
+      );
+    }
+
+    const file = `data:${mimeByFormat[format]};base64,${buffer.toString('base64')}`;
+    return { file, text, filename };
+  }
+
+  private async executeHtmlExtract(
+    node: NodeDefinition,
+    inputs: Record<string, unknown>
+  ): Promise<{ data: unknown; first: string; count: number }> {
+    const { htmlExtract } = await import('./file-handlers.js');
+
+    // Accept a plain HTML string or common object shapes (WEB_SCRAPER wires
+    // `rawHtml` directly; agents may hand over { html } / { value }).
+    let html: string;
+    const rawInput = inputs.html;
+    if (typeof rawInput === 'string') {
+      html = rawInput;
+    } else if (rawInput && typeof rawInput === 'object') {
+      const obj = rawInput as Record<string, unknown>;
+      const candidate = obj.html ?? obj.rawHtml ?? obj.value;
+      if (typeof candidate !== 'string') {
+        throw new Error('HTML Extract: `html` input must be an HTML string');
+      }
+      html = candidate;
+    } else {
+      throw new Error('HTML Extract: `html` input must be an HTML string');
+    }
+
+    // Advanced mode: `selectors` JSON array (UTIL_ROUTER textarea precedent).
+    const rawSelectors = this.pickConfigField<unknown>(node.config, 'selectors');
+    const entries: Array<{
+      name: string;
+      selector: string;
+      attribute?: string;
+      multiple?: boolean;
+    }> = [];
+    if (rawSelectors) {
+      let parsed: unknown = rawSelectors;
+      if (typeof rawSelectors === 'string' && rawSelectors.trim()) {
+        try {
+          parsed = JSON.parse(rawSelectors);
+        } catch {
+          throw new Error('HTML Extract: `selectors` must be a JSON array');
+        }
+      }
+      if (Array.isArray(parsed)) {
+        for (const entry of parsed) {
+          if (!entry || typeof entry !== 'object') continue;
+          const e = entry as Record<string, unknown>;
+          const name = typeof e.name === 'string' ? e.name.trim() : '';
+          const selector =
+            typeof e.selector === 'string' ? e.selector.trim() : '';
+          if (!name || !selector) continue;
+          entries.push({
+            name,
+            selector,
+            attribute:
+              typeof e.attribute === 'string' ? e.attribute : undefined,
+            multiple: typeof e.multiple === 'boolean' ? e.multiple : undefined,
+          });
+        }
+      }
+    }
+
+    // Simple mode fallback: single selector from input port / config.
+    if (entries.length === 0) {
+      const selector = String(
+        (inputs.selector as string | undefined) ??
+          this.pickConfigField<string>(node.config, 'selector') ??
+          ''
+      ).trim();
+      if (!selector) {
+        throw new Error(
+          'HTML Extract: provide a CSS selector (config, input port, or `selectors` JSON)'
+        );
+      }
+      entries.push({
+        name: 'result',
+        selector,
+        attribute: this.pickConfigField<string>(node.config, 'attribute'),
+        multiple:
+          this.pickConfigField<boolean>(node.config, 'multiple') ?? true,
+      });
+    }
+
+    return htmlExtract(html, entries);
   }
 
   private async executeDocLongContext(

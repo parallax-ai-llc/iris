@@ -760,6 +760,197 @@ export const DOC_GREP: NodeDefinition = {
   ],
 };
 
+// ─── Phase 4: file & data processing ────────────────────────────────────────
+// The "glue" primitives between AI/media nodes and external tabular data —
+// n8n's Extract From File / Convert to File / HTML nodes. All three are pure
+// compute (no LLM, no external API) and safe to expose as agent tools.
+
+/**
+ * Parse a file into structured JSON rows. CSV/TSV/JSON parse in-engine;
+ * XLSX uses a lazily-imported parser; PDF/DOCX reuse the doc-handlers text
+ * extraction (text output only — `data` stays empty for those).
+ */
+export const UTIL_FILE_EXTRACT: NodeDefinition = {
+  type: 'UTIL_FILE_EXTRACT',
+  category: 'UTILITY',
+  label: 'File Extract',
+  description: 'Parse CSV/TSV/JSON/XLSX/PDF/DOCX files into structured JSON rows',
+  iconName: 'FileSpreadsheet',
+  color: 'gray',
+  canBeTool: true,
+  inputs: [
+    { name: 'file', type: 'any', label: 'File', required: true },
+  ],
+  outputs: [
+    { name: 'data', type: 'json', label: 'Rows (array)' },
+    { name: 'text', type: 'text', label: 'Plain Text' },
+    { name: 'rowCount', type: 'any', label: 'Row Count', hideHandle: true },
+  ],
+  configFields: [
+    {
+      name: 'format',
+      label: 'Format',
+      type: 'select',
+      options: [
+        { value: 'auto', label: 'Auto-detect' },
+        { value: 'csv', label: 'CSV' },
+        { value: 'tsv', label: 'TSV' },
+        { value: 'json', label: 'JSON' },
+        { value: 'xlsx', label: 'Excel (XLSX)' },
+        { value: 'pdf', label: 'PDF (text only)' },
+        { value: 'docx', label: 'Word (text only)' },
+      ],
+      defaultValue: 'auto',
+      description: 'Auto-detect uses the MIME type / file extension.',
+    },
+    {
+      name: 'hasHeader',
+      label: 'First Row is Header',
+      type: 'toggle',
+      defaultValue: true,
+      description: 'CSV/TSV/XLSX — when on, rows become objects keyed by the header row; when off, arrays of cells.',
+    },
+    {
+      name: 'delimiter',
+      label: 'Delimiter',
+      type: 'text',
+      placeholder: 'auto (, ; tab |)',
+      description: 'CSV only — leave empty to auto-detect from the first line.',
+    },
+    {
+      name: 'sheetName',
+      label: 'Sheet Name',
+      type: 'text',
+      placeholder: 'First sheet if empty',
+      description: 'XLSX only — which worksheet to read.',
+      dependsOn: { field: 'format', value: 'xlsx' },
+    },
+    {
+      name: 'maxRows',
+      label: 'Max Rows',
+      type: 'number',
+      min: 1,
+      max: 100000,
+      defaultValue: 10000,
+      description: 'Rows beyond this limit are dropped (result flags truncation).',
+    },
+  ],
+};
+
+/**
+ * Turn JSON rows into a downloadable file. `file` output is a data URL —
+ * consumable by OUTPUT_STORAGE (bytes put), OUTPUT_WEBHOOK, and any node
+ * that resolves file inputs.
+ */
+export const UTIL_FILE_CONVERT: NodeDefinition = {
+  type: 'UTIL_FILE_CONVERT',
+  category: 'UTILITY',
+  label: 'File Convert',
+  description: 'Convert JSON rows into a CSV / XLSX / Markdown / JSON file',
+  iconName: 'FileOutput',
+  color: 'gray',
+  inputs: [
+    { name: 'data', type: 'json', label: 'Rows (array)', required: true },
+    { name: 'filename', type: 'text', label: 'Filename (override)' },
+  ],
+  outputs: [
+    { name: 'file', type: 'any', label: 'File (data URL)' },
+    { name: 'text', type: 'text', label: 'Text Content' },
+    { name: 'filename', type: 'text', label: 'Filename', hideHandle: true },
+  ],
+  configFields: [
+    {
+      name: 'format',
+      label: 'Format',
+      type: 'select',
+      options: [
+        { value: 'csv', label: 'CSV' },
+        { value: 'xlsx', label: 'Excel (XLSX)' },
+        { value: 'markdown', label: 'Markdown table' },
+        { value: 'json', label: 'JSON' },
+      ],
+      defaultValue: 'csv',
+    },
+    {
+      name: 'filename',
+      label: 'Filename',
+      type: 'text',
+      placeholder: 'export.csv (extension auto-appended)',
+      description: 'Overridden by the `filename` input port if connected.',
+    },
+    {
+      name: 'includeHeader',
+      label: 'Include Header Row',
+      type: 'toggle',
+      defaultValue: true,
+      description: 'CSV/XLSX/Markdown — write column names as the first row.',
+    },
+    {
+      name: 'sheetName',
+      label: 'Sheet Name',
+      type: 'text',
+      defaultValue: 'Data',
+      description: 'XLSX only.',
+      dependsOn: { field: 'format', value: 'xlsx' },
+    },
+  ],
+};
+
+/**
+ * CSS-selector extraction over an HTML string (pairs with WEB_SCRAPER's
+ * `rawHtml` output). Simple mode: one selector via config/input. Advanced
+ * mode: `selectors` JSON array — each entry becomes a key in `data`
+ * (same JSON-textarea precedent as UTIL_ROUTER's routes).
+ */
+export const UTIL_HTML_EXTRACT: NodeDefinition = {
+  type: 'UTIL_HTML_EXTRACT',
+  category: 'UTILITY',
+  label: 'HTML Extract',
+  description: 'Extract text/attributes/tables from HTML with CSS selectors',
+  iconName: 'CodeXml',
+  color: 'gray',
+  canBeTool: true,
+  inputs: [
+    { name: 'html', type: 'text', label: 'HTML', required: true },
+    { name: 'selector', type: 'text', label: 'Selector (override)' },
+  ],
+  outputs: [
+    { name: 'data', type: 'json', label: 'Extracted' },
+    { name: 'first', type: 'text', label: 'First Match' },
+    { name: 'count', type: 'any', label: 'Match Count', hideHandle: true },
+  ],
+  configFields: [
+    {
+      name: 'selector',
+      label: 'CSS Selector',
+      type: 'text',
+      placeholder: 'article h2 a',
+      description: 'Simple mode — one selector. Overridden by the `selector` input port; ignored when `selectors` JSON is set.',
+    },
+    {
+      name: 'attribute',
+      label: 'Extract',
+      type: 'text',
+      placeholder: 'empty = text, "html" = inner HTML, "table" = parse table, or an attribute name (href, src…)',
+      description: 'What to read from each matched element.',
+    },
+    {
+      name: 'multiple',
+      label: 'All Matches',
+      type: 'toggle',
+      defaultValue: true,
+      description: 'Off = first match only.',
+    },
+    {
+      name: 'selectors',
+      label: 'Selectors (advanced)',
+      type: 'textarea',
+      placeholder: '[{ "name": "titles", "selector": "h2 a" }, { "name": "links", "selector": "h2 a", "attribute": "href" }]',
+      description: 'JSON array of { name, selector, attribute?, multiple? }. When set, `data` becomes an object keyed by each entry\'s name.',
+    },
+  ],
+};
+
 /**
  * Execute another saved workflow as a single step. Enables modularization
  * — extract a reusable sub-routine (e.g. "generate-then-upscale") and

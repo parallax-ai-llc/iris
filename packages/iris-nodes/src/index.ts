@@ -118,6 +118,10 @@ export {
   UTIL_JSON_PATH,
   // Phase 2
   DOC_GREP,
+  // Phase 4: file & data processing
+  UTIL_FILE_EXTRACT,
+  UTIL_FILE_CONVERT,
+  UTIL_HTML_EXTRACT,
 } from './nodes/utility.js';
 
 // Web data collection (Phase 1+)

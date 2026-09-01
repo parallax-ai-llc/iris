@@ -75,6 +75,8 @@ import {
   Speech,
   MessageSquareText,
   Sheet,
+  FileSpreadsheet,
+  CodeXml,
   type LucideIcon,
 } from 'lucide-react';
 import {
@@ -116,6 +118,8 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Search, BookOpen, TextSearch, Tags, Youtube,
   // Phase 3 — new triggers / media-edit / outputs
   MessageCircle, ClipboardList, Inbox, AudioLines, Speech, MessageSquareText, Sheet,
+  // Phase 4 — file & data processing
+  FileSpreadsheet, CodeXml,
 };
 
 function withIcon(shared: SharedNodeDefinition): NodeDefinition {
@@ -406,6 +410,10 @@ const ENABLED_NODE_TYPES: readonly string[] = [
   'UTIL_JSON_PATH',
   // Phase 2 — LLM-free document search
   'DOC_GREP',
+  // Phase 4 — file & data processing
+  'UTIL_FILE_EXTRACT',
+  'UTIL_FILE_CONVERT',
+  'UTIL_HTML_EXTRACT',
 
   // Web (Phase 1 + 2)
   'WEB_SEARCH',

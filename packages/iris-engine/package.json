@@ -28,7 +28,9 @@
   },
   "dependencies": {
     "@mozilla/readability": "^0.6.0",
+    "cheerio": "^1.0.0",
     "dayjs": "^1.11.21",
+    "exceljs": "^4.4.0",
     "google-auth-library": "^9.14.2",
     "iris-nodes": "workspace:*",
     "jsdom": "^28.1.0",

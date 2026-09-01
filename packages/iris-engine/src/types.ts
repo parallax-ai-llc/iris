@@ -105,6 +105,10 @@ export type IrisNodeType =
   | 'UTIL_DATE'
   | 'UTIL_JSON_PATH'
   | 'DOC_GREP'
+  // Phase 4: file & data processing
+  | 'UTIL_FILE_EXTRACT'
+  | 'UTIL_FILE_CONVERT'
+  | 'UTIL_HTML_EXTRACT'
   // Web
   | 'WEB_SEARCH'
   | 'WEB_SCRAPER'
