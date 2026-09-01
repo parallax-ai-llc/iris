@@ -1000,7 +1000,7 @@ export class NodeExecutor {
           dataSource = { type: 'base64', value: imageInput };
         }
 
-        const fetchResult = await fetchMediaAsBuffer(dataSource);
+        const fetchResult = await fetchMediaAsBuffer(dataSource, this.host.http);
         if ('error' in fetchResult) {
           throw new Error(`Failed to fetch image: ${fetchResult.error}`);
         }

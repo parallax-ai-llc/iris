@@ -1,5 +1,6 @@
 /**
- * safe-http — guarded fetch for the UTIL_HTTP_REQUEST node.
+ * safe-http — guarded fetch for the UTIL_HTTP_REQUEST node and for media
+ * downloads (`fetchMediaAsBuffer` in media-source.ts).
  *
  * The node lets workflow authors call arbitrary URLs, so the raw `fetch` it
  * used to run is a textbook SSRF vector on a cloud host: `http://169.254.169.254`
@@ -57,6 +58,18 @@ export const DEFAULT_HTTP_MAX_REDIRECTS = 5;
 export interface SafeHttpResult {
   status: number;
   bodyText: string;
+  /** URL of the final (non-redirect) response, after following redirects. */
+  finalUrl: string;
+}
+
+/** Binary variant of `SafeHttpResult` — used for media downloads
+ *  (`fetchMediaAsBuffer`), where the body must stay a raw Buffer and the
+ *  Content-Type header matters. */
+export interface SafeHttpBufferResult {
+  status: number;
+  body: Buffer;
+  /** Raw Content-Type header of the final response, or null when absent. */
+  contentType: string | null;
   /** URL of the final (non-redirect) response, after following redirects. */
   finalUrl: string;
 }
@@ -257,7 +270,7 @@ const AUTH_HEADERS = ['authorization', 'cookie', 'proxy-authorization'];
 async function readBodyCapped(
   response: Response,
   maxBytes: number
-): Promise<string> {
+): Promise<Buffer> {
   const mb = maxBytes / (1024 * 1024);
   const capLabel = mb >= 1 ? `${Math.round(mb)}MB` : `${Math.round(maxBytes / 1024)}KB`;
   const sizeError = () =>
@@ -271,7 +284,7 @@ async function readBodyCapped(
     throw sizeError();
   }
 
-  if (!response.body) return '';
+  if (!response.body) return Buffer.alloc(0);
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;
@@ -285,16 +298,20 @@ async function readBodyCapped(
     }
     chunks.push(value);
   }
-  return Buffer.concat(chunks).toString('utf-8');
+  return Buffer.concat(chunks);
 }
 
 /**
- * SSRF-guarded, deadline-bounded, size-capped fetch. Follows redirects
- * manually so every hop is re-validated against the policy. Throws an Error
- * with a user-facing message on any policy violation, timeout, or network
- * failure — the caller surfaces `error.message` as the node's response.
+ * SSRF-guarded, deadline-bounded, size-capped fetch returning the raw body
+ * bytes. Follows redirects manually so every hop is re-validated against the
+ * policy. Throws an Error with a user-facing message on any policy violation,
+ * timeout, or network failure.
+ *
+ * This is the shared core: `safeHttpFetch` (UTIL_HTTP_REQUEST, text bodies)
+ * and `fetchMediaAsBuffer` (media downloads, binary bodies with larger caps)
+ * both run through it.
  */
-export async function safeHttpFetch(
+export async function safeHttpFetchBuffer(
   url: string,
   init: {
     method: string;
@@ -302,7 +319,7 @@ export async function safeHttpFetch(
     body?: string;
   },
   policy?: HttpRequestPolicy
-): Promise<SafeHttpResult> {
+): Promise<SafeHttpBufferResult> {
   const allowPrivateNetwork = policy?.allowPrivateNetwork ?? false;
   const timeoutMs = policy?.timeoutMs ?? DEFAULT_HTTP_TIMEOUT_MS;
   const maxResponseBytes =
@@ -370,9 +387,9 @@ export async function safeHttpFetch(
       continue;
     }
 
-    let bodyText: string;
+    let bodyBuffer: Buffer;
     try {
-      bodyText = await readBodyCapped(response, maxResponseBytes);
+      bodyBuffer = await readBodyCapped(response, maxResponseBytes);
     } catch (error) {
       if (isTimeoutError(error)) {
         throw new Error(
@@ -381,7 +398,35 @@ export async function safeHttpFetch(
       }
       throw error;
     }
-    return { status: response.status, bodyText, finalUrl: currentUrl };
+    return {
+      status: response.status,
+      body: bodyBuffer,
+      contentType: response.headers.get('content-type'),
+      finalUrl: currentUrl,
+    };
   }
   throw new Error(`Too many redirects (limit: ${maxRedirects}).`);
+}
+
+/**
+ * SSRF-guarded, deadline-bounded, size-capped fetch. Follows redirects
+ * manually so every hop is re-validated against the policy. Throws an Error
+ * with a user-facing message on any policy violation, timeout, or network
+ * failure — the caller surfaces `error.message` as the node's response.
+ */
+export async function safeHttpFetch(
+  url: string,
+  init: {
+    method: string;
+    headers: Record<string, string>;
+    body?: string;
+  },
+  policy?: HttpRequestPolicy
+): Promise<SafeHttpResult> {
+  const result = await safeHttpFetchBuffer(url, init, policy);
+  return {
+    status: result.status,
+    bodyText: result.body.toString('utf-8'),
+    finalUrl: result.finalUrl,
+  };
 }

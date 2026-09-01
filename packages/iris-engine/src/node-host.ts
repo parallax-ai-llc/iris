@@ -268,10 +268,14 @@ export interface NodeExecutorHost {
   /** Host-provided heavy node handlers (ffmpeg / googleapis). Optional: a host
    *  that omits a handler makes that node type unsupported on that host. */
   handlers?: ExtraNodeHandlers;
-  /** Outbound-fetch policy for the UTIL_HTTP_REQUEST node (see safe-http.ts).
+  /** Outbound-fetch policy for the UTIL_HTTP_REQUEST node (see safe-http.ts)
+   *  and for media downloads (`fetchMediaAsBuffer` on URL sources).
    *  Omitted → strict defaults: SSRF guard ON (private / loopback / link-local
    *  / metadata addresses blocked, redirects re-validated), 30s deadline, 10MB
-   *  response cap, 5 redirects. A self-hosted host running on the user's own
+   *  response cap, 5 redirects. Media downloads share `allowPrivateNetwork` /
+   *  `maxRedirects` but use larger default caps (300s / 500MB) when
+   *  `timeoutMs` / `maxResponseBytes` are unset — an explicit value here
+   *  applies to both paths. A self-hosted host running on the user's own
    *  machine (iris-host-local, iris/desktop) may set
    *  `allowPrivateNetwork: true` — calling localhost is legitimate there; the
    *  timeout and size caps still apply. */

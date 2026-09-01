@@ -11,6 +11,18 @@
  * them so existing import paths keep working.
  */
 
+import { safeHttpFetchBuffer } from './safe-http.js';
+import type { HttpRequestPolicy } from './safe-http.js';
+
+/** Default overall deadline for a media download. Media files are much larger
+ *  than the HTTP-request node's text responses, so the 30s node default would
+ *  cut off legitimate video downloads. */
+export const DEFAULT_MEDIA_FETCH_TIMEOUT_MS = 300_000;
+/** Default buffered-size cap for a media download. Bigger than the HTTP-request
+ *  node's 10MB (generated videos routinely exceed it) but still a hard ceiling
+ *  so a hostile or broken URL can't buffer unbounded bytes into memory. */
+export const DEFAULT_MEDIA_MAX_RESPONSE_BYTES = 500 * 1024 * 1024;
+
 /** Input data types that can be resolved to a buffer. */
 export type MediaDataSource =
   | { type: 'url'; value: string }
@@ -192,10 +204,19 @@ export function detectMimeTypeFromBuffer(buffer: Buffer): string | null {
 
 /**
  * Fetch media data from various sources and convert to a Buffer.
- * Pure: only uses `fetch` + `Buffer` — no host services.
+ * Pure: no host services — URL sources go through the engine's guarded fetch
+ * (`safeHttpFetchBuffer`): SSRF validation re-checked on every redirect hop,
+ * an overall deadline, and a buffered-size cap.
+ *
+ * `policy` is the host's outbound-fetch policy (`NodeExecutorHost.http`).
+ * Omitted fields fall back to the media defaults above (not the HTTP node's
+ * 30s/10MB), so passing a host policy that only sets `allowPrivateNetwork`
+ * keeps media downloads working. Callers without host access can omit it —
+ * that means the strict cloud posture (SSRF guard ON).
  */
 export async function fetchMediaAsBuffer(
-  source: MediaDataSource
+  source: MediaDataSource,
+  policy?: HttpRequestPolicy
 ): Promise<{ buffer: Buffer; mimeType: string } | { error: string }> {
   try {
     switch (source.type) {
@@ -228,21 +249,30 @@ export async function fetchMediaAsBuffer(
           return { error: 'Invalid data URL format' };
         }
 
-        // Fetch from HTTP(S) URL
-        const response = await fetch(source.value);
-        if (!response.ok) {
+        // Guarded fetch from an HTTP(S) URL. Policy violations, timeouts, and
+        // oversized bodies throw with a user-facing message; the outer catch
+        // turns that into `{ error }` like every other failure here.
+        const response = await safeHttpFetchBuffer(
+          source.value,
+          { method: 'GET', headers: {} },
+          {
+            ...policy,
+            timeoutMs: policy?.timeoutMs ?? DEFAULT_MEDIA_FETCH_TIMEOUT_MS,
+            maxResponseBytes:
+              policy?.maxResponseBytes ?? DEFAULT_MEDIA_MAX_RESPONSE_BYTES,
+          }
+        );
+        if (response.status < 200 || response.status >= 300) {
           return {
-            error: `Failed to fetch URL: ${response.status} ${response.statusText}`,
+            error: `Failed to fetch URL: ${response.status}`,
           };
         }
-        const arrayBuffer = await response.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+        const buffer = response.body;
 
         // Determine mime type from response or detect from buffer
-        const contentType = response.headers.get('content-type');
         const detectedMime = detectMimeTypeFromBuffer(buffer);
         const mimeType =
-          contentType?.split(';')[0] ||
+          response.contentType?.split(';')[0] ||
           detectedMime ||
           'application/octet-stream';
 
