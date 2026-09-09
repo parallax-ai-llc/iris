@@ -200,6 +200,8 @@ export const MODEL_OPTIONS: Record<string, Record<string, Array<{ value: string;
     openai: [
       { value: 'gpt-image-1', label: 'GPT Image 1' },
       { value: 'gpt-image-2', label: 'GPT Image 2' },
+      { value: 'gpt-image-2.5-flare', label: 'GPT Image 2.5 Flare' },
+      { value: 'gpt-image-2.5-sunburst', label: 'GPT Image 2.5 Sunburst' },
     ],
     google: [
       { value: 'gemini-3-pro-image-preview', label: 'Gemini 3 Pro Image' },
