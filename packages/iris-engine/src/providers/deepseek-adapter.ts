@@ -1,6 +1,6 @@
 /**
  * Parallax Iris - DeepSeek Provider Adapter
- * Supports: text-to-text (DeepSeek Chat and Reasoner models)
+ * Supports: text-to-text (DeepSeek V4.1 Flash)
  */
 
 import { BaseProviderAdapter } from './base-adapter.js';
@@ -23,42 +23,46 @@ export class DeepSeekAdapter extends BaseProviderAdapter {
 
   readonly capabilities: AICapability[] = ['text-to-text'];
 
+  // DeepSeek retired the `deepseek-chat` and `deepseek-reasoner` model
+  // names at 2026-07-24 15:59 UTC; every call since then errors out. Both
+  // entries were deleted rather than given a `deprecated` window because
+  // that sunset is already past — see the ModelInfo.deprecated contract in
+  // ../types.ts.
+  //
+  // V4.1 Flash absorbs both roles: it reasons natively (so the
+  // `reasoning_content` handling below still applies) and is served by
+  // `deepseek-flash`, DeepSeek's rolling alias for the current Flash
+  // checkpoint — the legacy `deepseek-v4-flash` name resolves to the same
+  // model. Rename the entry if DeepSeek moves the alias to a newer Flash
+  // generation. `deepseek-v4-pro` is deliberately not listed: from
+  // 2026-09-14 04:00 UTC every Pro request is routed to V4.1 Flash and
+  // billed at Flash rates, so it would duplicate this entry at a dead id.
+  //
+  // Pricing is DeepSeek's **peak** cache-miss rate ($0.30 in / $1.20 out
+  // per 1M tokens). Off-peak (outside 01:00-04:00 and 06:00-10:00 UTC,
+  // Mon-Fri) is half of it, but CostCalculator has no time-of-day
+  // awareness, so the peak rate is the side that never under-reports what
+  // a run cost.
+  //
+  // Verified 2026-09-10 against
+  // https://api-docs.deepseek.com/quick_start/pricing
   readonly models: ModelInfo[] = [
     {
-      id: 'deepseek-chat',
-      name: 'DeepSeek Chat',
+      id: 'deepseek-flash',
+      name: 'DeepSeek V4.1 Flash',
       provider: 'deepseek',
       capabilities: ['text-to-text'],
       inputTypes: ['text'],
       outputTypes: ['text'],
       constraints: {
-        maxTokens: 64000,
+        // Context window, as elsewhere in this adapter. V4.1 Flash also
+        // raises the output cap to 384K, well above the 8192 default below.
+        maxTokens: 1000000,
       },
       pricing: {
         unit: 'token',
-        inputCost: 0.00014 / 1000,
-        outputCost: 0.00028 / 1000,
-        currency: 'USD',
-      },
-      defaultParameters: {
-        maxTokens: 8192,
-        temperature: 1,
-      },
-    },
-    {
-      id: 'deepseek-reasoner',
-      name: 'DeepSeek Reasoner (R1)',
-      provider: 'deepseek',
-      capabilities: ['text-to-text'],
-      inputTypes: ['text'],
-      outputTypes: ['text'],
-      constraints: {
-        maxTokens: 64000,
-      },
-      pricing: {
-        unit: 'token',
-        inputCost: 0.00055 / 1000,
-        outputCost: 0.00219 / 1000,
+        inputCost: 0.0003 / 1000,
+        outputCost: 0.0012 / 1000,
         currency: 'USD',
       },
       defaultParameters: {
@@ -106,7 +110,7 @@ export class DeepSeekAdapter extends BaseProviderAdapter {
     startTime: number
   ): Promise<AIResponse> {
     const { prompt, systemPrompt, parameters = {} } = request;
-    const model = request.model || 'deepseek-chat';
+    const model = request.model || 'deepseek-flash';
 
     const messages: Array<{ role: string; content: string }> = [];
 
@@ -158,8 +162,8 @@ export class DeepSeekAdapter extends BaseProviderAdapter {
     };
 
     const modelInfo = this.getModelInfo(model);
-    const inputCostRate = modelInfo?.pricing?.inputCost ?? 0.00014 / 1000;
-    const outputCostRate = modelInfo?.pricing?.outputCost ?? 0.00028 / 1000;
+    const inputCostRate = modelInfo?.pricing?.inputCost ?? 0.0003 / 1000;
+    const outputCostRate = modelInfo?.pricing?.outputCost ?? 0.0012 / 1000;
     const estimatedCost = CostCalculator.forTokens(
       inputCostRate,
       outputCostRate,
