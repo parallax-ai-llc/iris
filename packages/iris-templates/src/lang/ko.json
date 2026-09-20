@@ -63,6 +63,14 @@
     "aiResearchAnalyst": {
       "name": "AI 리서치 애널리스트",
       "description": "자율 에이전트가 주제를 조사해 구조화된 시장·경쟁사 리포트를 생성"
+    },
+    "supportTicketTriage": {
+      "name": "고객 문의 자동 분류",
+      "description": "타입이 정해진 AI 판정으로 문의를 담당 팀 채널로 보내고, 확신이 낮으면 사람에게 넘깁니다"
+    },
+    "copyQualityGate": {
+      "name": "카피 품질 게이트",
+      "description": "제품 설명 초안을 AI 판정으로 채점해 통과한 것만 저장하고, 미달은 재작성, 애매하면 검토 요청"
     }
   },
   "nodeLabels": {
@@ -89,7 +97,16 @@
     "summaryGenerator": "요약 생성기",
     "webhookTrigger": "웹훅 트리거",
     "contentGenerator": "콘텐츠 생성기",
-    "webhookOutput": "웹훅 출력"
+    "webhookOutput": "웹훅 출력",
+    "aiDecision": "AI 판정",
+    "qualityGate": "품질 게이트",
+    "copyWriter": "카피 작성",
+    "rewrite": "재작성",
+    "billingQueue": "결제 큐",
+    "engineeringSlack": "개발팀 Slack",
+    "generalQueue": "일반 큐",
+    "humanReview": "사람 검토",
+    "saveRewrite": "재작성본 저장"
   },
   "inputLabels": {
     "snsImagePrompt": "SNS 이미지 프롬프트를 입력하세요",

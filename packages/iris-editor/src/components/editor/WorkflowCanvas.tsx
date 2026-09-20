@@ -155,7 +155,11 @@ function CanvasInner() {
     const nodeIds = Object.keys(executionProgress);
     if (nodeIds.length === 0) return null;
 
-    const completed = nodeIds.filter((id) => executionProgress[id]?.status === 'success').length;
+    // Pruned (skipped) nodes count as settled: they are finished for the run
+    // even though they never executed, so the progress counter reaches total.
+    const completed = nodeIds.filter(
+      (id) => executionProgress[id]?.status === 'success' || executionProgress[id]?.status === 'skipped',
+    ).length;
     const failed = nodeIds.filter((id) => executionProgress[id]?.status === 'error').length;
     const running = nodeIds.filter((id) => executionProgress[id]?.status === 'running').length;
     const total = nodes.length;

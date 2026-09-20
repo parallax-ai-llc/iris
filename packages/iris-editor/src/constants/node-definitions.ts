@@ -172,9 +172,15 @@ export const PROVIDER_OPTIONS = [
   { value: 'replicate', label: 'Replicate' },
   { value: 'elevenlabs', label: 'ElevenLabs' },
   { value: 'suno', label: 'Suno AI' },
+  { value: 'typesafe', label: 'TypeSafe (Jev)' },
 ];
 
 export const MODEL_OPTIONS: Record<string, Record<string, Array<{ value: string; label: string }>>> = {
+  // AI_DECISION — decision-only model; not in the agents store, so the
+  // selector falls back to this static list.
+  'decision': {
+    typesafe: [{ value: 'jev-latest', label: 'Jev (latest)' }],
+  },
   'text-to-text': {
     openai: [
       { value: 'gpt-5.2', label: 'GPT 5.2' },
@@ -414,6 +420,8 @@ const ENABLED_NODE_TYPES: readonly string[] = [
   'UTIL_AGGREGATE',
   'UTIL_TRY_CATCH',
   'UTIL_SUB_WORKFLOW',
+  // Semantic gate (TypeSafe Jev)
+  'AI_DECISION',
   // Phase 1 — data formatters
   'UTIL_REGEX',
   'UTIL_DATE',

@@ -28,6 +28,16 @@ export const NODE_LABEL_I18N_KEYS: Record<string, string> = {
   'Webhook Trigger': 'webhookTrigger',
   'Content Generator': 'contentGenerator',
   'Webhook Output': 'webhookOutput',
+  // Jev semantic-gate templates
+  'AI Decision': 'aiDecision',
+  'Quality Gate': 'qualityGate',
+  'Copy Writer': 'copyWriter',
+  'Rewrite': 'rewrite',
+  'Billing Queue': 'billingQueue',
+  'Engineering Slack': 'engineeringSlack',
+  'General Queue': 'generalQueue',
+  'Human Review': 'humanReview',
+  'Save Rewrite': 'saveRewrite',
 };
 
 // Input label translation keys mapping
@@ -1442,6 +1452,189 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
       { edgeId: 'edge-3', sourceNodeId: 'report-extract-1', sourceHandle: 'data', targetNodeId: 'template-1', targetHandle: 'data' },
       { edgeId: 'edge-4', sourceNodeId: 'template-1', sourceHandle: 'result', targetNodeId: 'storage-1', targetHandle: 'data' },
       { edgeId: 'edge-5', sourceNodeId: 'template-1', sourceHandle: 'result', targetNodeId: 'email-1', targetHandle: 'content' },
+    ],
+  },
+
+  // ================================
+  // SEMANTIC GATE TEMPLATES (AI_DECISION / TypeSafe Jev)
+  // ================================
+
+  // --- Support Ticket Triage: one typed choice → per-team channel, uncertain → human ---
+  {
+    id: 'preset-support-ticket-triage',
+    isPreset: true,
+    i18nKey: 'supportTicketTriage',
+    name: 'Support Ticket Triage',
+    description: 'Route incoming tickets to the right team with a typed AI decision; low-confidence tickets go to a human',
+    category: 'automation',
+    tags: ['webhook', 'decision', 'routing', 'support', 'jev'],
+    nodeCount: 6,
+    presetNodes: [
+      {
+        nodeId: 'trigger-1',
+        type: 'TRIGGER_WEBHOOK',
+        label: 'Webhook Trigger',
+        positionX: 80,
+        positionY: 320,
+        config: {},
+      },
+      {
+        nodeId: 'decide-1',
+        type: 'AI_DECISION',
+        label: 'AI Decision',
+        positionX: 380,
+        positionY: 320,
+        config: {
+          provider: 'typesafe',
+          model: 'jev-latest',
+          mode: 'choice',
+          question: 'What is this support ticket about?',
+          options:
+            'billing: charges, refunds, invoices, payment methods\ntechnical: bugs, errors, outages, login or app problems\nother: anything else, including general questions',
+          minConfidence: 0.75,
+        },
+      },
+      {
+        nodeId: 'billing-1',
+        type: 'OUTPUT_WEBHOOK',
+        label: 'Billing Queue',
+        positionX: 720,
+        positionY: 120,
+        config: { method: 'POST', url: '' },
+      },
+      {
+        nodeId: 'technical-1',
+        type: 'OUTPUT_SLACK_POST',
+        label: 'Engineering Slack',
+        positionX: 720,
+        positionY: 280,
+        config: { channel: '#support-eng' },
+      },
+      {
+        nodeId: 'other-1',
+        type: 'OUTPUT_WEBHOOK',
+        label: 'General Queue',
+        positionX: 720,
+        positionY: 440,
+        config: { method: 'POST', url: '' },
+      },
+      {
+        nodeId: 'review-1',
+        type: 'OUTPUT_EMAIL',
+        label: 'Human Review',
+        positionX: 720,
+        positionY: 600,
+        config: { to: '', subject: 'Support ticket needs manual triage' },
+      },
+    ],
+    presetEdges: [
+      { edgeId: 'edge-1', sourceNodeId: 'trigger-1', sourceHandle: 'payload', targetNodeId: 'decide-1', targetHandle: 'input' },
+      { edgeId: 'edge-2', sourceNodeId: 'decide-1', sourceHandle: 'billing', targetNodeId: 'billing-1', targetHandle: 'data' },
+      { edgeId: 'edge-3', sourceNodeId: 'decide-1', sourceHandle: 'technical', targetNodeId: 'technical-1', targetHandle: 'text' },
+      { edgeId: 'edge-4', sourceNodeId: 'decide-1', sourceHandle: 'other', targetNodeId: 'other-1', targetHandle: 'data' },
+      { edgeId: 'edge-5', sourceNodeId: 'decide-1', sourceHandle: 'uncertain', targetNodeId: 'review-1', targetHandle: 'content' },
+    ],
+  },
+
+  // --- Copy Quality Gate: draft → score gate → publish / rewrite / human review ---
+  {
+    id: 'preset-copy-quality-gate',
+    isPreset: true,
+    i18nKey: 'copyQualityGate',
+    name: 'Copy Quality Gate',
+    description: 'Draft product copy, score it with a typed AI decision, and only publish what passes; weak drafts are rewritten, unclear ones go to a human',
+    category: 'content',
+    tags: ['text', 'decision', 'quality', 'jev'],
+    nodeCount: 7,
+    presetNodes: [
+      {
+        nodeId: 'trigger-1',
+        type: 'TRIGGER_MANUAL',
+        label: 'Manual Trigger',
+        positionX: 80,
+        positionY: 320,
+        config: {
+          inputType: 'text',
+          inputLabel: '제품 설명을 입력하세요',
+        },
+      },
+      {
+        nodeId: 'draft-1',
+        type: 'GEN_TEXT_TO_TEXT',
+        label: 'Copy Writer',
+        positionX: 360,
+        positionY: 320,
+        config: {
+          provider: 'anthropic',
+          model: 'claude-sonnet-4-20250514',
+          systemPrompt:
+            'Write a concise, persuasive product description (80-120 words) from the notes provided. Be specific and concrete. Plain text only.',
+          temperature: 0.7,
+        },
+      },
+      {
+        nodeId: 'gate-1',
+        type: 'AI_DECISION',
+        label: 'Quality Gate',
+        positionX: 660,
+        positionY: 320,
+        config: {
+          provider: 'typesafe',
+          model: 'jev-latest',
+          mode: 'score',
+          question: 'How ready is this product description to publish as-is?',
+          levels:
+            'unusable: off-topic, factual gaps or broken text\nneeds work: readable but generic, vague or over length\npublishable: clear, specific and within 80-120 words',
+          scoreThreshold: 2,
+          minConfidence: 0.7,
+        },
+      },
+      {
+        nodeId: 'publish-1',
+        type: 'OUTPUT_STORAGE',
+        label: 'Save to Storage',
+        positionX: 980,
+        positionY: 140,
+        config: { folder: 'product-copy', filename: '{{timestamp}}_copy' },
+      },
+      {
+        nodeId: 'rewrite-1',
+        type: 'GEN_TEXT_TO_TEXT',
+        label: 'Rewrite',
+        positionX: 980,
+        positionY: 320,
+        config: {
+          provider: 'anthropic',
+          model: 'claude-sonnet-4-20250514',
+          systemPrompt:
+            'Rewrite the product description below so it is specific, concrete and 80-120 words. Keep every factual claim. Return only the rewritten text.',
+          temperature: 0.5,
+        },
+      },
+      {
+        nodeId: 'save-rewrite-1',
+        type: 'OUTPUT_STORAGE',
+        label: 'Save Rewrite',
+        positionX: 1280,
+        positionY: 320,
+        config: { folder: 'product-copy', filename: '{{timestamp}}_copy_rewritten' },
+      },
+      {
+        nodeId: 'review-1',
+        type: 'OUTPUT_EMAIL',
+        label: 'Human Review',
+        positionX: 980,
+        positionY: 520,
+        config: { to: '', subject: 'Product copy needs review' },
+      },
+    ],
+    presetEdges: [
+      { edgeId: 'edge-1', sourceNodeId: 'trigger-1', sourceHandle: 'text', targetNodeId: 'draft-1', targetHandle: 'prompt' },
+      { edgeId: 'edge-2', sourceNodeId: 'draft-1', sourceHandle: 'text', targetNodeId: 'gate-1', targetHandle: 'input' },
+      { edgeId: 'edge-3', sourceNodeId: 'gate-1', sourceHandle: 'true', targetNodeId: 'publish-1', targetHandle: 'data' },
+      { edgeId: 'edge-4', sourceNodeId: 'gate-1', sourceHandle: 'false', targetNodeId: 'rewrite-1', targetHandle: 'prompt' },
+      { edgeId: 'edge-5', sourceNodeId: 'rewrite-1', sourceHandle: 'text', targetNodeId: 'save-rewrite-1', targetHandle: 'data' },
+      { edgeId: 'edge-6', sourceNodeId: 'gate-1', sourceHandle: 'uncertain', targetNodeId: 'review-1', targetHandle: 'content' },
     ],
   },
 ];

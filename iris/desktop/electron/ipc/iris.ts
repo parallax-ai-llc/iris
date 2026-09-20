@@ -66,6 +66,7 @@ const KEY_FIELDS: ReadonlyArray<{ envVar: string; label: string }> = [
   { envVar: 'LUMA_API_KEY', label: 'Luma' },
   { envVar: 'ELEVENLABS_API_KEY', label: 'ElevenLabs' },
   { envVar: 'SUNO_API_KEY', label: 'Suno' },
+  { envVar: 'TYPESAFE_API_KEY', label: 'TypeSafe (Jev)' },
 ];
 
 export interface IrisKeyStatus {

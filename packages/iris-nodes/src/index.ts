@@ -126,6 +126,8 @@ export {
   UTIL_HTML_EXTRACT,
   // Phase 4: reliability & security
   UTIL_CRYPTO,
+  // Semantic gate (TypeSafe Jev)
+  AI_DECISION,
 } from './nodes/utility.js';
 
 // Web data collection (Phase 1+)
@@ -190,6 +192,15 @@ export {
   renderCategorizedNodePrompts,
   renderWorkflowPatterns,
 } from './prompt.js';
+
+export {
+  DECISION_RESERVED_PORTS,
+  parseDecisionOptions,
+  parseScoreLevels,
+  parseRouterRoutes,
+  getDynamicOutputPorts,
+} from './dynamic-ports.js';
+export type { DecisionOption, RouterRoute } from './dynamic-ports.js';
 
 export { buildSnapshot } from './snapshot.js';
 export type {

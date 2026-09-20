@@ -4,7 +4,11 @@
  */
 
 import type { HeaderEntry } from 'iris-nodes';
-import { NODE_DEFINITIONS as SHARED_NODE_DEFINITIONS } from 'iris-nodes';
+import {
+  NODE_DEFINITIONS as SHARED_NODE_DEFINITIONS,
+  parseDecisionOptions,
+  parseScoreLevels,
+} from 'iris-nodes';
 import {
   NodeDefinition,
   NodeResult,
@@ -17,6 +21,15 @@ import type { IrisNodeType } from './types.js';
 import { createAdapter } from './providers/index.js';
 import type { NodeExecutorHost, PublicStoreSource } from './node-host.js';
 import { safeHttpFetch } from './safe-http.js';
+import { markInertPorts } from './branch-pruning.js';
+import {
+  executeDecision,
+  executeDecisionMulti,
+  DecisionConfigError,
+  type DecisionAnswer,
+  type DecisionMode,
+  type RawDecisionQuestion,
+} from './decision-handlers.js';
 import { AppError } from './app-error.js';
 import { fetchMediaAsBuffer } from './media-source.js';
 import sharp from 'sharp';
@@ -102,9 +115,15 @@ export class NodeExecutor {
     try {
       // Route to appropriate handler based on node type category
       const category = NODE_TYPE_CATEGORY[node.type];
+      // AI-backed nodes outside the generator/analyzer categories (e.g. the
+      // AI_DECISION gate, a UTILITY node) are metered like analyzers: the
+      // catalog's `aiCapability` marks them.
+      const isMeteredUtility =
+        category === 'utility' &&
+        Boolean(SHARED_NODE_DEFINITIONS[node.type]?.aiCapability);
 
       // Check token balance for generator and analyzer nodes BEFORE execution
-      if (category === 'generator' || category === 'analyzer') {
+      if (category === 'generator' || category === 'analyzer' || isMeteredUtility) {
         const defaults = DEFAULT_NODE_CONFIGS[node.type];
         const modelId =
           this.pickConfigField<string>(node.config, 'model') || defaults?.model;
@@ -195,7 +214,7 @@ export class NodeExecutor {
 
       // Consume tokens after successful execution for generator and analyzer nodes
       let tokensConsumed = 0;
-      if (category === 'generator' || category === 'analyzer') {
+      if (category === 'generator' || category === 'analyzer' || isMeteredUtility) {
         const defaults = DEFAULT_NODE_CONFIGS[node.type];
         const effectiveModelId =
           this.pickConfigField<string>(node.config, 'model') || defaults?.model;
@@ -1594,6 +1613,7 @@ export class NodeExecutor {
 
         outputs.true = conditionMet ? value : null;
         outputs.false = conditionMet ? null : value;
+        markInertPorts(outputs, conditionMet ? ['false'] : ['true']);
         break;
       }
 
@@ -1654,6 +1674,7 @@ export class NodeExecutor {
 
         outputs.true = conditionMet ? value : null;
         outputs.false = conditionMet ? null : value;
+        markInertPorts(outputs, conditionMet ? ['false'] : ['true']);
         break;
       }
 
@@ -2111,6 +2132,12 @@ export class NodeExecutor {
           outputs.default = input;
           outputs.__matchedRoute = 'default';
         }
+        markInertPorts(
+          outputs,
+          ['default', ...routes.map(r => r.name)].filter(
+            name => name !== outputs.__matchedRoute
+          )
+        );
         break;
       }
 
@@ -2127,6 +2154,7 @@ export class NodeExecutor {
 
         outputs.passed = passes ? input : null;
         outputs.rejected = passes ? null : input;
+        markInertPorts(outputs, passes ? ['rejected'] : ['passed']);
         break;
       }
 
@@ -2205,6 +2233,7 @@ export class NodeExecutor {
           outputs.success = input;
           outputs.error = null;
         }
+        markInertPorts(outputs, errorEnvelope ? ['success'] : ['error']);
         break;
       }
 
@@ -2422,6 +2451,13 @@ export class NodeExecutor {
           outputs.error = (err as Error).message;
         }
         break;
+      }
+
+      // ─── Semantic gate (TypeSafe Jev) ─────────────────────────────────
+      case 'AI_DECISION': {
+        const r = await this.executeAiDecision(node, inputs);
+        Object.assign(outputs, r.outputs);
+        return { outputs, assets: [], usage: r.usage };
       }
 
       // ─── Phase 1: web data collection ─────────────────────────────────
@@ -3196,6 +3232,340 @@ export class NodeExecutor {
       categories,
       allowMultiple,
     });
+  }
+
+  /**
+   * AI_DECISION — ask Jev one typed question about `inputs.input` and route
+   * the input to exactly one branch port. Every other branch port is marked
+   * inert so the engine prunes its downstream (see branch-pruning.ts).
+   *
+   *   noul   → `true` / `false`
+   *   choice → the chosen option label (one port per option)
+   *   score  → `true` when score ≥ threshold, else `false`
+   *   multi  → no branch; answers by name on `answer`
+   *   any    → `uncertain` when confidence < minConfidence
+   *
+   * Provider failures (after the handler's transient retries) follow the
+   * node's `fallback`: route to `uncertain`, answer with an LLM, or fail.
+   * Authoring errors (`DecisionConfigError`) always fail.
+   *
+   * A compact `__decision` record rides on the outputs; the engine persists
+   * it as a NODE_DECISION log for threshold tuning.
+   */
+  private async executeAiDecision(
+    node: NodeDefinition,
+    inputs: Record<string, unknown>
+  ): Promise<{ outputs: Record<string, unknown>; usage: UsageInfo }> {
+    const settings = (node.config?.settings ?? {}) as Record<string, unknown>;
+    const pick = <T,>(name: string): T | undefined =>
+      (settings[name] ?? node.config?.[name]) as T | undefined;
+
+    const modeRaw = pick<string>('mode') ?? 'noul';
+    const model = pick<string>('model');
+    const fallbackRaw = pick<string>('fallback');
+    const fallback: 'uncertain' | 'llm' | 'fail' =
+      fallbackRaw === 'llm' || fallbackRaw === 'fail' ? fallbackRaw : 'uncertain';
+    const minConfidenceRaw = Number(pick<number>('minConfidence'));
+    const minConfidence = Number.isFinite(minConfidenceRaw)
+      ? Math.min(1, Math.max(0, minConfidenceRaw))
+      : 0.8;
+
+    const usageOf = (u: {
+      inputTokens: number;
+      outputTokens: number;
+      estimatedCostUsd: number;
+    }): UsageInfo => ({
+      inputTokens: u.inputTokens,
+      outputTokens: u.outputTokens,
+      totalTokens: u.inputTokens + u.outputTokens,
+      estimatedCost: u.estimatedCostUsd,
+    });
+    const noUsage: UsageInfo = { inputTokens: 0, outputTokens: 0, totalTokens: 0, estimatedCost: 0 };
+
+    // multi: several questions in one call, no branch taken. Answers are
+    // exposed by name on `answer`; downstream gates route on them.
+    if (modeRaw === 'multi') {
+      const questions = this.parseDecisionQuestions(pick<unknown>('questions'));
+      const branchPorts = ['true', 'false', 'uncertain'];
+      const outputs: Record<string, unknown> = {};
+      for (const port of branchPorts) outputs[port] = null;
+      markInertPorts(outputs, branchPorts);
+
+      try {
+        const multi = await executeDecisionMulti(inputs.input, { model, questions });
+        const confidences = Object.values(multi.answers).map(a => a.confidence);
+        const answer: Record<string, unknown> = {};
+        const probabilities: Record<string, unknown> = {};
+        for (const [name, a] of Object.entries(multi.answers)) {
+          answer[name] = a.answer;
+          probabilities[name] = a.probabilities;
+        }
+        const confidence = confidences.length ? Math.min(...confidences) : 0;
+        outputs.answer = answer;
+        outputs.confidence = confidence;
+        outputs.probabilities = probabilities;
+        outputs.__decision = {
+          mode: 'multi',
+          taken: null,
+          model: multi.model,
+          confidence,
+          minConfidence,
+          uncertain: false,
+          questionCount: confidences.length,
+          latencyMs: multi.latencyMs,
+          attempts: multi.attempts,
+          inputTokens: multi.inputTokens,
+          estimatedCostUsd: multi.estimatedCostUsd,
+          fallback: null,
+        };
+        return { outputs, usage: usageOf(multi) };
+      } catch (err) {
+        if (err instanceof DecisionConfigError || fallback === 'fail') throw err;
+        // `llm` has no multi-question equivalent — degrade to `uncertain`.
+        outputs.answer = {};
+        outputs.confidence = 0;
+        outputs.probabilities = {};
+        outputs.__decision = {
+          mode: 'multi',
+          taken: null,
+          model: model ?? null,
+          confidence: 0,
+          minConfidence,
+          uncertain: true,
+          questionCount: Object.keys(questions).length,
+          fallback: 'uncertain',
+          error: (err as Error).message,
+        };
+        return { outputs, usage: noUsage };
+      }
+    }
+
+    const mode = modeRaw as DecisionMode;
+    const question = String(
+      (inputs.question as string | undefined) ?? pick<string>('question') ?? ''
+    ).trim();
+    const options = parseDecisionOptions(pick<string>('options'));
+    const levels = parseScoreLevels(pick<string>('levels'));
+    const thresholdRaw = pick<number | string>('scoreThreshold');
+    const scoreThreshold =
+      thresholdRaw === undefined || thresholdRaw === null || thresholdRaw === ''
+        ? Math.ceil((levels.length - 1) / 2)
+        : Number(thresholdRaw);
+
+    // Every branch port this node could take, so the untaken ones can be
+    // marked inert.
+    const branchPorts =
+      mode === 'choice'
+        ? ['true', 'false', 'uncertain', ...options.map(o => o.label)]
+        : ['true', 'false', 'uncertain'];
+
+    const route = (answer: DecisionAnswer): string => {
+      if (answer.confidence < minConfidence) return 'uncertain';
+      if (mode === 'noul') return answer.answer === true ? 'true' : 'false';
+      if (mode === 'choice') {
+        const label = String(answer.answer);
+        return branchPorts.includes(label) ? label : 'uncertain';
+      }
+      return Number(answer.answer) >= scoreThreshold ? 'true' : 'false';
+    };
+
+    const finish = (
+      answer: DecisionAnswer | null,
+      taken: string,
+      usage: UsageInfo,
+      decision: Record<string, unknown>
+    ) => {
+      const outputs: Record<string, unknown> = {
+        answer: answer?.answer ?? null,
+        confidence: answer?.confidence ?? 0,
+        probabilities: answer?.probabilities ?? {},
+        __decision: {
+          mode,
+          taken,
+          confidence: answer?.confidence ?? 0,
+          minConfidence,
+          uncertain: taken === 'uncertain',
+          scoreThreshold: mode === 'score' ? scoreThreshold : undefined,
+          ...decision,
+        },
+      };
+      for (const port of branchPorts) {
+        outputs[port] = port === taken ? inputs.input : null;
+      }
+      markInertPorts(outputs, branchPorts.filter(port => port !== taken));
+      return { outputs, usage };
+    };
+
+    try {
+      const result = await executeDecision(inputs.input, {
+        model,
+        mode,
+        question,
+        options,
+        levels,
+      });
+      return finish(result, route(result), usageOf(result), {
+        model: result.model,
+        latencyMs: result.latencyMs,
+        attempts: result.attempts,
+        inputTokens: result.inputTokens,
+        estimatedCostUsd: result.estimatedCostUsd,
+        fallback: null,
+      });
+    } catch (err) {
+      if (err instanceof DecisionConfigError || fallback === 'fail') throw err;
+      const providerError = (err as Error).message;
+
+      if (fallback === 'llm') {
+        try {
+          const llm = await this.decideWithLlm(inputs.input, {
+            mode,
+            question,
+            options: options.map(o => o.label),
+            levels,
+            provider: pick<string>('fallbackProvider') ?? 'openai',
+            model: pick<string>('fallbackModel') ?? 'gpt-4o-mini',
+          });
+          return finish(llm.answer, route(llm.answer), usageOf(llm), {
+            model: `${llm.provider}/${llm.model}`,
+            inputTokens: llm.inputTokens,
+            estimatedCostUsd: llm.estimatedCostUsd,
+            fallback: 'llm',
+            error: providerError,
+          });
+        } catch (llmErr) {
+          return finish(null, 'uncertain', noUsage, {
+            model: model ?? null,
+            fallback: 'uncertain',
+            error: `${providerError}; llm fallback failed: ${(llmErr as Error).message}`,
+          });
+        }
+      }
+
+      return finish(null, 'uncertain', noUsage, {
+        model: model ?? null,
+        fallback: 'uncertain',
+        error: providerError,
+      });
+    }
+  }
+
+  /**
+   * `fallback: 'llm'` — answer the same typed question with a chat model via
+   * structured extraction. The LLM gives no calibrated probability, so the
+   * answer is reported with confidence 1 and `fallback: 'llm'` in the
+   * decision record; treat it as "decided, uncalibrated".
+   */
+  private async decideWithLlm(
+    input: unknown,
+    cfg: {
+      mode: DecisionMode;
+      question: string;
+      options: string[];
+      levels: string[];
+      provider: string;
+      model: string;
+    }
+  ): Promise<{
+    answer: DecisionAnswer;
+    provider: string;
+    model: string;
+    inputTokens: number;
+    outputTokens: number;
+    estimatedCostUsd: number;
+  }> {
+    const { executeStructuredExtract } = await import('./analyzer-handlers.js');
+
+    let schema: object;
+    let instructions: string;
+    if (cfg.mode === 'noul') {
+      schema = {
+        type: 'object',
+        properties: { answer: { type: 'boolean' } },
+        required: ['answer'],
+        additionalProperties: false,
+      };
+      instructions = `Answer the yes/no question about the input. Question: ${cfg.question}`;
+    } else if (cfg.mode === 'choice') {
+      schema = {
+        type: 'object',
+        properties: { answer: { type: 'string', enum: cfg.options } },
+        required: ['answer'],
+        additionalProperties: false,
+      };
+      instructions = `Pick exactly one label that answers the question about the input. Question: ${cfg.question}`;
+    } else {
+      schema = {
+        type: 'object',
+        properties: {
+          answer: { type: 'integer', minimum: 0, maximum: Math.max(0, cfg.levels.length - 1) },
+        },
+        required: ['answer'],
+        additionalProperties: false,
+      };
+      instructions =
+        `Rate the input on this scale (answer with the level index, 0 = first). Question: ${cfg.question}\n` +
+        cfg.levels.map((l, i) => `${i}: ${l}`).join('\n');
+    }
+
+    const extracted = await executeStructuredExtract(input, {
+      provider: cfg.provider,
+      model: cfg.model,
+      schema,
+      instructions,
+    });
+    const data = (extracted.valid && extracted.data && typeof extracted.data === 'object'
+      ? (extracted.data as Record<string, unknown>)
+      : {}) as Record<string, unknown>;
+    const raw = data.answer;
+
+    let value: boolean | string | number;
+    if (cfg.mode === 'noul') {
+      if (typeof raw !== 'boolean') throw new Error('LLM fallback returned no boolean answer');
+      value = raw;
+    } else if (cfg.mode === 'choice') {
+      if (typeof raw !== 'string' || !cfg.options.includes(raw)) {
+        throw new Error('LLM fallback returned no valid label');
+      }
+      value = raw;
+    } else {
+      const n = Number(raw);
+      if (!Number.isInteger(n) || n < 0 || n >= cfg.levels.length) {
+        throw new Error('LLM fallback returned no valid level');
+      }
+      value = n;
+    }
+
+    return {
+      answer: { mode: cfg.mode, answer: value, confidence: 1, probabilities: {} },
+      provider: cfg.provider,
+      model: cfg.model,
+      inputTokens: extracted.inputTokens,
+      outputTokens: extracted.outputTokens,
+      estimatedCostUsd: extracted.estimatedCostUsd,
+    };
+  }
+
+  /** Parse the multi-mode `questions` config (JSON string or object). */
+  private parseDecisionQuestions(
+    raw: unknown
+  ): Record<string, RawDecisionQuestion> {
+    let parsed: unknown = raw;
+    if (typeof raw === 'string') {
+      const trimmed = raw.trim();
+      if (!trimmed) throw new Error('AI_DECISION: multi mode needs `questions`');
+      try {
+        parsed = JSON.parse(trimmed);
+      } catch {
+        throw new Error('AI_DECISION: `questions` is not valid JSON');
+      }
+    }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error(
+        'AI_DECISION: `questions` must be an object of named questions'
+      );
+    }
+    return parsed as Record<string, RawDecisionQuestion>;
   }
 
   private async executeWebScraper(

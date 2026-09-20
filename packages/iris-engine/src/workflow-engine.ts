@@ -30,6 +30,11 @@ import {
 } from './execution-constants.js';
 import { WorkflowNotFoundError, ExecutionFailedError } from './errors.js';
 import { GraphTraverser } from './graph-traverser.js';
+import {
+  createSkippedResult,
+  isConnectionLive,
+  shouldSkipNode,
+} from './branch-pruning.js';
 import { NodeExecutor } from './node-executor.js';
 
 /** Events emitted by the workflow engine */
@@ -247,6 +252,34 @@ export class WorkflowEngine extends EventEmitter {
           );
         }
 
+        // Branch pruning: every incoming edge is dead (source skipped or
+        // source port untaken by a gate) → record SKIPPED and move on. The
+        // skipped result makes this node's own outgoing edges dead, so the
+        // whole untaken branch is pruned transitively.
+        if (shouldSkipNode(graphNode, state)) {
+          const skipped = createSkippedResult(nodeId);
+          await this.persistAggregatedResult(
+            executionId,
+            workflow,
+            nodeId,
+            skipped
+          );
+          state.nodeResults.set(nodeId, skipped);
+          state.completedNodes.add(nodeId);
+          await this.createLog(executionId, {
+            nodeId,
+            eventType: 'NODE_SKIPPED',
+            message: `Skipped node (untaken branch): ${nodeId}`,
+            data: { nodeType: graphNode.type },
+          });
+          this.emit('node:completed', {
+            executionId,
+            nodeId,
+            result: skipped,
+          });
+          continue;
+        }
+
         // Execute the node
         state.currentNodeId = nodeId;
         const nodeStartTime = Date.now();
@@ -444,6 +477,11 @@ export class WorkflowEngine extends EventEmitter {
             );
           }
 
+          // Persist the failure so the node-result row leaves RUNNING.
+          // The success path saves further down; without this the row
+          // stays RUNNING after the execution is finalized as FAILED.
+          await this.saveNodeResult(executionId, nodeId, result);
+
           break;
         }
 
@@ -528,6 +566,21 @@ export class WorkflowEngine extends EventEmitter {
         // Save node result to database
         await this.saveNodeResult(executionId, nodeId, result);
 
+        // Gate nodes that make a metered decision (AI_DECISION) attach a
+        // compact `__decision` record. Persist it as its own log event so
+        // operators can tune thresholds from data: confidence distribution,
+        // uncertain rate, latency, fallback usage (see the server's
+        // /executions/decisions/stats aggregation).
+        const decision = result.outputs?.__decision;
+        if (decision && typeof decision === 'object') {
+          await this.createLog(executionId, {
+            nodeId,
+            eventType: 'NODE_DECISION',
+            message: `Decision: ${String((decision as { taken?: unknown }).taken ?? 'none')}`,
+            data: { nodeType: graphNode.type, ...(decision as Record<string, unknown>) },
+          });
+        }
+
         this.emit('node:completed', {
           executionId,
           nodeId,
@@ -538,6 +591,10 @@ export class WorkflowEngine extends EventEmitter {
       // Finalize execution
       state.endTime = Date.now();
       const totalDuration = state.endTime - state.startTime;
+
+      const nodesSkipped = Array.from(state.nodeResults.values()).filter(
+        r => r.status === 'skipped'
+      ).length;
 
       if (
         (state.status as string) !== 'failed' &&
@@ -553,7 +610,8 @@ export class WorkflowEngine extends EventEmitter {
           eventType: 'EXECUTION_END',
           message: `Workflow completed successfully`,
           data: {
-            nodesExecuted: state.completedNodes.size,
+            nodesExecuted: state.completedNodes.size - nodesSkipped,
+            nodesSkipped,
             totalAssets: state.assets.length,
             totalTokens: state.totalTokens,
             totalCost: state.totalCost,
@@ -769,6 +827,10 @@ export class WorkflowEngine extends EventEmitter {
 
     // Then, override with connected node outputs (edge connections take priority)
     for (const [portId, connection] of graphNode.inputs) {
+      // A dead edge (skipped source, or a gate port that wasn't taken)
+      // contributes nothing — the port stays absent, as if unconnected, so
+      // config fallbacks above still apply.
+      if (!isConnectionLive(state, connection)) continue;
       const sourceResult = state.nodeResults.get(connection.nodeId);
       if (
         sourceResult?.outputs &&

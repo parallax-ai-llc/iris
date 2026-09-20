@@ -8,6 +8,7 @@ import {
   getNodeDefinition,
   NodeCategory,
 } from '../../../constants/node-definitions';
+import { getDynamicOutputPorts } from 'iris-nodes';
 import {
   Trash2,
   Copy,
@@ -17,6 +18,7 @@ import {
   AlertTriangle,
   X,
   Eye,
+  CircleSlash,
 } from 'lucide-react';
 import { categoryColorClasses, categoryPalette, portTypeColors } from './nodeColors';
 import { OutputPreviewTooltip, ErrorPreviewTooltip } from './NodeOutputPreview';
@@ -32,6 +34,8 @@ function StatusIcon({ status }: { status: NodeStatus }) {
       return <AlertTriangle size={14} className="text-red-400" />;
     case 'waiting':
       return <Clock size={14} className="text-yellow-400" />;
+    case 'skipped':
+      return <CircleSlash size={14} className="text-slate-500" />;
     default:
       return null;
   }
@@ -70,6 +74,19 @@ export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps
     return false;
   };
   const nodeDef = getNodeDefinition(data.type);
+  // Nodes whose ports grow from their settings (UTIL_ROUTER routes,
+  // AI_DECISION choice labels) get their handles from the same helper the
+  // engine uses to emit them, so the two never disagree.
+  const outputPorts = nodeDef
+    ? getDynamicOutputPorts(
+        data.type,
+        nodeDef.outputs,
+        (storeConfig?.settings ??
+          (data.config as unknown as { settings?: Record<string, unknown> } | undefined)?.settings) as
+          | Record<string, unknown>
+          | undefined,
+      )
+    : [];
 
   const colors = categoryColorClasses[data.category as NodeCategory] || categoryColorClasses.UTILITY;
   const palette = categoryPalette[data.category as NodeCategory] || categoryPalette.UTILITY;
@@ -397,12 +414,12 @@ export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps
         )}
 
         {/* Output Handles */}
-        {nodeDef?.outputs && nodeDef.outputs.length > 0 && (
+        {outputPorts.length > 0 && (
           <div
             className="flex flex-col"
             style={{ padding: '8px 12px 12px', gap: 4 }}
           >
-            {nodeDef.outputs
+            {outputPorts
               // Filter outputs for trigger nodes
               .filter((output) => {
                 // hideHandle ports render in the footer as a debug eye icon, not in the ports list
@@ -598,6 +615,18 @@ export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps
                 }}
               />
               <span style={{ color: 'var(--color-iris-err)' }}>Error</span>
+            </>
+          ) : currentStatus === 'skipped' ? (
+            <>
+              <span
+                style={{
+                  width: 5,
+                  height: 5,
+                  borderRadius: 999,
+                  background: 'var(--color-iris-text-4)',
+                }}
+              />
+              <span>Skipped</span>
             </>
           ) : (
             <>

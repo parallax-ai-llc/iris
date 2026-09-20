@@ -63,6 +63,14 @@
     "aiResearchAnalyst": {
       "name": "AIリサーチアナリスト",
       "description": "自律エージェントがトピックを調査し、構造化された市場・競合レポートを作成"
+    },
+    "supportTicketTriage": {
+      "name": "サポートチケット自動振り分け",
+      "description": "型付きAI判定でチケットを担当チームへ振り分け、確信が低いものは人へ回します"
+    },
+    "copyQualityGate": {
+      "name": "コピー品質ゲート",
+      "description": "商品説明の下書きをAI判定で採点し、合格分のみ保存。不足は書き直し、曖昧なものはレビューへ"
     }
   },
   "nodeLabels": {
@@ -89,7 +97,16 @@
     "summaryGenerator": "要約生成",
     "webhookTrigger": "Webhookトリガー",
     "contentGenerator": "コンテンツ生成",
-    "webhookOutput": "Webhook出力"
+    "webhookOutput": "Webhook出力",
+    "aiDecision": "AI判定",
+    "qualityGate": "品質ゲート",
+    "copyWriter": "コピー作成",
+    "rewrite": "書き直し",
+    "billingQueue": "請求キュー",
+    "engineeringSlack": "開発チームSlack",
+    "generalQueue": "一般キュー",
+    "humanReview": "人によるレビュー",
+    "saveRewrite": "書き直し保存"
   },
   "inputLabels": {
     "snsImagePrompt": "SNS画像のプロンプトを入力してください",

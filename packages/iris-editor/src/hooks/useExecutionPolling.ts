@@ -36,6 +36,7 @@ function mapNodeStatus(backendStatus: NodeResultStatus | string): NodeStatus {
     case 'PENDING':
       return 'waiting';
     case 'SKIPPED':
+      return 'skipped';
     case 'CACHED':
       return 'success';
     default:

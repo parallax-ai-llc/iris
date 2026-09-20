@@ -39,7 +39,7 @@ export interface NodeConfig {
 }
 
 // Node execution status
-export type NodeStatus = 'idle' | 'running' | 'success' | 'error' | 'waiting';
+export type NodeStatus = 'idle' | 'running' | 'success' | 'error' | 'waiting' | 'skipped';
 
 export interface NodeProgress {
   status: NodeStatus;

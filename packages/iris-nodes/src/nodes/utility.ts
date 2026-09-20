@@ -959,6 +959,158 @@ export const UTIL_HTML_EXTRACT: NodeDefinition = {
  * `inputMapping` is a JSON object that maps THIS node's resolved input
  * payload onto the sub-workflow's trigger inputs.
  */
+/**
+ * Semantic gate backed by TypeSafe's decision-only model (Jev).
+ *
+ * Sends the input as `state` plus ONE typed question and branches on the
+ * typed answer. Unlike the LLM classifiers, the answer comes back with a
+ * probability distribution and a calibrated confidence, so the node can
+ * route low-confidence answers to `uncertain` for escalation (an LLM judge,
+ * a human) instead of guessing.
+ *
+ * Modes:
+ *   - noul   → yes/no. `true` / `false` ports; confidence = max(p, 1 - p).
+ *   - choice → one of N labels. One output port PER LABEL is added at
+ *              runtime and in the editor (see `getDynamicOutputPorts`);
+ *              the static `true` / `false` ports are unused.
+ *   - score  → ordered 0-based scale. `true` (score ≥ threshold) / `false`.
+ *   - multi  → several questions in ONE call (JSON). No branch is taken;
+ *              `answer` carries every answer by name, `confidence` the
+ *              lowest confidence among them. Use UTIL_ROUTER / UTIL_CONDITION
+ *              downstream to branch on a specific answer.
+ *
+ * In the single-question modes an answer whose confidence is below
+ * `minConfidence` goes to `uncertain` only. Branch ports carry the original input so the
+ * downstream node receives the same state that was judged.
+ *
+ * Text / JSON state only — run media through an ANALYZE_* node first.
+ */
+export const AI_DECISION: NodeDefinition = {
+  type: 'AI_DECISION',
+  category: 'UTILITY',
+  label: 'AI Decision',
+  description:
+    'Ask a typed yes/no, choice or score question about the input and branch on the answer (TypeSafe Jev). Low-confidence answers go to `uncertain`.',
+  iconName: 'GitBranch',
+  color: 'gray',
+  aiCapability: 'decision',
+  canBeTool: true,
+  inputs: [
+    { name: 'input', type: 'any', label: 'State (text or JSON)', required: true },
+    { name: 'question', type: 'text', label: 'Question (override)' },
+  ],
+  outputs: [
+    { name: 'answer', type: 'any', label: 'Answer' },
+    { name: 'confidence', type: 'any', label: 'Confidence (0~1)' },
+    { name: 'probabilities', type: 'json', label: 'Probabilities' },
+    { name: 'true', type: 'any', label: 'Yes / High' },
+    { name: 'false', type: 'any', label: 'No / Low' },
+    { name: 'uncertain', type: 'any', label: 'Uncertain' },
+  ],
+  configFields: [
+    { name: 'provider', label: 'Provider', type: 'provider', required: true },
+    { name: 'model', label: 'Model', type: 'model', required: true },
+    {
+      name: 'mode',
+      label: 'Question Type',
+      type: 'select',
+      options: [
+        { value: 'noul', label: 'Yes / No' },
+        { value: 'choice', label: 'Choose One' },
+        { value: 'score', label: 'Score' },
+        { value: 'multi', label: 'Multiple Questions (JSON)' },
+      ],
+      defaultValue: 'noul',
+    },
+    {
+      name: 'question',
+      label: 'Question',
+      type: 'textarea',
+      required: true,
+      placeholder: 'Is this message a refund request?',
+      description: 'Asked about the input. The `question` input port overrides this when connected.',
+    },
+    {
+      name: 'options',
+      label: 'Options',
+      type: 'textarea',
+      placeholder: 'billing: charged twice, refund, invoice\ntechnical: bug, outage, login\nother',
+      description: 'One per line, "label: description" (description optional). Each label becomes an output port.',
+      dependsOn: { field: 'mode', value: 'choice' },
+    },
+    {
+      name: 'levels',
+      label: 'Score Levels',
+      type: 'textarea',
+      placeholder: 'unusable\nneeds work\nacceptable\nexcellent',
+      description: 'One per line, lowest first (2~10). Score 0 is the first line.',
+      dependsOn: { field: 'mode', value: 'score' },
+    },
+    {
+      name: 'questions',
+      label: 'Questions (JSON)',
+      type: 'textarea',
+      placeholder:
+        '{\n  "refund": { "type": "noul", "instructions": "Is this a refund request?" },\n  "topic": { "type": "choice", "instructions": "What is it about?", "criteria": { "billing": null, "technical": null, "other": null } },\n  "urgency": { "type": "score", "instructions": "How urgent?", "criteria": ["low", "medium", "high"] }\n}',
+      description:
+        'Object of named questions, each { type: noul | choice | score, instructions, criteria }. Answered in one call; `answer` holds them by name.',
+      dependsOn: { field: 'mode', value: 'multi' },
+    },
+    {
+      name: 'scoreThreshold',
+      label: 'High if score ≥',
+      type: 'number',
+      min: 0,
+      max: 9,
+      description: 'Scores at or above this go to `true`. Defaults to the middle level.',
+      dependsOn: { field: 'mode', value: 'score' },
+    },
+    {
+      name: 'minConfidence',
+      label: 'Min Confidence',
+      type: 'slider',
+      min: 0,
+      max: 1,
+      step: 0.05,
+      defaultValue: 0.8,
+      description: 'Answers below this confidence go to `uncertain` instead of a branch (single-question modes).',
+    },
+    {
+      name: 'fallback',
+      label: 'If TypeSafe is unavailable',
+      type: 'select',
+      options: [
+        { value: 'uncertain', label: 'Route to uncertain (keep the run alive)' },
+        { value: 'llm', label: 'Ask an LLM instead (no confidence)' },
+        { value: 'fail', label: 'Fail the node' },
+      ],
+      defaultValue: 'uncertain',
+      description:
+        'After transient errors are retried. `uncertain` sends the input down the uncertain port with no answer; `llm` answers the same question with a chat model and routes it as if fully confident (multi mode treats this as uncertain).',
+    },
+    {
+      name: 'fallbackProvider',
+      label: 'Fallback Provider',
+      type: 'select',
+      options: [
+        { value: 'openai', label: 'OpenAI' },
+        { value: 'anthropic', label: 'Anthropic' },
+        { value: 'google', label: 'Google AI' },
+      ],
+      defaultValue: 'openai',
+      dependsOn: { field: 'fallback', value: 'llm' },
+    },
+    {
+      name: 'fallbackModel',
+      label: 'Fallback Model',
+      type: 'text',
+      defaultValue: 'gpt-4o-mini',
+      placeholder: 'gpt-4o-mini',
+      dependsOn: { field: 'fallback', value: 'llm' },
+    },
+  ],
+};
+
 export const UTIL_SUB_WORKFLOW: NodeDefinition = {
   type: 'UTIL_SUB_WORKFLOW',
   category: 'UTILITY',

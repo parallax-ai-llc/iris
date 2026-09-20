@@ -211,5 +211,37 @@ do NOT include it unless you mean to override.
 ### Pattern 6 — Webhook output URL templating
 
 Same {{token}} substitution applies to \`OUTPUT_WEBHOOK.url\` so the URL can
-parameterize on upstream data.`;
+parameterize on upstream data.
+
+### Pattern 7 — Branching: pick the right gate
+
+  - Comparing a value (equals / contains / greater than) → \`UTIL_CONDITION\`.
+  - A JavaScript predicate over the input → \`UTIL_FILTER\` (2-way) or
+    \`UTIL_ROUTER\` (N-way; each \`routes[].name\` becomes an output port).
+  - A judgement that needs meaning (intent, topic, tone, quality, urgency) →
+    \`AI_DECISION\` with provider \`typesafe\`, model \`jev-latest\`. Do NOT
+    chain GEN_TEXT_TO_TEXT + UTIL_CONDITION for this — it is slower, costs
+    more and the answer is untyped.
+
+\`AI_DECISION\` port rules:
+  - mode \`noul\` (yes/no) and \`score\` → branch on \`true\` / \`false\`.
+  - mode \`choice\` → each label in \`options\` (one per line, \`label: description\`)
+    is its own output port; connect \`decide.<label>\` → next node. Labels must
+    be short identifiers (\`billing\`, \`technical\`).
+  - ALWAYS connect \`uncertain\` somewhere (an OUTPUT_EMAIL for human review,
+    or a GEN_TEXT_TO_TEXT judge). Low-confidence answers go there instead of
+    a branch; leaving it unconnected silently drops those items.
+  - The branch ports carry the ORIGINAL input (the judged state), not the
+    answer. The answer itself is on \`answer\` / \`confidence\` / \`probabilities\`.
+  - Text / JSON state only. Put an ANALYZE_* node in front for media.
+
+### Pattern 8 — Untaken branches are skipped, not null
+
+Every gate (UTIL_CONDITION, UTIL_FILTER, UTIL_ROUTER, UTIL_TRY_CATCH,
+AI_DECISION) fires exactly one branch port. Nodes reachable only from the
+other ports are SKIPPED — they never run. So:
+  - Do not add "if empty" checks downstream of a gate; the dead branch is not
+    an empty value, it simply does not execute.
+  - A node with inputs from two branches (e.g. UTIL_MERGE) runs as soon as
+    one live branch reaches it; the dead branch contributes no input.`;
 }

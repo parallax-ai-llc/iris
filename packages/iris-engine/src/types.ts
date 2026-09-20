@@ -59,6 +59,8 @@ export type IrisNodeType =
   | 'DOC_LONG_CONTEXT'
   | 'AI_STRUCTURED_EXTRACT'
   | 'AI_CATEGORIZE'
+  // Semantic gate (TypeSafe Jev)
+  | 'AI_DECISION'
   // Editors
   | 'EDIT_IMAGE_UPSCALE'
   | 'EDIT_IMAGE_INPAINT'
@@ -188,7 +190,9 @@ export type AICapability =
   | 'image-analysis'
   | 'video-analysis'
   | 'audio-analysis'
-  | 'document-analysis';
+  | 'document-analysis'
+  /** Typed yes/no, choice or score decisions (TypeSafe Jev) */
+  | 'decision';
 
 /** Normalized input types */
 export type MediaType = 'text' | 'image' | 'video' | 'audio' | 'document';
@@ -215,7 +219,8 @@ export type ProviderName =
   | 'ideogram'
   | 'recraft'
   | 'bfl'
-  | 'suno';
+  | 'suno'
+  | 'typesafe';
 
 // ============================================================
 // API REQUEST/RESPONSE TYPES

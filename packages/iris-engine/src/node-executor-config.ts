@@ -38,6 +38,8 @@ export const API_KEY_ENV_MAPPING: Record<string, string> = {
   x: 'XAI_API_KEY', // 'x' is an alias for 'xai'
   perplexity: 'PERPLEXITY_API_KEY',
   deepseek: 'DEEPSEEK_API_KEY',
+  // Decision model (TypeSafe Jev) — AI_DECISION node
+  typesafe: 'TYPESAFE_API_KEY',
   // Image Generation Providers
   stability: 'STABILITY_API_KEY',
   fal: 'PIKA_API_KEY', // Fal.ai/Pika uses same API key

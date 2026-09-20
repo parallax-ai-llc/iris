@@ -63,6 +63,14 @@
     "aiResearchAnalyst": {
       "name": "AI Research Analyst",
       "description": "Autonomous agent that researches a topic and returns a structured market/competitor report"
+    },
+    "supportTicketTriage": {
+      "name": "Support Ticket Triage",
+      "description": "Route incoming tickets to the right team with a typed AI decision; low-confidence tickets go to a human"
+    },
+    "copyQualityGate": {
+      "name": "Copy Quality Gate",
+      "description": "Draft product copy, score it with a typed AI decision, and only publish what passes"
     }
   },
   "nodeLabels": {
@@ -89,7 +97,16 @@
     "summaryGenerator": "Summary Generator",
     "webhookTrigger": "Webhook Trigger",
     "contentGenerator": "Content Generator",
-    "webhookOutput": "Webhook Output"
+    "webhookOutput": "Webhook Output",
+    "aiDecision": "AI Decision",
+    "qualityGate": "Quality Gate",
+    "copyWriter": "Copy Writer",
+    "rewrite": "Rewrite",
+    "billingQueue": "Billing Queue",
+    "engineeringSlack": "Engineering Slack",
+    "generalQueue": "General Queue",
+    "humanReview": "Human Review",
+    "saveRewrite": "Save Rewrite"
   },
   "inputLabels": {
     "snsImagePrompt": "Enter your SNS image prompt",
