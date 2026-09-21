@@ -1086,7 +1086,7 @@ export const AI_DECISION: NodeDefinition = {
       ],
       defaultValue: 'uncertain',
       description:
-        'After transient errors are retried. `uncertain` sends the input down the uncertain port with no answer; `llm` answers the same question with a chat model and routes it as if fully confident (multi mode treats this as uncertain).',
+        'After transient errors are retried. `uncertain` sends the input down the uncertain port with no answer; `llm` answers the same question with a chat model and routes it as if fully confident (multi mode treats this as uncertain). A host without a TypeSafe key always fails the node regardless of this setting.',
     },
     {
       name: 'fallbackProvider',

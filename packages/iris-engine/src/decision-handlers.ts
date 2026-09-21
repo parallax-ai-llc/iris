@@ -24,9 +24,12 @@ import { getApiKeyForProvider } from './node-executor-config.js';
 export type DecisionMode = 'noul' | 'choice' | 'score';
 
 /**
- * An authoring mistake (empty question, one option, bad JSON). Never
- * retried and never covered by the node's `fallback` — the workflow is
- * wrong, not the provider.
+ * An authoring or host-configuration mistake (empty question, one option,
+ * bad JSON, no TypeSafe key on this host). Never retried and never covered
+ * by the node's `fallback` — the workflow or the host is wrong, not the
+ * provider. A missing key in particular must not degrade to `uncertain`:
+ * that would make every gate silently take one branch on a host where Jev
+ * was never enabled.
  */
 export class DecisionConfigError extends Error {
   constructor(message: string) {
@@ -36,8 +39,8 @@ export class DecisionConfigError extends Error {
 }
 
 /**
- * The provider could not answer: missing key, transport failure, timeout,
- * non-2xx or a malformed body. `retryable` marks the transient subset
+ * The provider could not answer: transport failure, timeout, non-2xx or a
+ * malformed body. `retryable` marks the transient subset
  * (429, 5xx, timeout, network) that the handler retries before giving up;
  * the node's `fallback` setting decides what happens after that.
  */
@@ -127,8 +130,46 @@ export interface MultiDecisionResult extends DecisionUsage {
   answers: Record<string, DecisionAnswer>;
 }
 
+/**
+ * Default base of the System One API. Override with `TYPESAFE_API_BASE_URL`
+ * to reach Jev through a gateway that speaks the same wire format — e.g.
+ * Vercel AI Gateway, which serves it at
+ * `https://ai-gateway.vercel.sh/typesafe/v1/systemone` with a Vercel AI
+ * Gateway key (no TypeSafe waitlist needed). Set the base to
+ * `https://ai-gateway.vercel.sh/typesafe` and put the gateway key in
+ * `TYPESAFE_API_KEY`.
+ */
 export const TYPESAFE_API_BASE_URL = 'https://api.typesafe.ai';
+
+/** Effective base URL: env override (trailing slash stripped) or the default. */
+export function getTypesafeApiBaseUrl(): string {
+  const raw = process.env.TYPESAFE_API_BASE_URL?.trim();
+  return raw ? raw.replace(/\/+$/, '') : TYPESAFE_API_BASE_URL;
+}
 export const TYPESAFE_DEFAULT_MODEL = 'jev-latest';
+
+/**
+ * Model id to put on the wire. TypeSafe direct addresses Jev with bare ids
+ * (`jev-latest`); Vercel AI Gateway addresses it as `typesafe-ai/jev`
+ * (docs: /docs/ai-gateway/sdks-and-apis/typesafe). Node configs are
+ * authored against the direct ids, so map bare ids when the base URL is
+ * the gateway. Ids that already carry a provider prefix pass through.
+ */
+export function resolveTypesafeModel(
+  model: string | undefined,
+  baseUrl: string = getTypesafeApiBaseUrl()
+): string {
+  const id = model?.trim() || TYPESAFE_DEFAULT_MODEL;
+  if (id.includes('/')) return id;
+  let host = '';
+  try {
+    host = new URL(baseUrl).hostname;
+  } catch {
+    return id;
+  }
+  if (host !== 'ai-gateway.vercel.sh') return id;
+  return id.startsWith('jev') ? 'typesafe-ai/jev' : `typesafe-ai/${id}`;
+}
 /** Jev 1.13 list price per 1M input tokens (output is free). Verify against
  *  the official price list before changing billing on top of it. */
 export const JEV_INPUT_USD_PER_M_TOKENS = 0.042;
@@ -156,6 +197,7 @@ export function getJevOperatingLimits() {
     timeoutMs: DEFAULT_TIMEOUT_MS,
     maxRetries: DEFAULT_MAX_RETRIES,
     defaultModel: TYPESAFE_DEFAULT_MODEL,
+    baseUrl: getTypesafeApiBaseUrl(),
   } as const;
 }
 
@@ -313,8 +355,9 @@ interface SystemOneResponse {
   usage: DecisionUsage;
 }
 
-/** POST /v1/systemone. Throws on missing key, transport error, timeout,
- *  non-2xx or an unparsable body. */
+/** POST /v1/systemone. Throws DecisionConfigError on a missing key and
+ *  DecisionProviderError on transport error, timeout, non-2xx or an
+ *  unparsable body. */
 async function callSystemOne(
   state: unknown,
   questions: Record<string, WireQuestion>,
@@ -322,13 +365,12 @@ async function callSystemOne(
 ): Promise<SystemOneResponse> {
   const apiKey = opts.apiKey ?? getApiKeyForProvider('typesafe');
   if (!apiKey) {
-    throw new DecisionProviderError(
-      'AI_DECISION: TYPESAFE_API_KEY is not configured (set it in the host environment or BYOK settings)',
-      { retryable: false }
+    throw new DecisionConfigError(
+      'AI_DECISION: TYPESAFE_API_KEY is not configured — the Jev gate is unavailable on this host (set it in the host environment or BYOK settings)'
     );
   }
 
-  const model = opts.model?.trim() || TYPESAFE_DEFAULT_MODEL;
+  const model = resolveTypesafeModel(opts.model);
   const maxRetries = Math.max(0, opts.maxRetries ?? DEFAULT_MAX_RETRIES);
   const startedAt = Date.now();
   let attempts = 0;
@@ -385,7 +427,7 @@ async function postSystemOne(
 
   let response: Response;
   try {
-    response = await fetchImpl(`${TYPESAFE_API_BASE_URL}/v1/systemone`, {
+    response = await fetchImpl(`${getTypesafeApiBaseUrl()}/v1/systemone`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
