@@ -113,7 +113,7 @@ async function fetchHtml(url: string): Promise<string> {
     // A friendly UA — many sites 403 default fetch UA.
     headers: {
       'User-Agent':
-        'Mozilla/5.0 (compatible; ParallaxIris/1.0; +https://parallax.ai)',
+        'Mozilla/5.0 (compatible; ParallaxIris/1.0; +https://parallax.kr)',
       Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     },
   });

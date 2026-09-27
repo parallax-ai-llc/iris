@@ -121,7 +121,7 @@ test.describe('Auth - Login', () => {
     assertStep(dividerVisible);
 
     // Verify the "Sign up" link exists (LoginPage.tsx footer).
-    // Host is parallax.kr — the old parallax.ai selector was stale.
+    // Host is parallax.kr (LoginPage.tsx footer link).
     const signUpLinkVisible = await safeExpectVisible(
       page,
       'a[href="https://parallax.kr/signup"]:has-text("Sign up")',
