@@ -4,6 +4,7 @@
  */
 
 import { encryptPayload, decryptChunk } from './encryption';
+import { apiClient } from './client';
 import { getTokenStorage } from '@/features/auth/lib/token-storage';
 
 const LLM_URL = import.meta.env.VITE_LLM_URL || 'http://localhost:8080';
@@ -64,16 +65,27 @@ export async function* streamEditorChat(
   }
 
   try {
-    const encryptedBody = await encryptPayload(body);
-    const response = await fetch(`${LLM_URL}/api/llm/chat/stream`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify(encryptedBody),
-      signal: controller.signal,
-    });
+    const encryptedBody = JSON.stringify(await encryptPayload(body));
+    const send = (token: string) =>
+      fetch(`${LLM_URL}/api/llm/chat/stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: encryptedBody,
+        signal: controller.signal,
+      });
+
+    let response = await send(accessToken);
+    // The LLM service verifies the token, so an expired one gets a 401. Refresh
+    // it once (shared with the API client's single-flight refresh) and retry.
+    if (response.status === 401 && (await apiClient.refreshAccessToken())) {
+      const refreshedToken = await getAccessToken();
+      if (refreshedToken) {
+        response = await send(refreshedToken);
+      }
+    }
 
     if (!response.ok) {
       const contentType = response.headers.get('content-type');

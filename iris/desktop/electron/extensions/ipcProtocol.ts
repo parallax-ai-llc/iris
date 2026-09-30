@@ -265,6 +265,12 @@ export interface ExtensionInstallResult {
 export interface ExtensionInstallOptions {
   /** Replace an already-installed extension with the same id (deactivate → replace → re-activate). Default: reject duplicates. */
   upgrade?: boolean;
+  /**
+   * `installFromIex` with a URL source: the server-issued SHA-256 of the bundle
+   * (`GET /extensions/:id/bundle` → `bundleSha256`). Required — a URL install
+   * without it, or whose bytes do not match, is refused.
+   */
+  sha256?: string;
 }
 
 /** Renderer → Main: install/uninstall/enable/disable extensions */
@@ -272,7 +278,10 @@ export interface ExtensionIpcChannels {
   'extensions:getInstalled': () => Promise<ExtensionRuntimeInfo[]>;
   /** Install from a local directory containing iris-extension.json (dev install / extracted bundle) */
   'extensions:install': (sourceDir: string, trustTier?: TrustTier, opts?: ExtensionInstallOptions) => Promise<ExtensionInstallResult>;
-  /** Install from a .iex bundle (ZIP) — source is an http(s) URL or a local file path */
+  /**
+   * Install from a .iex bundle (ZIP) — source is an official marketplace URL
+   * (with `opts.sha256`) or a local file path (installed as 'community').
+   */
   'extensions:installFromIex': (source: string, trustTier?: TrustTier, opts?: ExtensionInstallOptions) => Promise<ExtensionInstallResult>;
   'extensions:uninstall': (extensionId: string) => Promise<{ success: boolean }>;
   'extensions:enable': (extensionId: string) => Promise<{ success: boolean }>;

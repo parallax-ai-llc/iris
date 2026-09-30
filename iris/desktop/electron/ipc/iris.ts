@@ -16,15 +16,22 @@
  * Electron owns the keys (only it can decrypt) and (a) passes them to the daemon
  * as env at spawn and (b) pushes live changes to the daemon's token-guarded
  * `/api/iris/runtime/keys`. The engine reads `process.env` per provider at run.
+ *
+ * Browser access: the daemon only answers browser requests that carry its
+ * per-launch token (see iris-host-local access-guard.ts) — otherwise any
+ * website could drive it on 127.0.0.1. Main attaches the token to the app's own
+ * requests (daemon-auth.ts); the token lives in the lockfile.
  */
 
 import net from 'node:net';
 import path from 'node:path';
 import http from 'node:http';
+import { randomBytes } from 'node:crypto';
 import { promises as fs, openSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { app, ipcMain, shell, safeStorage } from 'electron';
+import { attachDaemonTokenToAppRequests, DAEMON_TOKEN_HEADER } from './daemon-auth';
 import {
   loadConfig,
   buildServer,
@@ -39,6 +46,12 @@ import { API_KEY_ENV_MAPPING } from 'iris-engine';
 import type { FastifyInstance } from 'fastify';
 
 const isTestMode = process.env.TEST_MODE === 'true';
+
+/**
+ * Origins the renderer uses: file:// in packaged builds (sent as "null") and the
+ * vite dev server. Allowed for CORS only; the daemon still requires the token.
+ */
+const RENDERER_ORIGINS = ['null', 'http://localhost:5173'];
 
 /** In-process server (TEST_MODE only). */
 let server: FastifyInstance | null = null;
@@ -287,7 +300,7 @@ async function pushKeysToDaemon(): Promise<void> {
       'POST',
       `${apiBaseUrl}/api/iris/runtime/keys`,
       { keys: mergedKeyMap() },
-      { 'x-iris-daemon-token': daemonToken },
+      { [DAEMON_TOKEN_HEADER]: daemonToken },
     );
   } catch {
     /* daemon may be mid-restart — next ensureDaemon re-syncs */
@@ -310,6 +323,7 @@ function spawnDaemon(): void {
       ...process.env,
       ELECTRON_RUN_AS_NODE: '1',
       IRIS_FLOW_DATA_DIR: dataDir,
+      IRIS_FLOW_ALLOWED_ORIGINS: RENDERER_ORIGINS.join(','),
       // Stamp the spawning app's version into the daemon so the next launch can
       // tell an upgrade apart from a restart and refuse to reattach to a daemon
       // running the OLD binary (see ensureDaemon).
@@ -378,6 +392,7 @@ async function ensureDaemon(): Promise<void> {
       apiBaseUrl = existing.baseUrl;
       daemonToken = existing.token;
       daemonPid = existing.pid;
+      attachDaemonTokenToAppRequests(apiBaseUrl, daemonToken);
       await pushKeysToDaemon(); // re-sync in case keys changed since it started
       console.log(`[IrisEngine] reattached to daemon ${apiBaseUrl} (pid ${daemonPid})`);
       return;
@@ -391,6 +406,7 @@ async function ensureDaemon(): Promise<void> {
   apiBaseUrl = lf.baseUrl;
   daemonToken = lf.token;
   daemonPid = lf.pid;
+  attachDaemonTokenToAppRequests(apiBaseUrl, daemonToken);
   console.log(`[IrisEngine] started daemon ${apiBaseUrl} (pid ${daemonPid})`);
 }
 
@@ -404,9 +420,12 @@ export async function startIrisServer(): Promise<void> {
     if (server) return;
     config.host = '127.0.0.1';
     config.port = await findFreePort('127.0.0.1');
-    server = await buildServer(config);
+    // Same browser-access rules as the daemon, so E2E exercises the real path.
+    const accessToken = randomBytes(24).toString('hex');
+    server = await buildServer(config, { accessToken, allowedOrigins: RENDERER_ORIGINS });
     await server.listen({ host: config.host, port: config.port });
     apiBaseUrl = publicBaseUrl(config.host, config.port);
+    attachDaemonTokenToAppRequests(apiBaseUrl, accessToken);
     console.log(
       `[IrisEngine] in-process server on ${apiBaseUrl} (test mode, providers: ${
         config.configuredProviders.join(', ') || 'none'
@@ -430,6 +449,7 @@ export async function stopIrisServer(): Promise<void> {
   } finally {
     server = null;
     apiBaseUrl = '';
+    attachDaemonTokenToAppRequests('', '');
   }
 }
 
@@ -468,6 +488,7 @@ export async function stopDaemon(): Promise<void> {
   apiBaseUrl = '';
   daemonPid = 0;
   daemonToken = '';
+  attachDaemonTokenToAppRequests('', '');
 }
 
 /** (Re)start the daemon (tray "Start background engine"). */

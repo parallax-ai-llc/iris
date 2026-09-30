@@ -126,6 +126,12 @@ export interface ExtensionBundleManifest {
 export interface ExtensionBundleInfo {
   id: string;
   bundleUrl: string | null;
+  /**
+   * SHA-256 (hex) of the bytes at bundleUrl, recorded by the server when the
+   * owner uploaded them. Main refuses a URL install without it (older servers
+   * omit the field; bundles uploaded before hashes existed return null).
+   */
+  bundleSha256?: string | null;
   permissions: string[];
   engineVersion: string | null;
   manifestData: ExtensionBundleManifest | null;

@@ -5,9 +5,14 @@
 import { app, BrowserWindow } from 'electron';
 import { existsSync, mkdirSync, rmSync, readdirSync, readFileSync, writeFileSync } from 'fs';
 import path from 'path';
-import AdmZip from 'adm-zip';
 import { EventEmitter } from 'events';
 import { loadManifest } from './manifestValidator';
+import {
+  BundleRejectedError,
+  extractBundleSafely,
+  officialBundleUrlPrefixes,
+  openIexArchive,
+} from './bundleSecurity';
 import { checkPermission, getAutoApprovedPermissions, getPermissionsRequiringApproval } from './permissionEnforcer';
 import { ExtensionHost } from './extensionHost';
 import { registerAllApiHandlers } from './apiHandlers/index';
@@ -368,14 +373,16 @@ export class ExtensionManager extends EventEmitter {
 
   /**
    * Install an extension from a `.iex` bundle (ZIP).
-   * `source` may be an http(s) URL (downloaded) or a local file path.
-   * The bundle is extracted to a temp directory, then installed via
-   * installFromDirectory().
+   * `source` is either a marketplace URL — accepted only on the official
+   * storage host and only when its bytes match `opts.sha256` from the server —
+   * or a local file (developer flow, always installed as 'community').
+   * Entries are validated (no path escapes/symlinks) before extraction to a
+   * temp directory, then installed via installFromDirectory().
    */
   async installFromIex(
     source: string,
     trustTier: TrustTier = 'community',
-    opts?: { upgrade?: boolean }
+    opts?: { upgrade?: boolean; sha256?: string }
   ): Promise<{ success: boolean; error?: string; extensionId?: string }> {
     const tempDir = path.join(
       app.getPath('temp'),
@@ -383,26 +390,18 @@ export class ExtensionManager extends EventEmitter {
     );
 
     try {
-      let zip: AdmZip;
-      if (/^https?:\/\//i.test(source)) {
-        let res: Response;
-        try {
-          res = await fetch(source);
-        } catch (err) {
-          return { success: false, error: `Failed to download bundle: ${err instanceof Error ? err.message : String(err)}` };
-        }
-        if (!res.ok) {
-          return { success: false, error: `Failed to download bundle: HTTP ${res.status}` };
-        }
-        zip = new AdmZip(Buffer.from(await res.arrayBuffer()));
-      } else {
-        if (!existsSync(source)) {
-          return { success: false, error: `Bundle not found: ${source}` };
-        }
-        zip = new AdmZip(source);
+      let archive: Awaited<ReturnType<typeof openIexArchive>>;
+      try {
+        archive = await openIexArchive(source, {
+          sha256: opts?.sha256,
+          allowedUrlPrefixes: officialBundleUrlPrefixes(app.isPackaged),
+        });
+        extractBundleSafely(archive.zip, tempDir);
+      } catch (err) {
+        if (err instanceof BundleRejectedError) return { success: false, error: err.message };
+        throw err;
       }
-
-      zip.extractAllTo(tempDir, true);
+      const tier: TrustTier = archive.isLocalFile ? 'community' : trustTier;
 
       // Manifest at the bundle root, or inside a single top-level directory.
       let sourceDir = tempDir;
@@ -415,7 +414,7 @@ export class ExtensionManager extends EventEmitter {
         }
       }
 
-      return await this.installFromDirectory(sourceDir, trustTier, opts);
+      return await this.installFromDirectory(sourceDir, tier, { upgrade: opts?.upgrade });
     } catch (err) {
       return { success: false, error: `Failed to install bundle: ${err instanceof Error ? err.message : String(err)}` };
     } finally {

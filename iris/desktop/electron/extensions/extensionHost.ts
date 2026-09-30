@@ -21,6 +21,43 @@ import { RESOURCE_LIMITS } from './ipcProtocol';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+/**
+ * Variables the host process needs to run as Node (and nothing else). Worker
+ * threads inherit the host's environment, so this is also everything an
+ * extension can read from `process.env`.
+ */
+const EXTENSION_HOST_ENV_ALLOWLIST = [
+  'PATH',
+  'SystemRoot',
+  'windir',
+  'TEMP',
+  'TMP',
+  'TMPDIR',
+  'HOME',
+  'LANG',
+  'LC_ALL',
+  'TZ',
+] as const;
+
+/**
+ * Environment for the forked extension host.
+ *
+ * Main's `process.env` is not safe to pass on: `applyKeys()` (ipc/iris.ts)
+ * merges the user's BYOK provider keys into it — including the overrides only
+ * Electron's safeStorage can decrypt — so the workflow daemon inherits them.
+ * Third-party extension code must not, so only the allowlist is copied.
+ */
+export function buildExtensionHostEnv(parentEnv: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = {};
+  for (const key of EXTENSION_HOST_ENV_ALLOWLIST) {
+    const value = parentEnv[key];
+    if (value !== undefined) env[key] = value;
+  }
+  env.ELECTRON_RUN_AS_NODE = '1';
+  env.IRIS_EXT_HOST = '1';
+  return env;
+}
+
 export class ExtensionHost extends EventEmitter {
   private process: ChildProcess | null = null;
   private pendingRequests = new Map<string, {
@@ -50,10 +87,7 @@ export class ExtensionHost extends EventEmitter {
 
     this.process = fork(hostScript, [], {
       stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
-      env: {
-        ...process.env,
-        IRIS_EXT_HOST: '1',
-      },
+      env: buildExtensionHostEnv(process.env),
       execArgv: [
         `--max-old-space-size=${Math.floor(RESOURCE_LIMITS.WORKER_MEMORY_LIMIT / (1024 * 1024)) * RESOURCE_LIMITS.MAX_CONCURRENT_WORKERS}`,
       ],

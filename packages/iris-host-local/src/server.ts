@@ -2,7 +2,9 @@
  * Local Fastify server — the REST API the workflow editor calls, plus static
  * serving of the editor itself.
  *
- * No authentication (single local user). Endpoints mirror the cloud's
+ * No user accounts (single local user), but not open to the browser at large:
+ * `access-guard.ts` checks Host (DNS rebinding), Origin (cross-site requests)
+ * and, for the desktop daemon, a per-launch token. Endpoints mirror the cloud's
  * `/api/iris/*` surface closely enough that the same editor can talk to either.
  * Workflows/executions are read straight from the `LocalWorkflowStore`; runs go
  * through the `WorkflowEngine` (execute/cancel). Schedule/webhook triggers are
@@ -39,6 +41,11 @@ import {
   supportedTimezones,
 } from './scheduler.js';
 import { BatchManager, type CreateBatchInput } from './batch.js';
+import {
+  DAEMON_TOKEN_HEADER,
+  registerAccessGuard,
+  tokenMatches,
+} from './access-guard.js';
 
 const LOCAL_USER_ID = 'local';
 
@@ -55,6 +62,18 @@ export interface BuildServerOptions {
    * come from `.env`).
    */
   runtimeKeyToken?: string;
+  /**
+   * Per-launch secret required on every browser request (`x-iris-daemon-token`).
+   * The desktop daemon sets it because its renderer loads from file:// (Origin
+   * "null", indistinguishable from a sandboxed iframe on any website); Electron
+   * main attaches the header to the app's own requests. Plain `npx iris-flow`
+   * omits it and relies on the Host + Origin checks (its editor is same-origin).
+   */
+  accessToken?: string;
+  /** Origins allowed besides the server's own (e.g. `null`, a dev server). */
+  allowedOrigins?: string[];
+  /** Hostnames accepted in the Host header besides loopback / the bind address. */
+  allowedHosts?: string[];
 }
 
 /** Build (but don't start) the local server for the given resolved config. */
@@ -63,7 +82,15 @@ export async function buildServer(
   options: BuildServerOptions = {},
 ): Promise<FastifyInstance> {
   const app = Fastify({ logger: false, bodyLimit: 100 * 1024 * 1024 });
-  await app.register(fastifyCors, { origin: true });
+  // Must run before @fastify/cors (hooks run in registration order).
+  const corsOrigin = registerAccessGuard(app, {
+    bindHost: config.host,
+    fallbackPort: config.port,
+    allowedOrigins: [...(config.allowedOrigins ?? []), ...(options.allowedOrigins ?? [])],
+    allowedHosts: [...(config.allowedHosts ?? []), ...(options.allowedHosts ?? [])],
+    accessToken: options.accessToken,
+  });
+  await app.register(fastifyCors, { origin: corsOrigin });
 
   const baseUrl = publicBaseUrl(config.host, config.port);
   const { engine, store } = createLocalWorkflowEngine({
@@ -233,7 +260,7 @@ export async function buildServer(
     app.post<{ Body: { keys?: Record<string, string | null> } }>(
       '/api/iris/runtime/keys',
       async (req, reply) => {
-        if (req.headers['x-iris-daemon-token'] !== options.runtimeKeyToken) {
+        if (!tokenMatches(req.headers[DAEMON_TOKEN_HEADER], options.runtimeKeyToken)) {
           return reply.code(403).send({ error: 'Forbidden' });
         }
         const keys = req.body?.keys ?? {};

@@ -32,6 +32,7 @@ export { registerMediaServer } from './local-media-server.js';
 export type { MediaServerOptions } from './local-media-server.js';
 export { buildServer } from './server.js';
 export type { BuildServerOptions } from './server.js';
+export { DAEMON_TOKEN_HEADER } from './access-guard.js';
 export {
   daemonLockfilePath,
   readDaemonLockfile,

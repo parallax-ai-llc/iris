@@ -364,7 +364,7 @@ export const useExtensionStore = create<ExtensionState & ExtensionActions>((set,
           const result = await api.installFromIex(
             bundle.bundleUrl,
             trustTierFor(catalogEntry),
-            { upgrade: false }
+            { upgrade: false, sha256: bundle.bundleSha256 ?? undefined }
           );
           if (!result.success) {
             // Local install failed — roll back the server record so both
@@ -507,7 +507,7 @@ export const useExtensionStore = create<ExtensionState & ExtensionActions>((set,
       const result = await api.installFromIex(
         bundle.bundleUrl,
         trustTierFor(catalogEntry),
-        { upgrade: true }
+        { upgrade: true, sha256: bundle.bundleSha256 ?? undefined }
       );
       if (!result.success) {
         failBackToInstalled(result.error ?? 'unknown');

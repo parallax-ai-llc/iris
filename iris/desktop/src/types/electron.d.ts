@@ -160,6 +160,11 @@ export interface ElectronAPI {
 export interface ExtensionInstallOptions {
   /** Replace an already-installed extension with the same id. */
   upgrade?: boolean;
+  /**
+   * installFromIex with a marketplace URL: the server-issued SHA-256 of the
+   * bundle (`bundleSha256`). Without it — or on a mismatch — main refuses.
+   */
+  sha256?: string;
 }
 
 export interface ExtensionInstallResult {
@@ -243,7 +248,7 @@ export interface ExtensionsAPI {
   getInstalled: () => Promise<unknown[]>;
   /** Install from a local directory containing iris-extension.json. */
   install: (sourceDir: string, trustTier?: string, opts?: ExtensionInstallOptions) => Promise<ExtensionInstallResult>;
-  /** Install from a .iex bundle — source is an http(s) URL or a local file path. */
+  /** Install from a .iex bundle — an official marketplace URL (with opts.sha256) or a local file path. */
   installFromIex: (source: string, trustTier?: string, opts?: ExtensionInstallOptions) => Promise<ExtensionInstallResult>;
   uninstall: (extensionId: string) => Promise<{ success: boolean }>;
   enable: (extensionId: string) => Promise<{ success: boolean }>;

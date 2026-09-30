@@ -58,7 +58,9 @@ async function listenWithFallback(
 async function main(): Promise<void> {
   const config = await loadConfig();
   const token = randomBytes(24).toString('hex');
-  const app = await buildServer(config, { runtimeKeyToken: token });
+  // One per-launch secret guards both the key push and every browser request:
+  // the embedder reads it from the lockfile and attaches it to its own traffic.
+  const app = await buildServer(config, { runtimeKeyToken: token, accessToken: token });
 
   const port = await listenWithFallback(app, config.host, config.port);
   const baseUrl = publicBaseUrl(config.host, port);

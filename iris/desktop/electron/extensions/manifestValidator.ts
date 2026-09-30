@@ -42,6 +42,18 @@ function isValidPermission(perm: string): perm is Permission {
 }
 
 /**
+ * Whether a manifest path stays inside the extension directory: relative, no
+ * drive letter, no `..` segment. Mirrors the server's bundle entry check
+ * (core/server extension-manifest.ts `isUnsafeEntryName`).
+ */
+function isPathInsideExtension(entry: string): boolean {
+  const normalized = entry.replace(/\\/g, '/');
+  if (normalized.includes('\0')) return false;
+  if (normalized.startsWith('/') || /^[a-zA-Z]:/.test(normalized)) return false;
+  return !normalized.split('/').includes('..');
+}
+
+/**
  * Validate a parsed manifest object.
  */
 export function validateManifest(data: unknown): ManifestValidationResult {
@@ -66,6 +78,10 @@ export function validateManifest(data: unknown): ManifestValidationResult {
   }
   if (typeof m.main !== 'string' || m.main.trim().length === 0) {
     errors.push('"main" is required and must point to the entry file');
+  } else if (!isPathInsideExtension(m.main)) {
+    // The worker imports `main` relative to the install directory; pointing it
+    // outside would run a file that was never part of the reviewed bundle.
+    errors.push(`"main" must be a relative path inside the extension. Got: ${m.main}`);
   }
   if (typeof m.publisher !== 'string' || m.publisher.trim().length === 0) {
     errors.push('"publisher" is required');

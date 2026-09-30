@@ -15,6 +15,8 @@
  * Non-secret settings (port / host / dataDir / openBrowser) may optionally come
  * from `./iris-flow.json` or `~/.iris-flow/config.json`, or from env vars
  * (PORT, IRIS_FLOW_HOST, IRIS_FLOW_DATA_DIR, IRIS_FLOW_NO_OPEN).
+ * Browser access beyond the server's own origin is opt-in via env only
+ * (IRIS_FLOW_ALLOWED_ORIGINS, IRIS_FLOW_ALLOWED_HOSTS — see access-guard.ts).
  */
 
 import path from 'node:path';
@@ -39,6 +41,25 @@ export interface ResolvedConfig {
   openBrowser: boolean;
   /** Provider names whose keys are present in process.env. */
   configuredProviders: string[];
+  /**
+   * Browser origins allowed to call the API besides the server's own
+   * (`IRIS_FLOW_ALLOWED_ORIGINS`, comma-separated). Empty by default: the
+   * bundled editor is served same-origin.
+   */
+  allowedOrigins?: string[];
+  /**
+   * Extra hostnames accepted in the Host header (`IRIS_FLOW_ALLOWED_HOSTS`),
+   * e.g. a LAN name when bound to a non-loopback address.
+   */
+  allowedHosts?: string[];
+}
+
+/** Comma-separated env list → trimmed, non-empty entries. */
+function envList(value: string | undefined): string[] {
+  return (value ?? '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
 }
 
 const DEFAULT_PORT = 4747;
@@ -122,6 +143,8 @@ export async function loadConfig(): Promise<ResolvedConfig> {
     dataDir,
     openBrowser,
     configuredProviders: [...configuredProviders],
+    allowedOrigins: envList(process.env.IRIS_FLOW_ALLOWED_ORIGINS),
+    allowedHosts: envList(process.env.IRIS_FLOW_ALLOWED_HOSTS),
   };
 }
 

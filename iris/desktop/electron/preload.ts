@@ -278,7 +278,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getInstalled: () => ipcRenderer.invoke('extensions:getInstalled'),
     install: (sourceDir: string, trustTier?: string, opts?: { upgrade?: boolean }) =>
       ipcRenderer.invoke('extensions:install', sourceDir, trustTier, opts),
-    installFromIex: (source: string, trustTier?: string, opts?: { upgrade?: boolean }) =>
+    installFromIex: (source: string, trustTier?: string, opts?: { upgrade?: boolean; sha256?: string }) =>
       ipcRenderer.invoke('extensions:installFromIex', source, trustTier, opts),
     uninstall: (extensionId: string) => ipcRenderer.invoke('extensions:uninstall', extensionId),
     enable: (extensionId: string) => ipcRenderer.invoke('extensions:enable', extensionId),
@@ -527,7 +527,7 @@ export interface ElectronAPI {
   extensions: {
     getInstalled: () => Promise<any[]>;
     install: (sourceDir: string, trustTier?: string, opts?: { upgrade?: boolean }) => Promise<{ success: boolean; error?: string; extensionId?: string }>;
-    installFromIex: (source: string, trustTier?: string, opts?: { upgrade?: boolean }) => Promise<{ success: boolean; error?: string; extensionId?: string }>;
+    installFromIex: (source: string, trustTier?: string, opts?: { upgrade?: boolean; sha256?: string }) => Promise<{ success: boolean; error?: string; extensionId?: string }>;
     uninstall: (extensionId: string) => Promise<{ success: boolean }>;
     enable: (extensionId: string) => Promise<{ success: boolean }>;
     disable: (extensionId: string) => Promise<{ success: boolean }>;

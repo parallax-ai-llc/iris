@@ -78,6 +78,15 @@ class ApiClient {
     return promise;
   }
 
+  /**
+   * Refresh the access token for callers that cannot go through
+   * `executeRequest` (e.g. the LLM stream in llm.api.ts). Shares the
+   * single-flight refresh above. Returns true if a new token was stored.
+   */
+  refreshAccessToken(): Promise<boolean> {
+    return this.refreshToken();
+  }
+
   private async doRefresh(): Promise<boolean> {
     try {
       const storage = getTokenStorage();

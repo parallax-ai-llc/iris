@@ -17,19 +17,25 @@ export function setupExtensionHandlers(extensionManager: ExtensionManager) {
     return extensionManager.getInstalledExtensions();
   });
 
-  // Install from a local directory (for development) or extracted bundle.
-  // opts.upgrade replaces an already-installed extension with the same id
-  // (deactivate → replace → re-activate); without it, duplicates are rejected.
-  ipcMain.handle('extensions:install', async (_event, sourceDir: string, trustTier?: string, opts?: { upgrade?: boolean }) => {
-    const tier: TrustTier = isValidTrustTier(trustTier) ? trustTier : 'community';
-    return extensionManager.installFromDirectory(sourceDir, tier, { upgrade: opts?.upgrade === true });
+  // Install from a local directory (developer flow: the output of
+  // `iris-ext create` + build). opts.upgrade replaces an already-installed
+  // extension with the same id (deactivate → replace → re-activate); without
+  // it, duplicates are rejected. Local code was never reviewed, so it is always
+  // installed as 'community' — the renderer cannot ask for a tier that
+  // auto-grants high-risk permissions.
+  ipcMain.handle('extensions:install', async (_event, sourceDir: string, _trustTier?: string, opts?: { upgrade?: boolean }) => {
+    return extensionManager.installFromDirectory(sourceDir, 'community', { upgrade: opts?.upgrade === true });
   });
 
-  // Install from a .iex bundle (ZIP) — `source` is an http(s) URL (downloaded)
-  // or a local file path. Extracted to a temp dir, then installed.
-  ipcMain.handle('extensions:installFromIex', async (_event, source: string, trustTier?: string, opts?: { upgrade?: boolean }) => {
+  // Install from a .iex bundle (ZIP) — `source` is an official marketplace URL
+  // whose bytes must match `opts.sha256` (issued by the server), or a local file
+  // (installed as 'community'). Verified, extracted to a temp dir, then installed.
+  ipcMain.handle('extensions:installFromIex', async (_event, source: string, trustTier?: string, opts?: { upgrade?: boolean; sha256?: string }) => {
     const tier: TrustTier = isValidTrustTier(trustTier) ? trustTier : 'community';
-    return extensionManager.installFromIex(source, tier, { upgrade: opts?.upgrade === true });
+    return extensionManager.installFromIex(source, tier, {
+      upgrade: opts?.upgrade === true,
+      sha256: typeof opts?.sha256 === 'string' ? opts.sha256 : undefined,
+    });
   });
 
   // Uninstall an extension
