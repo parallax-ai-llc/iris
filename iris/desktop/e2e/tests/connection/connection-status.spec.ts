@@ -5,21 +5,21 @@ import { safeExpectVisible, assertStep } from '../../helpers/step.helper';
  * Connection Status E2E tests — 사이드바 하단 ConnectionStatus 컴포넌트 렌더링 확인.
  *
  * Selectors rationale:
- *   ConnectionStatus (ConnectionStatus.tsx):
- *     - Status dot: span with bg-emerald-500 (connected) or bg-red-500 (disconnected)
- *     - Status text: "Connected" or "Disconnected" (expanded sidebar only)
- *     - Version text: "v{version}" (expanded sidebar only, may be empty)
+ *   ConnectionStatus (ConnectionStatus.tsx): <div class="dt-conn" title="Connected · v1.2.3">
+ *     - Status dot: span.dt-conn-dot (disconnected 일 때 .dt-conn-dot-err 추가)
+ *     - Status text: "Connected" or "Disconnected"
+ *     - Version text: span.dt-conn-ver "v{version}" (업데이트 확인/다운로드 중에는 액션 칩으로 대체)
  *   Sidebar (Sidebar.tsx):
- *     - ConnectionStatus rendered in bottom section after user info
- *     - Nav items with requiresServer get opacity-50 + WifiOff icon when disconnected
+ *     - ConnectionStatus 는 <aside> 의 마지막 자식으로 렌더된다 (nav → user chip / Sign in → status)
+ *     - requiresServer 항목(Templates, Extensions, Storage)은 미연결 시 .dt-rail-item-dimmed + WifiOff 아이콘
  */
 
 test.describe('Connection Status', () => {
   test('connection status indicator is visible in sidebar', async ({ page }) => {
-    // The status dot (emerald or red) should always be visible regardless of connection state
+    // The status dot should always be visible regardless of connection state
     const statusDot = await safeExpectVisible(
       page,
-      'span.rounded-full.w-2.h-2',
+      'aside .dt-conn .dt-conn-dot',
       'Connection status dot visible in sidebar',
       { timeout: 10_000 }
     );
@@ -27,7 +27,7 @@ test.describe('Connection Status', () => {
   });
 
   test('connection status shows Connected or Disconnected text', async ({ page }) => {
-    // In expanded sidebar, either "Connected" or "Disconnected" text should be visible
+    // Either "Connected" or "Disconnected" text should be visible in the sidebar
     // Try Connected first, then Disconnected
     const connectedLocator = page.locator('text=Connected').first();
     const disconnectedLocator = page.locator('text=Disconnected').first();
@@ -37,15 +37,14 @@ test.describe('Connection Status', () => {
 
     expect(
       isConnected || isDisconnected,
-      'Either "Connected" or "Disconnected" text should be visible in expanded sidebar'
+      'Either "Connected" or "Disconnected" text should be visible in the sidebar'
     ).toBe(true);
   });
 
   test('version text element exists when connected', async ({ page }) => {
-    // The version label container is rendered conditionally — when appVersion exists,
-    // a span with the version text (e.g. "v1.0.0") appears.
-    // In test mode the version may or may not be available, so we check the
-    // ConnectionStatus container's title attribute which always includes the status.
+    // The version label is rendered conditionally (it gives way to the update
+    // action chip), so we check the ConnectionStatus container's title attribute,
+    // which always includes the status.
     const statusContainer = page.locator('div[title*="Connected"], div[title*="Disconnected"]').first();
     await expect(statusContainer).toBeVisible({ timeout: 10_000 });
 
@@ -57,24 +56,24 @@ test.describe('Connection Status', () => {
   });
 
   test('sidebar shows connection status component at the bottom', async ({ page }) => {
-    // ConnectionStatus is rendered inside the bottom border-t section of the sidebar.
-    // Verify the sidebar bottom section exists and contains the status dot.
-    const sidebarBottom = page.locator('div.border-t.border-zinc-800');
+    // ConnectionStatus is the last child of the sidebar <aside>, below the nav
+    // list and the user chip / Sign in button.
+    const sidebarBottom = page.locator('aside > .dt-conn:last-child');
     await expect(sidebarBottom).toBeVisible({ timeout: 10_000 });
 
     // The connection status dot should be inside this bottom section
-    const statusDotInBottom = sidebarBottom.locator('span.rounded-full.w-2.h-2');
+    const statusDotInBottom = sidebarBottom.locator('.dt-conn-dot');
     await expect(statusDotInBottom).toBeVisible({ timeout: 5_000 });
   });
 
   test('server-required nav items reflect connection state', async ({ page }) => {
-    // Templates, Workflows, Batch, Storage have requiresServer flag.
-    // When disconnected they get opacity-50; when connected they don't.
+    // Templates, Extensions, Storage have the requiresServer flag (Sidebar.tsx).
+    // When disconnected they are dimmed; when connected they are not.
     // We verify these nav buttons exist regardless of connection state.
-    const serverRequiredItems = ['Templates', 'Workflows', 'Batch', 'Storage'];
+    const serverRequiredItems = ['Templates', 'Extensions', 'Storage'];
 
     for (const itemName of serverRequiredItems) {
-      const navButton = page.locator(`button:has-text("${itemName}")`);
+      const navButton = page.locator(`nav button:has-text("${itemName}")`);
       await expect(navButton).toBeVisible({ timeout: 10_000 });
     }
   });

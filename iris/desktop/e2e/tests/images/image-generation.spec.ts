@@ -23,8 +23,10 @@ import {
 
 test.describe('Images - Generation Flow', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to Images page (use exact match to avoid matching tool card buttons)
-    await page.getByRole('button', { name: 'Images', exact: true }).first().click();
+    // Navigate to Images page. The sidebar button's accessible name is "Images 3" (label +
+    // shortcut kbd), so scope to <nav> instead of role + exact name; Home's quick-start tile
+    // text also contains "images", which makes an unscoped has-text selector ambiguous.
+    await page.locator('nav button:has-text("Images")').click();
     await expect(
       page.locator('button:has-text("Generate Image")')
     ).toBeVisible({ timeout: 10_000 });

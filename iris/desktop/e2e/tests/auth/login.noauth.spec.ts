@@ -11,7 +11,7 @@ import {
  * Selectors are derived from:
  *   - iris-desktop/src/app/auth/LoginPage.tsx (login form)
  *   - iris-desktop/src/App.tsx (auth gating, loading state)
- *   - iris-desktop/src/stores/auth.store.ts (auth state management)
+ *   - iris-desktop/src/features/auth/stores/auth.store.ts (auth state management)
  *   - iris-desktop/electron/ipc/auth.ts (token persistence via electron-store)
  *   - iris-desktop/electron/preload.ts (IPC bridge: auth:getToken, auth:setToken, etc.)
  */
@@ -39,15 +39,44 @@ test.describe('Auth - Login', () => {
     // Waiting for it to appear on its own hangs until timeout.
     await page.waitForSelector('nav', { state: 'visible', timeout: 15_000 });
 
-    // The sidebar only offers "Sign in" when no user is stored, and tokens
-    // persist in electron-store across runs (e.g. a previous auth-setup).
-    // Force a logged-out shell so this test does not depend on leftover state.
-    // __ZUSTAND_STORES__ is exposed by App.tsx in dev mode for exactly this.
-    await page.evaluate(async () => {
-      const stores = (window as unknown as {
-        __ZUSTAND_STORES__?: { auth?: { getState: () => { logout: () => Promise<void> } } };
-      }).__ZUSTAND_STORES__;
-      await stores?.auth?.getState().logout();
+    // The sidebar only offers "Sign in" when no user is loaded, and tokens
+    // persist in electron-store across runs — including the auth-setup project,
+    // which Playwright runs in the same phase as this one, right before it.
+    // Put the renderer into a logged-out state IN MEMORY ONLY so this test does
+    // not depend on leftover state. Do not call logout() here: it clears the
+    // persisted tokens, and the `authenticated` project (which runs after this
+    // one in a full run) would then start without a session.
+    // __ZUSTAND_STORES__ is exposed by App.tsx in dev mode for exactly this
+    // (from an effect, so wait for it rather than assume it is already there).
+    await page.waitForFunction(
+      () =>
+        Boolean(
+          (window as unknown as { __ZUSTAND_STORES__?: { auth?: unknown } })
+            .__ZUSTAND_STORES__?.auth
+        ),
+      undefined,
+      { timeout: 15_000 }
+    );
+    await page.evaluate(() => {
+      const auth = (window as unknown as {
+        __ZUSTAND_STORES__: {
+          auth: {
+            setState: (partial: Record<string, unknown>) => void;
+            subscribe: (listener: (state: { user: unknown }) => void) => () => void;
+          };
+        };
+      }).__ZUSTAND_STORES__.auth;
+
+      const signOutInMemory = () =>
+        auth.setState({ user: null, isAuthenticated: false, error: null });
+
+      // The boot-time checkAuth() may still be in flight (React.StrictMode runs
+      // it twice in dev), and its completion would restore the user right after
+      // we cleared it — so keep the user cleared for the lifetime of this page.
+      auth.subscribe((state) => {
+        if (state.user) signOutInMemory();
+      });
+      signOutInMemory();
     });
 
     // Open the login overlay the way a user does.

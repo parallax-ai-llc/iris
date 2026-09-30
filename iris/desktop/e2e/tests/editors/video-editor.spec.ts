@@ -9,13 +9,14 @@ import {
 /**
  * Video Editor E2E tests — 비디오 에디터 핵심 기능 테스트.
  *
- * 흐름: Projects 페이지 → New Project → 모달에서 이름/해상도 선택 → Create → 에디터 열림
+ * 흐름: Projects 페이지 → New project → 모달에서 이름/해상도 선택 → Create → 에디터 열림
  *
  * Key selectors (VideoEditor.tsx, VideoEditorMenuBar.tsx, EditorTimeline.tsx):
- *   - Menu bar: "File", "Edit", "View", "Subtitles", "Tools"
- *   - Left panel tabs: "Media", "Effects", "Text"
+ *   - Menu bar: "File", "Edit", "View", "Subtitles", "AI" (+ "Tools" only when opened from an asset)
+ *   - File menu items: "New Project...", "Open Project...", "Save Project", "Save Project As...", "Go Back"
+ *   - Left panel tabs: "Media", "Effects", "Color", "History", "Text"
  *   - Preview area: video preview + subtitle overlay
- *   - Timeline: track headers, clips, playhead
+ *   - Timeline: track headers, clips, playhead, "Add track" button (aria-label)
  *   - Playback controls: play/pause, speed, split, snap
  *   - Inspector (right panel): selected clip properties
  *   - New project modal: input[placeholder="Untitled Project"], resolution presets, Create button
@@ -35,7 +36,7 @@ test.describe('Video Editor - Full', () => {
     assertStep(navClick);
 
     // Wait for page or ServerRequiredOverlay
-    const heading = page.locator('h1:has-text("Projects")');
+    const heading = page.locator('h1:has-text("Video projects")');
     const overlay = page.locator('text=Server Connection Required');
     await expect(heading.or(overlay)).toBeVisible({ timeout: 10_000 });
 
@@ -44,11 +45,11 @@ test.describe('Video Editor - Full', () => {
       return false;
     }
 
-    // Click New Project
+    // Click New project
     const newBtn = await safeClick(
       page,
-      'button:has-text("New Project")',
-      'Click New Project'
+      'button:has-text("New project")',
+      'Click New project'
     );
     assertStep(newBtn);
 
@@ -68,8 +69,9 @@ test.describe('Video Editor - Full', () => {
       'Fill project name'
     );
 
-    // Click Create
-    await page.locator('button:has-text("Create")').click();
+    // Click Create — exact name, because the page behind the modal also has a
+    // "Created" sort tab and (when empty) a "Create project" button.
+    await page.getByRole('button', { name: 'Create', exact: true }).click();
 
     // Wait for loading to finish
     await page
@@ -92,7 +94,7 @@ test.describe('Video Editor - Full', () => {
       return;
     }
 
-    // VideoEditorMenuBar has: File, Edit, View, Subtitles, Tools
+    // VideoEditorMenuBar has: File, Edit, View, Subtitles, AI (Tools only with an asset)
     const menus = ['File', 'Edit', 'View', 'Subtitles'];
     for (const menu of menus) {
       await expect(
@@ -121,14 +123,11 @@ test.describe('Video Editor - Full', () => {
       return;
     }
 
-    // Timeline should render with at least one track header (Video track)
-    // Look for track-related elements or the timeline container
-    // The timeline has a track with type icons and add track button
-    const addTrackBtn = page.locator('button[title="Add Track"]');
-    const trackArea = page.locator('text=Video').first();
-
+    // The timeline toolbar always renders the add-track button. It is labelled
+    // through aria-label ("Add track"); the visible "Add Track" text is only a
+    // hover tooltip, and there is no title attribute.
     await expect(
-      addTrackBtn.or(trackArea)
+      page.getByRole('button', { name: 'Add track', exact: true })
     ).toBeVisible({ timeout: 10_000 });
   });
 
@@ -142,9 +141,12 @@ test.describe('Video Editor - Full', () => {
     // Open File menu
     await page.locator('button').filter({ hasText: /^File$/ }).first().click();
 
-    // File menu items
-    await expect(page.locator('button:has-text("Save Project")')).toBeVisible({ timeout: 5_000 });
-    await expect(page.locator('button:has-text("Back to Videos")')).toBeVisible({ timeout: 5_000 });
+    // File menu items. "Save Project" is matched on its exact label because
+    // "Save Project As..." sits right below it.
+    await expect(
+      page.locator('button:has(span:text-is("Save Project"))')
+    ).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('button:has-text("Go Back")')).toBeVisible({ timeout: 5_000 });
 
     await page.keyboard.press('Escape');
   });
@@ -205,11 +207,11 @@ test.describe('Video Editor - Full', () => {
       return;
     }
 
-    // File → Back to Videos
+    // File → Go Back
     await page.locator('button').filter({ hasText: /^File$/ }).first().click();
-    await page.locator('button:has-text("Back to Videos")').click();
+    await page.locator('button:has-text("Go Back")').click();
 
-    // Should return to Projects/Videos page — nav sidebar should reappear
+    // Should return to the Projects page — nav sidebar should reappear
     await expect(page.locator('nav')).toBeVisible({ timeout: 15_000 });
   });
 
@@ -222,7 +224,7 @@ test.describe('Video Editor - Full', () => {
     );
     assertStep(navClick);
 
-    const heading = page.locator('h1:has-text("Projects")');
+    const heading = page.locator('h1:has-text("Video projects")');
     const overlay = page.locator('text=Server Connection Required');
     await expect(heading.or(overlay)).toBeVisible({ timeout: 10_000 });
 
@@ -232,7 +234,7 @@ test.describe('Video Editor - Full', () => {
     }
 
     // Open modal
-    await page.locator('button:has-text("New Project")').click();
+    await page.locator('button:has-text("New project")').click();
 
     await expect(
       page.locator('input[placeholder="Untitled Project"]')

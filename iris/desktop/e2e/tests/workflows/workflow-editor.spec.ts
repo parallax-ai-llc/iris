@@ -38,7 +38,9 @@ test.describe('Workflow editor (local engine)', () => {
     assertStep(
       await safeClick(
         page,
-        'button:has-text("New workflow")',
+        // Exact text: every workflow this test created on earlier runs is a card
+        // <button> named "New Workflow …", which a has-text selector also matches.
+        'button:text-is("New workflow")',
         'Create new workflow'
       )
     );

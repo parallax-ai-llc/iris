@@ -12,9 +12,9 @@ import {
  *   - Greeting: h1 with dynamic time-based greeting + user name
  *   - Subtitle: "Ready to create something amazing?" (i18n key: home.subtitle)
  *   - Stats: 3 stat cards (Images Created, Videos Created, This Week)
- *   - Quick Actions: 3 <button> elements with h3 titles (Create Image, Create Video, Build Workflow)
+ *   - Quick Actions: 3 <button class="dt-qa"> tiles, each a title + description (Create Image, Create Video, Build Workflow)
  *   - Recent Activity: heading "Recent Activity" + optional "View all" link + item list or empty state
- *   - Pro Tip: keyboard shortcut hint with <kbd> elements ("Ctrl" + "0-9")
+ *   - Pro Tip: keyboard shortcut hint with <kbd> elements ("Ctrl" + "1-9")
  */
 
 test.describe('Home Page', () => {
@@ -83,24 +83,24 @@ test.describe('Home Page', () => {
   });
 
   test('quick action cards are visible', async ({ page }) => {
-    // 3 quick action cards with h3 titles
+    // 3 quick action tiles — the title is a <div> inside the tile button, not an <h3>
     const createImageVisible = await safeExpectVisible(
       page,
-      'h3:has-text("Create Image")',
+      'button:has-text("Create Image")',
       'Create Image quick action visible'
     );
     assertStep(createImageVisible);
 
     const createVideoVisible = await safeExpectVisible(
       page,
-      'h3:has-text("Create Video")',
+      'button:has-text("Create Video")',
       'Create Video quick action visible'
     );
     assertStep(createVideoVisible);
 
     const buildWorkflowVisible = await safeExpectVisible(
       page,
-      'h3:has-text("Build Workflow")',
+      'button:has-text("Build Workflow")',
       'Build Workflow quick action visible'
     );
     assertStep(buildWorkflowVisible);
@@ -110,7 +110,7 @@ test.describe('Home Page', () => {
     // Click the Create Image quick action button
     const click = await safeClick(
       page,
-      'button:has(h3:has-text("Create Image"))',
+      'button:has-text("Create Image")',
       'Click Create Image quick action'
     );
     assertStep(click);
@@ -160,8 +160,8 @@ test.describe('Home Page', () => {
 
     const numberKbdVisible = await safeExpectVisible(
       page,
-      'kbd:has-text("0-9")',
-      '0-9 kbd element visible'
+      'kbd:has-text("1-9")',
+      '1-9 kbd element visible'
     );
     assertStep(numberKbdVisible);
   });

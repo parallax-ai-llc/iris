@@ -31,8 +31,8 @@ test.describe('Image Editor', () => {
    * Returns true if editor was opened, false if no images available.
    */
   async function openEditorFromGallery(page: any): Promise<boolean> {
-    // Navigate to Images page
-    await page.getByRole('button', { name: 'Images', exact: true }).first().click();
+    // Navigate to Images page (sidebar button is "Images 3" to assistive tech — scope to <nav>)
+    await page.locator('nav button:has-text("Images")').click();
     await expect(
       page.locator('button:has-text("Generate Image")')
     ).toBeVisible({ timeout: 10_000 });
@@ -66,7 +66,9 @@ test.describe('Image Editor', () => {
       // No images available — verify gallery is in empty/no-card state
       const emptyOrGrid = page.locator('text=No images yet')
         .or(page.locator('text=Generate your first image'));
-      await expect(emptyOrGrid.or(page.locator('button:has-text("Generate Image")'))).toBeVisible();
+      // `.first()`: the empty-state title, its hint and the Generate Image button are all
+      // on screen together, and an or-chain that resolves to several elements is a strict mode violation.
+      await expect(emptyOrGrid.or(page.locator('button:has-text("Generate Image")')).first()).toBeVisible();
       return;
     }
 

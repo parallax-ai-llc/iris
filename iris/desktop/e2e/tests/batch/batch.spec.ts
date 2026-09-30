@@ -8,11 +8,11 @@ import { safeClick, safeExpectVisible, assertStep } from '../../helpers/step.hel
  *
  * Selectors:
  *   - Batch nav: button:has-text("Batch")
- *   - Heading: h1:has-text("Batch Jobs")
- *   - New Batch Job btn: button:has-text("New Batch Job")
+ *   - Heading: h1:has-text("Batch jobs")
+ *   - New batch job btn: button:has-text("New batch job")
  *   - Search input: input[placeholder*="Search batch jobs"]  (placeholder uses an ellipsis)
  *   - Empty state: text="No batch jobs yet"
- *   - Empty state CTA: button:has-text("Create Batch Job")
+ *   - Empty state CTA: button:has-text("Create batch job")
  */
 
 test.describe('Batch Page', () => {
@@ -26,18 +26,18 @@ test.describe('Batch Page', () => {
 
     const heading = await safeExpectVisible(
       page,
-      'h1:has-text("Batch Jobs")',
-      'Batch Jobs heading visible',
+      'h1:has-text("Batch jobs")',
+      'Batch jobs heading visible',
       { timeout: 10_000 }
     );
     assertStep(heading);
   });
 
-  test('page renders heading "Batch Jobs"', async ({ page }) => {
+  test('page renders heading "Batch jobs"', async ({ page }) => {
     const heading = await safeExpectVisible(
       page,
-      'h1:has-text("Batch Jobs")',
-      'Batch Jobs heading is displayed'
+      'h1:has-text("Batch jobs")',
+      'Batch jobs heading is displayed'
     );
     assertStep(heading);
 
@@ -52,8 +52,8 @@ test.describe('Batch Page', () => {
   test('create batch job button is visible', async ({ page }) => {
     const newBatchBtn = await safeExpectVisible(
       page,
-      'button:has-text("New Batch Job")',
-      'New Batch Job button visible'
+      'button:has-text("New batch job")',
+      'New batch job button visible'
     );
     assertStep(newBatchBtn);
   });
@@ -90,8 +90,8 @@ test.describe('Batch Page', () => {
 
       const createBtn = await safeExpectVisible(
         page,
-        'button:has-text("Create Batch Job")',
-        'Empty state Create Batch Job button visible'
+        'button:has-text("Create batch job")',
+        'Empty state Create batch job button visible'
       );
       assertStep(createBtn);
     } else {

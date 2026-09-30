@@ -12,7 +12,7 @@ import { safeClick, safeExpectVisible, assertStep } from '../../helpers/step.hel
  *   - Sidebar nav:    button:has-text("Workflows")
  *   - Heading:        h1:has-text("Workflows")
  *   - Subtitle:       text=Local workflows run on your machine
- *   - New workflow:   button:has-text("New workflow")
+ *   - New workflow:   button:text-is("New workflow")  (exact — cards named "New Workflow" are buttons too)
  *   - API keys:       button:has-text("API keys")
  *   - Empty state:    text=No workflows yet
  */
@@ -58,7 +58,7 @@ test.describe('Workflows Page (local engine)', () => {
     assertStep(
       await safeExpectVisible(
         page,
-        'button:has-text("New workflow")',
+        'button:text-is("New workflow")',
         'New workflow button is visible'
       )
     );

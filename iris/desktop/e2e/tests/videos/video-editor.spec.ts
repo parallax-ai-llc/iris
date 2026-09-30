@@ -11,7 +11,7 @@ import {
  *
  * 흐름:
  * 1. Projects 페이지 이동
- * 2. "New Project" 클릭 → 모달 열림
+ * 2. "New project" 클릭 → 모달 열림
  * 3. 프로젝트 이름 입력 → "Create" 클릭
  * 4. VideoEditorPage 열림 확인 (loadFromTimelineData → isEditorOpen: true)
  * 5. VideoEditorMenuBar ("File" 메뉴) 표시 확인
@@ -19,10 +19,12 @@ import {
  *
  * Selectors:
  *   - Projects nav: button:has-text("Projects")
- *   - New Project btn: button:has-text("New Project")
+ *   - Heading: h1:has-text("Video projects")
+ *   - New project btn: button:has-text("New project")
  *   - Project name input: input[placeholder="Untitled Project"]
- *   - Create btn: button:has-text("Create")
- *   - Editor menu: button:has-text("File") (VideoEditorMenuBar.tsx)
+ *   - Create btn: button:text-is("Create")  (정확히 일치 — 같은 화면의 "Created" 정렬 탭,
+ *     빈 상태의 "Create project" 버튼과 구분)
+ *   - Editor menu: button 텍스트가 정확히 "File" / "Edit" (VideoEditorMenuBar.tsx)
  *   - Close: loading spinner or editor heading
  */
 
@@ -38,17 +40,17 @@ test.describe('Video Editor', () => {
 
     const projectsHeading = await safeExpectVisible(
       page,
-      'h1:has-text("Projects")',
+      'h1:has-text("Video projects")',
       'Projects page loaded',
       { timeout: 10_000 }
     );
     assertStep(projectsHeading);
 
-    // 2. New Project 버튼 클릭 (modal open)
+    // 2. New project 버튼 클릭 (modal open)
     const newProjectBtn = await safeClick(
       page,
-      'button:has-text("New Project")',
-      'Click New Project button'
+      'button:has-text("New project")',
+      'Click New project button'
     );
     assertStep(newProjectBtn);
 
@@ -73,7 +75,7 @@ test.describe('Video Editor', () => {
     // 4. Create 버튼 클릭
     const createBtn = await safeClick(
       page,
-      'button:has-text("Create")',
+      'button:text-is("Create")',
       'Click Create button'
     );
     assertStep(createBtn);
@@ -87,22 +89,15 @@ test.describe('Video Editor', () => {
         // 로딩 텍스트가 처음부터 없을 수도 있음
       });
 
-    // 6. VideoEditorMenuBar의 "File" 메뉴 확인 (editor.tsx MenuBar)
-    const fileMenuVisible = await safeExpectVisible(
-      page,
-      'button:has-text("File")',
-      'Video editor File menu visible',
-      { timeout: 20_000 }
-    );
-    assertStep(fileMenuVisible);
+    // 6. VideoEditorMenuBar의 "File" 메뉴 확인 — 텍스트가 정확히 "File" 인 버튼
+    await expect(
+      page.locator('button').filter({ hasText: /^File$/ }).first()
+    ).toBeVisible({ timeout: 20_000 });
 
     // 에디터의 "Edit" 메뉴도 확인
-    const editMenuVisible = await safeExpectVisible(
-      page,
-      'button:has-text("Edit")',
-      'Video editor Edit menu visible'
-    );
-    assertStep(editMenuVisible);
+    await expect(
+      page.locator('button').filter({ hasText: /^Edit$/ }).first()
+    ).toBeVisible();
   });
 
   test('projects page shows new project button', async ({ page }) => {
@@ -116,7 +111,7 @@ test.describe('Video Editor', () => {
 
     const heading = await safeExpectVisible(
       page,
-      'h1:has-text("Projects")',
+      'h1:has-text("Video projects")',
       'Projects heading',
       { timeout: 10_000 }
     );
@@ -124,8 +119,8 @@ test.describe('Video Editor', () => {
 
     const newBtn = await safeExpectVisible(
       page,
-      'button:has-text("New Project")',
-      'New Project button visible'
+      'button:has-text("New project")',
+      'New project button visible'
     );
     assertStep(newBtn);
   });
