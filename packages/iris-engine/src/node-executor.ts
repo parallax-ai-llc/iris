@@ -1462,7 +1462,10 @@ export class NodeExecutor {
 
         const aiRequest: AIRequest = {
           capability: 'motion-control',
-          model: 'kwaivgi/kling-v2.6-motion-control',
+          model:
+            settings.model === 'v3'
+              ? 'kwaivgi/kling-v3-motion-control'
+              : 'kwaivgi/kling-v2.6-motion-control',
           prompt: (settings.prompt as string) || (inputs.prompt as string),
           inputImage: refImageInput,
           inputVideo: refVideoInput,

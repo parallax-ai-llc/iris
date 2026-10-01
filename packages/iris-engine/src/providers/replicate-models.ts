@@ -415,6 +415,24 @@ export const REPLICATE_MODELS: ModelInfo[] = [
       currency: 'USD',
     },
   },
+  {
+    id: 'kwaivgi/kling-v3-motion-control',
+    name: 'Kling 3.0 Motion Control',
+    provider: 'replicate',
+    capabilities: ['motion-control'],
+    inputTypes: ['image', 'video'],
+    outputTypes: ['video'],
+    constraints: {
+      maxVideoDuration: 10,
+      supportedFormats: ['mp4'],
+    },
+    pricing: {
+      unit: 'video',
+      inputCost: 0,
+      outputCost: 0.5,
+      currency: 'USD',
+    },
+  },
   // Video Upscale models
   {
     id: 'topazlabs/video-upscale',

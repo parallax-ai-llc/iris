@@ -4,7 +4,7 @@ export const EDIT_MOTION_CONTROL: NodeDefinition = {
   type: 'EDIT_MOTION_CONTROL',
   category: 'EDITOR',
   label: 'Motion Control',
-  description: 'Transfer motion from reference video to a subject in reference image (Kling 2.6)',
+  description: 'Transfer motion from reference video to a subject in reference image (Kling 2.6 / 3.0)',
   iconName: 'Move',
   color: 'orange',
   aiCapability: 'motion-control',
@@ -17,6 +17,17 @@ export const EDIT_MOTION_CONTROL: NodeDefinition = {
     { name: 'video', type: 'video', label: 'Generated Video' },
   ],
   configFields: [
+    {
+      name: 'model',
+      label: 'Model',
+      type: 'select',
+      options: [
+        { value: 'v2.6', label: 'Kling 2.6' },
+        { value: 'v3', label: 'Kling 3.0 (Improved consistency and quality)' },
+      ],
+      defaultValue: 'v2.6',
+      description: 'Kling Motion Control version',
+    },
     {
       name: 'characterOrientation',
       label: 'Character Orientation',
