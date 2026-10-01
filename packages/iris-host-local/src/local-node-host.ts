@@ -346,9 +346,6 @@ class LocalUsageHost implements UsageHost {
   async consumeNodeTokens(): Promise<number> {
     return 0;
   }
-  async addTokensToCurrentPeriod(): Promise<void> {
-    /* no-op */
-  }
 }
 
 /** Build an SRT/VTT timestamp (HH:MM:SS,mmm or HH:MM:SS.mmm). */

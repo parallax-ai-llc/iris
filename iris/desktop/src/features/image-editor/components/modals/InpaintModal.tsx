@@ -10,7 +10,8 @@ import { useImageEditorStore } from '@/features/image-editor/stores/imageEditor.
 import { X, Wand2, Trash2, Minus, Plus, Coins } from 'lucide-react';
 import { inpaintImage, getAssetStatus } from '@/shared/api/image.api';
 import { toast } from '@/shared/lib/toast';
-import { useTokenCost, formatTokenCost } from '@/shared/hooks/useTokenCost';
+import { formatTokenCost } from '@/shared/hooks/useTokenCost';
+import { useImageEditTokenCost } from '@/shared/hooks/useImageEditTokenCost';
 
 interface InpaintModalProps {
   isOpen: boolean;
@@ -39,7 +40,7 @@ export const InpaintModal = memo(function InpaintModal({
   const [brushSize, setBrushSize] = useState(30);
   const [error, setError] = useState<string | null>(null);
   const [hasMask, setHasMask] = useState(false);
-  const { cost: tokenCost, isLoading: costLoading } = useTokenCost('EDIT_IMAGE_INPAINT');
+  const { cost: tokenCost, isLoading: costLoading } = useImageEditTokenCost('inpaint');
 
   // Canvas refs
   const imageCanvasRef = useRef<HTMLCanvasElement>(null);

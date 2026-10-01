@@ -3,12 +3,13 @@
  *
  *   GEN_LIP_SYNC — sync a face video to a target audio track.
  *
- * Routed through Replicate which hosts SadTalker / Sync-1.6.0 /
+ * Routed through Replicate which hosts SadTalker / Sync lipsync-2 /
  * etc. We surface a `provider` config that maps to a Replicate model
  * slug. For Phase 3 v1 we ship a single model per quality bucket and
  * defer multi-provider routing.
  */
 
+import { resolveLipSyncModel } from 'iris-nodes';
 import type { NodeExecutorHost } from './node-host.js';
 import type {
   NodeDefinition,
@@ -32,25 +33,6 @@ function inputToUrl(value: unknown): string {
   return '';
 }
 
-/**
- * Map user-facing model id + quality to a Replicate slug.
- * Defaults to Sync-1.6.0 (best quality/feature balance as of 2026).
- */
-function resolveModel(
-  configModel: string | undefined,
-  quality: string
-): string {
-  if (configModel && configModel.includes('/')) return configModel; // user provided full slug
-  switch (quality) {
-    case 'fast':
-      return 'cjwbw/sadtalker';
-    case 'high':
-      return 'sync-so/sync-1.6.0';
-    case 'balanced':
-    default:
-      return 'sync-so/sync-1.6.0';
-  }
-}
 
 export async function genLipSync(
   node: NodeDefinition,
@@ -72,7 +54,9 @@ export async function genLipSync(
     settings.enhanceFace ?? node.config.enhanceFace
   );
   const userModel = (settings.model ?? node.config.model) as string | undefined;
-  const replicateModel = resolveModel(userModel, quality);
+  // Same mapping the billing plan uses (iris-nodes LIP_SYNC_MODELS): the
+  // quality's Replicate model, or a full slug the user typed.
+  const replicateModel = resolveLipSyncModel(userModel, quality);
 
   const videoUrl = inputToUrl(inputs.video);
   const audioUrl = inputToUrl(inputs.audio);

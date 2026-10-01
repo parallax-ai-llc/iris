@@ -33,7 +33,10 @@
     },
     "motionControl": {
       "label": "Motion Control",
-      "description": "Transfer motion"
+      "description": "Transfer motion",
+      "preserveBackground": "వీడియో నేపథ్యాన్ని ఉంచండి",
+      "preserveBackgroundHint": "వీడియో నేపథ్యం, కెమెరా, లైటింగ్‌ను అలాగే ఉంచి, వ్యక్తిని మాత్రమే మీ రిఫరెన్స్ పాత్రతో మారుస్తుంది (Wan 2.2 Animate Replace). వీడియోలో, చిత్రంలో ఒక్కరే ఉంటే ఉత్తమంగా పనిచేస్తుంది.",
+      "resolution": "రిజల్యూషన్"
     },
     "inpaint": {
       "label": "Inpaint",

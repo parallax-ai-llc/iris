@@ -8,7 +8,8 @@ import { useImageEditorStore } from '@/features/image-editor/stores/imageEditor.
 import { Droplets, Info, Palette } from 'lucide-react';
 import { colorizeImage, getAssetStatus } from '@/shared/api/image.api';
 import { toast } from '@/shared/lib/toast';
-import { useTokenCost, formatTokenCost } from '@/shared/hooks/useTokenCost';
+import { formatTokenCost } from '@/shared/hooks/useTokenCost';
+import { useImageEditTokenCost } from '@/shared/hooks/useImageEditTokenCost';
 import { useAIOperation } from '@/features/image-editor/hooks/useAIOperation';
 import { MergeLayersDialog } from '@/features/image-editor/components/shared/MergeLayersDialog';
 import { Coins } from 'lucide-react';
@@ -29,7 +30,7 @@ export const ColorizePanel = memo(function ColorizePanel() {
   const [saturation, setSaturation] = useState(100);
   const [addAsNewLayer, setAddAsNewLayer] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { cost: tokenCost, isLoading: costLoading } = useTokenCost('EDIT_IMAGE_COLORIZE');
+  const { cost: tokenCost, isLoading: costLoading } = useImageEditTokenCost('colorize');
   const { prepareAssetForAI, mergeDialogProps } = useAIOperation();
   const isMountedRef = useRef(true);
   useEffect(() => {

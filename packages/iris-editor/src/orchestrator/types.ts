@@ -52,4 +52,3 @@ export function getCategoryFromType(type: string): string {
   return 'UTILITY';
 }
 
-export const VIDEO_NODE_TYPES = ['GEN_TEXT_TO_VIDEO', 'GEN_IMAGE_TO_VIDEO'];

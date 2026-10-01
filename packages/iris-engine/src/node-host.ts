@@ -19,6 +19,7 @@
  * based and host-agnostic.
  */
 
+import type { LlmTokenUsage } from 'iris-nodes';
 import type { AssetKind } from './domain.js';
 import type {
   NodeDefinition,
@@ -173,6 +174,8 @@ export interface TokenUsageOpts {
   fallbackModelId?: string;
   /** Usage-based nodes: the actual provider cost in USD (charge only). */
   usdCost?: number;
+  /** Usage-based LLM nodes: provider-reported token usage (charge only). */
+  llmUsage?: LlmTokenUsage;
 }
 
 /** Pre-check + post-record AI usage. Cloud enforces token plans; local no-ops
@@ -191,9 +194,6 @@ export interface UsageHost {
     modelId: string | undefined,
     opts: TokenUsageOpts,
   ): Promise<number>;
-
-  /** Deduct tokens directly from the user's current period (WEB nodes). */
-  addTokensToCurrentPeriod(userId: string, tokens: number): Promise<void>;
 }
 
 export interface TranscriptionResult {

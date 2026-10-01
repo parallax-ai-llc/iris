@@ -14,8 +14,12 @@ import {
   ManualTriggerConfig, 
   UserInput,
   getCategoryFromType,
-  VIDEO_NODE_TYPES,
 } from '../types';
+import {
+  estimateWorkflowRunCost,
+  EMPTY_RUN_COST_ESTIMATE,
+  type RunCostEstimate,
+} from '@editor/lib/run-cost-estimate';
 
 export function useWorkflowEditor(workflowId: string) {
   const { navigate } = useSeams();
@@ -60,23 +64,28 @@ export function useWorkflowEditor(workflowId: string) {
     setValidationResult(null);
   }, [nodes.length, edges.length]);
 
-  // Calculate estimated tokens
-  const estimatedTokens = useMemo(() => {
-    if (!tokenCosts?.costs || nodes.length === 0) return 0;
-
-    return nodes.reduce((sum, node) => {
-      const nodeType = node.data.type;
-      const baseCost = tokenCosts.costs[nodeType] ?? 0;
-
-      if (VIDEO_NODE_TYPES.includes(nodeType)) {
-        const nodeConfig = nodeConfigs[node.id];
-        const duration = (nodeConfig?.settings?.duration as number) ?? 5;
-        return sum + (baseCost * Number(duration));
-      }
-
-      return sum + baseCost;
-    }, 0);
-  }, [nodes, tokenCosts, nodeConfigs]);
+  // Run-cost estimate: same billing plan + price function the engine uses
+  // for its balance check and charge (iris-nodes billing).
+  const costEstimate = useMemo<RunCostEstimate>(() => {
+    if (!tokenCosts?.costs || nodes.length === 0) return EMPTY_RUN_COST_ESTIMATE;
+    return estimateWorkflowRunCost(
+      nodes.map((node) => ({
+        id: node.id,
+        type: node.data.type,
+        // The store's config is what gets saved and run.
+        config: (nodeConfigs[node.id] ?? node.data.config) as unknown as
+          | Record<string, unknown>
+          | null,
+      })),
+      edges.map((edge) => ({
+        source: edge.source,
+        target: edge.target,
+        sourceHandle: edge.sourceHandle,
+        targetHandle: edge.targetHandle,
+      })),
+      { modelPricing: tokenCosts.modelPricing ?? {}, flatCosts: tokenCosts.costs },
+    );
+  }, [nodes, edges, tokenCosts, nodeConfigs]);
 
   // Find Manual Trigger node for input modal
   const manualTriggerNode = useMemo((): ManualTriggerConfig | null => {
@@ -455,7 +464,7 @@ export function useWorkflowEditor(workflowId: string) {
     tokenCosts,
     confirmDialog,
     showInputModal,
-    estimatedTokens,
+    costEstimate,
     manualTriggerNode,
     isDirty,
     isExecuting,

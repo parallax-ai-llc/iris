@@ -397,6 +397,9 @@ export function NodeConfigPanel() {
                     value={nodeConfig?.settings?.[field.name] as string | undefined}
                     onChange={(value) => handleSettingChange(field.name, value)}
                     isImageToVideo={selectedNode.data.type === 'GEN_IMAGE_TO_VIDEO'}
+                    defaultValue={
+                      field.defaultValue !== undefined ? String(field.defaultValue) : undefined
+                    }
                   />
                 );
               }

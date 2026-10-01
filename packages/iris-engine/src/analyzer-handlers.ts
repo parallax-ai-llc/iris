@@ -26,8 +26,18 @@ export interface AnalyzerCallResult {
   text: string;
   inputTokens: number;
   outputTokens: number;
-  /** USD vendor cost — converted to credits at the call site. */
+  /**
+   * USD vendor cost from the local rate table below. Billing prices the
+   * token counts at the catalog chat rates; this is used only for a model the
+   * catalog does not list.
+   */
   estimatedCostUsd: number;
+  /**
+   * Prompt-cache tokens the provider counts apart from `inputTokens`
+   * (Anthropic). Billed at the cache rates.
+   */
+  cacheReadTokens?: number;
+  cacheWriteTokens?: number;
   /** Provider-reported prompt-cache hit flag (best-effort). */
   cached: boolean;
 }
@@ -126,6 +136,7 @@ interface AnthropicResponse {
     input_tokens?: number;
     output_tokens?: number;
     cache_read_input_tokens?: number;
+    cache_creation_input_tokens?: number;
   };
 }
 
@@ -285,13 +296,18 @@ async function callAnthropic(
 
   const inputTokens = response.usage?.input_tokens ?? 0;
   const outputTokens = response.usage?.output_tokens ?? 0;
+  // Anthropic counts cache reads / writes outside input_tokens.
+  const cacheReadTokens = response.usage?.cache_read_input_tokens ?? 0;
+  const cacheWriteTokens = response.usage?.cache_creation_input_tokens ?? 0;
   // cache_read_input_tokens > 0 indicates a cache hit (post 2024-08 API).
-  const cached = (response.usage?.cache_read_input_tokens ?? 0) > 0;
+  const cached = cacheReadTokens > 0;
 
   return {
     text,
     inputTokens,
     outputTokens,
+    cacheReadTokens,
+    cacheWriteTokens,
     estimatedCostUsd: priceFor('anthropic', model, inputTokens, outputTokens),
     cached,
   };
@@ -382,6 +398,9 @@ export interface StructuredExtractResult {
   rawText: string;
   inputTokens: number;
   outputTokens: number;
+  /** Prompt-cache tokens counted apart from `inputTokens` (Anthropic). */
+  cacheReadTokens?: number;
+  cacheWriteTokens?: number;
   estimatedCostUsd: number;
 }
 
@@ -496,6 +515,8 @@ async function extractWithAnthropic(
     rawText: JSON.stringify(data ?? {}),
     inputTokens,
     outputTokens,
+    cacheReadTokens: response.usage?.cache_read_input_tokens ?? 0,
+    cacheWriteTokens: response.usage?.cache_creation_input_tokens ?? 0,
     estimatedCostUsd: priceFor(
       'anthropic',
       config.model,
@@ -563,6 +584,8 @@ export interface CategorizeResult {
   confidence: number | null;
   inputTokens: number;
   outputTokens: number;
+  cacheReadTokens?: number;
+  cacheWriteTokens?: number;
   estimatedCostUsd: number;
 }
 
@@ -634,6 +657,8 @@ export async function executeCategorize(
     confidence: null,
     inputTokens: extracted.inputTokens,
     outputTokens: extracted.outputTokens,
+    cacheReadTokens: extracted.cacheReadTokens,
+    cacheWriteTokens: extracted.cacheWriteTokens,
     estimatedCostUsd: extracted.estimatedCostUsd,
   };
 }

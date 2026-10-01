@@ -9,7 +9,8 @@ import { Eraser, Info, Download } from 'lucide-react';
 import { removeBackground, getAssetStatus } from '@/shared/api/image.api';
 import { getCachedAssetUrl } from '@/shared/api/asset.api';
 import { toast } from '@/shared/lib/toast';
-import { useTokenCost, formatTokenCost } from '@/shared/hooks/useTokenCost';
+import { formatTokenCost } from '@/shared/hooks/useTokenCost';
+import { useImageEditTokenCost } from '@/shared/hooks/useImageEditTokenCost';
 import { useAIOperation } from '@/features/image-editor/hooks/useAIOperation';
 import { MergeLayersDialog } from '@/features/image-editor/components/shared/MergeLayersDialog';
 import { Coins } from 'lucide-react';
@@ -22,7 +23,7 @@ export const BgRemovePanel = memo(function BgRemovePanel() {
   useEffect(() => {
     return () => { isMountedRef.current = false; };
   }, []);
-  const { cost: tokenCost, isLoading: costLoading } = useTokenCost('EDIT_IMAGE_BG_REMOVE');
+  const { cost: tokenCost, isLoading: costLoading } = useImageEditTokenCost('bgRemove');
   const [keepShadows, setKeepShadows] = useState(false);
   const [addAsNewLayer, setAddAsNewLayer] = useState(true); // Default to adding as layer when layers exist
   const { prepareAssetForAI, mergeDialogProps } = useAIOperation();

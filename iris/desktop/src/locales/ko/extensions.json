@@ -66,7 +66,7 @@
     "type": "유형",
     "category": "카테고리",
     "icon": "아이콘 (이모지)",
-    "price": "가격 (토큰, 0 = 무료)",
+    "price": "가격 (크레딧, 0 = 무료)",
     "tags": "태그",
     "tagsPlaceholder": "태그1, 태그2, 태그3",
     "cancel": "취소",

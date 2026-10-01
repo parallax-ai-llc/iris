@@ -8,7 +8,8 @@ import { useImageEditorStore } from '@/features/image-editor/stores/imageEditor.
 import { Smile, Info } from 'lucide-react';
 import { faceRestoreImage, getAssetStatus } from '@/shared/api/image.api';
 import { toast } from '@/shared/lib/toast';
-import { useTokenCost, formatTokenCost } from '@/shared/hooks/useTokenCost';
+import { formatTokenCost } from '@/shared/hooks/useTokenCost';
+import { useImageEditTokenCost } from '@/shared/hooks/useImageEditTokenCost';
 import { useAIOperation } from '@/features/image-editor/hooks/useAIOperation';
 import { MergeLayersDialog } from '@/features/image-editor/components/shared/MergeLayersDialog';
 import { Coins } from 'lucide-react';
@@ -23,7 +24,9 @@ export const FaceRestorePanel = memo(function FaceRestorePanel() {
   const [enhanceBackground, setEnhanceBackground] = useState(true);
   const [addAsNewLayer, setAddAsNewLayer] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { cost: tokenCost, isLoading: costLoading } = useTokenCost('EDIT_IMAGE_FACE_RESTORE');
+  const { cost: tokenCost, isLoading: costLoading } = useImageEditTokenCost('faceRestore', {
+    faceRestoreModel: model,
+  });
   const { prepareAssetForAI, mergeDialogProps } = useAIOperation();
   const isMountedRef = useRef(true);
   useEffect(() => {

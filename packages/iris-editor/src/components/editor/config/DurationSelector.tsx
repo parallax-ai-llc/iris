@@ -29,6 +29,11 @@ interface DurationSelectorProps {
   value: string | undefined;
   onChange: (value: string) => void;
   isImageToVideo?: boolean;
+  /**
+   * The node definition's default length. The engine requests (and bills)
+   * this length when the node has no saved value, so an unset value shows it.
+   */
+  defaultValue?: string;
 }
 
 export function DurationSelector({
@@ -36,6 +41,7 @@ export function DurationSelector({
   value,
   onChange,
   isImageToVideo = false,
+  defaultValue,
 }: DurationSelectorProps) {
   const { agents } = useAgentStore();
   const { nodeConfigs } = useIrisEditorStore();
@@ -74,11 +80,14 @@ export function DurationSelector({
     return DEFAULT_VIDEO_DURATION_OPTIONS;
   }, [agents, selectedModel, selectedProvider, isImageToVideo]);
 
+  // What the engine will request: the saved value, else the node default.
+  const effectiveValue = value || defaultValue;
+
   // Check if current value is valid for the available options
   const isValueValid = useMemo(() => {
-    if (!value) return true;
-    return durationOptions.some(opt => opt.value === value);
-  }, [value, durationOptions]);
+    if (!effectiveValue) return true;
+    return durationOptions.some(opt => opt.value === effectiveValue);
+  }, [effectiveValue, durationOptions]);
 
   // Auto-correct invalid value
   useEffect(() => {
@@ -114,7 +123,7 @@ export function DurationSelector({
       <label className="block text-xs text-white/50 mb-1">Duration</label>
       <div className="relative">
         <select
-          value={value || durationOptions[0]?.value || ''}
+          value={effectiveValue || durationOptions[0]?.value || ''}
           onChange={(e) => onChange(e.target.value)}
           className={cn(
             'w-full px-3 py-2 text-sm rounded-md appearance-none cursor-pointer',

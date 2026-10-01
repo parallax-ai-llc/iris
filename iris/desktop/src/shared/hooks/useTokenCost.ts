@@ -164,6 +164,15 @@ function trim(s: string): string {
 export const formatCredits = formatTokenCost;
 
 /**
+ * Convert a credit amount a user typed into ledger tokens (1 credit = 1000 tokens),
+ * rounded to a whole token because the server stores token amounts as integers.
+ */
+export function creditsToTokens(credits: number): number {
+  if (!Number.isFinite(credits) || credits <= 0) return 0;
+  return Math.round(credits * 1000);
+}
+
+/**
  * Token cost badge component props
  */
 export interface TokenCostBadgeProps {

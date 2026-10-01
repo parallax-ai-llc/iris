@@ -64,6 +64,19 @@ const NODE_TYPE_CATEGORY: Record<string, string> = Object.fromEntries(
     def.category.toLowerCase(),
   ])
 );
+
+/** Billing params → the host usage seam's options (model id goes separately). */
+function toTokenUsageOpts(params: NodeBillingParams): TokenUsageOpts {
+  return {
+    durationSeconds: params.durationSeconds,
+    textLength: params.textLength,
+    multiplier: params.multiplier,
+    fallbackModelId: params.fallbackModelId,
+    usdCost: params.usdCost,
+    llmUsage: params.llmUsage,
+  };
+}
+
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc.js';
 import timezone from 'dayjs/plugin/timezone.js';
@@ -130,9 +143,8 @@ export class NodeExecutor {
       // What this node is billed on (model, seconds, characters, multiplier).
       // The editor's run-cost estimate uses the same plan, and the balance
       // check below uses the same params as the charge after the run.
-      // WEB nodes keep their own usage-based deduction further down.
       const billingPlan = resolveNodeBillingPlan(node.type, node.config);
-      const isBilled = billingPlan.kind !== 'free' && category !== 'web';
+      const isBilled = billingPlan.kind !== 'free';
 
       if (isBilled) {
         const checkParams = await this.resolveBillingParams(
@@ -156,7 +168,7 @@ export class NodeExecutor {
             assets: [],
             duration: Date.now() - startTime,
             error: {
-              message: tokenCheck.message ?? 'Insufficient tokens',
+              message: tokenCheck.message ?? 'Not enough credits',
               code: 'INSUFFICIENT_TOKENS',
               requiredTokens: tokenCheck.requiredTokens,
               remainingTokens: tokenCheck.remainingTokens,
@@ -206,6 +218,9 @@ export class NodeExecutor {
       }
 
       // Charge after a successful run, on the same params as the check.
+      // Usage-based nodes (WEB, agent mode, LLM analyzers) are charged their
+      // reported usage through the same price function (usdToBillingTokens:
+      // provider cost x 1.1, $1 = 100,000 tokens).
       let tokensConsumed = 0;
       if (isBilled) {
         const chargeParams = await this.resolveBillingParams(
@@ -221,29 +236,6 @@ export class NodeExecutor {
           chargeParams.modelId,
           toTokenUsageOpts(chargeParams)
         );
-      } else if (category === 'web') {
-        // WEB nodes return a USD cost (e.g. WEB_SEARCH adapter returns
-        // $0.005 on cache miss, $0 on hit). Convert via the project-wide
-        // ratio defined in docs/plan/IRIS_NODES_EXPANSION_PLAN.md §11:
-        //   1 vendor USD ≈ 130,039 tokens deducted.
-        const usdCost = result.usage?.estimatedCost ?? 0;
-        if (usdCost > 0) {
-          const tokens = Math.ceil(usdCost * 130_039);
-          try {
-            await this.host.usage.addTokensToCurrentPeriod(
-              context.userId,
-              tokens
-            );
-            tokensConsumed = tokens;
-          } catch (err) {
-            // Token deduction failures shouldn't kill the workflow — log and
-            // surface zero so the engine moves on.
-            console.error(
-              '[NodeExecutor] WEB token deduction failed',
-              (err as Error).message
-            );
-          }
-        }
       }
 
       // Include token cost in usage info
@@ -526,65 +518,7 @@ export class NodeExecutor {
     await adapter.initialize({ apiKey });
 
     // Build AI request (nodeCapability already computed above for Kling routing)
-    // Check multiple possible input names for prompt (prompt, text, input)
-    // Also check config.inputs for static input values set in the node config panel
-    // Use || instead of ?? to handle both null and undefined values
-    const configInputs = (config.inputs as Record<string, unknown>) ?? {};
-    const settingsInputs =
-      ((config.settings as Record<string, unknown>)?.inputs as Record<
-        string,
-        unknown
-      >) ?? {};
-
-    // Helper to extract value from InputConfig objects (which have { source, value, nodeId, outputName })
-    const extractInputValue = (input: unknown): string | undefined => {
-      if (!input) return undefined;
-      if (typeof input === 'string') return input;
-      if (typeof input === 'object' && input !== null) {
-        const inputObj = input as Record<string, unknown>;
-        // InputConfig format: { source: 'manual', value: 'actual text' }
-        if (inputObj.value && typeof inputObj.value === 'string') {
-          return inputObj.value;
-        }
-      }
-      return undefined;
-    };
-
-    const promptValue =
-      inputs.prompt ||
-      inputs.text ||
-      inputs.input ||
-      extractInputValue(configInputs.prompt) ||
-      extractInputValue(configInputs.text) ||
-      extractInputValue(configInputs.input) ||
-      extractInputValue(settingsInputs.prompt) ||
-      extractInputValue(settingsInputs.text) ||
-      extractInputValue(settingsInputs.input) ||
-      config.prompt ||
-      config.text;
-
-    // Process JSON inputs (e.g., from HTTP Request node, which may emit parsed objects/arrays)
-    // Convert to text-friendly format so downstream LLM APIs receive a plain string
-    let processedPrompt: unknown = promptValue;
-    if (typeof promptValue === 'string') {
-      const trimmed = promptValue.trim();
-      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-        try {
-          const parsed = JSON.parse(trimmed);
-          if (Array.isArray(parsed)) {
-            processedPrompt = `Here is the data from HTTP request:\n\n${JSON.stringify(parsed, null, 2)}`;
-          }
-        } catch {
-          // Parse failed, use original
-        }
-      }
-    } else if (Array.isArray(promptValue)) {
-      processedPrompt = `Here is the data from HTTP request:\n\n${JSON.stringify(promptValue, null, 2)}`;
-    } else if (promptValue !== null && typeof promptValue === 'object') {
-      processedPrompt = `Here is the data from HTTP request:\n\n${JSON.stringify(promptValue, null, 2)}`;
-    } else if (promptValue !== undefined && promptValue !== null) {
-      processedPrompt = String(promptValue);
-    }
+    const resolvedPrompt = this.resolveGeneratorPrompt(node, inputs, variables);
 
     // Build parameters from config - include TTS-specific params (voice, speed) and other settings.
     // pickConfigField falls back from top-level to nodeConfig.settings to match the
@@ -601,7 +535,13 @@ export class NodeExecutor {
     if (speed !== undefined) configParams.speed = speed;
     // Add image generation parameters
     const aspectRatio = this.pickConfigField<string>(config, 'aspectRatio');
-    const duration = this.pickConfigField<number>(config, 'duration');
+    // Video nodes always send an explicit length: the node's setting or its
+    // definition default. Providers otherwise fall back to their own default
+    // (Veo 8s, fal 6s, …) and the billed length would drift from the
+    // estimate. Billing uses this same value (iris-nodes billing).
+    const requestedDuration = resolveRequestedDurationSeconds(node.type, config);
+    const duration =
+      requestedDuration ?? this.pickConfigField<number>(config, 'duration');
     const cameraAngle = this.pickConfigField<string>(config, 'cameraAngle');
     if (aspectRatio) configParams.aspectRatio = aspectRatio;
     if (duration) configParams.duration = duration;
@@ -624,7 +564,7 @@ export class NodeExecutor {
     const request: AIRequest = {
       capability: nodeCapability,
       model: effectiveModelId,
-      prompt: this.resolveValue(processedPrompt, variables) as string,
+      prompt: resolvedPrompt as string,
       negativePrompt: this.resolveValue(
         inputs.negative ?? this.pickConfigField(config, 'negativePrompt'),
         variables
@@ -906,6 +846,8 @@ export class NodeExecutor {
           inputTokens: r.inputTokens,
           outputTokens: r.outputTokens,
           totalTokens: r.inputTokens + r.outputTokens,
+          cacheReadTokens: r.cacheReadTokens,
+          cacheWriteTokens: r.cacheWriteTokens,
           estimatedCost: r.estimatedCostUsd,
         },
       };
@@ -919,6 +861,8 @@ export class NodeExecutor {
           inputTokens: r.inputTokens,
           outputTokens: r.outputTokens,
           totalTokens: r.inputTokens + r.outputTokens,
+          cacheReadTokens: r.cacheReadTokens,
+          cacheWriteTokens: r.cacheWriteTokens,
           estimatedCost: r.estimatedCostUsd,
         },
       };
@@ -936,6 +880,8 @@ export class NodeExecutor {
           inputTokens: r.inputTokens,
           outputTokens: r.outputTokens,
           totalTokens: r.inputTokens + r.outputTokens,
+          cacheReadTokens: r.cacheReadTokens,
+          cacheWriteTokens: r.cacheWriteTokens,
           estimatedCost: r.estimatedCostUsd,
         },
       };
@@ -1452,10 +1398,8 @@ export class NodeExecutor {
 
         const aiRequest: AIRequest = {
           capability: 'motion-control',
-          model:
-            settings.model === 'v3'
-              ? 'kwaivgi/kling-v3-motion-control'
-              : 'kwaivgi/kling-v2.6-motion-control',
+          // Same version → model mapping billing prices (iris-nodes).
+          model: resolveMotionControlBillingModel(settings.model).replicateModel,
           prompt: (settings.prompt as string) || (inputs.prompt as string),
           inputImage: refImageInput,
           inputVideo: refVideoInput,
@@ -3079,6 +3023,8 @@ export class NodeExecutor {
     cached: boolean;
     inputTokens: number;
     outputTokens: number;
+    cacheReadTokens?: number;
+    cacheWriteTokens?: number;
     estimatedCostUsd: number;
   }> {
     const { executeDocLongContext } = await import('./analyzer-handlers.js');
@@ -3115,6 +3061,8 @@ export class NodeExecutor {
       cached: result.cached,
       inputTokens: result.inputTokens,
       outputTokens: result.outputTokens,
+      cacheReadTokens: result.cacheReadTokens,
+      cacheWriteTokens: result.cacheWriteTokens,
       estimatedCostUsd: result.estimatedCostUsd,
     };
   }
@@ -3127,6 +3075,8 @@ export class NodeExecutor {
     valid: boolean;
     inputTokens: number;
     outputTokens: number;
+    cacheReadTokens?: number;
+    cacheWriteTokens?: number;
     estimatedCostUsd: number;
   }> {
     const { executeStructuredExtract } = await import('./analyzer-handlers.js');
@@ -3172,6 +3122,8 @@ export class NodeExecutor {
       valid: result.valid,
       inputTokens: result.inputTokens,
       outputTokens: result.outputTokens,
+      cacheReadTokens: result.cacheReadTokens,
+      cacheWriteTokens: result.cacheWriteTokens,
       estimatedCostUsd: result.estimatedCostUsd,
     };
   }
@@ -3185,6 +3137,8 @@ export class NodeExecutor {
     confidence: number | null;
     inputTokens: number;
     outputTokens: number;
+    cacheReadTokens?: number;
+    cacheWriteTokens?: number;
     estimatedCostUsd: number;
   }> {
     const { executeCategorize } = await import('./analyzer-handlers.js');
@@ -3969,22 +3923,158 @@ export class NodeExecutor {
   // HELPER METHODS
   // ============================================================
 
-  private isAIEditorNode(nodeType: string): boolean {
-    const aiEditorNodes = [
-      'EDIT_IMAGE_INPAINT',
-      'EDIT_IMAGE_OUTPAINT',
-      'EDIT_IMAGE_STYLE',
-      'EDIT_IMAGE_FACE_SWAP',
-      'EDIT_IMAGE_BG_REMOVE',
-      'EDIT_IMAGE_UPSCALE',
-      'EDIT_IMAGE_SKY_REPLACE',
-      'EDIT_IMAGE_RELIGHT',
-      'EDIT_IMAGE_AUTO_ENHANCE',
-      'EDIT_VIDEO_UPSCALE',
-      'EDIT_VIDEO_INPAINT',
-      'EDIT_MOTION_CONTROL',
-    ];
-    return aiEditorNodes.includes(nodeType);
+  /**
+   * The prompt text a generator / analyzer node sends to its provider: the
+   * connected input, else the static value set in the config panel, with
+   * `{{variables}}` resolved. Billing measures the same text (per-1k-chars).
+   */
+  private resolveGeneratorPrompt(
+    node: NodeDefinition,
+    inputs: Record<string, unknown>,
+    variables: Record<string, unknown>
+  ): unknown {
+    const config = node.config;
+    // Check multiple possible input names for prompt (prompt, text, input)
+    // Also check config.inputs for static input values set in the node config panel
+    // Use || instead of ?? to handle both null and undefined values
+    const configInputs = (config.inputs as Record<string, unknown>) ?? {};
+    const settingsInputs =
+      ((config.settings as Record<string, unknown>)?.inputs as Record<
+        string,
+        unknown
+      >) ?? {};
+
+    // Helper to extract value from InputConfig objects (which have { source, value, nodeId, outputName })
+    const extractInputValue = (input: unknown): string | undefined => {
+      if (!input) return undefined;
+      if (typeof input === 'string') return input;
+      if (typeof input === 'object' && input !== null) {
+        const inputObj = input as Record<string, unknown>;
+        // InputConfig format: { source: 'manual', value: 'actual text' }
+        if (inputObj.value && typeof inputObj.value === 'string') {
+          return inputObj.value;
+        }
+      }
+      return undefined;
+    };
+
+    const promptValue =
+      inputs.prompt ||
+      inputs.text ||
+      inputs.input ||
+      extractInputValue(configInputs.prompt) ||
+      extractInputValue(configInputs.text) ||
+      extractInputValue(configInputs.input) ||
+      extractInputValue(settingsInputs.prompt) ||
+      extractInputValue(settingsInputs.text) ||
+      extractInputValue(settingsInputs.input) ||
+      config.prompt ||
+      config.text;
+
+    // Process JSON inputs (e.g., from HTTP Request node, which may emit parsed objects/arrays)
+    // Convert to text-friendly format so downstream LLM APIs receive a plain string
+    let processedPrompt: unknown = promptValue;
+    if (typeof promptValue === 'string') {
+      const trimmed = promptValue.trim();
+      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (Array.isArray(parsed)) {
+            processedPrompt = `Here is the data from HTTP request:\n\n${JSON.stringify(parsed, null, 2)}`;
+          }
+        } catch {
+          // Parse failed, use original
+        }
+      }
+    } else if (Array.isArray(promptValue)) {
+      processedPrompt = `Here is the data from HTTP request:\n\n${JSON.stringify(promptValue, null, 2)}`;
+    } else if (promptValue !== null && typeof promptValue === 'object') {
+      processedPrompt = `Here is the data from HTTP request:\n\n${JSON.stringify(promptValue, null, 2)}`;
+    } else if (promptValue !== undefined && promptValue !== null) {
+      processedPrompt = String(promptValue);
+    }
+
+    return this.resolveValue(processedPrompt, variables);
+  }
+
+  /**
+   * Billing params for a node run. Called once before the run (balance check)
+   * and once after it (charge, with the run's `usage`), so both use the same
+   * model, multiplier and requested length. Run-time facts:
+   * - per-second on input media: the provider-reported length after the run,
+   *   else the input asset's stored length (both calls see the stored one
+   *   when the provider reports none);
+   * - per-1k-chars: the prompt text actually sent;
+   * - usage-based: the run's LLM token usage (priced at the model's catalog
+   *   chat rates by the host) and its USD cost.
+   */
+  private async resolveBillingParams(
+    plan: NodeBillingPlan,
+    node: NodeDefinition,
+    inputs: Record<string, unknown>,
+    variables: Record<string, unknown>,
+    usage?: UsageInfo
+  ): Promise<NodeBillingParams> {
+    let inputDurationSeconds: number | undefined;
+    if (plan.durationSource === 'input') {
+      inputDurationSeconds =
+        toPositiveSeconds(usage?.durationSeconds) ??
+        (await this.resolveInputMediaDuration(plan.durationInputs, inputs));
+    }
+
+    let textLength: number | undefined;
+    if (plan.textFromPrompt) {
+      const text = isAIEditorNodeType(node.type)
+        ? this.pickConfigField<string>(node.config, 'prompt') || inputs.prompt
+        : this.resolveGeneratorPrompt(node, inputs, variables);
+      textLength = typeof text === 'string' ? text.length : 0;
+    }
+
+    const llmUsage =
+      usage &&
+      (usage.inputTokens !== undefined || usage.outputTokens !== undefined)
+        ? {
+            inputTokens: usage.inputTokens ?? 0,
+            outputTokens: usage.outputTokens ?? 0,
+            cacheReadTokens: usage.cacheReadTokens,
+            cacheWriteTokens: usage.cacheWriteTokens,
+          }
+        : undefined;
+
+    return nodeBillingParams(plan, {
+      inputDurationSeconds,
+      textLength,
+      usdCost: usage?.estimatedCost,
+      llmUsage,
+    });
+  }
+
+  /** Stored length (seconds) of the first library asset on the given inputs. */
+  private async resolveInputMediaDuration(
+    ports: string[] | undefined,
+    inputs: Record<string, unknown>
+  ): Promise<number | undefined> {
+    for (const port of ports ?? []) {
+      const value = inputs[port];
+      const url =
+        typeof value === 'string'
+          ? value
+          : (value as { url?: unknown } | null | undefined)?.url;
+      if (typeof url !== 'string') continue;
+      const match = url.match(/^\/api\/iris\/assets\/([^/]+)\//);
+      if (!match) continue;
+      try {
+        const asset = await this.host.assets.getAssetById(match[1]);
+        const seconds = toPositiveSeconds(
+          (asset?.metadata as { duration?: unknown } | null | undefined)
+            ?.duration
+        );
+        if (seconds !== undefined) return seconds;
+      } catch {
+        // Unknown length falls back to the default billed seconds.
+      }
+    }
+    return undefined;
   }
 
   private mapNodeTypeToCapability(nodeType: IrisNodeType): AICapability {
@@ -4185,9 +4275,10 @@ export class NodeExecutor {
       maxTokens,
     });
 
-    // Compute USD cost from OpenAI token pricing on the configured model.
-    // Falls back to 0 if we don't have a pricing entry — token-service
-    // will still apply node-level credit charges via consumeNodeTokens.
+    // USD cost from the OpenAI adapter's token pricing on the configured
+    // model. execute() charges the token usage at the model's catalog chat
+    // rates (agent mode is usage-based in the iris-nodes billing plan); this
+    // cost is used only for a model the catalog does not list.
     const { OpenAIAdapter } = await import('./providers/openai-adapter.js');
     const adapter = new OpenAIAdapter();
     const modelInfo = adapter.getModelInfo(model);
@@ -4264,18 +4355,12 @@ export class NodeExecutor {
       prompt,
     });
 
-    // Consume tokens
-    const tokensConsumed = await this.host.usage.consumeNodeTokens(
-      context.userId,
-      'GEN_SPEECH_TO_TEXT',
-      model,
-      { durationSeconds: result.duration }
-    );
-
+    // Billed once by execute() as GEN_SPEECH_TO_TEXT on the transcribed
+    // length (iris-nodes billing plan) — not here, or it is charged twice.
     return {
       outputs: { srt: result.srt, vtt: result.vtt, text: result.text },
       assets: [],
-      usage: { estimatedCost: 0, tokensConsumed },
+      usage: { estimatedCost: 0, durationSeconds: result.duration },
     };
   }
 

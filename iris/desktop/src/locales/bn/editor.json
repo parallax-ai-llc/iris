@@ -33,7 +33,10 @@
     },
     "motionControl": {
       "label": "Motion Control",
-      "description": "Transfer motion"
+      "description": "Transfer motion",
+      "preserveBackground": "ভিডিওর ব্যাকগ্রাউন্ড রাখুন",
+      "preserveBackgroundHint": "ভিডিওর ব্যাকগ্রাউন্ড, ক্যামেরা ও আলো একই রেখে শুধু মানুষটিকে আপনার রেফারেন্স চরিত্র দিয়ে বদলায় (Wan 2.2 Animate Replace)। ভিডিও ও ছবিতে একজন করে মানুষ থাকলে সবচেয়ে ভালো কাজ করে।",
+      "resolution": "রেজোলিউশন"
     },
     "inpaint": {
       "label": "Inpaint",

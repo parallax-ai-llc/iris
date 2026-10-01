@@ -3,7 +3,7 @@
  */
 
 import { apiClient } from './client';
-import type { ModelPricingEntry, TokenCostsResponse } from './types';
+import type { TokenCostsResponse } from './types';
 
 /**
  * Get all node token costs
@@ -32,35 +32,7 @@ export function calculateWorkflowTokens(nodeTypes: string[], costs: Record<strin
 }
 
 /**
- * Calculate token cost for a specific model.
- * Falls back to the flat category cost for unknown models.
+ * Token cost for a specific model (catalog price; flat node cost for unknown
+ * models). Lives in ./media-pricing so the server parity test can load it.
  */
-const MARKUP_MULTIPLIER = 1.10;
-const TOKENS_PER_DOLLAR = 100_000;
-
-export function calculateModelTokenCost(
-  modelId: string,
-  nodeType: string,
-  modelPricing: Record<string, ModelPricingEntry>,
-  fallbackCosts: Record<string, number>,
-  params?: { durationSeconds?: number; textLength?: number }
-): number {
-  const pricing = modelPricing[modelId];
-  if (!pricing) return fallbackCosts[nodeType] ?? 0;
-
-  let apiCost: number;
-  switch (pricing.unit) {
-    case 'per-image':
-    case 'per-request':
-      apiCost = pricing.costPerUnit;
-      break;
-    case 'per-second':
-      apiCost = pricing.costPerUnit * (params?.durationSeconds ?? 5);
-      break;
-    case 'per-1k-chars':
-      apiCost = pricing.costPerUnit * ((params?.textLength ?? 500) / 1000);
-      break;
-  }
-
-  return Math.ceil(apiCost * MARKUP_MULTIPLIER * TOKENS_PER_DOLLAR);
-}
+export { calculateModelTokenCost } from './media-pricing';

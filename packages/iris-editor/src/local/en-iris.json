@@ -395,6 +395,14 @@
     "uses": "uses",
     "connections": "connections"
   },
+  "runCost": {
+    "estCost": "Est. cost",
+    "credits": "credits",
+    "perItemSuffix": "/item",
+    "perLoopItem": "per loop item",
+    "inputDependent": "depends on input length (5 s / 500 chars assumed)",
+    "usageBased": "some nodes are billed on actual usage"
+  },
   "editor": {
     "title": "Workflow Editor",
     "untitled": "Untitled Workflow",

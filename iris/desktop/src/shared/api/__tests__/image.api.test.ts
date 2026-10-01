@@ -356,13 +356,16 @@ describe('Image API', () => {
       expect(apiClient.post).toHaveBeenCalledWith(
         '/api/iris/assets/generate',
         expect.objectContaining({
+          editMode: 'bgRemove',
           settings: expect.objectContaining({
             model: 'recraft-remove-background',
-            removeBackground: true,
           }),
         }),
         { requireAuth: true }
       );
+      // The post-generation remove.bg add-on must not run on top of the edit.
+      const body = (apiClient.post as Mock).mock.calls[0][1];
+      expect(body.settings.removeBackground).toBeUndefined();
     });
   });
 
@@ -383,11 +386,9 @@ describe('Image API', () => {
       expect(apiClient.post).toHaveBeenCalledWith(
         '/api/iris/assets/generate',
         expect.objectContaining({
-          settings: expect.objectContaining({
-            model: 'face-restore-codeformer',
-            faceRestoreModel: 'codeformer',
-            fidelity: 0.5,
-          }),
+          editMode: 'faceRestore',
+          // The server reads the model/fidelity (and prices the model) from here.
+          faceRestoreSettings: { model: 'codeformer', fidelity: 0.5 },
         }),
         { requireAuth: true }
       );
@@ -409,11 +410,8 @@ describe('Image API', () => {
       expect(apiClient.post).toHaveBeenCalledWith(
         '/api/iris/assets/generate',
         expect.objectContaining({
-          settings: expect.objectContaining({
-            model: 'face-restore-gfpgan',
-            faceRestoreModel: 'gfpgan',
-            fidelity: 0.8,
-          }),
+          editMode: 'faceRestore',
+          faceRestoreSettings: { model: 'gfpgan', fidelity: 0.8 },
         }),
         { requireAuth: true }
       );

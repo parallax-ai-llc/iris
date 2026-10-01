@@ -18,6 +18,7 @@ import { generateImage, getAssetStatus, uploadImage } from '@/shared/api/image.a
 import { useImageStore } from '@/features/images/stores/image.store';
 import { useTokenCostsStore } from '@/shared/stores/token-costs';
 import { formatTokenCost } from '@/shared/hooks/useTokenCost';
+import { estimateMediaGenerationTokens } from '@/shared/api/media-pricing';
 import { CachedImage } from '@/shared/components/common';
 import { StorageAssetPickerModal } from '@/features/storage/components';
 import type { IrisAsset } from '@/shared/api/types';
@@ -40,18 +41,24 @@ export const PresetCreatorModal = memo(function PresetCreatorModal({
   const fetchImages = useImageStore((s) => s.fetchImages);
   const model = useImageStore((s) => s.model);
 
-  // Token cost (model-based dynamic pricing)
-  const { costs, fetchTokenCosts, getModelTokenCost } = useTokenCostsStore();
+  // Token cost: priced by the model this modal sends (the selected image model,
+  // or the server default when none is selected) = the amount the server deducts.
+  const fetchTokenCosts = useTokenCostsStore((s) => s.fetchTokenCosts);
+  const modelPricing = useTokenCostsStore((s) => s.modelPricing);
+  const costs = useTokenCostsStore((s) => s.costs);
 
   useEffect(() => {
     fetchTokenCosts();
   }, [fetchTokenCosts]);
 
-  const tokenCost = useMemo(() => {
-    if (!model) return costs['GEN_TEXT_TO_IMAGE'] ?? 0;
-    const modelCost = getModelTokenCost(model, 'GEN_TEXT_TO_IMAGE');
-    return modelCost > 0 ? modelCost : (costs['GEN_TEXT_TO_IMAGE'] ?? 0);
-  }, [model, getModelTokenCost, costs]);
+  const tokenCost = useMemo(
+    () =>
+      estimateMediaGenerationTokens(
+        { modelId: model, assetType: 'IMAGE', itemCount: 1 },
+        { modelPricing, costs }
+      ).totalTokens,
+    [model, modelPricing, costs]
+  );
 
   // States
   const [customPrompt, setCustomPrompt] = useState('');
@@ -139,6 +146,8 @@ export const PresetCreatorModal = memo(function PresetCreatorModal({
     try {
       const result = await generateImage({
         prompt: finalPrompt,
+        // Send the model the price above was computed for.
+        ...(model ? { model } : {}),
         aspectRatio: template.aspectRatio,
         storagePath: 'images',
         presetMode: template.mode,
@@ -182,7 +191,7 @@ export const PresetCreatorModal = memo(function PresetCreatorModal({
       setError('An error occurred. Please try again.');
       setIsGenerating(false);
     }
-  }, [template, textInput, customPrompt, selectedAsset, fetchImages, onClose]);
+  }, [template, textInput, customPrompt, selectedAsset, model, fetchImages, onClose]);
 
   if (!isOpen || !template) return null;
 

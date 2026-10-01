@@ -8,7 +8,8 @@ import { useImageEditorStore } from '@/features/image-editor/stores/imageEditor.
 import { Info } from 'lucide-react';
 import { upscaleImage, getAssetStatus } from '@/shared/api/image.api';
 import { toast } from '@/shared/lib/toast';
-import { useTokenCost, formatTokenCost } from '@/shared/hooks/useTokenCost';
+import { formatTokenCost } from '@/shared/hooks/useTokenCost';
+import { useImageEditTokenCost } from '@/shared/hooks/useImageEditTokenCost';
 import { useAIOperation } from '@/features/image-editor/hooks/useAIOperation';
 import { MergeLayersDialog } from '@/features/image-editor/components/shared/MergeLayersDialog';
 import { Coins } from 'lucide-react';
@@ -21,7 +22,10 @@ export const UpscalePanel = memo(function UpscalePanel() {
   useEffect(() => {
     return () => { isMountedRef.current = false; };
   }, []);
-  const { cost: tokenCost, isLoading: costLoading } = useTokenCost('EDIT_IMAGE_UPSCALE');
+  // 2x → Recraft crisp, 4x → Recraft creative (image.api upscaleImage); priced by that model.
+  const { cost: tokenCost, isLoading: costLoading } = useImageEditTokenCost('upscale', {
+    upscaleType: upscaleSettings.scale === 4 ? 'creative' : 'crisp',
+  });
   const { prepareAssetForAI, mergeDialogProps } = useAIOperation();
 
   const handleUpscale = useCallback(async () => {

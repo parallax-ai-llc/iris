@@ -33,7 +33,10 @@
     },
     "motionControl": {
       "label": "Motion Control",
-      "description": "Transfer motion"
+      "description": "Transfer motion",
+      "preserveBackground": "คงพื้นหลังของวิดีโอ",
+      "preserveBackgroundHint": "คงพื้นหลัง กล้อง และแสงของวิดีโอไว้ แล้วเปลี่ยนเฉพาะคนเป็นตัวละครอ้างอิงของคุณ (Wan 2.2 Animate Replace) ได้ผลดีที่สุดเมื่อมีคนเดียวทั้งในวิดีโอและในภาพ",
+      "resolution": "ความละเอียด"
     },
     "inpaint": {
       "label": "Inpaint",

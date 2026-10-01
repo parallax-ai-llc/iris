@@ -379,6 +379,12 @@ export interface UsageInfo {
   inputTokens?: number;
   outputTokens?: number;
   totalTokens?: number;
+  /**
+   * Prompt-cache tokens reported apart from `inputTokens` (Anthropic counts
+   * cache reads / writes outside `input_tokens`). Billed at the cache rates.
+   */
+  cacheReadTokens?: number;
+  cacheWriteTokens?: number;
 
   /** Time-based usage (video/audio) */
   durationSeconds?: number;

@@ -33,7 +33,10 @@
     },
     "motionControl": {
       "label": "모션 컨트롤",
-      "description": "모션 전환"
+      "description": "모션 전환",
+      "preserveBackground": "원본 영상 배경 유지",
+      "preserveBackgroundHint": "영상의 배경·카메라·조명은 그대로 두고 인물만 참조 이미지 캐릭터로 바꿉니다(Wan 2.2 Animate Replace). 영상과 이미지에 각각 한 사람만 있을 때 가장 잘 됩니다.",
+      "resolution": "해상도"
     },
     "inpaint": {
       "label": "인페인트",

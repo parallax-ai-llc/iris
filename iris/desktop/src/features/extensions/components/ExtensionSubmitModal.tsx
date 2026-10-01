@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useExtensionStore } from '@/features/extensions/stores/extension.store';
 import { ExtensionType, ExtensionCategory } from '@/shared/api/extension.types';
 import { MAX_EXTENSION_BUNDLE_BYTES } from '@/shared/api/extension.api';
+import { creditsToTokens } from '@/shared/hooks/useTokenCost';
 
 function formatBytes(bytes: number): string {
   if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
@@ -43,7 +44,8 @@ export const ExtensionSubmitModal = memo(function ExtensionSubmitModal() {
   const [category, setCategory] = useState<ExtensionCategory>('image_processing');
   const [icon, setIcon] = useState('');
   const [tags, setTags] = useState('');
-  const [price, setPrice] = useState(0);
+  // Typed in credits; the server stores extension.price in tokens.
+  const [priceCredits, setPriceCredits] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // .iex bundle upload (step 2 of the submit flow)
@@ -63,7 +65,7 @@ export const ExtensionSubmitModal = memo(function ExtensionSubmitModal() {
     setCategory('image_processing');
     setIcon('');
     setTags('');
-    setPrice(0);
+    setPriceCredits(0);
     setBundleFile(null);
     setBundleError(null);
     setUploadProgress(null);
@@ -112,7 +114,7 @@ export const ExtensionSubmitModal = memo(function ExtensionSubmitModal() {
             .split(',')
             .map((t) => t.trim())
             .filter(Boolean),
-          price,
+          price: creditsToTokens(priceCredits),
         });
         if (!created) return;
         extensionId = created.id;
@@ -265,9 +267,10 @@ export const ExtensionSubmitModal = memo(function ExtensionSubmitModal() {
               </label>
               <input
                 type="number"
-                value={price}
-                onChange={(e) => setPrice(Math.max(0, parseInt(e.target.value) || 0))}
+                value={priceCredits}
+                onChange={(e) => setPriceCredits(Math.max(0, parseFloat(e.target.value) || 0))}
                 min={0}
+                step="any"
                 className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-zinc-500"
               />
             </div>

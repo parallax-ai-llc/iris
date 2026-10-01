@@ -3,6 +3,7 @@
  */
 
 import { memo, useState, useRef, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Move, Video, Image, Upload, HelpCircle, Coins, Loader2 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { Modal } from '@/shared/components/ui/Modal';
@@ -22,6 +23,13 @@ export interface VideoMotionControlModalProps {
 
 type Mode = 'std' | 'pro';
 type CharacterOrientation = 'image' | 'video';
+type ReplaceResolution = '720p' | '480p';
+
+// 배경 유지(Wan 2.2 Animate Replace) 해상도별 카탈로그 id. 서버 video-edit-pricing.ts MOTION_REPLACE_MODELS 와 같아야 한다.
+const MOTION_REPLACE_MODELS: { value: ReplaceResolution; catalogId: string }[] = [
+  { value: '720p', catalogId: 'wan-2.2-animate-replace-720p' },
+  { value: '480p', catalogId: 'wan-2.2-animate-replace-480p' },
+];
 
 export const VideoMotionControlModal = memo(function VideoMotionControlModal({
   isOpen,
@@ -33,6 +41,9 @@ export const VideoMotionControlModal = memo(function VideoMotionControlModal({
   const [mode, setMode] = useState<Mode>('std');
   const [characterOrientation, setCharacterOrientation] = useState<CharacterOrientation>('image');
   const [keepOriginalSound, setKeepOriginalSound] = useState(false);
+  const [preserveBackground, setPreserveBackground] = useState(false);
+  const [resolution, setResolution] = useState<ReplaceResolution>('720p');
+  const { t } = useTranslation('editor');
   const [referenceImage, setReferenceImage] = useState<File | null>(null);
   const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -45,16 +56,21 @@ export const VideoMotionControlModal = memo(function VideoMotionControlModal({
   }, [fetchTokenCosts]);
 
   const tokenCost = useMemo(() => {
-    // Use model ID from AGENT_MODELS for dynamic pricing with actual duration
-    const baseCost = getModelTokenCost('kling-motion-control', 'EDIT_MOTION_CONTROL', {
+    // Use model ID from AGENT_MODELS for dynamic pricing with actual duration.
+    // Keep-background (Wan) is priced per resolution with no mode multiplier.
+    const catalogId = preserveBackground
+      ? (MOTION_REPLACE_MODELS.find((m) => m.value === resolution) ?? MOTION_REPLACE_MODELS[0]).catalogId
+      : 'kling-motion-control';
+    const baseCost = getModelTokenCost(catalogId, 'EDIT_MOTION_CONTROL', {
       durationSeconds: duration,
     });
     if (baseCost === 0) {
       return costs['EDIT_MOTION_CONTROL'] ?? 0;
     }
+    if (preserveBackground) return baseCost;
     // Pro mode costs 2x
     return mode === 'pro' ? baseCost * 2 : baseCost;
-  }, [getModelTokenCost, costs, mode, duration]);
+  }, [getModelTokenCost, costs, mode, duration, preserveBackground, resolution]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -73,6 +89,8 @@ export const VideoMotionControlModal = memo(function VideoMotionControlModal({
         mode,
         characterOrientation,
         keepOriginalSound,
+        preserveBackground,
+        resolution: preserveBackground ? resolution : undefined,
       });
 
       if (!asset) {
@@ -217,6 +235,61 @@ export const VideoMotionControlModal = memo(function VideoMotionControlModal({
           </div>
         </div>
 
+        {/* Keep source video background (Wan 2.2 Animate Replace) */}
+        <div>
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-zinc-300">
+              {t('tools.motionControl.preserveBackground')}
+            </label>
+            <button
+              onClick={() => setPreserveBackground(!preserveBackground)}
+              aria-pressed={preserveBackground}
+              aria-label={t('tools.motionControl.preserveBackground')}
+              className={cn(
+                'relative w-11 h-6 rounded-full transition-colors',
+                preserveBackground ? 'bg-white' : 'bg-zinc-700'
+              )}
+            >
+              <span
+                className={cn(
+                  'absolute top-1 w-4 h-4 rounded-full transition-transform',
+                  preserveBackground
+                    ? 'translate-x-6 bg-black'
+                    : 'translate-x-1 bg-zinc-400'
+                )}
+              />
+            </button>
+          </div>
+          <p className="text-xs text-zinc-500 mt-1">
+            {t('tools.motionControl.preserveBackgroundHint')}
+          </p>
+        </div>
+
+        {preserveBackground ? (
+          /* Output resolution (Wan 2.2 Animate Replace) */
+          <div>
+            <label className="block text-sm font-medium text-zinc-300 mb-2">
+              {t('tools.motionControl.resolution')}
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {MOTION_REPLACE_MODELS.map((r) => (
+                <button
+                  key={r.value}
+                  onClick={() => setResolution(r.value)}
+                  className={cn(
+                    'px-4 py-2.5 rounded-lg text-sm font-medium transition-colors border',
+                    resolution === r.value
+                      ? 'bg-white text-black border-white'
+                      : 'bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700 hover:text-white'
+                  )}
+                >
+                  {r.value}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+        <>
         {/* Mode Selection */}
         <div>
           <label className="block text-sm font-medium text-zinc-300 mb-2">
@@ -286,6 +359,8 @@ export const VideoMotionControlModal = memo(function VideoMotionControlModal({
             </button>
           </div>
         </div>
+        </>
+        )}
 
         {/* Keep Original Sound */}
         <div className="flex items-center justify-between">

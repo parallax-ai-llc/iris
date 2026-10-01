@@ -282,10 +282,12 @@ export async function removeBackground(
       prompt: '', // Not needed for background removal
       editMode: 'bgRemove',
       parentAssetId: id,
+      // No `removeBackground: true` here: that flag is the post-generation
+      // remove.bg add-on, which would run (and be charged) on top of the
+      // Recraft removal this edit mode already performs.
       settings: {
         model: 'recraft-remove-background',
         providerId: 'recraft',
-        removeBackground: true,
         referenceAssetId: id,
       },
       referenceAssetId: id,
@@ -492,11 +494,12 @@ export async function faceRestoreImage(
       settings: {
         model: `face-restore-${model}`,
         providerId: 'replicate',
-        faceRestore: true,
-        faceRestoreModel: model,
-        fidelity: fidelity,
         referenceAssetId: id,
       },
+      // The server reads the model and fidelity from top-level
+      // `faceRestoreSettings` (unknown `settings` keys are dropped); the model
+      // also decides the price (CodeFormer vs GFPGAN).
+      faceRestoreSettings: { model, fidelity },
       referenceAssetId: id,
     },
     { requireAuth: true }

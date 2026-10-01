@@ -15,7 +15,8 @@ import {
 import { cn } from '@editor/lib/convert/string';
 import { useI18n } from '@editor/hooks/usei18n';
 import { Workflow as WorkflowType } from '@editor/lib/apis/iris-api-client';
-import { formatCredits } from '@editor/lib/format-credits';
+import type { RunCostEstimate } from '@editor/lib/run-cost-estimate';
+import { formatRunCostDetail, formatRunCostShort, hasRunCost } from './run-cost-text';
 import { ValidationResult } from '../types';
 
 interface EditorHeaderProps {
@@ -26,7 +27,7 @@ interface EditorHeaderProps {
   isExecuting: boolean;
   isValidated: boolean;
   validationResult: ValidationResult | null;
-  estimatedTokens: number;
+  costEstimate: RunCostEstimate;
   isPaidUser: boolean;
   onBack: () => void;
   onValidate: () => void;
@@ -45,7 +46,7 @@ export function EditorHeader({
   isExecuting,
   isValidated,
   validationResult,
-  estimatedTokens,
+  costEstimate,
   isPaidUser,
   onBack,
   onValidate,
@@ -207,6 +208,8 @@ export function EditorHeader({
               ? 'Upgrade to paid plan to run workflows'
               : !isValidated
               ? 'Validate workflow before running'
+              : hasRunCost(costEstimate)
+              ? formatRunCostDetail(costEstimate, t)
               : undefined
           }
         >
@@ -218,7 +221,7 @@ export function EditorHeader({
             <Play size={14} />
           )}
           <span>{!isPaidUser ? t('iris.actions.upgrade') : t('iris.actions.run')}</span>
-          {isPaidUser && estimatedTokens > 0 && (
+          {isPaidUser && hasRunCost(costEstimate) && (
             <span
               className="inline-flex items-center"
               style={{
@@ -233,7 +236,7 @@ export function EditorHeader({
               }}
             >
               <Coins size={10} />
-              {formatCredits(estimatedTokens)}
+              {formatRunCostShort(costEstimate, t)}
             </span>
           )}
         </button>

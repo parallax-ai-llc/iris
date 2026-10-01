@@ -2,14 +2,16 @@
 
 import { useI18n } from '@editor/hooks/usei18n';
 import { useIrisEditorStore } from '@editor/store/iris-editor';
+import type { RunCostEstimate } from '@editor/lib/run-cost-estimate';
+import { formatRunCostDetail, hasRunCost } from './run-cost-text';
 
 interface StatusBarProps {
   isExecuting: boolean;
-  estimatedTokens: number;
+  costEstimate: RunCostEstimate;
   isDirty: boolean;
 }
 
-export function StatusBar({ isExecuting, estimatedTokens, isDirty }: StatusBarProps) {
+export function StatusBar({ isExecuting, costEstimate, isDirty }: StatusBarProps) {
   const { t } = useI18n();
   const { nodes, edges, lastSavedAt } = useIrisEditorStore() as {
     nodes: unknown[];
@@ -62,14 +64,11 @@ export function StatusBar({ isExecuting, estimatedTokens, isDirty }: StatusBarPr
         </span>
       </span>
 
-      {estimatedTokens > 0 && (
+      {hasRunCost(costEstimate) && (
         <>
           <span style={{ color: dividerColor }}>|</span>
-          <span>
-            {t('iris.statusBar.estCost') || 'Est. cost'}{' '}
-            <span style={{ color: 'var(--color-iris-text-2)' }}>
-              ~{estimatedTokens.toLocaleString()} tokens
-            </span>
+          <span style={{ color: 'var(--color-iris-text-2)' }}>
+            {formatRunCostDetail(costEstimate, t)}
           </span>
         </>
       )}

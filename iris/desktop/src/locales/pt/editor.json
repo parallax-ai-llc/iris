@@ -33,7 +33,10 @@
     },
     "motionControl": {
       "label": "Motion Control",
-      "description": "Transfer motion"
+      "description": "Transfer motion",
+      "preserveBackground": "Manter o fundo do vídeo",
+      "preserveBackgroundHint": "Mantém o fundo, a câmera e a iluminação do vídeo e substitui apenas a pessoa pelo seu personagem de referência (Wan 2.2 Animate Replace). Funciona melhor com uma só pessoa no vídeo e na imagem.",
+      "resolution": "Resolução"
     },
     "inpaint": {
       "label": "Inpaint",

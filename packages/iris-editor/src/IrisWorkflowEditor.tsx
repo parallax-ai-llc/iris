@@ -42,7 +42,7 @@ export function IrisWorkflowEditor({
     isValidated,
     confirmDialog,
     showInputModal,
-    estimatedTokens,
+    costEstimate,
     manualTriggerNode,
     isDirty,
     isExecuting,
@@ -93,7 +93,7 @@ export function IrisWorkflowEditor({
         isExecuting={isExecuting}
         isValidated={isValidated}
         validationResult={validationResult}
-        estimatedTokens={estimatedTokens}
+        costEstimate={costEstimate}
         isPaidUser={isPaidUser}
         onBack={() => navigate?.(`/workflows/${workflow.id}`)}
         onValidate={handleValidate}
@@ -130,7 +130,7 @@ export function IrisWorkflowEditor({
 
       <StatusBar
         isExecuting={isExecuting}
-        estimatedTokens={estimatedTokens}
+        costEstimate={costEstimate}
         isDirty={isDirty}
       />
 
