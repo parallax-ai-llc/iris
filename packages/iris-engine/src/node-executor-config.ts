@@ -10,20 +10,18 @@
  * is fully port-driven, this env-backed default keeps every host working.
  */
 
+import { IRIS_DEFAULT_NODE_MODELS } from 'iris-nodes';
+
 /**
- * Default provider and model for nodes that support server-side defaults
- * Analyzer nodes use these defaults so users don't have to configure them
+ * Default provider and model for nodes that support server-side defaults.
+ * Analyzer nodes use these defaults so users don't have to configure them.
+ * Defined in iris-nodes so billing (editor estimate, balance check, charge)
+ * prices the same model the engine runs.
  */
 export const DEFAULT_NODE_CONFIGS: Record<
   string,
   { provider: string; model: string }
-> = {
-  ANALYZE_IMAGE: { provider: 'openai', model: 'gpt-4o' },
-  ANALYZE_VIDEO: { provider: 'openai', model: 'gpt-4o' },
-  ANALYZE_AUDIO: { provider: 'openai', model: 'gpt-4o-audio-preview' },
-  ANALYZE_TEXT: { provider: 'openai', model: 'gpt-4o-mini' },
-  ANALYZE_DOCUMENT: { provider: 'openai', model: 'gpt-4o' },
-};
+> = IRIS_DEFAULT_NODE_MODELS;
 
 /**
  * Mapping of provider names to their environment variable keys

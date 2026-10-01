@@ -158,9 +158,21 @@ export interface TokenCheckResult {
   remainingTokens?: number;
 }
 
+/**
+ * What a node run is billed on. Built by iris-nodes `resolveNodeBillingPlan` +
+ * `nodeBillingParams` so the balance check, the charge and the editor's
+ * estimate all use the same numbers; a metering host turns it into tokens
+ * with iris-nodes `computeNodeBillingTokens`.
+ */
 export interface TokenUsageOpts {
   durationSeconds?: number;
   textLength?: number;
+  /** Mode multiplier (pro / 4K = 2); applies to catalog prices only. */
+  multiplier?: number;
+  /** Model priced when `modelId` has no catalog price. */
+  fallbackModelId?: string;
+  /** Usage-based nodes: the actual provider cost in USD (charge only). */
+  usdCost?: number;
 }
 
 /** Pre-check + post-record AI usage. Cloud enforces token plans; local no-ops

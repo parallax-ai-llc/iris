@@ -8,7 +8,14 @@ import {
   NODE_DEFINITIONS as SHARED_NODE_DEFINITIONS,
   parseDecisionOptions,
   parseScoreLevels,
+  resolveNodeBillingPlan,
+  nodeBillingParams,
+  isAIEditorNodeType,
+  resolveMotionControlBillingModel,
+  resolveRequestedDurationSeconds,
+  toPositiveSeconds,
 } from 'iris-nodes';
+import type { NodeBillingPlan, NodeBillingParams } from 'iris-nodes';
 import {
   NodeDefinition,
   NodeResult,
@@ -19,7 +26,11 @@ import {
 } from './types.js';
 import type { IrisNodeType } from './types.js';
 import { createAdapter } from './providers/index.js';
-import type { NodeExecutorHost, PublicStoreSource } from './node-host.js';
+import type {
+  NodeExecutorHost,
+  PublicStoreSource,
+  TokenUsageOpts,
+} from './node-host.js';
 import { safeHttpFetch } from './safe-http.js';
 import { markInertPorts } from './branch-pruning.js';
 import {
@@ -115,29 +126,26 @@ export class NodeExecutor {
     try {
       // Route to appropriate handler based on node type category
       const category = NODE_TYPE_CATEGORY[node.type];
-      // AI-backed nodes outside the generator/analyzer categories (e.g. the
-      // AI_DECISION gate, a UTILITY node) are metered like analyzers: the
-      // catalog's `aiCapability` marks them.
-      const isMeteredUtility =
-        category === 'utility' &&
-        Boolean(SHARED_NODE_DEFINITIONS[node.type]?.aiCapability);
 
-      // Check token balance for generator and analyzer nodes BEFORE execution
-      if (category === 'generator' || category === 'analyzer' || isMeteredUtility) {
-        const defaults = DEFAULT_NODE_CONFIGS[node.type];
-        const modelId =
-          this.pickConfigField<string>(node.config, 'model') || defaults?.model;
-        const duration =
-          this.pickConfigField<number>(node.config, 'duration') ??
-          ((node.config.parameters as Record<string, unknown>)?.duration as
-            | number
-            | undefined);
-        const promptText = (inputs.prompt || inputs.text || '') as string;
+      // What this node is billed on (model, seconds, characters, multiplier).
+      // The editor's run-cost estimate uses the same plan, and the balance
+      // check below uses the same params as the charge after the run.
+      // WEB nodes keep their own usage-based deduction further down.
+      const billingPlan = resolveNodeBillingPlan(node.type, node.config);
+      const isBilled = billingPlan.kind !== 'free' && category !== 'web';
+
+      if (isBilled) {
+        const checkParams = await this.resolveBillingParams(
+          billingPlan,
+          node,
+          inputs,
+          variables
+        );
         const tokenCheck = await this.host.usage.checkNodeTokens(
           context.userId,
-          node.type,
-          modelId,
-          { durationSeconds: duration, textLength: promptText.length }
+          billingPlan.billedNodeType,
+          checkParams.modelId,
+          toTokenUsageOpts(checkParams)
         );
 
         if (!tokenCheck.allowed) {
@@ -180,21 +188,6 @@ export class NodeExecutor {
           break;
         case 'editor':
           result = await this.executeEditor(node, inputs, variables, context);
-          // Consume tokens for AI-powered editor nodes
-          if (this.isAIEditorNode(node.type)) {
-            const editorModel = this.pickConfigField<string>(
-              node.config,
-              'model'
-            );
-            const editorPrompt = (inputs.prompt || '') as string;
-            const editorTokens = await this.host.usage.consumeNodeTokens(
-              context.userId,
-              node.type,
-              editorModel,
-              { textLength: editorPrompt.length }
-            );
-            result.usage = { estimatedCost: 0, tokensConsumed: editorTokens };
-          }
           break;
         case 'utility':
           result = await this.executeUtility(node, inputs, variables);
@@ -212,24 +205,21 @@ export class NodeExecutor {
           throw new Error(`Unknown node category for type: ${node.type}`);
       }
 
-      // Consume tokens after successful execution for generator and analyzer nodes
+      // Charge after a successful run, on the same params as the check.
       let tokensConsumed = 0;
-      if (category === 'generator' || category === 'analyzer' || isMeteredUtility) {
-        const defaults = DEFAULT_NODE_CONFIGS[node.type];
-        const effectiveModelId =
-          this.pickConfigField<string>(node.config, 'model') || defaults?.model;
-        const duration =
-          result.usage?.durationSeconds ??
-          this.pickConfigField<number>(node.config, 'duration') ??
-          ((node.config.parameters as Record<string, unknown>)?.duration as
-            | number
-            | undefined);
-        const promptText = (inputs.prompt || inputs.text || '') as string;
+      if (isBilled) {
+        const chargeParams = await this.resolveBillingParams(
+          billingPlan,
+          node,
+          inputs,
+          variables,
+          result.usage
+        );
         tokensConsumed = await this.host.usage.consumeNodeTokens(
           context.userId,
-          node.type,
-          effectiveModelId,
-          { durationSeconds: duration, textLength: promptText.length }
+          billingPlan.billedNodeType,
+          chargeParams.modelId,
+          toTokenUsageOpts(chargeParams)
         );
       } else if (category === 'web') {
         // WEB nodes return a USD cost (e.g. WEB_SEARCH adapter returns

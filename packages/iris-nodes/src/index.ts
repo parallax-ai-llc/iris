@@ -209,3 +209,35 @@ export type {
   SnapshotPort,
   SnapshotConfigField,
 } from './snapshot.js';
+
+// Node billing rules (shared by the editor estimate and the engine's
+// balance check / charge).
+export {
+  BILLING_MARKUP_MULTIPLIER,
+  BILLING_TOKENS_PER_USD,
+  BILLING_DEFAULT_SECONDS,
+  BILLING_DEFAULT_TEXT_LENGTH,
+  usdToBillingTokens,
+  computeNodeBillingTokens,
+  IRIS_DEFAULT_NODE_MODELS,
+  VIDEO_SUBTITLE_DEFAULT_MODEL,
+  AGENT_MODE_DEFAULT_MODEL,
+  VIDEO_EDIT_BILLING_MODELS,
+  MOTION_CONTROL_BILLING_MODELS,
+  resolveMotionControlBillingModel,
+  AI_IMAGE_EDITOR_NODE_TYPES,
+  AI_VIDEO_EDITOR_NODE_TYPES,
+  isAIEditorNodeType,
+  pickNodeConfigField,
+  toPositiveSeconds,
+  resolveRequestedDurationSeconds,
+  resolveNodeBillingPlan,
+  nodeBillingParams,
+} from './billing.js';
+export type {
+  BillingModelPrice,
+  NodeBillingPrices,
+  NodeBillingParams,
+  NodeBillingKind,
+  NodeBillingPlan,
+} from './billing.js';
