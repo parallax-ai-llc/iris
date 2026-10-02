@@ -60,6 +60,15 @@ export {
 } from './perplexity-search-adapter.js';
 export { webScrape } from './web-scraper-adapter.js';
 export {
+  GEMINI_TTS_MODEL,
+  GEMINI_TTS_VOICES,
+  GEMINI_TTS_DEFAULT_VOICE,
+  resolveGeminiTtsVoice,
+  buildPcmWavHeader,
+  normalizeGeminiTtsAudio,
+} from './google-tts.js';
+export type { NormalizedGeminiTtsAudio } from './google-tts.js';
+export {
   fetchYoutubeTranscript,
   extractVideoId,
   formatTimestamp,

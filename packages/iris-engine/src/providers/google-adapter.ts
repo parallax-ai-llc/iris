@@ -1,6 +1,7 @@
 /**
  * Parallax Iris - Google AI Provider Adapter
- * Supports: text-to-image (Imagen), text-to-video (Veo), image-to-video (Veo), text-to-text (Gemini)
+ * Supports: text-to-image (Imagen), text-to-video (Veo), image-to-video (Veo), text-to-text (Gemini),
+ * text-to-speech (Gemini TTS)
  */
 
 import { BaseProviderAdapter } from './base-adapter.js';
@@ -26,6 +27,21 @@ import {
 } from './media-utils.js';
 import { GOOGLE_MODELS } from './google-models.js';
 
+/**
+ * Retired Gemini image ids that older clients and saved workflows still send,
+ * mapped to Google's recommended replacement.
+ * https://ai.google.dev/gemini-api/docs/deprecations
+ */
+const RETIRED_IMAGE_MODEL_ALIASES: Record<string, string> = {
+  'gemini-3-pro-image-preview': 'gemini-3-pro-image', // shut down 2026-06-25
+  'gemini-2.5-flash-image': 'gemini-3.1-flash-image', // shut down 2026-10-02
+};
+import {
+  GEMINI_TTS_MODEL,
+  normalizeGeminiTtsAudio,
+  resolveGeminiTtsVoice,
+} from './google-tts.js';
+
 export class GoogleAdapter extends BaseProviderAdapter {
   readonly name: ProviderName = 'google';
   protected baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
@@ -41,6 +57,7 @@ export class GoogleAdapter extends BaseProviderAdapter {
     'image-analysis',
     'video-analysis',
     'speech-to-text',
+    'text-to-speech',
     'multi-angle',
   ];
 
@@ -63,8 +80,14 @@ export class GoogleAdapter extends BaseProviderAdapter {
     }
   }
 
-  async execute(request: AIRequest): Promise<AIResponse> {
+  async execute(rawRequest: AIRequest): Promise<AIResponse> {
     const startTime = Date.now();
+    const legacyTarget = rawRequest.model
+      ? RETIRED_IMAGE_MODEL_ALIASES[rawRequest.model]
+      : undefined;
+    const request = legacyTarget
+      ? { ...rawRequest, model: legacyTarget }
+      : rawRequest;
 
     try {
       this.ensureInitialized();
@@ -87,6 +110,8 @@ export class GoogleAdapter extends BaseProviderAdapter {
           return this.videoAnalysis(request, startTime);
         case 'speech-to-text':
           return this.speechToText(request, startTime);
+        case 'text-to-speech':
+          return this.textToSpeech(request, startTime);
         case 'multi-angle':
           return this.multiAngleGeneration(request, startTime);
         default:
@@ -106,7 +131,7 @@ export class GoogleAdapter extends BaseProviderAdapter {
     request: AIRequest,
     startTime: number
   ): Promise<AIResponse> {
-    const model = request.model || 'gemini-2.5-flash-image';
+    const model = request.model || 'gemini-3.1-flash-image';
     const isGeminiModel = model.startsWith('gemini');
 
     if (isGeminiModel) {
@@ -121,7 +146,7 @@ export class GoogleAdapter extends BaseProviderAdapter {
     startTime: number
   ): Promise<AIResponse> {
     const { prompt, parameters = {} } = request;
-    const model = request.model || 'gemini-2.5-flash-image';
+    const model = request.model || 'gemini-3.1-flash-image';
 
     const projectId =
       (this.credentials as any)?.projectId ||
@@ -215,7 +240,7 @@ export class GoogleAdapter extends BaseProviderAdapter {
     startTime: number
   ): Promise<AIResponse> {
     const { prompt, inputImage, parameters = {} } = request;
-    const model = request.model || 'gemini-2.5-flash-image';
+    const model = request.model || 'gemini-3.1-flash-image';
 
     const validationError = InputValidator.requireImage(
       request,
@@ -427,7 +452,7 @@ export class GoogleAdapter extends BaseProviderAdapter {
     startTime: number
   ): Promise<AIResponse> {
     const { prompt, inputImage, parameters = {} } = request;
-    const model = request.model || 'gemini-3-pro-image-preview';
+    const model = request.model || 'gemini-3-pro-image';
 
     const inputImageData = await mediaInputToBase64(inputImage!);
 
@@ -529,7 +554,7 @@ export class GoogleAdapter extends BaseProviderAdapter {
     startTime: number
   ): Promise<AIResponse> {
     const { prompt, inputImage, maskImage, parameters = {} } = request;
-    const model = request.model || 'gemini-3-pro-image-preview';
+    const model = request.model || 'gemini-3-pro-image';
 
     const validationError = InputValidator.requireImage(
       request,
@@ -648,7 +673,7 @@ export class GoogleAdapter extends BaseProviderAdapter {
   }
 
   /**
-   * Multi-angle generation using Nano Banana Pro (gemini-3-pro-image-preview)
+   * Multi-angle generation using Nano Banana Pro (gemini-3-pro-image)
    * Generates the same subject from a specific viewing angle while preserving identity
    */
   private async multiAngleGeneration(
@@ -656,7 +681,7 @@ export class GoogleAdapter extends BaseProviderAdapter {
     startTime: number
   ): Promise<AIResponse> {
     const { prompt, inputImage, parameters = {} } = request;
-    const model = 'gemini-3-pro-image-preview'; // Fallback model with image generation support
+    const model = 'gemini-3-pro-image'; // Fallback model with image generation support
 
     const validationError = InputValidator.requireImage(
       request,
@@ -932,6 +957,122 @@ Do NOT modify facial features or hairstyle.`;
       .outputs([OutputBuilder.text(text)])
       .usage({ inputTokens, outputTokens, totalTokens, estimatedCost })
       .rawResponse(data)
+      .metadata(this.name, request.model, startTime)
+      .build();
+  }
+
+  /**
+   * Text-to-speech with Gemini TTS (gemini-3.8-flash-tts). See google-tts.ts
+   * for the request/response format and the docs it was checked against.
+   */
+  private async textToSpeech(
+    request: AIRequest,
+    startTime: number
+  ): Promise<AIResponse> {
+    const { prompt, parameters = {} } = request;
+    if (!prompt || prompt.trim().length === 0) {
+      return ResponseBuilder.missingInput(
+        'text',
+        'text-to-speech',
+        this.name,
+        request.model,
+        startTime
+      );
+    }
+
+    const model = request.model || GEMINI_TTS_MODEL;
+    const voiceName = resolveGeminiTtsVoice(
+      parameters.voice ?? parameters.voiceId
+    );
+
+    const response = await fetch(
+      `${this.baseUrl}/models/${model}:generateContent?key=${this.credentials!.apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            speechConfig: {
+              voiceConfig: { prebuiltVoiceConfig: { voiceName } },
+            },
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return ResponseBuilder.apiError(
+        this.name,
+        response.status,
+        errorData.error?.message || 'Unknown error',
+        request.model,
+        startTime
+      );
+    }
+
+    type InlineAudio = { mimeType?: string; mime_type?: string; data?: string };
+    const data = (await response.json()) as {
+      candidates?: Array<{
+        content?: {
+          parts?: Array<{ inlineData?: InlineAudio; inline_data?: InlineAudio }>;
+        };
+        finishReason?: string;
+      }>;
+      usageMetadata?: {
+        promptTokenCount?: number;
+        candidatesTokenCount?: number;
+        totalTokenCount?: number;
+      };
+    };
+
+    const audioPart = data.candidates?.[0]?.content?.parts
+      ?.map(part => part.inlineData ?? part.inline_data)
+      .find(inline => inline?.data);
+    if (!audioPart?.data) {
+      return ResponseBuilder.emptyResponse(
+        'audio',
+        this.name,
+        request.model,
+        startTime,
+        { finishReason: data.candidates?.[0]?.finishReason }
+      );
+    }
+
+    const audio = normalizeGeminiTtsAudio(
+      audioPart.data,
+      audioPart.mimeType ?? audioPart.mime_type
+    );
+
+    const inputTokens = data.usageMetadata?.promptTokenCount || 0;
+    const outputTokens = data.usageMetadata?.candidatesTokenCount || 0;
+    const modelInfo = this.getModelInfo(model);
+    const estimatedCost = CostCalculator.forTokens(
+      modelInfo?.pricing?.inputCost ?? 0,
+      modelInfo?.pricing?.outputCost ?? 0,
+      inputTokens,
+      outputTokens
+    );
+
+    return ResponseBuilder.success()
+      .outputs([
+        OutputBuilder.audio({
+          base64: audio.base64,
+          mimeType: audio.mimeType,
+          format: 'wav',
+          duration: audio.durationSeconds,
+          metadata: { voice: voiceName },
+        }),
+      ])
+      .usage({
+        inputTokens,
+        outputTokens,
+        totalTokens: data.usageMetadata?.totalTokenCount || 0,
+        units: prompt.length,
+        estimatedCost,
+      })
       .metadata(this.name, request.model, startTime)
       .build();
   }

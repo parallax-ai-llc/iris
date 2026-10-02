@@ -1076,7 +1076,7 @@ export class NodeExecutor {
         const isInpaint = node.type === 'EDIT_IMAGE_INPAINT';
         const defaultProvider = isInpaint ? 'google' : 'stability';
         const defaultModel = isInpaint
-          ? 'gemini-3-pro-image-preview'
+          ? 'gemini-3-pro-image'
           : 'stable-diffusion-3';
 
         // Convert inputs to public URLs for external API access (handles encrypted assets)

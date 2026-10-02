@@ -13,6 +13,7 @@ import { ModelInfo } from '../types.js';
  * - Gemini: Text generation and analysis
  * - Veo: Video generation
  * - Chirp: Speech-to-text
+ * - Gemini TTS: Text-to-speech
  */
 export const GOOGLE_MODELS: ModelInfo[] = [
   // ============ Image Generation Models (Imagen) ============
@@ -149,6 +150,32 @@ export const GOOGLE_MODELS: ModelInfo[] = [
       outputCost: 0.35,
       currency: 'USD',
     },
+  },
+
+  // ============ Text-to-Speech Models (Gemini TTS) ============
+  // Standard pricing through 2026-12-31: text input $0.50 / 1M tokens, audio
+  // output $9.00 / 1M tokens (25 audio tokens per second). From 2027-01-01:
+  // $1.00 / $18.00. Source: ai.google.dev gemini-3.8-flash-tts model page,
+  // checked 2026-10-02. Billing uses the agent-models catalog, not this entry;
+  // this only feeds the adapter's usage.estimatedCost.
+  {
+    id: 'gemini-3.8-flash-tts',
+    name: 'Gemini 3.8 Flash TTS',
+    provider: 'google',
+    capabilities: ['text-to-speech'],
+    inputTypes: ['text'],
+    outputTypes: ['audio'],
+    constraints: {
+      maxTokens: 8192,
+      supportedFormats: ['wav'],
+    },
+    pricing: {
+      unit: 'token',
+      inputCost: 0.5 / 1_000_000,
+      outputCost: 9 / 1_000_000,
+      currency: 'USD',
+    },
+    defaultParameters: { voice: 'Kore' },
   },
 
   // ============ Speech-to-Text Models (Chirp) ============

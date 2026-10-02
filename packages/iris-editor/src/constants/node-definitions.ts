@@ -210,8 +210,8 @@ export const MODEL_OPTIONS: Record<string, Record<string, Array<{ value: string;
       { value: 'gpt-image-2.5-sunburst', label: 'GPT Image 2.5 Sunburst' },
     ],
     google: [
-      { value: 'gemini-3-pro-image-preview', label: 'Gemini 3 Pro Image' },
-      { value: 'gemini-2.5-flash-image', label: 'Gemini 2.5 Flash Image' },
+      { value: 'gemini-3-pro-image', label: 'Gemini 3 Pro Image' },
+      { value: 'gemini-3.1-flash-image', label: 'Gemini 3.1 Flash Image' },
     ],
     xai: [
       { value: 'grok-imagine-image-2.0', label: 'Grok Imagine Image 2.0' },
@@ -295,6 +295,9 @@ export const MODEL_OPTIONS: Record<string, Record<string, Array<{ value: string;
     elevenlabs: [
       { value: 'eleven_multilingual_v2', label: 'Multilingual v2' },
       { value: 'eleven_turbo_v2', label: 'Turbo v2' },
+    ],
+    google: [
+      { value: 'gemini-3.8-flash-tts', label: 'Gemini 3.8 Flash TTS' },
     ],
   },
   'speech-to-text': {

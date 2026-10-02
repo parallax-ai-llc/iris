@@ -73,7 +73,7 @@ export const IMAGE_EDIT_PRICING: Record<string, PricedModel> = {
   inpaint: { modelId: 'stability-inpaint', nodeType: 'EDIT_IMAGE_INPAINT' },
   subject: { modelId: 'stability-inpaint', nodeType: 'EDIT_IMAGE_INPAINT' },
   outpaint: { modelId: 'stability-outpaint', nodeType: 'EDIT_IMAGE_OUTPAINT' },
-  angle: { modelId: 'gemini-3-pro-image-preview', nodeType: 'GEN_IMAGE_TO_IMAGE' },
+  angle: { modelId: 'gemini-3-pro-image', nodeType: 'GEN_IMAGE_TO_IMAGE' },
   faceRestore: { modelId: 'codeformer', nodeType: 'EDIT_IMAGE_FACE_RESTORE' },
   colorize: { modelId: 'ddcolor', nodeType: 'EDIT_IMAGE_COLORIZE' },
   skyReplace: { modelId: 'stable-image-sky-replace', nodeType: 'EDIT_IMAGE_SKY_REPLACE' },
