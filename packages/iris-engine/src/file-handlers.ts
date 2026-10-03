@@ -19,6 +19,11 @@
 import type { NodeExecutorHost } from './node-host.js';
 import type { HttpRequestPolicy } from './safe-http.js';
 import { fetchMediaAsBuffer } from './media-source.js';
+import {
+  AssetNotAccessibleError,
+  parseAssetIdFromUrl,
+  requireRunAssetFile,
+} from './asset-access.js';
 
 /** Hard cap on the source file size UTIL_FILE_EXTRACT will parse. Parsing is
  *  in-memory (split/exceljs), so this bounds heap on a 1Gi instance. */
@@ -627,29 +632,32 @@ export interface ResolvedFileBuffer {
 
 /**
  * Resolve the same input shapes `extractFileText` accepts, but to raw bytes:
- *   - `/api/iris/assets/<id>/download` → host asset lookup + decrypt
+ *   - `/api/iris/assets/<id>/download` → host asset lookup + decrypt, only for
+ *     assets owned by `userId` (the run user, see asset-access.ts)
  *   - http(s) / data URLs → guarded media fetch (SSRF policy from the host)
  *   - raw string → utf-8 text bytes
  *   - { url | value | base64, mimeType } objects
  */
 export async function resolveFileToBuffer(
   fileInput: unknown,
-  host: NodeExecutorHost
+  host: NodeExecutorHost,
+  userId: string
 ): Promise<ResolvedFileBuffer> {
   const policy: HttpRequestPolicy | undefined = host.http;
 
   if (typeof fileInput === 'string') {
     if (fileInput.startsWith('/api/iris/assets/')) {
-      const match = fileInput.match(/\/api\/iris\/assets\/([^/]+)/);
-      if (!match) {
-        throw new Error(`File Extract: cannot parse asset id from URL: ${fileInput}`);
-      }
-      const asset = await host.assets.getAssetById(match[1]);
-      if (!asset?.storagePath) {
-        throw new Error(`File Extract: asset not found: ${match[1]}`);
-      }
+      const assetId = parseAssetIdFromUrl(fileInput);
+      if (!assetId) throw new AssetNotAccessibleError('File Extract');
+      const asset = await requireRunAssetFile(
+        host.assets,
+        assetId,
+        userId,
+        'File Extract'
+      );
+      // Read with the run user's id, never asset.userId.
       const downloaded = await host.media.downloadDecrypted({
-        userId: asset.userId,
+        userId,
         storagePath: asset.storagePath,
       });
       return {
@@ -696,7 +704,7 @@ export async function resolveFileToBuffer(
     const obj = fileInput as Record<string, unknown>;
     const url = obj.url ?? obj.value;
     if (typeof url === 'string') {
-      const resolved = await resolveFileToBuffer(url, host);
+      const resolved = await resolveFileToBuffer(url, host, userId);
       const mimeType =
         typeof obj.mimeType === 'string' ? obj.mimeType : resolved.mimeType;
       const nameHint =

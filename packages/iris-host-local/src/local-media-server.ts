@@ -21,7 +21,11 @@ import { promises as fs, createReadStream } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import fastifyStatic from '@fastify/static';
-import { publicStoreFormat, setTempPublicUploader } from 'iris-engine';
+import {
+  isValidAssetId,
+  publicStoreFormat,
+  setTempPublicUploader,
+} from 'iris-engine';
 import { ensureDir, readJsonOrNull } from './fs-util.js';
 
 /** CSP for media served from this origin: images and media display when the
@@ -82,6 +86,8 @@ export async function readLocalAsset(
   baseUrl: string,
   id: string,
 ): Promise<Record<string, unknown> | null> {
+  // Ids are UUIDs; anything else could escape <dataDir>/assets.
+  if (!isValidAssetId(id)) return null;
   let meta: AssetMeta | null = null;
   try {
     meta = await readJsonOrNull<AssetMeta>(
@@ -189,6 +195,9 @@ export async function registerMediaServer(
   app.get<{ Params: { id: string } }>(
     '/api/iris/assets/:id/download',
     async (req, reply) => {
+      if (!isValidAssetId(req.params.id)) {
+        return reply.code(404).send({ error: 'Asset not found' });
+      }
       const metaFile = path.join(
         opts.dataDir,
         'assets',
