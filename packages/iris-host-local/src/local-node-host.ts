@@ -39,6 +39,12 @@ import type {
   TranscriptionResult,
   TranscriptionOpts,
 } from 'iris-engine';
+import {
+  PUBLIC_STORE_FORMATS,
+  PUBLIC_STORE_MAX_BYTES,
+  publicStoreFormat,
+  safeHttpFetchBuffer,
+} from 'iris-engine';
 import { ensureDir, readJsonOrNull, writeJson } from './fs-util.js';
 import type { LocalWorkflowStore } from './local-workflow-store.js';
 
@@ -122,14 +128,18 @@ function assetTypeForType(
   }
 }
 
-function assetTypeFromContentType(
-  contentType: string,
-): 'IMAGE' | 'VIDEO' | 'AUDIO' | 'OTHER' {
-  if (contentType.startsWith('image/')) return 'IMAGE';
-  if (contentType.startsWith('video/')) return 'VIDEO';
-  if (contentType.startsWith('audio/')) return 'AUDIO';
-  return 'OTHER';
-}
+/** Extensions the public dir may hold (see iris-engine public-store.ts). */
+const publicStoreExts = new Set(
+  Object.values(PUBLIC_STORE_FORMATS).map(f => f.ext),
+);
+
+/** Deadline for one OUTPUT_STORAGE download (media can be large). */
+const PUBLIC_STORE_FETCH_TIMEOUT_MS = 120_000;
+
+/** safe-http messages that mean a policy refusal rather than a transient
+ *  network failure: the node fails instead of passing the URL through. */
+const BLOCKED_FETCH_PATTERN =
+  /was blocked|size limit|Unsupported protocol|Too many redirects/;
 
 /** Strip an optional `data:<mime>;base64,` prefix from a base64 string. */
 function stripDataUrl(b64: string): string {
@@ -237,9 +247,14 @@ class LocalMediaHost implements MediaHost {
   }): Promise<{ success: boolean; publicUrl?: string; error?: string }> {
     try {
       const buffer = await fs.readFile(input.storagePath);
+      // Only allowlisted media extensions reach the public dir, so a served
+      // file is never an HTML/SVG document on the engine's own origin.
+      const fileExt = path.extname(input.storagePath).slice(1).toLowerCase();
       const ext = input.contentType
-        ? extForType('', input.contentType)
-        : path.extname(input.storagePath).slice(1) || 'bin';
+        ? publicStoreFormat(input.contentType).ext
+        : publicStoreExts.has(fileExt)
+          ? fileExt
+          : 'bin';
       const url = await this.writePublic(buffer, ext);
       return { success: true, publicUrl: url };
     } catch (error) {
@@ -257,6 +272,7 @@ class LocalMediaHost implements MediaHost {
       if (source.kind === 'gcsUri') {
         return {
           success: false,
+          blocked: true,
           error: 'gcsUri sources are not supported on the local host',
         };
       }
@@ -268,27 +284,55 @@ class LocalMediaHost implements MediaHost {
         return { success: true, publicUrl: url, assetType: 'OTHER' };
       }
       let buffer: Buffer;
-      let contentType: string;
+      let contentType: string | null;
       if (source.kind === 'url') {
-        const res = await fetch(source.url);
-        if (!res.ok) {
-          // Pass the URL through on download failure (mirrors cloud behaviour).
-          return { success: true, publicUrl: source.url, assetType: 'OTHER' };
+        // Guarded fetch with the same network policy as UTIL_HTTP_REQUEST on
+        // this host (private addresses allowed only when the host opts in),
+        // plus the shared public-store size cap and a deadline.
+        let res;
+        try {
+          res = await safeHttpFetchBuffer(
+            source.url,
+            { method: 'GET', headers: {} },
+            {
+              allowPrivateNetwork: this.opts.allowPrivateNetworkHttp ?? true,
+              timeoutMs: PUBLIC_STORE_FETCH_TIMEOUT_MS,
+              maxResponseBytes: PUBLIC_STORE_MAX_BYTES,
+            },
+          );
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : 'Could not fetch the URL';
+          return {
+            success: false,
+            blocked: BLOCKED_FETCH_PATTERN.test(message),
+            error: message,
+          };
         }
-        contentType =
-          res.headers.get('content-type') || 'application/octet-stream';
-        buffer = Buffer.from(await res.arrayBuffer());
+        if (res.status < 200 || res.status >= 300) {
+          return {
+            success: false,
+            error: `Remote URL responded with status ${res.status}`,
+          };
+        }
+        buffer = res.body;
+        contentType = res.contentType;
       } else {
+        if (source.buffer.length > PUBLIC_STORE_MAX_BYTES) {
+          return {
+            success: false,
+            blocked: true,
+            error: `Data exceeds the ${PUBLIC_STORE_MAX_BYTES} byte limit for public storage.`,
+          };
+        }
         buffer = source.buffer;
         contentType = source.contentType;
       }
-      const ext = extForType('', contentType);
-      const url = await this.writePublic(buffer, ext);
-      return {
-        success: true,
-        publicUrl: url,
-        assetType: assetTypeFromContentType(contentType),
-      };
+      // Allowlisted formats keep their type; anything else (HTML, SVG, XML,
+      // scripts) is stored as .bin so the public dir never serves a document.
+      const format = publicStoreFormat(contentType);
+      const url = await this.writePublic(buffer, format.ext);
+      return { success: true, publicUrl: url, assetType: format.assetType };
     } catch (error) {
       return {
         success: false,

@@ -21,8 +21,13 @@ import { promises as fs, createReadStream } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import fastifyStatic from '@fastify/static';
-import { setTempPublicUploader } from 'iris-engine';
+import { publicStoreFormat, setTempPublicUploader } from 'iris-engine';
 import { ensureDir, readJsonOrNull } from './fs-util.js';
+
+/** CSP for media served from this origin: images and media display when the
+ *  URL is opened directly, but a document (HTML/SVG) cannot run script. */
+const SERVED_MEDIA_CSP =
+  "default-src 'none'; img-src 'self'; media-src 'self'; style-src 'unsafe-inline'; sandbox";
 
 interface AssetMeta {
   id?: string;
@@ -137,6 +142,13 @@ export async function registerMediaServer(
     root: publicDir,
     prefix: '/public/',
     decorateReply: false,
+    // Public files share the engine's origin, and the access guard trusts that
+    // origin. Even though writers only produce allowlisted media extensions,
+    // never let a served file run script here.
+    setHeaders: res => {
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Content-Security-Policy', SERVED_MEDIA_CSP);
+    },
   });
 
   // List locally-stored assets (the desktop image/video galleries) — reads
@@ -193,6 +205,8 @@ export async function registerMediaServer(
         return reply.code(404).send({ error: 'Asset data missing' });
       }
       reply.header('Content-Type', meta.mimeType || 'application/octet-stream');
+      reply.header('X-Content-Type-Options', 'nosniff');
+      reply.header('Content-Security-Policy', SERVED_MEDIA_CSP);
       return reply.send(createReadStream(meta.storagePath));
     },
   );
@@ -201,7 +215,7 @@ export async function registerMediaServer(
   setTempPublicUploader(async ({ base64Data, mimeType }) => {
     try {
       const buffer = Buffer.from(stripDataUrl(base64Data), 'base64');
-      const ext = mimeType.split('/')[1]?.split(';')[0] || 'bin';
+      const ext = publicStoreFormat(mimeType).ext;
       const fileName = `${Date.now()}-${randomUUID().slice(0, 8)}.${ext}`;
       await fs.writeFile(path.join(publicDir, fileName), buffer);
       return {

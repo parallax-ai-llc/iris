@@ -5,6 +5,7 @@ import fs from 'fs';
 import http from 'http';
 import { fileURLToPath } from 'url';
 import { setupAuthHandlers } from './ipc/auth';
+import { DesktopOAuthFlow } from './ipc/desktop-oauth';
 import { setupFileHandlers } from './ipc/files';
 import { setupStorageHandlers } from './ipc/storage';
 import { setupUpdaterHandlers, checkForUpdatesOnStartup, runStartupUpdateGate } from './ipc/updater';
@@ -121,6 +122,7 @@ function startLocalMediaServer(): Promise<number> {
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
+const desktopOAuth = new DesktopOAuthFlow();
 const extensionManager = new ExtensionManager();
 
 /** Bring the main window forward, creating one if all windows were closed. */
@@ -184,44 +186,21 @@ function setupTray(): void {
 }
 
 /**
- * Handle OAuth callback URL
- * URL format: iris-desktop://auth/callback?accessToken=...&refreshToken=...&user=...
+ * Handle OAuth callback URL: iris-desktop://auth/callback?code=...&state=...
+ * Only a sign-in this process started (matching state) is accepted, and the
+ * one-time code is traded for tokens with the PKCE verifier (ipc/desktop-oauth.ts).
+ * Never log the URL: it carries the code.
  */
 function handleProtocolUrl(url: string) {
-  console.log('Received protocol URL:', url);
-
-  try {
-    const parsedUrl = new URL(url);
-    const pathname = parsedUrl.pathname.replace(/^\/+/, ''); // Remove leading slashes
-
-    if (parsedUrl.host === 'auth' || pathname === 'auth/callback' || pathname === 'callback') {
-      const accessToken = parsedUrl.searchParams.get('accessToken');
-      const refreshToken = parsedUrl.searchParams.get('refreshToken');
-      const userParam = parsedUrl.searchParams.get('user');
-      const error = parsedUrl.searchParams.get('error');
-
-      if (error) {
-        mainWindow?.webContents.send('auth:error', { error });
-        return;
-      }
-
-      if (accessToken && refreshToken && userParam) {
-        try {
-          const user = JSON.parse(decodeURIComponent(userParam));
-          mainWindow?.webContents.send('auth:callback', { accessToken, refreshToken, user });
-          console.log('Auth callback processed successfully');
-        } catch (parseError) {
-          console.error('Failed to parse user data:', parseError);
-          mainWindow?.webContents.send('auth:error', { error: 'Failed to parse authentication data' });
-        }
-      } else {
-        console.error('Missing auth parameters in callback URL');
-        mainWindow?.webContents.send('auth:error', { error: 'Missing authentication parameters' });
-      }
+  void desktopOAuth.handleCallback(url).then((result) => {
+    if (result.type === 'success') {
+      mainWindow?.webContents.send('auth:callback', result.data);
+    } else if (result.type === 'error') {
+      mainWindow?.webContents.send('auth:error', { error: result.error });
+    } else {
+      console.warn(`[auth] Ignored protocol URL (${result.reason})`);
     }
-  } catch (err) {
-    console.error('Failed to parse protocol URL:', err);
-  }
+  });
 }
 
 function createWindow() {
@@ -394,13 +373,15 @@ ipcMain.handle('app:getVersion', () => app.getVersion());
 ipcMain.handle('app:getLocalMediaPort', () => localMediaPort);
 
 ipcMain.handle('auth:openOAuth', (_event, provider: 'google' | 'apple') => {
+  if (provider !== 'google' && provider !== 'apple') return;
   const isDev = (process.env.NODE_ENV === 'development' || !app.isPackaged) && process.env.USE_BUILT !== 'true';
   // Canonical API domain in prod (matches the renderer's VITE_API_URL and the
   // OAuth redirect_uri registered in the Google/Apple console).
   const baseUrl = isDev
     ? 'http://localhost:4000'
     : 'https://api.parallax.kr';
-  shell.openExternal(`${baseUrl}/auth/desktop/${provider}`);
+  // state + PKCE stay in this process; the browser only ever sees the challenge.
+  return shell.openExternal(desktopOAuth.start(provider, baseUrl));
 });
 
 // Windows: Set App User Model ID for taskbar integration

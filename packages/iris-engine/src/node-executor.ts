@@ -32,6 +32,7 @@ import type {
   TokenUsageOpts,
 } from './node-host.js';
 import { safeHttpFetch } from './safe-http.js';
+import { StorePublicBlockedError } from './public-store.js';
 import { markInertPorts } from './branch-pruning.js';
 import {
   executeDecision,
@@ -3818,6 +3819,10 @@ export class NodeExecutor {
             if (result.success && result.publicUrl) {
               savedUrl = result.publicUrl;
               assetType = result.assetType ?? 'OTHER';
+            } else if (result.blocked) {
+              throw new StorePublicBlockedError(
+                result.error ?? 'This source cannot be saved to public storage.'
+              );
             } else if (result.error) {
               throw new Error(result.error);
             }
@@ -3835,6 +3840,9 @@ export class NodeExecutor {
             });
           }
         } catch (error) {
+          // A policy refusal (source outside the user's storage, blocked
+          // address, oversized download) fails the node outright.
+          if (error instanceof StorePublicBlockedError) throw error;
           console.error('[OUTPUT_STORAGE] Failed to save:', error);
           outputs.error = (error as Error).message;
           // Pass through original data URL if save fails
@@ -3862,12 +3870,24 @@ export class NodeExecutor {
         }
 
         try {
-          const response = await fetch(url, {
-            method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data),
-          });
-          outputs.response = await response.text();
+          // Same guarded fetch as UTIL_HTTP_REQUEST: the URL is user-supplied
+          // and the response body becomes node output, so private and
+          // reserved addresses are refused (per host policy), redirects are
+          // re-checked, and the deadline and body size are capped.
+          const methodUpper = String(method).toUpperCase();
+          const response = await safeHttpFetch(
+            url,
+            {
+              method: methodUpper,
+              headers: { 'Content-Type': 'application/json' },
+              body:
+                methodUpper === 'GET' || methodUpper === 'HEAD'
+                  ? undefined
+                  : JSON.stringify(data),
+            },
+            this.host.http
+          );
+          outputs.response = response.bodyText;
         } catch (error) {
           outputs.response = JSON.stringify({
             error: (error as Error).message,

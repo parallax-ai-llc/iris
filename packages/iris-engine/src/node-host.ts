@@ -94,6 +94,10 @@ export interface StorePublicResult {
   publicUrl?: string;
   assetType?: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'OTHER';
   error?: string;
+  /** True when the host refused the request on policy grounds (source not
+   *  allowed, blocked address, too large). The node then fails instead of
+   *  recording a soft error output. See `public-store.ts`. */
+  blocked?: boolean;
 }
 
 /** Read/write of media + temporary public exposure. Replaces direct GCS +
@@ -118,7 +122,10 @@ export interface MediaHost {
   }): Promise<{ success: boolean; publicUrl?: string; error?: string }>;
 
   /** Store arbitrary data (base64/url/gs:/text) to a public location and return
-   *  its URL. Backs the OUTPUT_STORAGE node. */
+   *  its URL. Backs the OUTPUT_STORAGE node. Hosts must apply the shared
+   *  policy in `public-store.ts`: publish only allowlisted formats, fetch URLs
+   *  through an SSRF guard with a size cap, and accept a `gs://` source only
+   *  when it lies inside the requesting user's own storage area. */
   storePublic(input: StorePublicInput): Promise<StorePublicResult>;
 }
 

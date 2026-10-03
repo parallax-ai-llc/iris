@@ -18,6 +18,7 @@ export * from './graph-traverser.js';
 export * from './host-hooks.js';
 export * from './media-source.js';
 export * from './node-host.js';
+export * from './public-store.js';
 export * from './safe-http.js';
 export * from './node-executor-config.js';
 export * from './node-executor.js';

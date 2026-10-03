@@ -15,6 +15,12 @@
  */
 
 import type { NodeExecutorHost } from './node-host.js';
+import { safeHttpFetchBuffer, type HttpRequestPolicy } from './safe-http.js';
+
+/** Deadline and size cap for fetching a document by URL. Documents (PDF,
+ *  DOCX, text) are small next to media; 50 MB covers large PDFs. */
+const DOC_FETCH_TIMEOUT_MS = 60_000;
+const DOC_FETCH_MAX_BYTES = 50 * 1024 * 1024;
 
 export interface FileExtractionResult {
   text: string;
@@ -26,19 +32,27 @@ export interface FileExtractionResult {
 }
 
 export async function extractFromHttpUrl(
-  url: string
+  url: string,
+  policy?: HttpRequestPolicy
 ): Promise<FileExtractionResult> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(
-      `Failed to fetch file: ${response.status} ${response.statusText}`
-    );
+  // The URL is user-supplied and the extracted text becomes node output, so
+  // fetch through the SSRF guard (private and reserved addresses refused per
+  // host policy, redirects re-checked, deadline and size capped).
+  const response = await safeHttpFetchBuffer(
+    url,
+    { method: 'GET', headers: {} },
+    {
+      ...policy,
+      timeoutMs: policy?.timeoutMs ?? DOC_FETCH_TIMEOUT_MS,
+      maxResponseBytes: policy?.maxResponseBytes ?? DOC_FETCH_MAX_BYTES,
+    }
+  );
+  if (response.status < 200 || response.status >= 300) {
+    throw new Error(`Failed to fetch file: ${response.status}`);
   }
   const mimeType =
-    response.headers.get('content-type')?.split(';')[0]?.trim() ??
-    'application/octet-stream';
-  const buffer = Buffer.from(await response.arrayBuffer());
-  return extractFromBuffer(buffer, mimeType);
+    response.contentType?.split(';')[0]?.trim() || 'application/octet-stream';
+  return extractFromBuffer(response.body, mimeType);
 }
 
 /**
@@ -214,7 +228,7 @@ export async function extractFileText(
     }
     // http(s) URL → fetch directly (engine helper)
     if (fileInput.startsWith('http://') || fileInput.startsWith('https://')) {
-      return extractFromHttpUrl(fileInput);
+      return extractFromHttpUrl(fileInput, host.http);
     }
     // data URL → decode and extract
     if (fileInput.startsWith('data:')) {
