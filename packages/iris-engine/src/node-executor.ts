@@ -33,12 +33,6 @@ import type {
 } from './node-host.js';
 import { safeHttpFetch } from './safe-http.js';
 import { StorePublicBlockedError } from './public-store.js';
-import {
-  AssetNotAccessibleError,
-  parseAssetIdFromUrl,
-  requireRunAssetFile,
-  resolveRunAsset,
-} from './asset-access.js';
 import { markInertPorts } from './branch-pruning.js';
 import {
   executeDecision,
@@ -158,8 +152,7 @@ export class NodeExecutor {
           billingPlan,
           node,
           inputs,
-          variables,
-          context.userId
+          variables
         );
         const tokenCheck = await this.host.usage.checkNodeTokens(
           context.userId,
@@ -210,13 +203,13 @@ export class NodeExecutor {
           result = await this.executeEditor(node, inputs, variables, context);
           break;
         case 'utility':
-          result = await this.executeUtility(node, inputs, variables, context);
+          result = await this.executeUtility(node, inputs, variables);
           break;
         case 'web':
           // WEB category nodes (WEB_SEARCH, future WEB_SCRAPER…) share the
           // utility executor's dispatch table; their cost accounting comes
           // back via `result.usage.estimatedCost` like generators do.
-          result = await this.executeUtility(node, inputs, variables, context);
+          result = await this.executeUtility(node, inputs, variables);
           break;
         case 'output':
           result = await this.executeOutput(node, inputs, variables, context);
@@ -236,7 +229,6 @@ export class NodeExecutor {
           node,
           inputs,
           variables,
-          context.userId,
           result.usage
         );
         tokensConsumed = await this.host.usage.consumeNodeTokens(
@@ -842,7 +834,7 @@ export class NodeExecutor {
   }> {
     // ─── Phase 2 analyzer short-circuits ─────────────────────────────────
     if (node.type === 'DOC_LONG_CONTEXT') {
-      const r = await this.executeDocLongContext(node, inputs, context.userId);
+      const r = await this.executeDocLongContext(node, inputs);
       return {
         outputs: {
           answer: r.text,
@@ -958,24 +950,32 @@ export class NodeExecutor {
         ) {
           // For relative API URLs, we need to get the actual content
           if (imageInput.startsWith('/api/iris/assets/')) {
-            const assetId = parseAssetIdFromUrl(imageInput);
-            if (!assetId) throw new AssetNotAccessibleError();
-            // Owner-checked lookup; bytes are read as the run user.
-            const asset = await requireRunAssetFile(
-              this.host.assets,
-              assetId,
-              context.userId
+            const assetIdMatch = imageInput.match(
+              /\/api\/iris\/assets\/([^/]+)/
             );
-            const downloadResult = await this.host.media.downloadDecrypted({
-              userId: context.userId,
-              storagePath: asset.storagePath,
-            });
-            const base64 = downloadResult.buffer.toString('base64');
-            dataSource = {
-              type: 'base64',
-              value: base64,
-              mimeType: asset.mimeType || 'image/png',
-            };
+            if (assetIdMatch) {
+              const asset = await this.host.assets.getAssetById(
+                assetIdMatch[1]
+              );
+              if (asset?.storagePath) {
+                const downloadResult = await this.host.media.downloadDecrypted({
+                  userId: asset.userId,
+                  storagePath: asset.storagePath,
+                });
+                const base64 = downloadResult.buffer.toString('base64');
+                dataSource = {
+                  type: 'base64',
+                  value: base64,
+                  mimeType: asset.mimeType || 'image/png',
+                };
+              } else {
+                throw new Error('Asset not found or missing storage path');
+              }
+            } else {
+              throw new Error(
+                'Cannot fetch asset: missing storage service or invalid URL'
+              );
+            }
           } else {
             dataSource = { type: 'url', value: imageInput };
           }
@@ -1519,8 +1519,7 @@ export class NodeExecutor {
   private async executeUtility(
     node: NodeDefinition,
     inputs: Record<string, unknown>,
-    variables: Record<string, unknown>,
-    context: { executionId: string; workflowId: string; userId: string }
+    variables: Record<string, unknown>
   ): Promise<{
     outputs: Record<string, unknown>;
     assets: AssetReference[];
@@ -2416,7 +2415,7 @@ export class NodeExecutor {
 
       // ─── Phase 2: document utilities ──────────────────────────────────
       case 'DOC_GREP': {
-        const result = await this.executeDocGrep(node, inputs, context.userId);
+        const result = await this.executeDocGrep(node, inputs);
         outputs.matches = result.matches;
         outputs.context = result.context;
         outputs.count = result.count;
@@ -2464,11 +2463,7 @@ export class NodeExecutor {
 
       // ─── Phase 4: file & data processing ──────────────────────────────
       case 'UTIL_FILE_EXTRACT': {
-        const result = await this.executeFileExtract(
-          node,
-          inputs,
-          context.userId
-        );
+        const result = await this.executeFileExtract(node, inputs);
         outputs.data = result.data;
         outputs.text = result.text;
         outputs.rowCount = result.rowCount;
@@ -2679,8 +2674,7 @@ export class NodeExecutor {
 
   private async executeDocGrep(
     node: NodeDefinition,
-    inputs: Record<string, unknown>,
-    userId: string
+    inputs: Record<string, unknown>
   ): Promise<{
     matches: Array<{ line: string; lineNumber: number; context: string[] }>;
     context: string;
@@ -2720,7 +2714,7 @@ export class NodeExecutor {
         ) || 200
       )
     );
-    const extracted = await extractFileText(file, this.host, userId);
+    const extracted = await extractFileText(file, this.host);
     return docGrep(extracted.text, {
       mode,
       pattern,
@@ -2735,8 +2729,7 @@ export class NodeExecutor {
 
   private async executeFileExtract(
     node: NodeDefinition,
-    inputs: Record<string, unknown>,
-    userId: string
+    inputs: Record<string, unknown>
   ): Promise<{
     data: unknown[];
     text: string;
@@ -2768,11 +2761,7 @@ export class NodeExecutor {
       )
     );
 
-    const resolved = await resolveFileToBuffer(
-      inputs.file,
-      this.host,
-      userId
-    );
+    const resolved = await resolveFileToBuffer(inputs.file, this.host);
     if (resolved.buffer.byteLength > MAX_FILE_EXTRACT_BYTES) {
       throw new Error(
         `File Extract: file is ${Math.round(resolved.buffer.byteLength / 1024 / 1024)}MB — the limit is ${MAX_FILE_EXTRACT_BYTES / 1024 / 1024}MB`
@@ -3029,8 +3018,7 @@ export class NodeExecutor {
 
   private async executeDocLongContext(
     node: NodeDefinition,
-    inputs: Record<string, unknown>,
-    userId: string
+    inputs: Record<string, unknown>
   ): Promise<{
     text: string;
     cached: boolean;
@@ -3062,7 +3050,7 @@ export class NodeExecutor {
     if (!query) throw new Error('DOC_LONG_CONTEXT: query is required');
     // Resolve the file → plain text through the host-coupled extractor first,
     // then hand the extracted text to the (host-independent) engine analyzer.
-    const extracted = await extractFileText(inputs.file, this.host, userId);
+    const extracted = await extractFileText(inputs.file, this.host);
     const result = await executeDocLongContext(extracted.text, query, {
       provider,
       model,
@@ -4045,18 +4033,13 @@ export class NodeExecutor {
     node: NodeDefinition,
     inputs: Record<string, unknown>,
     variables: Record<string, unknown>,
-    userId: string,
     usage?: UsageInfo
   ): Promise<NodeBillingParams> {
     let inputDurationSeconds: number | undefined;
     if (plan.durationSource === 'input') {
       inputDurationSeconds =
         toPositiveSeconds(usage?.durationSeconds) ??
-        (await this.resolveInputMediaDuration(
-          plan.durationInputs,
-          inputs,
-          userId
-        ));
+        (await this.resolveInputMediaDuration(plan.durationInputs, inputs));
     }
 
     let textLength: number | undefined;
@@ -4086,12 +4069,10 @@ export class NodeExecutor {
     });
   }
 
-  /** Stored length (seconds) of the first library asset on the given inputs.
-   *  Only the run user's own assets are read (see asset-access.ts). */
+  /** Stored length (seconds) of the first library asset on the given inputs. */
   private async resolveInputMediaDuration(
     ports: string[] | undefined,
-    inputs: Record<string, unknown>,
-    userId: string
+    inputs: Record<string, unknown>
   ): Promise<number | undefined> {
     for (const port of ports ?? []) {
       const value = inputs[port];
@@ -4100,10 +4081,10 @@ export class NodeExecutor {
           ? value
           : (value as { url?: unknown } | null | undefined)?.url;
       if (typeof url !== 'string') continue;
-      const assetId = parseAssetIdFromUrl(url);
-      if (!assetId) continue;
+      const match = url.match(/^\/api\/iris\/assets\/([^/]+)\//);
+      if (!match) continue;
       try {
-        const asset = await resolveRunAsset(this.host.assets, assetId, userId);
+        const asset = await this.host.assets.getAssetById(match[1]);
         const seconds = toPositiveSeconds(
           (asset?.metadata as { duration?: unknown } | null | undefined)
             ?.duration
@@ -4479,36 +4460,39 @@ export class NodeExecutor {
    * Convert a relative Iris API URL to a temporary public URL for external API consumption.
    * This is needed because external APIs (Replicate, etc.) cannot access our internal API routes.
    *
-   * Only the run user's own assets are exposed: an unreadable asset fails the
-   * node (see asset-access.ts) instead of reaching the provider.
-   *
    * @param url - The URL to convert (may be relative like '/api/iris/assets/{id}/download')
-   * @param userId - The run user (workflow owner); the asset must belong to them
+   * @param userId - The user ID for asset lookup
    * @param provider - Provider name for temp file organization
    * @returns Public URL if conversion was needed, original URL otherwise
    */
   private async getPublicUrlForExternalApi(
     url: string,
-    userId: string,
+    _userId: string, // Used for logging context; actual userId comes from asset lookup
     provider: string
   ): Promise<string> {
     // Check if this is a relative Iris API URL
-    if (!/^\/api\/iris\/assets\/[^/]+\/download/.test(url)) {
+    const irisApiMatch = url.match(/^\/api\/iris\/assets\/([^/]+)\/download/);
+    if (!irisApiMatch) {
       // Not a relative URL, return as-is
       return url;
     }
 
-    const assetId = parseAssetIdFromUrl(url);
-    if (!assetId) throw new AssetNotAccessibleError();
+    const assetId = irisApiMatch[1];
 
-    // Owner-checked lookup; throws the generic not-accessible error.
-    const asset = await requireRunAssetFile(this.host.assets, assetId, userId);
+    // Look up the asset to get storage path
+    const asset = await this.host.assets.getAssetById(assetId);
+
+    if (!asset?.storagePath) {
+      console.warn(
+        `[NodeExecutor] Asset not found or missing storage path: ${assetId}`
+      );
+      return url;
+    }
 
     // Get temp public URL using the host media seam. A host without storage
     // returns success:false here and we fall through to the original URL.
-    // Read as the run user, never asset.userId.
     const result = await this.host.media.getTempPublicUrlForAsset({
-      userId,
+      userId: asset.userId,
       storagePath: asset.storagePath,
       provider,
       contentType: asset.mimeType || undefined,

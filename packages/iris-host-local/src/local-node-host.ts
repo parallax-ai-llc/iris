@@ -42,7 +42,6 @@ import type {
 import {
   PUBLIC_STORE_FORMATS,
   PUBLIC_STORE_MAX_BYTES,
-  isValidAssetId,
   publicStoreFormat,
   safeHttpFetchBuffer,
 } from 'iris-engine';
@@ -352,28 +351,16 @@ class LocalMediaHost implements MediaHost {
   }
 }
 
-/**
- * Single-user host: every asset and every run belong to the host's one user
- * id, so the owner check is trivially satisfied here. The engine still
- * compares `userId` with the run user (asset-access.ts), and the id is
- * validated so it can never step outside `<dataDir>/assets`.
- */
 class LocalAssetHost implements AssetHost {
   constructor(private opts: LocalNodeHostOptions) {}
 
-  async getAssetById(
-    id: string,
-    requesterUserId: string,
-  ): Promise<EngineStoredAssetInfo | null> {
-    if (!isValidAssetId(id)) return null;
+  async getAssetById(id: string): Promise<EngineStoredAssetInfo | null> {
     const metaFile = path.join(this.opts.dataDir, 'assets', id, 'meta.json');
     const meta = await readJsonOrNull<AssetMeta>(metaFile);
     if (!meta) return null;
-    const owner = meta.userId || this.opts.userId || 'local';
-    if (owner !== requesterUserId) return null;
     return {
       storagePath: meta.storagePath,
-      userId: owner,
+      userId: meta.userId,
       mimeType: meta.mimeType,
       metadata: meta.metadata ?? null,
     };
