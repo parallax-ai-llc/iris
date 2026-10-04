@@ -33,10 +33,7 @@
     },
     "motionControl": {
       "label": "Motion Control",
-      "description": "Transfer motion",
-      "preserveBackground": "Pertahankan latar video",
-      "preserveBackgroundHint": "Mempertahankan latar, kamera, dan pencahayaan video, lalu hanya mengganti orangnya dengan karakter referensi Anda (Wan 2.2 Animate Replace). Paling baik dengan satu orang di video dan di gambar.",
-      "resolution": "Resolusi"
+      "description": "Transfer motion"
     },
     "inpaint": {
       "label": "Inpaint",

@@ -33,10 +33,7 @@
     },
     "motionControl": {
       "label": "Motion Control",
-      "description": "Transfer motion",
-      "preserveBackground": "व्हिडिओची पार्श्वभूमी ठेवा",
-      "preserveBackgroundHint": "व्हिडिओची पार्श्वभूमी, कॅमेरा आणि प्रकाश तसाच ठेवून फक्त व्यक्तीला तुमच्या संदर्भ पात्राने बदलते (Wan 2.2 Animate Replace). व्हिडिओ आणि प्रतिमेत एकच व्यक्ती असल्यास सर्वोत्तम परिणाम मिळतो.",
-      "resolution": "रिझोल्यूशन"
+      "description": "Transfer motion"
     },
     "inpaint": {
       "label": "Inpaint",

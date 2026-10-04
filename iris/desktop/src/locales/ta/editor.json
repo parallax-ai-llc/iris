@@ -33,10 +33,7 @@
     },
     "motionControl": {
       "label": "Motion Control",
-      "description": "Transfer motion",
-      "preserveBackground": "வீடியோ பின்னணியை வைத்திருக்கவும்",
-      "preserveBackgroundHint": "வீடியோவின் பின்னணி, கேமரா, ஒளியை அப்படியே வைத்து, நபரை மட்டும் உங்கள் குறிப்பு கதாபாத்திரமாக மாற்றும் (Wan 2.2 Animate Replace). வீடியோவிலும் படத்திலும் ஒருவர் மட்டும் இருந்தால் சிறப்பாக வேலை செய்யும்.",
-      "resolution": "தெளிவுத்திறன்"
+      "description": "Transfer motion"
     },
     "inpaint": {
       "label": "Inpaint",

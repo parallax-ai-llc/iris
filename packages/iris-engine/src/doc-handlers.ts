@@ -16,6 +16,11 @@
 
 import type { NodeExecutorHost } from './node-host.js';
 import { safeHttpFetchBuffer, type HttpRequestPolicy } from './safe-http.js';
+import {
+  AssetNotAccessibleError,
+  parseAssetIdFromUrl,
+  requireRunAssetFile,
+} from './asset-access.js';
 
 /** Deadline and size cap for fetching a document by URL. Documents (PDF,
  *  DOCX, text) are small next to media; 50 MB covers large PDFs. */
@@ -213,18 +218,20 @@ export function docGrep(text: string, config: DocGrepConfig): DocGrepResult {
  * pdf-parse and mammoth; everything else is treated as utf-8 text.
  *
  * Asset URLs (`/api/iris/assets/<id>/download`) resolve via the host port
- * (asset lookup + decrypt); http(s) URLs fetch directly; data URLs decode in
+ * (asset lookup + decrypt), only for assets owned by `userId` (the run user,
+ * see asset-access.ts); http(s) URLs fetch directly; data URLs decode in
  * place. Errors throw — callers wrap them into a node-level failure.
  */
 export async function extractFileText(
   fileInput: unknown,
-  host: NodeExecutorHost
+  host: NodeExecutorHost,
+  userId: string
 ): Promise<FileExtractionResult> {
   // 1) Plain string fast paths
   if (typeof fileInput === 'string') {
-    // Asset URL → resolve via the host (asset lookup + decrypt)
+    // Asset URL → resolve via the host (owner-checked lookup + decrypt)
     if (fileInput.startsWith('/api/iris/assets/')) {
-      return extractFromAssetUrl(fileInput, host);
+      return extractFromAssetUrl(fileInput, host, userId);
     }
     // http(s) URL → fetch directly (engine helper)
     if (fileInput.startsWith('http://') || fileInput.startsWith('https://')) {
@@ -252,7 +259,7 @@ export async function extractFileText(
     const obj = fileInput as Record<string, unknown>;
     const url = obj.url ?? obj.value;
     if (typeof url === 'string') {
-      return extractFileText(url, host);
+      return extractFileText(url, host, userId);
     }
     if (typeof obj.base64 === 'string') {
       const mimeType = (obj.mimeType as string) ?? 'application/octet-stream';
@@ -268,19 +275,17 @@ export async function extractFileText(
 
 async function extractFromAssetUrl(
   url: string,
-  host: NodeExecutorHost
+  host: NodeExecutorHost,
+  userId: string
 ): Promise<FileExtractionResult> {
-  const match = url.match(/\/api\/iris\/assets\/([^/]+)/);
-  if (!match) throw new Error(`Cannot parse asset id from URL: ${url}`);
-  const assetId = match[1];
+  const assetId = parseAssetIdFromUrl(url);
+  if (!assetId) throw new AssetNotAccessibleError();
 
-  const asset = await host.assets.getAssetById(assetId);
-  if (!asset?.storagePath) {
-    throw new Error(`Asset not found: ${assetId}`);
-  }
+  const asset = await requireRunAssetFile(host.assets, assetId, userId);
 
+  // Read with the run user's id, never asset.userId (see asset-access.ts).
   const downloaded = await host.media.downloadDecrypted({
-    userId: asset.userId,
+    userId,
     storagePath: asset.storagePath,
   });
   return extractFromBuffer(

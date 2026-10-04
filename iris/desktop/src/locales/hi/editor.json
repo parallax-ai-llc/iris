@@ -33,10 +33,7 @@
     },
     "motionControl": {
       "label": "Motion Control",
-      "description": "Transfer motion",
-      "preserveBackground": "वीडियो का बैकग्राउंड बनाए रखें",
-      "preserveBackgroundHint": "वीडियो का बैकग्राउंड, कैमरा और रोशनी वैसी ही रखता है और सिर्फ़ व्यक्ति को आपके रेफ़रेंस किरदार से बदलता है (Wan 2.2 Animate Replace)। वीडियो और इमेज में एक ही व्यक्ति हो तो सबसे अच्छा काम करता है।",
-      "resolution": "रिज़ॉल्यूशन"
+      "description": "Transfer motion"
     },
     "inpaint": {
       "label": "Inpaint",

@@ -456,10 +456,6 @@ export async function motionControlVideo(
     mode?: 'std' | 'pro';
     characterOrientation?: 'image' | 'video';
     keepOriginalSound?: boolean;
-    /** Keep the source video background → server uses Wan 2.2 Animate Replace instead of Kling. */
-    preserveBackground?: boolean;
-    /** Output resolution when preserveBackground is on (server default 720p). */
-    resolution?: '720p' | '480p';
   } = {}
 ): Promise<IrisAsset | null> {
   const originalAsset = await getVideo(videoId);
@@ -481,10 +477,6 @@ export async function motionControlVideo(
         mode: options.mode || 'std',
         characterOrientation: options.characterOrientation || 'image',
         keepOriginalSound: options.keepOriginalSound ?? false,
-        preserveBackground: options.preserveBackground ?? false,
-        ...(options.preserveBackground && options.resolution
-          ? { resolution: options.resolution }
-          : {}),
       },
     }),
   };

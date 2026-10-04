@@ -33,10 +33,7 @@
     },
     "motionControl": {
       "label": "モーションコントロール",
-      "description": "モーションを転送",
-      "preserveBackground": "元動画の背景を維持",
-      "preserveBackgroundHint": "動画の背景・カメラ・照明はそのままに、人物だけを参照キャラクターに置き換えます（Wan 2.2 Animate Replace）。動画と画像にそれぞれ1人だけ写っていると最適です。",
-      "resolution": "解像度"
+      "description": "モーションを転送"
     },
     "inpaint": {
       "label": "インペイント",

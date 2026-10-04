@@ -106,14 +106,17 @@ export interface MediaHost {
   /** Persist a generated adapter output and record it in the library. */
   storeOutput(input: StoreOutputInput): Promise<StoreOutputResult>;
 
-  /** Decrypt + read a stored asset's bytes (e.g. for local image processing). */
+  /** Decrypt + read a stored asset's bytes (e.g. for local image processing).
+   *  `userId` is the run user; hosts resolve `storagePath` inside that user's
+   *  own storage area only. */
   downloadDecrypted(input: {
     userId: string;
     storagePath: string;
   }): Promise<{ buffer: Buffer; contentType?: string }>;
 
   /** Expose a stored (encrypted) asset at a temporary public URL so an external
-   *  provider (Replicate, fal.ai, …) can fetch it. */
+   *  provider (Replicate, fal.ai, …) can fetch it. `userId` is the run user,
+   *  as for `downloadDecrypted`. */
   getTempPublicUrlForAsset(input: {
     userId: string;
     storagePath: string;
@@ -131,8 +134,18 @@ export interface MediaHost {
 
 /** Read access to library assets (replaces `prisma.irisAsset.findUnique`). */
 export interface AssetHost {
-  /** Resolve an asset id to the fields the engine needs, or null if missing. */
-  getAssetById(id: string): Promise<EngineStoredAssetInfo | null>;
+  /**
+   * Resolve an asset id for a workflow run, or null when it is missing or the
+   * requester may not read it. `requesterUserId` is the user the run executes
+   * as (the workflow owner), never a value taken from node inputs. A
+   * multi-user host must return null unless the asset belongs to that user
+   * (and is not deleted). The engine re-checks ownership on the result, see
+   * `asset-access.ts`; engine code calls `resolveRunAsset`, not this directly.
+   */
+  getAssetById(
+    id: string,
+    requesterUserId: string
+  ): Promise<EngineStoredAssetInfo | null>;
 }
 
 export interface EngineStoredAssetInfo {
