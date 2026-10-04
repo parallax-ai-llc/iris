@@ -385,7 +385,7 @@ export const UTIL_ROUTER: NodeDefinition = {
       label: 'Routes',
       type: 'textarea',
       placeholder: '[{ "name": "high", "condition": "input.score > 0.8" }, { "name": "low", "condition": "input.score <= 0.3" }]',
-      description: 'JSON array of { name, condition } — first match wins. Each entry becomes a dedicated output port. Conditions use a restricted expression syntax: comparisons, && || ! ?:, property access on input/variables, String()/Number()/Math/JSON helpers and string/array methods such as includes() or /regex/.test(). No assignments, functions, new or other globals.',
+      description: 'JSON array of { name, condition } — first match wins. Each entry becomes a dedicated output port.',
     },
   ],
 };
@@ -415,7 +415,7 @@ export const UTIL_FILTER: NodeDefinition = {
       type: 'text',
       required: true,
       placeholder: 'input.score > 0.5',
-      description: 'Condition expression evaluated against `input` (comparisons, && || ! ?:, property access, String()/Number()/Math/JSON helpers, string/array methods such as includes() or /regex/.test(); no assignments, functions, new or other globals). Truthy → passed, falsy → rejected.',
+      description: 'JavaScript expression evaluated against `input`. Truthy → passed, falsy → rejected.',
     },
   ],
 };

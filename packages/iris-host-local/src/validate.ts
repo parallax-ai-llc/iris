@@ -20,7 +20,7 @@
 
 import { getNodeDefinition } from 'iris-nodes';
 import type { PortDefinition } from 'iris-nodes';
-import { MAX_LOOP_ITERATIONS_TOTAL, validateExpression } from 'iris-engine';
+import { MAX_LOOP_ITERATIONS_TOTAL } from 'iris-engine';
 import type { StoredWorkflow } from './local-workflow-store.js';
 
 /** Node types that always require both a provider and a model to be selected.
@@ -180,50 +180,6 @@ export function validateWorkflowSemantics(wf: StoredWorkflow): string[] {
         errors.push(
           `Node "${label}" requires "URL" — configure it or connect a value to the URL input`,
         );
-      }
-    }
-
-    // UTIL_FILTER / UTIL_ROUTER conditions must parse in the engine's
-    // restricted expression language (the executor treats a broken
-    // condition as "false", so surface it here instead).
-    // Same precedence as the executor: config.settings first, then top level.
-    const conditionSetting = (name: string): unknown => {
-      const settings = config?.settings as Record<string, unknown> | undefined;
-      return settings?.[name] ?? config?.[name];
-    };
-    if (node.type === 'UTIL_FILTER') {
-      const condition = conditionSetting('condition');
-      if (isNonEmptyString(condition)) {
-        const problem = validateExpression(condition);
-        if (problem) {
-          errors.push(`Node "${label}" has an invalid condition: ${problem}`);
-        }
-      }
-    }
-    if (node.type === 'UTIL_ROUTER') {
-      const rawRoutes = conditionSetting('routes');
-      let routes: unknown = rawRoutes;
-      if (typeof rawRoutes === 'string') {
-        try {
-          routes = JSON.parse(rawRoutes);
-        } catch {
-          routes = null;
-        }
-      }
-      if (Array.isArray(routes)) {
-        for (const entry of routes) {
-          if (!entry || typeof entry !== 'object') continue;
-          const route = entry as Record<string, unknown>;
-          // The executor ignores unnamed and "default" routes.
-          if (!isNonEmptyString(route.name) || route.name.trim() === 'default') continue;
-          if (!isNonEmptyString(route.condition)) continue;
-          const problem = validateExpression(route.condition);
-          if (problem) {
-            const routeName =
-              typeof route.name === 'string' ? route.name : '?';
-            errors.push(`Node "${label}" route "${routeName}" has an invalid condition: ${problem}`);
-          }
-        }
       }
     }
   }
