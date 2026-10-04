@@ -37,6 +37,17 @@ export { GoogleAdapter } from './google-adapter.js';
 export { KlingAdapter } from './kling-adapter.js';
 export { LumaAdapter } from './luma-adapter.js';
 export { FalAdapter } from './fal-adapter.js';
+export {
+  FAL_ORBIT_LORA_MODEL_ID,
+  FAL_ORBIT_LORA_ENDPOINT,
+  FAL_ORBIT_LORA_WEIGHTS_URL,
+  FAL_ORBIT_LORA_TRIGGER_PROMPT,
+  FAL_ORBIT_LORA_COST_PER_SECOND,
+  FAL_ORBIT_LORA_MIN_DURATION,
+  FAL_ORBIT_LORA_MAX_DURATION,
+  buildOrbitLoraInput,
+  resolveOrbitLoraDuration,
+} from './fal-orbit-lora.js';
 export { ReplicateAdapter } from './replicate-adapter.js';
 export { ElevenLabsAdapter } from './elevenlabs-adapter.js';
 export { IdeogramAdapter } from './ideogram-adapter.js';

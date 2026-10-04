@@ -22,6 +22,9 @@ export const IMAGE_TO_VIDEO_SUPPORTED_MODELS = [
   'seedance-2.5',
   'seedance-2.0',
   'seedance-2.0-fast',
+  // MiniMax H3 360° Orbit (fal LoRA): start frame only, the server pins it
+  // as the end frame too, so it is not in END_FRAME_SUPPORTED_MODELS.
+  'minimax-h3-360-orbit',
 ] as const;
 
 /** Providers that support image-to-video */

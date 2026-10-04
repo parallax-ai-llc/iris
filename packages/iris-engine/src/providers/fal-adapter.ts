@@ -18,6 +18,15 @@ import {
   CostCalculator,
 } from './response-builder.js';
 import { mediaInputToUrl } from './media-utils.js';
+import {
+  FAL_ORBIT_LORA_MODEL_ID,
+  FAL_ORBIT_LORA_ENDPOINT,
+  FAL_ORBIT_LORA_COST_PER_SECOND,
+  FAL_ORBIT_LORA_MIN_DURATION,
+  FAL_ORBIT_LORA_MAX_DURATION,
+  buildOrbitLoraInput,
+  resolveOrbitLoraDuration,
+} from './fal-orbit-lora.js';
 
 /**
  * Queue poll ceiling for video generation. Seedance 2.5 can be asked for a
@@ -274,6 +283,30 @@ export class FalAdapter extends BaseProviderAdapter {
         duration: 6,
       },
     },
+    {
+      // MiniMax H3 + 360 Orbit community LoRA (see fal-orbit-lora.ts).
+      // Image-to-video only: the photo is pinned as both first and last frame.
+      id: FAL_ORBIT_LORA_MODEL_ID,
+      name: 'MiniMax H3 360° Orbit',
+      provider: 'fal',
+      capabilities: ['image-to-video'],
+      inputTypes: ['image'],
+      outputTypes: ['video'],
+      constraints: {
+        maxVideoDuration: FAL_ORBIT_LORA_MAX_DURATION,
+        supportedDurations: [FAL_ORBIT_LORA_MIN_DURATION],
+        supportedFormats: ['mp4'],
+      },
+      pricing: {
+        unit: 'second',
+        inputCost: 0,
+        outputCost: FAL_ORBIT_LORA_COST_PER_SECOND,
+        currency: 'USD',
+      },
+      defaultParameters: {
+        duration: FAL_ORBIT_LORA_MIN_DURATION,
+      },
+    },
   ];
 
   protected async validateCredentials(): Promise<void> {
@@ -477,6 +510,18 @@ export class FalAdapter extends BaseProviderAdapter {
     const { prompt, parameters = {} } = request;
     const model = request.model || 'fal-ai/minimax/hailuo-02';
 
+    // The orbit LoRA orbits around a photo; without one there is nothing to
+    // pin as the first/last frame.
+    if (model === FAL_ORBIT_LORA_MODEL_ID) {
+      return ResponseBuilder.missingInput(
+        'Input image',
+        'text-to-video',
+        this.name,
+        request.model,
+        startTime
+      );
+    }
+
     // Validate prompt
     const validationError = InputValidator.requirePrompt(
       request,
@@ -603,21 +648,28 @@ export class FalAdapter extends BaseProviderAdapter {
     }
 
     try {
+      const isOrbitLora = model === FAL_ORBIT_LORA_MODEL_ID;
       // Map model ID to fal.ai endpoint
-      const endpoint = this.mapModelToEndpoint(model, 'image-to-video');
+      const endpoint = isOrbitLora
+        ? FAL_ORBIT_LORA_ENDPOINT
+        : this.mapModelToEndpoint(model, 'image-to-video');
 
       // Get image URLs (start + optional end frame)
       const imageUrl = mediaInputToUrl(startFrameInput);
       const endImageUrl = endFrameInput
         ? mediaInputToUrl(endFrameInput)
         : undefined;
-      const input = this.buildVideoInput(
-        model,
-        prompt,
-        parameters,
-        imageUrl,
-        endImageUrl
-      );
+      // The orbit preset ignores any end frame and the user's prompt: the
+      // start frame is pinned at both ends and the trigger prompt is fixed.
+      const input = isOrbitLora
+        ? buildOrbitLoraInput(imageUrl, parameters)
+        : this.buildVideoInput(
+            model,
+            prompt,
+            parameters,
+            imageUrl,
+            endImageUrl
+          );
 
       // Submit request to fal.ai queue
       const response = await fetch(`https://queue.fal.run/${endpoint}`, {
@@ -674,7 +726,9 @@ export class FalAdapter extends BaseProviderAdapter {
         );
       }
 
-      const duration = (parameters.duration as number) ?? 6;
+      const duration = isOrbitLora
+        ? resolveOrbitLoraDuration(parameters.duration)
+        : ((parameters.duration as number) ?? 6);
       const outputs = [
         OutputBuilder.video({
           url: result.video.url,

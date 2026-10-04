@@ -216,8 +216,12 @@ parameterize on upstream data.
 ### Pattern 7 — Branching: pick the right gate
 
   - Comparing a value (equals / contains / greater than) → \`UTIL_CONDITION\`.
-  - A JavaScript predicate over the input → \`UTIL_FILTER\` (2-way) or
+  - A condition expression over the input → \`UTIL_FILTER\` (2-way) or
     \`UTIL_ROUTER\` (N-way; each \`routes[].name\` becomes an output port).
+    Conditions are NOT full JavaScript: only comparisons, \`&& || !\`,
+    \`?:\`, property access on \`input\` / \`variables\`, \`String()\` /
+    \`Number()\` and string/array methods such as \`includes\` or
+    \`/regex/.test(...)\`. No assignments, functions, \`new\` or globals.
   - A judgement that needs meaning (intent, topic, tone, quality, urgency) →
     \`AI_DECISION\` with provider \`typesafe\`, model \`jev-latest\`. Do NOT
     chain GEN_TEXT_TO_TEXT + UTIL_CONDITION for this — it is slower, costs

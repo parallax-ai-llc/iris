@@ -21,6 +21,7 @@ export * from './node-host.js';
 export * from './asset-access.js';
 export * from './public-store.js';
 export * from './safe-http.js';
+export * from './safe-expression.js';
 export * from './node-executor-config.js';
 export * from './node-executor.js';
 export * from './agent-runtime.js';
