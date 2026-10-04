@@ -32,6 +32,7 @@ import type {
   TokenUsageOpts,
 } from './node-host.js';
 import { safeHttpFetch } from './safe-http.js';
+import { evaluateCondition as evaluateSafeCondition } from './safe-expression.js';
 import { StorePublicBlockedError } from './public-store.js';
 import {
   AssetNotAccessibleError,
@@ -2558,25 +2559,25 @@ export class NodeExecutor {
   }
 
   /**
-   * Evaluate a user-supplied JS expression in a sandboxed-ish Function.
+   * Evaluate a user-supplied condition expression.
    *
-   * NOT a true sandbox — workflow authors are trusted to provide their own
-   * expressions, same trust level as UTIL_SCRIPT. We just isolate the
-   * expression's lexical scope to `input` and `variables` and swallow
-   * errors so a busted condition can't crash the workflow.
+   * Conditions are parsed and evaluated by the engine's own restricted
+   * expression language (see safe-expression.ts) — never compiled with
+   * `new Function`/`eval`. The expression only sees `input` and
+   * `variables`; anything outside the allow-list (globals, prototype
+   * access, arbitrary calls) is a parse/eval error. Errors are swallowed so
+   * a busted condition reads as "false" instead of crashing the workflow;
+   * the workflow validator surfaces the same errors at save time.
    */
   private evalUserExpression(
     expression: string,
     scope: { input: unknown; variables: Record<string, unknown> }
   ): boolean {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
-      const fn = new Function(
-        'input',
-        'variables',
-        `"use strict"; return (${expression});`
-      );
-      return Boolean(fn(scope.input, scope.variables));
+      return evaluateSafeCondition(expression, {
+        input: scope.input,
+        variables: scope.variables,
+      });
     } catch {
       return false;
     }
