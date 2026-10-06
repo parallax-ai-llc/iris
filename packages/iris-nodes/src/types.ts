@@ -112,4 +112,13 @@ export interface NodeDefinition {
    * remain false to prevent the agent from doing unintended damage.
    */
   canBeTool?: boolean;
+  /**
+   * Whether the engine may reuse this node's previous result when its
+   * resolved config and upstream outputs are unchanged (node result cache).
+   * Defaults to true. Set to false on nodes with side effects or
+   * non-deterministic output (triggers, outputs, HTTP, delays, variables,
+   * scripts, dates, sub-workflows, loops). `UTIL_CRYPTO` is decided by the
+   * engine per operation (uuid / randomString are never cached).
+   */
+  cacheable?: boolean;
 }

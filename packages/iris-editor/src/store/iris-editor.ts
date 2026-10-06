@@ -49,6 +49,8 @@ export interface NodeProgress {
   error?: string;
   startedAt?: number;
   completedAt?: number;
+  /** True when the result was reused from the node result cache (status stays 'success'). */
+  cached?: boolean;
 }
 
 // Custom node data. Index signature satisfies @xyflow/react v12's

@@ -450,7 +450,13 @@
     "deleteNodeConfirmNamed": "node will be deleted. Are you sure?",
     "deleteNodeConfirm": "Are you sure you want to delete the selected node?",
     "deleteNodeWarning": "This action cannot be undone. Connected edges will also be deleted.",
-    "aiAssistant": "AI Assistant"
+    "aiAssistant": "AI Assistant",
+    "runToHere": "Run to here",
+    "runFromHere": "Re-run from here",
+    "ignoreCache": "Ignore cache (run all)",
+    "ignoreCacheHint": "Reads nothing from the cache; results are still saved",
+    "cachedResultNote": "Reused previous run result · 0 credits",
+    "nodeStatusCached": "Cached"
   },
   "workflowChat": {
     "title": "AI Workflow Assistant",

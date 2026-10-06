@@ -3,6 +3,7 @@
 import { memo, useState } from 'react';
 import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import { cn } from '@editor/lib/convert/string';
+import { useI18n } from '@editor/hooks/usei18n';
 import { IrisNodeData, useIrisEditorStore, NodeStatus } from '@editor/store/iris-editor';
 import {
   getNodeDefinition,
@@ -19,6 +20,8 @@ import {
   X,
   Eye,
   CircleSlash,
+  SkipForward,
+  RotateCw,
 } from 'lucide-react';
 import { categoryColorClasses, categoryPalette, portTypeColors } from './nodeColors';
 import { OutputPreviewTooltip, ErrorPreviewTooltip } from './NodeOutputPreview';
@@ -45,6 +48,9 @@ function StatusIcon({ status }: { status: NodeStatus }) {
 export type IrisFlowNode = Node<IrisNodeData, 'irisNode'>;
 export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps<IrisFlowNode>) {
   const { deleteNode, duplicateNode, selectNode, executionProgress, validationErrors, clearNodeValidationError, edges, nodeConfigs } = useIrisEditorStore();
+  const { t } = useI18n();
+  const runToHereLabel = t('iris.editor.runToHere') || 'Run to here';
+  const runFromHereLabel = t('iris.editor.runFromHere') || 'Re-run from here';
 
   // State for output preview tooltip
   const [activeOutputPreview, setActiveOutputPreview] = useState<string | null>(null);
@@ -92,6 +98,7 @@ export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps
   const palette = categoryPalette[data.category as NodeCategory] || categoryPalette.UTILITY;
   const nodeProgress = executionProgress[id];
   const currentStatus = nodeProgress?.status || data.status || 'idle';
+  const isCachedResult = currentStatus === 'success' && nodeProgress?.cached === true;
   const validationError = validationErrors[id];
 
   // Get the icon component
@@ -108,6 +115,12 @@ export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps
   const handleDuplicate = (e: React.MouseEvent) => {
     e.stopPropagation();
     duplicateNode(id);
+  };
+
+  // Partial runs: useWorkflowEditor listens for this event (node result cache spec 4.6).
+  const requestRun = (e: React.MouseEvent, mode: 'from' | 'to') => {
+    e.stopPropagation();
+    window.dispatchEvent(new CustomEvent('iris-node-run-request', { detail: { nodeId: id, mode } }));
   };
 
   const handleCloseValidationError = (e: React.MouseEvent) => {
@@ -499,6 +512,7 @@ export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps
                         outputType={output.type}
                         portName={output.name}
                         prompt={storeConfig?.settings?.prompt as string || (data.config as unknown as Record<string, unknown>)?.prompt as string}
+                        cached={nodeProgress?.cached}
                         onClose={() => setActiveOutputPreview(null)}
                       />
                     )}
@@ -592,6 +606,20 @@ export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps
               <Loader2 size={10} className="animate-spin" style={{ color: palette.stroke }} />
               <span>Running…</span>
             </>
+          ) : isCachedResult ? (
+            <>
+              <span
+                style={{
+                  width: 5,
+                  height: 5,
+                  borderRadius: 999,
+                  background: 'var(--color-iris-text-3)',
+                }}
+              />
+              <span style={{ color: 'var(--color-iris-text-3)' }}>
+                {t('iris.editor.nodeStatusCached') || 'Cached'}
+              </span>
+            </>
           ) : currentStatus === 'success' ? (
             <>
               <span
@@ -660,6 +688,7 @@ export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps
                         outputType={output.type}
                         portName={output.name}
                         prompt={undefined}
+                        cached={nodeProgress?.cached}
                         onClose={() => setActiveOutputPreview(null)}
                       />
                     )}
@@ -700,6 +729,24 @@ export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps
             className="absolute flex"
             style={{ top: -34, right: 0, gap: 6 }}
           >
+            <button
+              type="button"
+              onClick={(e) => requestRun(e, 'to')}
+              className="we-iconbtn"
+              title={runToHereLabel}
+              aria-label={runToHereLabel}
+            >
+              <SkipForward size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => requestRun(e, 'from')}
+              className="we-iconbtn"
+              title={runFromHereLabel}
+              aria-label={runFromHereLabel}
+            >
+              <RotateCw size={18} />
+            </button>
             <button
               onClick={handleDuplicate}
               className="we-iconbtn"

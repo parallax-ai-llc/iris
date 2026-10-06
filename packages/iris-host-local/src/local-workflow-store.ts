@@ -8,6 +8,7 @@
  *
  *   <dataDir>/workflows/<workflowId>.json    graph + metadata + run counters
  *   <dataDir>/executions/<executionId>.json  status + per-node results + logs
+ *   <dataDir>/cache/<workflowId>.json        node result cache (LocalNodeCacheStore)
  *
  * 🔑 Unlike the cloud store, the local store has **no database id** — so it does
  * NOT carry a `nodeId ↔ dbId` map. It uses the workflow-local `nodeId` directly
@@ -40,6 +41,7 @@ import type {
   WorkflowRunOutcome,
   IrisExecutionStatus,
   IrisNodeResultStatus,
+  NodeCacheEntry,
 } from 'iris-engine';
 import {
   withFileLock,
@@ -47,6 +49,7 @@ import {
   writeJson,
   listJsonIds,
 } from './fs-util.js';
+import { LocalNodeCacheStore } from './local-node-cache.js';
 
 /** A workflow as persisted on disk. The graph rows already match the engine's
  *  `EngineWorkflow*Row` shapes (with `id === nodeId`), so `loadWorkflow` is a
@@ -115,10 +118,12 @@ export interface StoredExecution {
 export class LocalWorkflowStore implements WorkflowStore {
   private workflowsDir: string;
   private executionsDir: string;
+  private nodeCache: LocalNodeCacheStore;
 
   constructor(dataDir: string) {
     this.workflowsDir = path.join(dataDir, 'workflows');
     this.executionsDir = path.join(dataDir, 'executions');
+    this.nodeCache = new LocalNodeCacheStore(dataDir);
   }
 
   private workflowFile(id: string): string {
@@ -259,7 +264,9 @@ export class LocalWorkflowStore implements WorkflowStore {
             ? 'COMPLETED'
             : result.status === 'failed'
               ? 'FAILED'
-              : 'SKIPPED',
+              : result.status === 'cached'
+                ? 'CACHED'
+                : 'SKIPPED',
         outputData: result.outputs,
         assets: result.assets,
         duration: result.duration,
@@ -324,6 +331,31 @@ export class LocalWorkflowStore implements WorkflowStore {
     await this.mutateWorkflow(workflowId, wf => {
       wf.status = status;
     });
+  }
+
+  async getCachedResult(
+    workflowId: string,
+    cacheKey: string,
+  ): Promise<NodeCacheEntry | null> {
+    return this.nodeCache.get(workflowId, cacheKey);
+  }
+
+  async putCachedResult(
+    workflowId: string,
+    _userId: string,
+    entry: NodeCacheEntry,
+  ): Promise<void> {
+    // Single-user host: the cache is scoped by workflow only.
+    await this.nodeCache.put(workflowId, entry);
+  }
+
+  async deleteCachedResult(workflowId: string, cacheKey: string): Promise<void> {
+    await this.nodeCache.delete(workflowId, cacheKey);
+  }
+
+  /** Remove node cache entries unused for the retention window (startup). */
+  async cleanupExpiredNodeCache(): Promise<{ removed: number }> {
+    return this.nodeCache.cleanupExpired();
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -418,6 +450,8 @@ export class LocalWorkflowStore implements WorkflowStore {
   async deleteWorkflow(id: string): Promise<boolean> {
     try {
       await fs.unlink(this.workflowFile(id));
+      // The node result cache goes with the workflow (cloud: cascade delete).
+      await this.nodeCache.clearWorkflow(id).catch(() => undefined);
       return true;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false;

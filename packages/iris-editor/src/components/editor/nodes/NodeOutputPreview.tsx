@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { cn } from '@editor/lib/convert/string';
+import { useI18n } from '@editor/hooks/usei18n';
 import { PortType } from '../../../constants/node-definitions';
 import {
   AlertTriangle,
@@ -34,6 +35,7 @@ export function OutputPreviewTooltip({
   outputType,
   portName,
   prompt,
+  cached,
   onClose,
 }: {
   output: unknown;
@@ -42,8 +44,11 @@ export function OutputPreviewTooltip({
    * the node's full outputs object (which contains all ports). */
   portName?: string;
   prompt?: string;
+  /** The result was reused from the node result cache (no new run, no charge). */
+  cached?: boolean;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -377,6 +382,11 @@ export function OutputPreviewTooltip({
           <X size={12} className="text-white/50" />
         </button>
       </div>
+      {cached && (
+        <p className="text-[11px] text-white/50 mb-2">
+          {t('iris.editor.cachedResultNote') || 'Reused previous run result · 0 credits'}
+        </p>
+      )}
       {iterations && iterationCount > 0 && (
         <div className="flex items-center justify-between gap-2 mb-2 px-2 py-1.5 rounded-md bg-white/5 border border-white/10">
           <button

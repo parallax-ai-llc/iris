@@ -109,9 +109,15 @@ export interface ApiEdgeInput {
 export interface ExecuteWorkflowData {
   inputs?: Record<string, unknown>;
   trigger?: { type: string; data?: Record<string, unknown> };
+  /** @deprecated Re-interpreted by the engine as `forceNodeIds: [startNodeId]`. */
   startNodeId?: string;
+  /** Run only this node's ancestors (and the node); everything else is SKIPPED. */
   endNodeId?: string;
   timeout?: number;
+  /** Default true. false turns cache reads off (results are still written). */
+  useCache?: boolean;
+  /** These nodes skip the cache read and always run. */
+  forceNodeIds?: string[];
 }
 
 export interface ValidationResultDTO {

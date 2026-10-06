@@ -385,6 +385,8 @@ export class BatchManager {
           trigger: { type: 'api', data: { batchJobId: job.id, rowNumber } },
           batchJobId: job.id,
           batchRowNumber: rowNumber,
+          // Automated runs expect fresh data: never read the node cache.
+          useCache: false,
         });
         executionId = execution.id;
         const result = await this.pollExecution(execution.id, signal);

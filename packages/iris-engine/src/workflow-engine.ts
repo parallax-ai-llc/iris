@@ -19,6 +19,7 @@ import {
   EngineExecution,
   EngineExecutionResult,
   WorkflowRunOutcome,
+  NodeCacheEntry,
 } from './workflow-store.js';
 import { NodeExecutorHost } from './node-host.js';
 import {
@@ -36,6 +37,13 @@ import {
   shouldSkipNode,
 } from './branch-pruning.js';
 import { NodeExecutor } from './node-executor.js';
+import {
+  computeNodeCacheKey,
+  isNodeCacheable,
+  outputsWithinSizeLimit,
+  resolveConfigForCacheKey,
+} from './node-cache.js';
+import { isValidAssetId, resolveRunAsset } from './asset-access.js';
 
 /** Events emitted by the workflow engine */
 export interface WorkflowEngineEvents {
@@ -61,7 +69,13 @@ export interface WorkflowEngineEvents {
     triggerData: Record<string, unknown>;
   };
   'node:started': { executionId: string; nodeId: string };
-  'node:completed': { executionId: string; nodeId: string; result: NodeResult };
+  /** `cached: true` when the result was reused from the node result cache. */
+  'node:completed': {
+    executionId: string;
+    nodeId: string;
+    result: NodeResult;
+    cached?: boolean;
+  };
   'node:failed': { executionId: string; nodeId: string; error: string };
   'node:progress': {
     executionId: string;
@@ -120,6 +134,21 @@ export class WorkflowEngine extends EventEmitter {
     if (!validation.valid) {
       throw new ExecutionFailedError(
         `Invalid workflow: ${validation.errors.join(', ')}`
+      );
+    }
+
+    // "Run up to here" target must exist (hosts map this to 400 INVALID_NODE).
+    if (options.endNodeId && !graph.nodes.has(options.endNodeId)) {
+      throw new ExecutionFailedError(`INVALID_NODE: ${options.endNodeId}`);
+    }
+    // A loop-body node cannot be a run-to target: the loop always runs its
+    // whole body (siblings included), so the target would not limit the run.
+    if (
+      options.endNodeId &&
+      this.collectLoopBodyNodes(graph).has(options.endNodeId)
+    ) {
+      throw new ExecutionFailedError(
+        `INVALID_NODE: ${options.endNodeId} (inside a loop body; run the loop node instead)`
       );
     }
 
@@ -211,14 +240,67 @@ export class WorkflowEngine extends EventEmitter {
         workflowId: state.workflowId,
       });
 
-      // Get execution order
-      const executionOrder = options.startNodeId
-        ? this.graphTraverser.getSubgraphOrder(
-            graph,
-            options.startNodeId,
-            options.endNodeId
-          )
-        : graph.topologicalOrder;
+      // Get execution order. The whole graph runs (upstream results come from
+      // the node result cache when unchanged); "run up to here" (`endNodeId`)
+      // limits the run to that node and its ancestors.
+      let executionOrder: string[] = graph.topologicalOrder;
+      if (options.endNodeId) {
+        const included = new Set<string>([
+          ...this.graphTraverser.getDependencies(graph, options.endNodeId),
+          options.endNodeId,
+        ]);
+        executionOrder = graph.topologicalOrder.filter(id => included.has(id));
+
+        // The end node is never inside a loop body (execute() rejects that).
+        // When a loop is an ancestor of the end node, the loop runs as a whole
+        // (its entire body, even nodes that are not ancestors of the end
+        // node), so those body nodes are not pre-skipped.
+        const runByLoop = this.collectLoopBodyNodes(
+          graph,
+          executionOrder.filter(id => graph.nodes.get(id)?.type === 'UTIL_LOOP')
+        );
+
+        for (const nodeId of graph.topologicalOrder) {
+          if (included.has(nodeId) || runByLoop.has(nodeId)) continue;
+          const skipped = createSkippedResult(nodeId);
+          await this.persistAggregatedResult(
+            executionId,
+            workflow,
+            nodeId,
+            skipped
+          );
+          state.nodeResults.set(nodeId, skipped);
+          state.completedNodes.add(nodeId);
+          await this.createLog(executionId, {
+            nodeId,
+            eventType: 'NODE_SKIPPED',
+            message: `Skipped node (outside run-to target): ${nodeId}`,
+            data: { nodeType: graph.nodes.get(nodeId)?.type },
+          });
+          this.emit('node:completed', {
+            executionId,
+            nodeId,
+            result: skipped,
+          });
+        }
+      }
+
+      // Node result cache: which nodes must run even on a cache hit.
+      // `startNodeId` is the legacy spelling of forceNodeIds=[startNodeId].
+      // Unknown ids, non-cacheable nodes and loop-body nodes (the body never
+      // reads the cache) are ignored (not an error).
+      const forceSet = new Set<string>();
+      const loopBodyNodes = this.collectLoopBodyNodes(graph);
+      for (const id of [
+        ...(options.forceNodeIds ?? []),
+        ...(options.startNodeId ? [options.startNodeId] : []),
+      ]) {
+        const forcedNode = graph.nodes.get(id);
+        if (!forcedNode) continue;
+        if (loopBodyNodes.has(id)) continue;
+        if (!isNodeCacheable(forcedNode.type, forcedNode.config)) continue;
+        forceSet.add(id);
+      }
 
       // Track nodes already executed as part of a loop body (skip in main pass)
       const skipNodes = new Set<string>();
@@ -360,6 +442,8 @@ export class WorkflowEngine extends EventEmitter {
         // recursively with depth + cycle guards. The bare handler in
         // node-executor only emits an error message.
         let result: NodeResult;
+        let cacheEligible = false;
+        let cacheKey: string | null = null;
         if (graphNode.type === 'UTIL_SUB_WORKFLOW') {
           result = await this.executeSubWorkflow(
             graphNode,
@@ -368,12 +452,95 @@ export class WorkflowEngine extends EventEmitter {
             options
           );
         } else {
+          const nodeData = workflow.nodes.find(n => n.nodeId === nodeId);
+          const inputs = this.gatherInputs(graphNode, state, nodeData);
+
+          // Node result cache. The key is computed even when reading is off
+          // (useCache:false / forced node) so the fresh result is still
+          // written back.
+          const nodeConfig = (nodeData?.config ?? {}) as Record<string, unknown>;
+          cacheEligible =
+            !!nodeData && isNodeCacheable(graphNode.type, nodeConfig);
+          if (cacheEligible) {
+            try {
+              const runVariables = Object.fromEntries(state.variables);
+              cacheKey = computeNodeCacheKey({
+                type: graphNode.type,
+                config: resolveConfigForCacheKey(nodeConfig, runVariables),
+                inputs,
+                variables: runVariables,
+              });
+            } catch {
+              cacheKey = null;
+            }
+          }
+          const readAllowed =
+            cacheEligible &&
+            cacheKey !== null &&
+            options.useCache !== false &&
+            !forceSet.has(nodeId);
+
+          if (readAllowed && cacheKey !== null) {
+            const entry = await this.readCachedResult(
+              executionId,
+              state.workflowId,
+              workflow.userId,
+              nodeId,
+              cacheKey
+            );
+            if (entry) {
+              await this.store.startNodeResult(executionId, nodeId, inputs);
+              this.emit('node:started', { executionId, nodeId });
+
+              const cachedResult: NodeResult = {
+                nodeId,
+                status: 'cached',
+                outputs: entry.outputData ?? {},
+                assets: (Array.isArray(entry.assets)
+                  ? entry.assets
+                  : []) as AssetReference[],
+                usage: { estimatedCost: 0, totalTokens: 0, tokensConsumed: 0 },
+                duration: 0,
+              };
+
+              for (const [key, value] of Object.entries(cachedResult.outputs)) {
+                state.variables.set(`${nodeId}.${key}`, value);
+              }
+              state.nodeResults.set(nodeId, cachedResult);
+              state.completedNodes.add(nodeId);
+              // The assets already live in the library — collect them for the
+              // run's outputs without saving them again.
+              if (cachedResult.assets.length > 0) {
+                state.assets.push(...cachedResult.assets);
+              }
+
+              await this.createLog(executionId, {
+                nodeId,
+                eventType: 'NODE_CACHE_HIT',
+                message: `cache hit ${nodeData?.label || nodeId}`,
+                data: {
+                  nodeType: graphNode.type,
+                  sourceExecutionId: entry.sourceExecutionId,
+                },
+              });
+              await this.saveNodeResult(executionId, nodeId, cachedResult);
+              this.emit('node:completed', {
+                executionId,
+                nodeId,
+                result: cachedResult,
+                cached: true,
+              });
+              continue;
+            }
+          }
+
           result = await this.executeNode(
             executionId,
             graphNode,
             graph,
             state,
-            workflow
+            workflow,
+            inputs
           );
         }
 
@@ -566,6 +733,35 @@ export class WorkflowEngine extends EventEmitter {
         // Save node result to database
         await this.saveNodeResult(executionId, nodeId, result);
 
+        // Node result cache write-back (a performance optimization: a failed
+        // write never fails the run).
+        if (
+          cacheEligible &&
+          cacheKey !== null &&
+          result.status === 'completed' &&
+          outputsWithinSizeLimit(result.outputs ?? {})
+        ) {
+          const now = new Date().toISOString();
+          try {
+            await this.store.putCachedResult(state.workflowId, workflow.userId, {
+              cacheKey,
+              nodeType: graphNode.type,
+              outputData: result.outputs ?? {},
+              assets: result.assets ?? [],
+              sourceExecutionId: executionId,
+              createdAt: now,
+              lastUsedAt: now,
+            });
+          } catch (error) {
+            await this.createLog(executionId, {
+              nodeId,
+              level: 'WARN',
+              eventType: 'NODE_CACHE_WRITE_FAILED',
+              message: `Node cache write failed: ${(error as Error)?.message ?? 'unknown error'}`,
+            });
+          }
+        }
+
         // Gate nodes that make a metered decision (AI_DECISION) attach a
         // compact `__decision` record. Persist it as its own log event so
         // operators can tune thresholds from data: confidence distribution,
@@ -595,6 +791,9 @@ export class WorkflowEngine extends EventEmitter {
       const nodesSkipped = Array.from(state.nodeResults.values()).filter(
         r => r.status === 'skipped'
       ).length;
+      const nodesCached = Array.from(state.nodeResults.values()).filter(
+        r => r.status === 'cached'
+      ).length;
 
       if (
         (state.status as string) !== 'failed' &&
@@ -612,6 +811,7 @@ export class WorkflowEngine extends EventEmitter {
           data: {
             nodesExecuted: state.completedNodes.size - nodesSkipped,
             nodesSkipped,
+            nodesCached,
             totalAssets: state.assets.length,
             totalTokens: state.totalTokens,
             totalCost: state.totalCost,
@@ -679,15 +879,14 @@ export class WorkflowEngine extends EventEmitter {
     graphNode: GraphNode,
     _graph: WorkflowGraph,
     state: ExecutionState,
-    workflow: NonNullable<Awaited<ReturnType<typeof this.loadWorkflow>>>
+    workflow: NonNullable<Awaited<ReturnType<typeof this.loadWorkflow>>>,
+    inputs: Record<string, unknown>
   ): Promise<NodeResult> {
     const startTime = Date.now();
 
-    // Find the actual node data first (needed for config-based inputs)
+    // Find the actual node data (inputs were gathered by the caller, which
+    // also used them for the node result cache key)
     const nodeData = workflow.nodes.find(n => n.nodeId === graphNode.id);
-
-    // Gather inputs from connected nodes
-    const inputs = this.gatherInputs(graphNode, state, nodeData);
 
     if (!nodeData) {
       return {
@@ -921,6 +1120,90 @@ export class WorkflowEngine extends EventEmitter {
   ): Promise<void> {
     // The store owns the nodeId → row id mapping and the status-enum cast.
     await this.store.saveNodeResult(executionId, nodeId, result);
+  }
+
+  /**
+   * Nodes inside a UTIL_LOOP body (as `executeLoopBlock` runs them), for the
+   * given loops or every loop in the graph.
+   */
+  private collectLoopBodyNodes(
+    graph: WorkflowGraph,
+    loopIds?: string[]
+  ): Set<string> {
+    const ids =
+      loopIds ??
+      graph.topologicalOrder.filter(
+        id => graph.nodes.get(id)?.type === 'UTIL_LOOP'
+      );
+    const body = new Set<string>();
+    for (const loopId of ids) {
+      for (const bodyId of this.graphTraverser.getLoopBody(graph, loopId)) {
+        body.add(bodyId);
+      }
+    }
+    return body;
+  }
+
+  /**
+   * Read a node result cache entry. Returns null on a miss, on a read error,
+   * or when an asset the entry points at no longer exists for the run user
+   * (that entry is deleted so the node runs and writes a fresh one).
+   */
+  private async readCachedResult(
+    executionId: string,
+    workflowId: string,
+    userId: string,
+    nodeId: string,
+    cacheKey: string
+  ): Promise<NodeCacheEntry | null> {
+    let entry: NodeCacheEntry | null;
+    try {
+      entry = await this.store.getCachedResult(workflowId, cacheKey);
+    } catch (error) {
+      await this.createLog(executionId, {
+        nodeId,
+        level: 'WARN',
+        eventType: 'NODE_CACHE_READ_FAILED',
+        message: `Node cache read failed: ${(error as Error)?.message ?? 'unknown error'}`,
+      });
+      return null;
+    }
+    if (!entry) return null;
+
+    const assets = Array.isArray(entry.assets) ? entry.assets : [];
+    for (const asset of assets) {
+      const assetId =
+        asset && typeof asset === 'object'
+          ? (asset as { id?: unknown }).id
+          : undefined;
+      if (typeof assetId !== 'string' || !isValidAssetId(assetId)) continue;
+
+      let exists: boolean;
+      try {
+        exists =
+          (await resolveRunAsset(this.nodeHost.assets, assetId, userId)) !==
+          null;
+      } catch {
+        // Could not verify (transient host error): treat as a miss, keep the
+        // entry.
+        return null;
+      }
+      if (!exists) {
+        try {
+          await this.store.deleteCachedResult(workflowId, cacheKey);
+        } catch {
+          // Best-effort: the next write upserts over it anyway.
+        }
+        await this.createLog(executionId, {
+          nodeId,
+          eventType: 'NODE_CACHE_STALE',
+          message: `Node cache entry dropped (asset no longer exists): ${nodeId}`,
+        });
+        return null;
+      }
+    }
+
+    return entry;
   }
 
   /**
@@ -1312,6 +1595,9 @@ export class WorkflowEngine extends EventEmitter {
               __invokedFromNode: graphNode.id,
             },
           },
+          // The inner workflow uses its own cache; forceNodeIds / endNodeId
+          // address the parent graph and are not forwarded.
+          useCache: parentOptions.useCache,
         }
       );
 

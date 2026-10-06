@@ -2,6 +2,7 @@ import type { NodeDefinition } from '../types.js';
 
 export const UTIL_DELAY: NodeDefinition = {
   type: 'UTIL_DELAY',
+  cacheable: false,
   category: 'UTILITY',
   label: 'Delay',
   description: 'Wait for specified time',
@@ -27,6 +28,8 @@ export const UTIL_DELAY: NodeDefinition = {
 
 export const UTIL_CONDITION: NodeDefinition = {
   type: 'UTIL_CONDITION',
+  // reads execution variables directly; result depends on more than config+inputs
+  cacheable: false,
   category: 'UTILITY',
   label: 'Condition',
   description: 'Branch based on condition',
@@ -66,6 +69,7 @@ export const UTIL_CONDITION: NodeDefinition = {
 
 export const UTIL_LOOP: NodeDefinition = {
   type: 'UTIL_LOOP',
+  cacheable: false,
   category: 'UTILITY',
   label: 'Loop',
   description: 'Iterate over items',
@@ -178,6 +182,7 @@ export const UTIL_TRANSFORM: NodeDefinition = {
 
 export const UTIL_HTTP_REQUEST: NodeDefinition = {
   type: 'UTIL_HTTP_REQUEST',
+  cacheable: false,
   category: 'UTILITY',
   label: 'HTTP Request',
   description: 'Make HTTP API calls',
@@ -227,6 +232,7 @@ export const UTIL_HTTP_REQUEST: NodeDefinition = {
 
 export const UTIL_SCRIPT: NodeDefinition = {
   type: 'UTIL_SCRIPT',
+  cacheable: false,
   category: 'UTILITY',
   label: 'Script',
   description: 'Run custom JavaScript',
@@ -254,6 +260,8 @@ export const UTIL_SCRIPT: NodeDefinition = {
 
 export const UTIL_CONDITIONAL: NodeDefinition = {
   type: 'UTIL_CONDITIONAL',
+  // reads execution variables directly; result depends on more than config+inputs
+  cacheable: false,
   category: 'UTILITY',
   label: 'Conditional',
   description: 'Route data based on a condition expression',
@@ -274,6 +282,7 @@ export const UTIL_CONDITIONAL: NodeDefinition = {
 
 export const UTIL_FILE_SAVE: NodeDefinition = {
   type: 'UTIL_FILE_SAVE',
+  cacheable: false,
   category: 'UTILITY',
   label: 'File Save',
   description: 'Save data to a file path',
@@ -305,6 +314,7 @@ export const UTIL_FILE_LOAD: NodeDefinition = {
 
 export const UTIL_VARIABLE_SET: NodeDefinition = {
   type: 'UTIL_VARIABLE_SET',
+  cacheable: false,
   category: 'UTILITY',
   label: 'Set Variable',
   description: 'Store a value in a named variable',
@@ -319,6 +329,7 @@ export const UTIL_VARIABLE_SET: NodeDefinition = {
 
 export const UTIL_VARIABLE_GET: NodeDefinition = {
   type: 'UTIL_VARIABLE_GET',
+  cacheable: false,
   category: 'UTILITY',
   label: 'Get Variable',
   description: 'Retrieve a value from a named variable',
@@ -333,6 +344,8 @@ export const UTIL_VARIABLE_GET: NodeDefinition = {
 
 export const UTIL_TEMPLATE: NodeDefinition = {
   type: 'UTIL_TEMPLATE',
+  // single-brace {key} tokens read execution variables directly
+  cacheable: false,
   category: 'UTILITY',
   label: 'Template',
   description: 'Render a text template with dynamic data',
@@ -366,6 +379,8 @@ export const UTIL_TEMPLATE: NodeDefinition = {
  */
 export const UTIL_ROUTER: NodeDefinition = {
   type: 'UTIL_ROUTER',
+  // reads execution variables directly; result depends on more than config+inputs
+  cacheable: false,
   category: 'UTILITY',
   label: 'Router',
   description: 'Route input to the first matching branch (N-way)',
@@ -396,6 +411,8 @@ export const UTIL_ROUTER: NodeDefinition = {
  */
 export const UTIL_FILTER: NodeDefinition = {
   type: 'UTIL_FILTER',
+  // reads execution variables directly; result depends on more than config+inputs
+  cacheable: false,
   category: 'UTILITY',
   label: 'Filter',
   description: 'Pass input through only when the condition matches',
@@ -428,6 +445,7 @@ export const UTIL_FILTER: NodeDefinition = {
  */
 export const UTIL_AGGREGATE: NodeDefinition = {
   type: 'UTIL_AGGREGATE',
+  cacheable: false,
   category: 'UTILITY',
   label: 'Aggregate',
   description: 'Collect loop iterations into a single array / object / string',
@@ -480,6 +498,7 @@ export const UTIL_AGGREGATE: NodeDefinition = {
  */
 export const UTIL_TRY_CATCH: NodeDefinition = {
   type: 'UTIL_TRY_CATCH',
+  cacheable: false,
   category: 'UTILITY',
   label: 'Try / Catch',
   description: 'Catch errors from upstream and route to an alternate output',
@@ -585,6 +604,7 @@ export const UTIL_REGEX: NodeDefinition = {
  */
 export const UTIL_DATE: NodeDefinition = {
   type: 'UTIL_DATE',
+  cacheable: false,
   category: 'UTILITY',
   label: 'Date',
   description: 'Parse, format, add, or diff dates with timezone support',
@@ -1113,6 +1133,7 @@ export const AI_DECISION: NodeDefinition = {
 
 export const UTIL_SUB_WORKFLOW: NodeDefinition = {
   type: 'UTIL_SUB_WORKFLOW',
+  cacheable: false,
   category: 'UTILITY',
   label: 'Sub-Workflow',
   description: 'Execute another workflow as a step and return its output',

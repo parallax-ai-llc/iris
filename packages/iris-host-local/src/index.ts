@@ -14,6 +14,7 @@
  */
 
 export { LocalWorkflowStore } from './local-workflow-store.js';
+export { LocalNodeCacheStore } from './local-node-cache.js';
 export type {
   StoredWorkflow,
   StoredExecution,

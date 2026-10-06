@@ -128,6 +128,18 @@ export interface WorkflowLogEntry {
   duration?: number;
 }
 
+/** A cached node result (node result cache). Scoped by (workflowId, userId);
+ *  `cacheKey` comes from `computeNodeCacheKey` and never includes the nodeId. */
+export interface NodeCacheEntry {
+  cacheKey: string;
+  nodeType: string;
+  outputData: Record<string, unknown>;
+  assets: unknown[];
+  sourceExecutionId: string;
+  createdAt: string;
+  lastUsedAt: string;
+}
+
 /** How a finished run should be counted in the workflow's aggregate stats. */
 export type WorkflowRunOutcome = 'completed' | 'failed' | 'other';
 
@@ -193,4 +205,21 @@ export interface WorkflowStore {
 
   /** Set a workflow's lifecycle status (used to PAUSE on insufficient tokens). */
   setWorkflowStatus(workflowId: string, status: 'PAUSED'): Promise<void>;
+
+  /** Look up a cached node result, or null on a miss. `getCachedResult` 는
+   *  히트 시 `lastUsedAt` 을 갱신한다(touch-on-read). */
+  getCachedResult(
+    workflowId: string,
+    cacheKey: string,
+  ): Promise<NodeCacheEntry | null>;
+
+  /** Store a node result in the cache (upsert on `(workflowId, cacheKey)`). */
+  putCachedResult(
+    workflowId: string,
+    userId: string,
+    entry: NodeCacheEntry,
+  ): Promise<void>;
+
+  /** Remove a cache entry (e.g. one whose assets no longer exist). */
+  deleteCachedResult(workflowId: string, cacheKey: string): Promise<void>;
 }

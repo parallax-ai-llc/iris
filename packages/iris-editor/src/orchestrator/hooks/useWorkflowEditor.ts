@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Node, Edge } from '@xyflow/react';
 import { toast } from 'sonner';
 import { irisApiClient, Workflow as WorkflowType, TokenCostsResponse } from '@editor/lib/apis/iris-api-client';
@@ -20,6 +20,38 @@ import {
   EMPTY_RUN_COST_ESTIMATE,
   type RunCostEstimate,
 } from '@editor/lib/run-cost-estimate';
+
+/** Partial-run options sent with an execute request (node result cache spec 4.4). */
+export interface PartialRunOptions {
+  /** "Re-run from here": these nodes skip the cache read and always run. */
+  forceNodeIds?: string[];
+  /** "Run to here": only this node's ancestors (and the node) run. */
+  endNodeId?: string;
+}
+
+/** Window event a node menu fires to ask the editor for a partial run. */
+export const NODE_RUN_REQUEST_EVENT = 'iris-node-run-request';
+
+export interface NodeRunRequestDetail {
+  nodeId: string;
+  mode: 'from' | 'to';
+}
+
+/**
+ * Keep only well-formed partial-run fields. Header buttons pass their click
+ * event straight into `handleExecute`, so the argument is not trusted.
+ */
+function normalizePartial(partial: unknown): PartialRunOptions | undefined {
+  if (!partial || typeof partial !== 'object') return undefined;
+  const { forceNodeIds, endNodeId } = partial as Record<string, unknown>;
+  const result: PartialRunOptions = {};
+  if (Array.isArray(forceNodeIds)) {
+    const ids = forceNodeIds.filter((id): id is string => typeof id === 'string' && id.length > 0);
+    if (ids.length > 0) result.forceNodeIds = ids;
+  }
+  if (typeof endNodeId === 'string' && endNodeId.length > 0) result.endNodeId = endNodeId;
+  return result.forceNodeIds || result.endNodeId ? result : undefined;
+}
 
 export function useWorkflowEditor(workflowId: string) {
   const { navigate } = useSeams();
@@ -41,6 +73,10 @@ export function useWorkflowEditor(workflowId: string) {
   const [tokenCosts, setTokenCosts] = useState<TokenCostsResponse | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({ isOpen: false, type: 'save' });
   const [showInputModal, setShowInputModal] = useState(false);
+  // "Ignore cache (run all)": session-only, not persisted (spec 4.6).
+  const [ignoreCache, setIgnoreCache] = useState(false);
+  // Partial-run options of the run waiting on the input modal / confirm dialog.
+  const pendingPartialRef = useRef<PartialRunOptions | undefined>(undefined);
 
   // Store state
   const { 
@@ -185,8 +221,9 @@ export function useWorkflowEditor(workflowId: string) {
   }, [fetchPlanAccess]);
 
   // Validate workflow
-  const handleValidate = useCallback(async () => {
-    if (!workflow) return;
+  // Resolves true only when the server reports the workflow valid.
+  const handleValidate = useCallback(async (): Promise<boolean> => {
+    if (!workflow) return false;
 
     clearValidationErrors();
     setIsValidating(true);
@@ -224,6 +261,7 @@ export function useWorkflowEditor(workflowId: string) {
         if (result.valid) {
           setIsValidated(true);
           toast.success(t('iris.editor.validationSuccess'));
+          return true;
         } else {
           setIsValidated(false);
           
@@ -271,6 +309,7 @@ export function useWorkflowEditor(workflowId: string) {
     } finally {
       setIsValidating(false);
     }
+    return false;
   }, [workflow, nodes, edges, nodeConfigs, clearValidationErrors, setNodeValidationError, t]);
 
   // Save workflow
@@ -330,7 +369,7 @@ export function useWorkflowEditor(workflowId: string) {
   }, [workflow, nodes, edges, nodeConfigs, setDirty, t]);
 
   // Execute workflow
-  const performExecute = useCallback(async (userInput?: UserInput) => {
+  const performExecute = useCallback(async (userInput?: UserInput, partial?: PartialRunOptions) => {
     if (!workflow) return;
 
     if (isDirty) {
@@ -384,6 +423,14 @@ export function useWorkflowEditor(workflowId: string) {
         };
       }
 
+      const runOptions: Partial<NonNullable<typeof executeData>> = {
+        ...(ignoreCache ? { useCache: false } : {}),
+        ...normalizePartial(partial),
+      };
+      if (Object.keys(runOptions).length > 0) {
+        executeData = { ...(executeData ?? {}), ...runOptions };
+      }
+
       const result = await irisApiClient.executeWorkflow(workflow.id, executeData);
       if (result) {
         setExecuting(true, result.executionId);
@@ -394,7 +441,7 @@ export function useWorkflowEditor(workflowId: string) {
       console.error('Failed to execute workflow:', error);
       setExecuting(false);
     }
-  }, [workflow, isDirty, performSave, setExecuting, manualTriggerNode]);
+  }, [workflow, isDirty, performSave, setExecuting, manualTriggerNode, ignoreCache]);
 
   // Handle save button click
   const handleSave = useCallback(() => {
@@ -408,9 +455,12 @@ export function useWorkflowEditor(workflowId: string) {
     performSave();
   }, [workflow, isExecuting, performSave]);
 
-  // Handle execute button click
-  const handleExecute = useCallback(() => {
+  // Handle execute button click (and node-menu partial runs)
+  const handleExecute = useCallback((partialArg?: PartialRunOptions) => {
     if (!workflow) return;
+
+    const partial = normalizePartial(partialArg);
+    pendingPartialRef.current = partial;
 
     if (isExecuting) {
       setConfirmDialog({ isOpen: true, type: 'execute' });
@@ -419,7 +469,7 @@ export function useWorkflowEditor(workflowId: string) {
 
     // For manual trigger with 'none' input type, execute immediately without showing modal
     if (manualTriggerNode && manualTriggerNode.inputType === 'none') {
-      performExecute();
+      performExecute(undefined, partial);
       return;
     }
 
@@ -428,8 +478,47 @@ export function useWorkflowEditor(workflowId: string) {
       return;
     }
 
-    performExecute();
+    performExecute(undefined, partial);
   }, [workflow, isExecuting, manualTriggerNode, performExecute]);
+
+  // Input modal submit: carries the partial-run options of the pending run.
+  const executeWithInput = useCallback(
+    (userInput: UserInput) => performExecute(userInput, pendingPartialRef.current),
+    [performExecute],
+  );
+
+  // Node menu "Run to here" / "Re-run from here". Same gate as the header Run
+  // button (enabled only once validated): when not validated yet, validate
+  // first and run only if it passes. Unsaved changes are saved by
+  // performExecute, exactly like the header Run path.
+  useEffect(() => {
+    const onRunRequest = (event: Event) => {
+      const detail = (event as CustomEvent<NodeRunRequestDetail>).detail;
+      if (!detail || typeof detail.nodeId !== 'string' || !detail.nodeId) return;
+      let partial: PartialRunOptions;
+      if (detail.mode === 'from') {
+        partial = { forceNodeIds: [detail.nodeId] };
+      } else if (detail.mode === 'to') {
+        partial = { endNodeId: detail.nodeId };
+      } else {
+        return;
+      }
+      if (isValidated) {
+        handleExecute(partial);
+        return;
+      }
+      if (isValidating) return;
+      void handleValidate().then((valid) => {
+        if (valid) handleExecute(partial);
+      });
+    };
+    window.addEventListener(NODE_RUN_REQUEST_EVENT, onRunRequest);
+    return () => window.removeEventListener(NODE_RUN_REQUEST_EVENT, onRunRequest);
+  }, [handleExecute, handleValidate, isValidated, isValidating]);
+
+  const toggleIgnoreCache = useCallback(() => {
+    setIgnoreCache((prev) => !prev);
+  }, []);
 
   // Handle confirm dialog action
   const handleConfirmAction = useCallback(async () => {
@@ -439,7 +528,7 @@ export function useWorkflowEditor(workflowId: string) {
     if (dialogType === 'save') {
       await performSave();
     } else {
-      await performExecute();
+      await performExecute(undefined, pendingPartialRef.current);
     }
   }, [confirmDialog.type, performSave, performExecute]);
 
@@ -468,6 +557,7 @@ export function useWorkflowEditor(workflowId: string) {
     manualTriggerNode,
     isDirty,
     isExecuting,
+    ignoreCache,
     
     // Actions
     handleValidate,
@@ -477,6 +567,9 @@ export function useWorkflowEditor(workflowId: string) {
     closeConfirmDialog,
     closeInputModal,
     performExecute,
+    executeWithInput,
+    setIgnoreCache,
+    toggleIgnoreCache,
     
     // Navigation
     router,

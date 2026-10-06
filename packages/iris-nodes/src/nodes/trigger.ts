@@ -3,6 +3,7 @@ import type { NodeDefinition } from '../types.js';
 export const TRIGGER_MANUAL: NodeDefinition = {
   type: 'TRIGGER_MANUAL',
   category: 'TRIGGER',
+  cacheable: false,
   label: 'Manual Trigger',
   description: 'Start workflow manually with user input',
   iconName: 'Zap',
@@ -39,6 +40,7 @@ export const TRIGGER_MANUAL: NodeDefinition = {
 export const TRIGGER_SCHEDULE: NodeDefinition = {
   type: 'TRIGGER_SCHEDULE',
   category: 'TRIGGER',
+  cacheable: false,
   label: 'Schedule Trigger',
   description: 'Run workflow on a schedule with static input',
   iconName: 'Clock',
@@ -86,6 +88,7 @@ export const TRIGGER_SCHEDULE: NodeDefinition = {
 export const TRIGGER_WEBHOOK: NodeDefinition = {
   type: 'TRIGGER_WEBHOOK',
   category: 'TRIGGER',
+  cacheable: false,
   label: 'Webhook Trigger',
   description: 'Start workflow via HTTP webhook (POST)',
   iconName: 'Webhook',
@@ -102,6 +105,7 @@ export const TRIGGER_WEBHOOK: NodeDefinition = {
 export const TRIGGER_EVENT: NodeDefinition = {
   type: 'TRIGGER_EVENT',
   category: 'TRIGGER',
+  cacheable: false,
   label: 'Event Trigger',
   description: 'Start workflow on system events',
   iconName: 'Bell',
@@ -138,6 +142,7 @@ export const TRIGGER_EVENT: NodeDefinition = {
 export const TRIGGER_DIRECTORY: NodeDefinition = {
   type: 'TRIGGER_DIRECTORY',
   category: 'TRIGGER',
+  cacheable: false,
   label: 'Directory Watch',
   description: 'Trigger workflow when files are added to a directory',
   iconName: 'Folder',
@@ -178,6 +183,7 @@ export const TRIGGER_DIRECTORY: NodeDefinition = {
 export const TRIGGER_CHAT: NodeDefinition = {
   type: 'TRIGGER_CHAT',
   category: 'TRIGGER',
+  cacheable: false,
   label: 'Chat Trigger',
   description: 'Start workflow from a chat UI message (multi-turn 지원)',
   iconName: 'MessageCircle',
@@ -232,6 +238,7 @@ export const TRIGGER_CHAT: NodeDefinition = {
 export const TRIGGER_FORM: NodeDefinition = {
   type: 'TRIGGER_FORM',
   category: 'TRIGGER',
+  cacheable: false,
   label: 'Form Trigger',
   description: 'Start workflow from a custom form submission',
   iconName: 'ClipboardList',
@@ -288,6 +295,7 @@ export const TRIGGER_FORM: NodeDefinition = {
 export const TRIGGER_EMAIL_RECEIVED: NodeDefinition = {
   type: 'TRIGGER_EMAIL_RECEIVED',
   category: 'TRIGGER',
+  cacheable: false,
   label: 'Email Received',
   description: 'Start workflow when a new email arrives (Gmail Push or IMAP polling)',
   iconName: 'Inbox',
@@ -358,6 +366,7 @@ export const TRIGGER_EMAIL_RECEIVED: NodeDefinition = {
 export const TRIGGER_ERROR: NodeDefinition = {
   type: 'TRIGGER_ERROR',
   category: 'TRIGGER',
+  cacheable: false,
   label: 'Error Trigger',
   description: '다른 워크플로우 실행이 실패하면 실행 (에러 핸들러)',
   iconName: 'TriangleAlert',

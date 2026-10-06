@@ -10,6 +10,7 @@ export * from './types.js';
 export * from './domain.js';
 export * from './ports.js';
 export * from './workflow-store.js';
+export * from './node-cache.js';
 export * from './execution-constants.js';
 export * from './branch-pruning.js';
 export * from './app-error.js';

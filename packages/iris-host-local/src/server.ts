@@ -100,6 +100,18 @@ export async function buildServer(
   });
   const traverser = new GraphTraverser();
 
+  // Node result cache retention: drop entries unused for 7 days at startup.
+  try {
+    const { removed } = await store.cleanupExpiredNodeCache();
+    // eslint-disable-next-line no-console
+    console.log(`[iris-flow] node cache: removed ${removed} expired entries`);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[iris-flow] node cache cleanup failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+
   // Cron scheduler — fires due workflows every minute (see scheduler.ts).
   const scheduler = new LocalScheduler(store, engine, LOCAL_USER_ID);
   scheduler.start();
@@ -381,14 +393,41 @@ export async function buildServer(
   // ── Execute / validate ──────────────────────────────────────────────────────
   app.post<{
     Params: { id: string };
-    Body: { inputs?: Record<string, unknown>; trigger?: ExecutionOptions['trigger'] };
+    Body: {
+      inputs?: Record<string, unknown>;
+      trigger?: ExecutionOptions['trigger'];
+      /** Node result cache: false = read off, write on ("ignore cache"). */
+      useCache?: boolean;
+      /** Run these nodes even on a cache hit ("re-run from here"). */
+      forceNodeIds?: string[];
+      /** Run only this node and its ancestors ("run up to here"). */
+      endNodeId?: string;
+      /** Legacy alias of forceNodeIds=[startNodeId]. */
+      startNodeId?: string;
+    };
   }>('/api/iris/workflows/:id/execute', async (req, reply) => {
     const wf = await store.getWorkflow(req.params.id);
     if (!wf) return reply.code(404).send({ error: 'Workflow not found' });
+    const body = req.body ?? {};
+    const endNodeId =
+      typeof body.endNodeId === 'string' && body.endNodeId ? body.endNodeId : undefined;
+    if (endNodeId && !wf.nodes.some(n => n.nodeId === endNodeId)) {
+      return reply.code(400).send({ error: 'Node not found', code: 'INVALID_NODE' });
+    }
+    const forceNodeIds = Array.isArray(body.forceNodeIds)
+      ? body.forceNodeIds.filter((id): id is string => typeof id === 'string')
+      : undefined;
     try {
       const execution = await engine.execute(req.params.id, LOCAL_USER_ID, {
-        inputs: req.body?.inputs,
-        trigger: req.body?.trigger ?? { type: 'manual' },
+        inputs: body.inputs,
+        trigger: body.trigger ?? { type: 'manual' },
+        useCache: typeof body.useCache === 'boolean' ? body.useCache : undefined,
+        forceNodeIds,
+        endNodeId,
+        startNodeId:
+          typeof body.startNodeId === 'string' && body.startNodeId
+            ? body.startNodeId
+            : undefined,
       });
       return {
         executionId: execution.id,
@@ -396,8 +435,11 @@ export async function buildServer(
         message: '',
       };
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Execution failed';
       return reply.code(400).send({
-        error: error instanceof Error ? error.message : 'Execution failed',
+        error: message,
+        // e.g. an endNodeId inside a loop body (engine re-check)
+        ...(message.startsWith('INVALID_NODE:') ? { code: 'INVALID_NODE' } : {}),
       });
     }
   });

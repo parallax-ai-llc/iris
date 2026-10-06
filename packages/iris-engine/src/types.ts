@@ -553,7 +553,8 @@ export interface PortDefinition {
 /** Node execution result */
 export interface NodeResult {
   nodeId: string;
-  status: 'completed' | 'failed' | 'skipped';
+  /** `cached` = reused from the node result cache (no execution, no billing). */
+  status: 'completed' | 'failed' | 'skipped' | 'cached';
 
   outputs: Record<string, unknown>;
   assets: AssetReference[];
@@ -603,11 +604,18 @@ export interface ExecutionOptions {
   /** Execution mode */
   mode?: 'full' | 'test' | 'dry-run';
 
-  /** Start from specific node */
+  /** 기존 필드. `forceNodeIds=[startNodeId]` 와 같게 재해석한다(호환용).
+   *  The whole graph runs; upstream nodes come from the cache when possible. */
   startNodeId?: string;
 
-  /** Stop at specific node */
+  /** 기존 필드. 이 노드의 조상만 실행한다("여기까지 실행"), 나머지는 SKIPPED. */
   endNodeId?: string;
+
+  /** 기본 true. false 면 읽기만 끄고 쓰기는 한다("캐시 무시하고 전체 실행"). */
+  useCache?: boolean;
+
+  /** 이 노드들은 캐시를 읽지 않고 실행한다("여기부터 다시 실행"). */
+  forceNodeIds?: string[];
 
   /** Timeout in milliseconds */
   timeout?: number;

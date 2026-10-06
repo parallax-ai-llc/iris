@@ -54,6 +54,7 @@ function mapNodeResultToProgress(result: NodeResult): NodeProgress {
     output: result.outputData,
     startedAt: result.startedAt ? new Date(result.startedAt).getTime() : undefined,
     completedAt: result.completedAt ? new Date(result.completedAt).getTime() : undefined,
+    cached: result.status === 'CACHED',
   };
 }
 

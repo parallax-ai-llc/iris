@@ -3,6 +3,7 @@ import type { NodeDefinition } from '../types.js';
 export const OUTPUT_STORAGE: NodeDefinition = {
   type: 'OUTPUT_STORAGE',
   category: 'OUTPUT',
+  cacheable: false,
   label: 'Save to Storage',
   description: 'Save output to cloud storage',
   iconName: 'HardDrive',
@@ -33,6 +34,7 @@ export const OUTPUT_STORAGE: NodeDefinition = {
 export const OUTPUT_WEBHOOK: NodeDefinition = {
   type: 'OUTPUT_WEBHOOK',
   category: 'OUTPUT',
+  cacheable: false,
   label: 'Webhook Output',
   description: 'Send results to webhook',
   iconName: 'Webhook',
@@ -75,6 +77,7 @@ export const OUTPUT_WEBHOOK: NodeDefinition = {
 export const OUTPUT_EMAIL: NodeDefinition = {
   type: 'OUTPUT_EMAIL',
   category: 'OUTPUT',
+  cacheable: false,
   label: 'Send Email',
   description: 'Send results via email (플랫폼 발신 주소 고정)',
   iconName: 'Mail',
@@ -125,6 +128,7 @@ export const OUTPUT_EMAIL: NodeDefinition = {
 export const OUTPUT_DISCORD: NodeDefinition = {
   type: 'OUTPUT_DISCORD',
   category: 'OUTPUT',
+  cacheable: false,
   label: 'Discord Post',
   description: 'Discord 채널에 메시지 발행 (Incoming Webhook URL)',
   iconName: 'MessagesSquare',
@@ -172,6 +176,7 @@ export const OUTPUT_DISCORD: NodeDefinition = {
 export const OUTPUT_NOTIFICATION: NodeDefinition = {
   type: 'OUTPUT_NOTIFICATION',
   category: 'OUTPUT',
+  cacheable: false,
   label: 'Notification',
   description: 'Send push notification',
   iconName: 'BellRing',
@@ -216,6 +221,7 @@ export const OUTPUT_NOTIFICATION: NodeDefinition = {
 export const OUTPUT_SLACK_POST: NodeDefinition = {
   type: 'OUTPUT_SLACK_POST',
   category: 'OUTPUT',
+  cacheable: false,
   label: 'Slack Post',
   description: 'Slack 채널/DM에 메시지 발행 (Block Kit 지원)',
   iconName: 'MessageSquareText',
@@ -276,6 +282,7 @@ export const OUTPUT_SLACK_POST: NodeDefinition = {
 export const OUTPUT_SHEET_APPEND: NodeDefinition = {
   type: 'OUTPUT_SHEET_APPEND',
   category: 'OUTPUT',
+  cacheable: false,
   label: 'Sheet Append',
   description: 'Google Sheets에 row 추가',
   iconName: 'Sheet',

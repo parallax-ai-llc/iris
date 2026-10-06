@@ -31,7 +31,7 @@
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "tsc -p tsconfig.json && node --test test/access-guard.test.mjs test/store-public.test.mjs test/asset-access.test.mjs",
+    "test": "tsc -p tsconfig.json && node --test test/access-guard.test.mjs test/store-public.test.mjs test/asset-access.test.mjs test/node-cache-store.test.mjs",
     "start": "node dist/cli.js",
     "clean": "rimraf dist"
   },

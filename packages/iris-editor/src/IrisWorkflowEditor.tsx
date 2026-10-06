@@ -52,7 +52,9 @@ export function IrisWorkflowEditor({
     handleConfirmAction,
     closeConfirmDialog,
     closeInputModal,
-    performExecute,
+    executeWithInput,
+    ignoreCache,
+    toggleIgnoreCache,
   } = useWorkflowEditor(workflowId);
 
   const {
@@ -98,7 +100,9 @@ export function IrisWorkflowEditor({
         onBack={() => navigate?.(`/workflows/${workflow.id}`)}
         onValidate={handleValidate}
         onSave={handleSave}
-        onExecute={handleExecute}
+        onExecute={() => handleExecute()}
+        ignoreCache={ignoreCache}
+        onToggleIgnoreCache={toggleIgnoreCache}
         onUpgrade={() => navigate?.('/plan')}
         onMobileMenuToggle={toggleMobileMenu}
         onOpenChat={() => onOpenChat?.(workflow.id)}
@@ -144,7 +148,7 @@ export function IrisWorkflowEditor({
         <ExecutionInputModal
           isOpen={showInputModal}
           onClose={closeInputModal}
-          onExecute={performExecute}
+          onExecute={executeWithInput}
           inputType={manualTriggerNode.inputType}
           inputLabel={manualTriggerNode.inputLabel}
           isExecuting={isExecuting}

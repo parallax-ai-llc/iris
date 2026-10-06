@@ -133,6 +133,8 @@ export class LocalScheduler {
               type: 'schedule',
               data: { scheduledAt: now.toISOString(), cron: wf.scheduleCron },
             },
+            // Automated runs expect fresh data: never read the node cache.
+            useCache: false,
           });
         } catch (e) {
           // eslint-disable-next-line no-console

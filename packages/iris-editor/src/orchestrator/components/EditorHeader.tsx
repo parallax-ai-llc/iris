@@ -33,6 +33,9 @@ interface EditorHeaderProps {
   onValidate: () => void;
   onSave: () => void;
   onExecute: () => void;
+  /** "Ignore cache (run all)" toggle state: session-only (node result cache spec 4.6). */
+  ignoreCache: boolean;
+  onToggleIgnoreCache: () => void;
   onUpgrade: () => void;
   onMobileMenuToggle: () => void;
   onOpenChat: () => void;
@@ -52,11 +55,16 @@ export function EditorHeader({
   onValidate,
   onSave,
   onExecute,
+  ignoreCache,
+  onToggleIgnoreCache,
   onUpgrade,
   onMobileMenuToggle,
   onOpenChat,
 }: EditorHeaderProps) {
   const { t } = useI18n();
+  const ignoreCacheLabel = t('iris.editor.ignoreCache') || 'Ignore cache (run all)';
+  const ignoreCacheHint =
+    t('iris.editor.ignoreCacheHint') || 'Reads nothing from the cache; results are still saved';
 
   const validationOk = validationResult?.valid;
   const validationFailed = validationResult && !validationResult.valid;
@@ -198,6 +206,22 @@ export function EditorHeader({
           </kbd>
         </button>
 
+        {isPaidUser && (
+          <label
+            className={cn(chipClass, 'cursor-pointer select-none', ignoreCache && 'text-[var(--color-iris-text-1)]')}
+            title={ignoreCacheHint}
+          >
+            <input
+              type="checkbox"
+              checked={ignoreCache}
+              onChange={onToggleIgnoreCache}
+              className="accent-[var(--color-iris-violet)]"
+              style={{ width: 13, height: 13 }}
+            />
+            <span>{ignoreCacheLabel}</span>
+          </label>
+        )}
+
         <button
           onClick={isPaidUser ? onExecute : onUpgrade}
           disabled={isExecuting || (isPaidUser && !isValidated)}
@@ -255,6 +279,21 @@ export function EditorHeader({
         >
           {isSaving ? <span className={miniSpinnerClass} /> : <Save size={16} />}
         </button>
+        {isPaidUser && (
+          <label
+            className={cn(iconBtnClass, 'cursor-pointer')}
+            title={`${ignoreCacheLabel}: ${ignoreCacheHint}`}
+          >
+            <input
+              type="checkbox"
+              checked={ignoreCache}
+              onChange={onToggleIgnoreCache}
+              aria-label={ignoreCacheLabel}
+              className="accent-[var(--color-iris-violet)]"
+              style={{ width: 14, height: 14 }}
+            />
+          </label>
+        )}
         <button
           onClick={isPaidUser ? onExecute : onUpgrade}
           disabled={isExecuting || (isPaidUser && !isValidated)}
