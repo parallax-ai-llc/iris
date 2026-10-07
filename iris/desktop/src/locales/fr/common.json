@@ -121,7 +121,8 @@
     "bugReportSuccess": "Rapport de bug envoyé avec succès",
     "bugReportError": "Échec de l'envoi du rapport de bug",
     "bugReportRateLimit": "Trop de rapports. Veuillez réessayer plus tard.",
-    "bugReportThankYou": "Merci pour votre rapport ! Nous l'examinerons sous peu."
+    "bugReportThankYou": "Merci pour votre rapport ! Nous l'examinerons sous peu.",
+    "workWithAgent": "Work with Agent"
   },
   "editor": {
     "localFileWarning": {
@@ -177,5 +178,76 @@
   },
   "errors": {
     "unknown": "Une erreur inconnue s'est produite"
+  },
+  "assistant": {
+    "title": "Assistant",
+    "inputLabel": "Consigne",
+    "inputHint": "Entrée pour envoyer · Maj+Entrée pour une nouvelle ligne",
+    "send": "Envoyer",
+    "stop": "Arrêter",
+    "clear": "Effacer la conversation",
+    "close": "Fermer l'assistant",
+    "resize": "Redimensionner le panneau de l'assistant",
+    "surface": {
+      "imageEditor": "Éditeur d'images",
+      "videoEditor": "Éditeur vidéo",
+      "workspace": "Espace de travail"
+    },
+    "empty": {
+      "imageEditor": "Que modifier dans cette image ?",
+      "videoEditor": "Que faire de cette vidéo ?",
+      "workspace": "Que voulez-vous créer ?"
+    },
+    "placeholder": {
+      "imageEditor": "Décrivez une retouche, par ex. supprime l'arrière-plan",
+      "videoEditor": "Décrivez une modification, par ex. ajoute un titre à 2 s",
+      "workspace": "Décrivez une image ou une vidéo à créer"
+    },
+    "examples": {
+      "imageEditor": {
+        "1": "Supprime l'arrière-plan",
+        "2": "Rends-la plus chaude et un peu plus lumineuse",
+        "3": "Agrandis cette image 2x"
+      },
+      "videoEditor": {
+        "1": "Ajoute un titre en gras 'Welcome' à 0,5 s pendant 2 secondes",
+        "2": "Supprime les passages silencieux",
+        "3": "Génère des sous-titres pour cette vidéo"
+      },
+      "workspace": {
+        "1": "Génère une photo produit d'une tasse en céramique sur une table en bois",
+        "2": "Fais une vidéo de 5 secondes de vagues au coucher du soleil",
+        "3": "Démarre un nouveau projet vidéo vertical"
+      }
+    },
+    "status": {
+      "running": "En cours",
+      "done": "Terminé",
+      "failed": "Échec"
+    },
+    "blocked": {
+      "selfHost": "L'assistant fonctionne sur le cloud Parallax : il n'est pas disponible dans la version auto-hébergée.",
+      "signIn": "Connectez-vous pour donner des instructions par texte.",
+      "signInAction": "Se connecter pour utiliser l'assistant"
+    },
+    "errors": {
+      "missingField": "« {{field}} » manquant",
+      "serverRequired": "Le serveur Iris est injoignable pour le moment.",
+      "generationFailed": "La demande de génération a échoué.",
+      "projectFailed": "Impossible de créer le projet.",
+      "projectOpenFailed": "Le projet a été créé mais n'a pas pu être ouvert.",
+      "notFound": "Élément introuvable.",
+      "unknownPage": "Écran inconnu : {{page}}",
+      "unsavedWorkflow": "Enregistrez ou fermez d'abord le workflow ouvert."
+    },
+    "notes": {
+      "imageReady": "Image prête dans Images",
+      "imageQueued": "Image en file, elle apparaîtra dans Images",
+      "videoQueued": "Vidéo en file, elle apparaîtra dans Vidéos",
+      "projectOpened": "Projet ouvert dans l'éditeur vidéo"
+    },
+    "defaults": {
+      "projectName": "Projet sans titre"
+    }
   }
 }

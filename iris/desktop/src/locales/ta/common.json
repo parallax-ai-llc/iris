@@ -121,7 +121,8 @@
     "bugReportSuccess": "Bug report submitted successfully",
     "bugReportError": "Failed to submit bug report",
     "bugReportRateLimit": "Too many reports. Please try again later.",
-    "bugReportThankYou": "Thank you for your report! We will review it shortly."
+    "bugReportThankYou": "Thank you for your report! We will review it shortly.",
+    "workWithAgent": "Work with Agent"
   },
   "editor": {
     "localFileWarning": {
@@ -177,5 +178,76 @@
   },
   "errors": {
     "unknown": "அறியப்படாத பிழை ஏற்பட்டது"
+  },
+  "assistant": {
+    "title": "உதவியாளர்",
+    "inputLabel": "ப்ராம்ப்ட்",
+    "inputHint": "அனுப்ப Enter · புதிய வரிக்கு Shift+Enter",
+    "send": "அனுப்பு",
+    "stop": "நிறுத்து",
+    "clear": "உரையாடலை அழி",
+    "close": "உதவியாளரை மூடு",
+    "resize": "உதவியாளர் பலகையின் அளவை மாற்று",
+    "surface": {
+      "imageEditor": "படத் திருத்தி",
+      "videoEditor": "வீடியோ திருத்தி",
+      "workspace": "பணியிடம்"
+    },
+    "empty": {
+      "imageEditor": "இந்தப் படத்தில் எதை மாற்றலாம்?",
+      "videoEditor": "இந்த வீடியோவில் என்ன செய்யலாம்?",
+      "workspace": "என்ன உருவாக்க விரும்புகிறீர்கள்?"
+    },
+    "placeholder": {
+      "imageEditor": "திருத்தத்தை விவரிக்கவும், எ.கா. பின்னணியை நீக்கு",
+      "videoEditor": "திருத்தத்தை விவரிக்கவும், எ.கா. 2 விநாடியில் தலைப்பைச் சேர்",
+      "workspace": "உருவாக்க வேண்டிய படம் அல்லது வீடியோவை விவரிக்கவும்"
+    },
+    "examples": {
+      "imageEditor": {
+        "1": "பின்னணியை நீக்கு",
+        "2": "சற்று வெதுவெதுப்பாகவும் பிரகாசமாகவும் மாற்று",
+        "3": "இந்தப் படத்தை 2 மடங்கு பெரிதாக்கு"
+      },
+      "videoEditor": {
+        "1": "0.5 விநாடியில் 2 விநாடிகளுக்கு தடித்த 'Welcome' தலைப்பைச் சேர்",
+        "2": "அமைதியான பகுதிகளை நீக்கு",
+        "3": "இந்த வீடியோவுக்கு வசனங்களை உருவாக்கு"
+      },
+      "workspace": {
+        "1": "மர மேசை மீது பீங்கான் குவளையின் தயாரிப்புப் படத்தை உருவாக்கு",
+        "2": "சூரிய அஸ்தமன அலைகளின் 5 விநாடி வீடியோவை உருவாக்கு",
+        "3": "புதிய செங்குத்து வீடியோ திட்டத்தைத் தொடங்கு"
+      }
+    },
+    "status": {
+      "running": "இயங்குகிறது",
+      "done": "முடிந்தது",
+      "failed": "தோல்வி"
+    },
+    "blocked": {
+      "selfHost": "உதவியாளர் Parallax கிளவுடில் இயங்குவதால், சுய-ஹோஸ்ட் பதிப்பில் கிடைக்காது.",
+      "signIn": "ப்ராம்ப்ட் மூலம் கட்டளையிட உள்நுழையவும்.",
+      "signInAction": "உதவியாளரைப் பயன்படுத்த உள்நுழைக"
+    },
+    "errors": {
+      "missingField": "\"{{field}}\" இல்லை",
+      "serverRequired": "இப்போது Iris சேவையகத்தை அணுக முடியவில்லை.",
+      "generationFailed": "உருவாக்கக் கோரிக்கை தோல்வியடைந்தது.",
+      "projectFailed": "திட்டத்தை உருவாக்க முடியவில்லை.",
+      "projectOpenFailed": "திட்டம் உருவாக்கப்பட்டது, ஆனால் திறக்க முடியவில்லை.",
+      "notFound": "அந்த உருப்படி கிடைக்கவில்லை.",
+      "unknownPage": "தெரியாத திரை: {{page}}",
+      "unsavedWorkflow": "முதலில் திறந்துள்ள பணிப்பாய்வைச் சேமிக்கவும் அல்லது மூடவும்."
+    },
+    "notes": {
+      "imageReady": "படம் தயார், படங்கள் பக்கத்தில் உள்ளது",
+      "imageQueued": "படம் வரிசையில் உள்ளது, படங்கள் பக்கத்தில் தோன்றும்",
+      "videoQueued": "வீடியோ வரிசையில் உள்ளது, வீடியோக்கள் பக்கத்தில் தோன்றும்",
+      "projectOpened": "வீடியோ திருத்தியில் திட்டம் திறக்கப்பட்டது"
+    },
+    "defaults": {
+      "projectName": "பெயரிடப்படாத திட்டம்"
+    }
   }
 }

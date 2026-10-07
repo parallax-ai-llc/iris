@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { cn } from '@/shared/lib/utils';
+import { ShellBody } from './ShellBody';
 
 interface FullScreenLayoutProps {
   /** Window title bar. Rendered full-width, outside the dock inset. */
@@ -26,14 +27,17 @@ interface FullScreenLayoutProps {
  *
  * The title bar is deliberately *outside* the inset, matching `AppLayout`:
  * the window controls stay pinned to the window's right edge.
+ *
+ * The body goes through `ShellBody`, which puts the app-wide assistant panel
+ * on the left; `children` fill the rest as a column.
  */
 export function FullScreenLayout({ titleBar, children, className, style }: FullScreenLayoutProps) {
   return (
     <div className={cn('h-screen flex flex-col overflow-hidden', className)} style={style}>
       {titleBar}
-      <div className="ext-dock-inset flex-1 flex flex-col min-h-0 overflow-hidden">
-        {children}
-      </div>
+      <ShellBody className="ext-dock-inset flex-1 flex min-h-0 overflow-hidden">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">{children}</div>
+      </ShellBody>
     </div>
   );
 }

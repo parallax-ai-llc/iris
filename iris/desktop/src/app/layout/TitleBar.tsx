@@ -3,6 +3,7 @@ import { Minus, Square, X, Maximize2, Settings, Bell, Bug } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/shared/lib/utils';
 import { IrisLogo } from '@/shared/components/common/IrisLogo';
+import { ParallaxSymbol } from '@/shared/components/common/ParallaxSymbol';
 import { useUIStore } from '@/shared/stores/ui.store';
 import { AnnouncementsModal } from '@/features/announcements/components';
 import { ConfirmDialog } from '@/shared/components/ui/Modal';
@@ -11,10 +12,12 @@ import { useEditorTabsStore } from '@/features/image-editor/stores/editorTabs.st
 import { useEditorStore } from '@/features/video-editor/stores/editor.store';
 import { useVideoProjectStore } from '@/features/video-editor/stores/videoProject.store';
 import { useIrisEditorStore } from 'iris-editor';
+import { useAssistantStore, toggleAssistant } from '@/features/assistant';
 
 interface TitleBarProps {
   leftContent?: React.ReactNode;
   rightContent?: React.ReactNode;
+  /** Editors: hide Bug report and Settings. Assistant toggle and Bell always show. */
   hideNav?: boolean;
 }
 
@@ -31,7 +34,9 @@ export function TitleBar({ leftContent, rightContent, hideNav }: TitleBarProps =
   const [isBugReportOpen, setIsBugReportOpen] = useState(false);
   const [screenshotDataUrl, setScreenshotDataUrl] = useState<string | null>(null);
   const { currentPage, setCurrentPage } = useUIStore();
+  const isAssistantOpen = useAssistantStore((s) => s.isOpen);
   const { t } = useTranslation('common');
+  const assistantShortcut = isMac ? '⌘/' : 'Ctrl+/';
 
   useEffect(() => {
     if (window.electronAPI?.window) {
@@ -123,8 +128,10 @@ export function TitleBar({ leftContent, rightContent, hideNav }: TitleBarProps =
 
       {rightContent && <div className="no-drag flex items-center mr-2">{rightContent}</div>}
 
-      {!hideNav && (
-        <div className="dt-titlebar-right no-drag">
+      {/* Assistant toggle + Bell show on every screen (editors included);
+          Bug report and Settings only outside the editors. */}
+      <div className="dt-titlebar-right no-drag">
+        {!hideNav && (
           <button
             onClick={handleBugReport}
             className="dt-titlebar-icon"
@@ -133,14 +140,27 @@ export function TitleBar({ leftContent, rightContent, hideNav }: TitleBarProps =
           >
             <Bug className="w-4 h-4" />
           </button>
-          <button
-            onClick={() => setIsAnnouncementsOpen(true)}
-            className="dt-titlebar-icon"
-            data-active={isAnnouncementsOpen}
-            title={t('titleBar.announcements', 'Announcements')}
-          >
-            <Bell className="w-4 h-4" />
-          </button>
+        )}
+        <button
+          onClick={toggleAssistant}
+          className="dt-titlebar-agent"
+          data-active={isAssistantOpen}
+          aria-pressed={isAssistantOpen}
+          title={`${t('titleBar.workWithAgent', 'Work with Agent')} (${assistantShortcut})`}
+          data-testid="assistant-toggle"
+        >
+          <ParallaxSymbol className="w-4 h-4" />
+          <span>{t('titleBar.workWithAgent', 'Work with Agent')}</span>
+        </button>
+        <button
+          onClick={() => setIsAnnouncementsOpen(true)}
+          className={cn('dt-titlebar-icon', isLinux && hideNav && 'mr-2')}
+          data-active={isAnnouncementsOpen}
+          title={t('titleBar.announcements', 'Announcements')}
+        >
+          <Bell className="w-4 h-4" />
+        </button>
+        {!hideNav && (
           <button
             onClick={() => setCurrentPage('settings')}
             className={cn('dt-titlebar-icon', isLinux && 'mr-2')}
@@ -149,8 +169,8 @@ export function TitleBar({ leftContent, rightContent, hideNav }: TitleBarProps =
           >
             <Settings className="w-4 h-4" />
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {(isLinux || isWindows) && (
         <div className="no-drag flex items-center">

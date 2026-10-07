@@ -121,7 +121,8 @@
     "bugReportSuccess": "Bug report submitted successfully",
     "bugReportError": "Failed to submit bug report",
     "bugReportRateLimit": "Too many reports. Please try again later.",
-    "bugReportThankYou": "Thank you for your report! We will review it shortly."
+    "bugReportThankYou": "Thank you for your report! We will review it shortly.",
+    "workWithAgent": "Work with Agent"
   },
   "editor": {
     "localFileWarning": {
@@ -177,5 +178,76 @@
   },
   "errors": {
     "unknown": "తెలియని లోపం సంభవించింది"
+  },
+  "assistant": {
+    "title": "అసిస్టెంట్",
+    "inputLabel": "ప్రాంప్ట్",
+    "inputHint": "పంపడానికి Enter · కొత్త పంక్తికి Shift+Enter",
+    "send": "పంపు",
+    "stop": "ఆపు",
+    "clear": "సంభాషణను తొలగించు",
+    "close": "అసిస్టెంట్‌ను మూసివేయి",
+    "resize": "అసిస్టెంట్ ప్యానెల్ పరిమాణం మార్చు",
+    "surface": {
+      "imageEditor": "చిత్ర ఎడిటర్",
+      "videoEditor": "వీడియో ఎడిటర్",
+      "workspace": "వర్క్‌స్పేస్"
+    },
+    "empty": {
+      "imageEditor": "ఈ చిత్రంలో ఏమి మార్చాలి?",
+      "videoEditor": "ఈ వీడియోతో ఏమి చేయాలి?",
+      "workspace": "మీరు ఏమి సృష్టించాలనుకుంటున్నారు?"
+    },
+    "placeholder": {
+      "imageEditor": "మార్పును వివరించండి, ఉదా. బ్యాక్‌గ్రౌండ్ తీసేయి",
+      "videoEditor": "మార్పును వివరించండి, ఉదా. 2 సెకన్ల వద్ద టైటిల్ జోడించు",
+      "workspace": "సృష్టించాల్సిన చిత్రం లేదా వీడియోను వివరించండి"
+    },
+    "examples": {
+      "imageEditor": {
+        "1": "బ్యాక్‌గ్రౌండ్ తీసేయి",
+        "2": "కొంచెం వెచ్చగా, ప్రకాశవంతంగా చేయి",
+        "3": "ఈ చిత్రాన్ని 2x అప్‌స్కేల్ చేయి"
+      },
+      "videoEditor": {
+        "1": "0.5 సెకన్ల వద్ద 2 సెకన్ల పాటు బోల్డ్ 'Welcome' టైటిల్ జోడించు",
+        "2": "నిశ్శబ్ద భాగాలను తొలగించు",
+        "3": "ఈ వీడియోకు క్యాప్షన్లు సృష్టించు"
+      },
+      "workspace": {
+        "1": "చెక్క బల్లపై సిరామిక్ మగ్ ప్రోడక్ట్ ఫోటో సృష్టించు",
+        "2": "సూర్యాస్తమయంలో అలల 5 సెకన్ల వీడియో చేయి",
+        "3": "కొత్త నిలువు వీడియో ప్రాజెక్ట్ ప్రారంభించు"
+      }
+    },
+    "status": {
+      "running": "నడుస్తోంది",
+      "done": "పూర్తయింది",
+      "failed": "విఫలమైంది"
+    },
+    "blocked": {
+      "selfHost": "అసిస్టెంట్ Parallax క్లౌడ్‌లో నడుస్తుంది, కాబట్టి సెల్ఫ్-హోస్ట్ బిల్డ్‌లో అందుబాటులో లేదు.",
+      "signIn": "ప్రాంప్ట్‌తో సూచనలు ఇవ్వడానికి సైన్ ఇన్ చేయండి.",
+      "signInAction": "అసిస్టెంట్ కోసం సైన్ ఇన్ చేయండి"
+    },
+    "errors": {
+      "missingField": "\"{{field}}\" లేదు",
+      "serverRequired": "ప్రస్తుతం Iris సర్వర్‌ను చేరుకోలేకపోతున్నాం.",
+      "generationFailed": "సృష్టి అభ్యర్థన విఫలమైంది.",
+      "projectFailed": "ప్రాజెక్ట్‌ను సృష్టించలేకపోయాం.",
+      "projectOpenFailed": "ప్రాజెక్ట్ సృష్టించబడింది, కానీ తెరవలేకపోయాం.",
+      "notFound": "ఆ అంశం కనబడలేదు.",
+      "unknownPage": "తెలియని స్క్రీన్: {{page}}",
+      "unsavedWorkflow": "ముందుగా తెరిచి ఉన్న వర్క్‌ఫ్లోను సేవ్ చేయండి లేదా మూసివేయండి."
+    },
+    "notes": {
+      "imageReady": "చిత్రం సిద్ధంగా ఉంది, చిత్రాల పేజీలో చూడండి",
+      "imageQueued": "చిత్రం క్యూలో ఉంది, చిత్రాల పేజీలో కనిపిస్తుంది",
+      "videoQueued": "వీడియో క్యూలో ఉంది, వీడియోల పేజీలో కనిపిస్తుంది",
+      "projectOpened": "వీడియో ఎడిటర్‌లో ప్రాజెక్ట్ తెరవబడింది"
+    },
+    "defaults": {
+      "projectName": "పేరులేని ప్రాజెక్ట్"
+    }
   }
 }

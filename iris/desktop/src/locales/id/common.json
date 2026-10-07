@@ -121,7 +121,8 @@
     "bugReportSuccess": "Laporan bug berhasil dikirim",
     "bugReportError": "Gagal mengirim laporan bug",
     "bugReportRateLimit": "Terlalu banyak laporan. Coba lagi nanti.",
-    "bugReportThankYou": "Terima kasih atas laporan Anda! Kami akan segera meninjaunya."
+    "bugReportThankYou": "Terima kasih atas laporan Anda! Kami akan segera meninjaunya.",
+    "workWithAgent": "Work with Agent"
   },
   "editor": {
     "localFileWarning": {
@@ -177,5 +178,76 @@
   },
   "errors": {
     "unknown": "Terjadi kesalahan yang tidak diketahui"
+  },
+  "assistant": {
+    "title": "Asisten",
+    "inputLabel": "Perintah",
+    "inputHint": "Enter untuk kirim · Shift+Enter untuk baris baru",
+    "send": "Kirim",
+    "stop": "Hentikan",
+    "clear": "Hapus percakapan",
+    "close": "Tutup asisten",
+    "resize": "Ubah ukuran panel asisten",
+    "surface": {
+      "imageEditor": "Editor gambar",
+      "videoEditor": "Editor video",
+      "workspace": "Ruang kerja"
+    },
+    "empty": {
+      "imageEditor": "Apa yang ingin diubah pada gambar ini?",
+      "videoEditor": "Apa yang ingin dilakukan dengan video ini?",
+      "workspace": "Apa yang ingin Anda buat?"
+    },
+    "placeholder": {
+      "imageEditor": "Jelaskan suntingan, mis. hapus latar belakang",
+      "videoEditor": "Jelaskan suntingan, mis. tambahkan judul di detik ke-2",
+      "workspace": "Jelaskan gambar atau video yang ingin dibuat"
+    },
+    "examples": {
+      "imageEditor": {
+        "1": "Hapus latar belakang",
+        "2": "Buat lebih hangat dan sedikit lebih terang",
+        "3": "Perbesar gambar ini 2x"
+      },
+      "videoEditor": {
+        "1": "Tambahkan judul tebal 'Welcome' di 0,5 detik selama 2 detik",
+        "2": "Hapus bagian yang hening",
+        "3": "Buat teks untuk video ini"
+      },
+      "workspace": {
+        "1": "Buat foto produk mug keramik di atas meja kayu",
+        "2": "Buat video 5 detik ombak saat matahari terbenam",
+        "3": "Mulai proyek video vertikal baru"
+      }
+    },
+    "status": {
+      "running": "Berjalan",
+      "done": "Selesai",
+      "failed": "Gagal"
+    },
+    "blocked": {
+      "selfHost": "Asisten berjalan di cloud Parallax, jadi tidak tersedia pada build self-host.",
+      "signIn": "Masuk untuk memberi perintah lewat teks.",
+      "signInAction": "Masuk untuk memakai asisten"
+    },
+    "errors": {
+      "missingField": "\"{{field}}\" tidak ada",
+      "serverRequired": "Server Iris tidak dapat dijangkau saat ini.",
+      "generationFailed": "Permintaan pembuatan gagal.",
+      "projectFailed": "Proyek tidak dapat dibuat.",
+      "projectOpenFailed": "Proyek sudah dibuat tetapi tidak dapat dibuka.",
+      "notFound": "Item tidak ditemukan.",
+      "unknownPage": "Layar tidak dikenal: {{page}}",
+      "unsavedWorkflow": "Simpan atau tutup dulu alur kerja yang terbuka."
+    },
+    "notes": {
+      "imageReady": "Gambar siap di Gambar",
+      "imageQueued": "Gambar sedang diproses dan akan muncul di Gambar",
+      "videoQueued": "Video sedang diproses dan akan muncul di Video",
+      "projectOpened": "Proyek dibuka di editor video"
+    },
+    "defaults": {
+      "projectName": "Proyek tanpa judul"
+    }
   }
 }

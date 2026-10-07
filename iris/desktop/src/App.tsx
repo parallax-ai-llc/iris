@@ -31,7 +31,8 @@ import { ProfilePage } from '@/app/profile/ProfilePage';
 import { useEditorTabsStore } from '@/features/image-editor/stores/editorTabs.store';
 import { useImageEditorStore } from '@/features/image-editor/stores/imageEditor.store';
 import { useEditorStore } from '@/features/video-editor/stores/editor.store';
-import { useVideoProjectStore } from '@/features/video-editor/stores/videoProject.store';
+import { openVideoProjectInEditor } from '@/features/video-editor/lib/openProject';
+import { useAssistantShortcut } from '@/features/assistant';
 import { IS_SELF_HOST } from '@/config/self-host';
 import './styles/globals.css';
 
@@ -49,10 +50,11 @@ function AppContent() {
   const { currentPage, editingWorkflowId, selectedBatchId, setSelectedBatchId, isCreatingBatch } = useUIStore();
   const isImageEditorOpen = useEditorTabsStore((state) => state.tabs.length > 0 && state.isEditorVisible);
   const isVideoEditorOpen = useEditorStore((state) => state.isEditorOpen);
-  const loadProject = useVideoProjectStore((state) => state.loadProject);
 
   useKeyboardShortcuts();
   useServerConnection();
+  // Ctrl/Cmd+/ opens or closes the app-wide assistant panel on every screen.
+  useAssistantShortcut();
 
   // Expose Zustand stores globally in dev mode for QA/E2E testing
   useEffect(() => {
@@ -143,14 +145,8 @@ function AppContent() {
       case 'projects':
         return (
           <ProjectsPage
-            onOpenProject={async (projectId) => {
-              // Load project and open video editor
-              const project = await loadProject(projectId);
-              if (project) {
-                // Load timeline data into editor store
-                const loadFromTimelineData = useEditorStore.getState().loadFromTimelineData;
-                loadFromTimelineData(project.timelineData, project.duration);
-              }
+            onOpenProject={(projectId) => {
+              void openVideoProjectInEditor(projectId);
             }}
           />
         );

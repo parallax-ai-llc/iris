@@ -18,7 +18,6 @@ import {
   setActiveTabId,
   getActiveStoreSafe,
 } from '@/features/image-editor/stores/imageEditorRegistry';
-import { deleteChatStore } from '@/features/image-editor/stores/editorChat.store';
 
 // ==================== Types ====================
 
@@ -144,7 +143,6 @@ export const useEditorTabsStore = create<EditorTabsState & EditorTabsActions>()(
       if (newTabs.length === 0) {
         // Last tab closed: exit editor
         deleteStore(tabId);
-        deleteChatStore(tabId);
         setActiveTabId(null);
         set({ tabs: [], activeTabId: null, isEditorVisible: false });
         useUIStore.getState().setCurrentPage('images');
@@ -167,7 +165,6 @@ export const useEditorTabsStore = create<EditorTabsState & EditorTabsActions>()(
 
       // Free the closed tab's store
       deleteStore(tabId);
-      deleteChatStore(tabId);
     },
 
     switchTab: (tabId) => {

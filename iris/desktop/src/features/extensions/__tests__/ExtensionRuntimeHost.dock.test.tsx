@@ -31,6 +31,11 @@ vi.mock('@/app/layout/TitleBar', () => ({
 vi.mock('@/app/layout/Sidebar', () => ({
   Sidebar: () => <div data-testid="sidebar" />,
 }));
+// The assistant column (mounted by both shells via ShellBody) sits on the
+// left; it pulls in every editor store and has no bearing on the right inset.
+vi.mock('@/app/assistant/AssistantDock', () => ({
+  AssistantDock: () => <div data-testid="assistant-dock" />,
+}));
 
 const SRC_ROOT = path.resolve(__dirname, '../../..');
 /** Viewport width the geometry assertions are expressed against. */

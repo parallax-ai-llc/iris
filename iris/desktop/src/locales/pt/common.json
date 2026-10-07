@@ -121,7 +121,8 @@
     "bugReportSuccess": "Relatório de bug enviado com sucesso",
     "bugReportError": "Falha ao enviar relatório de bug",
     "bugReportRateLimit": "Muitos relatórios. Por favor, tente novamente mais tarde.",
-    "bugReportThankYou": "Obrigado pelo seu relatório! Iremos analisá-lo em breve."
+    "bugReportThankYou": "Obrigado pelo seu relatório! Iremos analisá-lo em breve.",
+    "workWithAgent": "Work with Agent"
   },
   "editor": {
     "localFileWarning": {
@@ -177,5 +178,76 @@
   },
   "errors": {
     "unknown": "Ocorreu um erro desconhecido"
+  },
+  "assistant": {
+    "title": "Assistente",
+    "inputLabel": "Comando",
+    "inputHint": "Enter para enviar · Shift+Enter para nova linha",
+    "send": "Enviar",
+    "stop": "Parar",
+    "clear": "Limpar conversa",
+    "close": "Fechar assistente",
+    "resize": "Redimensionar painel do assistente",
+    "surface": {
+      "imageEditor": "Editor de imagens",
+      "videoEditor": "Editor de vídeo",
+      "workspace": "Área de trabalho"
+    },
+    "empty": {
+      "imageEditor": "O que vamos mudar nesta imagem?",
+      "videoEditor": "O que vamos fazer com este vídeo?",
+      "workspace": "O que você quer criar?"
+    },
+    "placeholder": {
+      "imageEditor": "Descreva uma edição, ex.: remova o fundo",
+      "videoEditor": "Descreva uma edição, ex.: adicione um título em 2 s",
+      "workspace": "Descreva uma imagem ou vídeo para criar"
+    },
+    "examples": {
+      "imageEditor": {
+        "1": "Remova o fundo",
+        "2": "Deixe mais quente e um pouco mais claro",
+        "3": "Amplie esta imagem em 2x"
+      },
+      "videoEditor": {
+        "1": "Adicione um título em negrito 'Welcome' em 0,5 s por 2 segundos",
+        "2": "Remova as partes em silêncio",
+        "3": "Gere legendas para este vídeo"
+      },
+      "workspace": {
+        "1": "Gere uma foto de produto de uma caneca de cerâmica sobre uma mesa de madeira",
+        "2": "Faça um vídeo de 5 segundos de ondas ao pôr do sol",
+        "3": "Comece um novo projeto de vídeo vertical"
+      }
+    },
+    "status": {
+      "running": "Executando",
+      "done": "Concluído",
+      "failed": "Falhou"
+    },
+    "blocked": {
+      "selfHost": "O assistente roda na nuvem da Parallax, então não está disponível na versão auto-hospedada.",
+      "signIn": "Entre na sua conta para dar instruções por texto.",
+      "signInAction": "Entrar para usar o assistente"
+    },
+    "errors": {
+      "missingField": "Falta \"{{field}}\"",
+      "serverRequired": "O servidor do Iris não está acessível agora.",
+      "generationFailed": "A solicitação de geração falhou.",
+      "projectFailed": "Não foi possível criar o projeto.",
+      "projectOpenFailed": "O projeto foi criado, mas não pôde ser aberto.",
+      "notFound": "Item não encontrado.",
+      "unknownPage": "Tela desconhecida: {{page}}",
+      "unsavedWorkflow": "Salve ou feche primeiro o fluxo de trabalho aberto."
+    },
+    "notes": {
+      "imageReady": "Imagem pronta em Imagens",
+      "imageQueued": "Imagem na fila, ela aparecerá em Imagens",
+      "videoQueued": "Vídeo na fila, ele aparecerá em Vídeos",
+      "projectOpened": "Projeto aberto no editor de vídeo"
+    },
+    "defaults": {
+      "projectName": "Projeto sem título"
+    }
   }
 }

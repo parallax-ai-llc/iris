@@ -85,8 +85,9 @@ export function parseVideoCommand(text: string): VideoEditorCommand | null {
 /**
  * Some actions can't be executed purely on the store — they open a modal so
  * the user can confirm parameters (silence removal needs ffmpeg + threshold
- * review; auto captions needs API call + language selection). The chat panel
- * registers handlers via this hook.
+ * review; auto captions needs API call + language selection). VideoEditor
+ * registers the openers while it is mounted; the app-wide assistant panel
+ * triggers them through these commands.
  */
 export interface VideoChatModalHandlers {
   openSilenceRemoval?: () => void;

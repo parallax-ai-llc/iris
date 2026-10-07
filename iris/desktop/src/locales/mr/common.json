@@ -121,7 +121,8 @@
     "bugReportSuccess": "Bug report submitted successfully",
     "bugReportError": "Failed to submit bug report",
     "bugReportRateLimit": "Too many reports. Please try again later.",
-    "bugReportThankYou": "Thank you for your report! We will review it shortly."
+    "bugReportThankYou": "Thank you for your report! We will review it shortly.",
+    "workWithAgent": "Work with Agent"
   },
   "editor": {
     "localFileWarning": {
@@ -177,5 +178,76 @@
   },
   "errors": {
     "unknown": "अज्ञात त्रुटी झाली"
+  },
+  "assistant": {
+    "title": "सहाय्यक",
+    "inputLabel": "प्रॉम्प्ट",
+    "inputHint": "पाठवण्यासाठी Enter · नवीन ओळीसाठी Shift+Enter",
+    "send": "पाठवा",
+    "stop": "थांबवा",
+    "clear": "संभाषण पुसा",
+    "close": "सहाय्यक बंद करा",
+    "resize": "सहाय्यक पॅनेलचा आकार बदला",
+    "surface": {
+      "imageEditor": "इमेज एडिटर",
+      "videoEditor": "व्हिडिओ एडिटर",
+      "workspace": "वर्कस्पेस"
+    },
+    "empty": {
+      "imageEditor": "या इमेजमध्ये काय बदलायचे?",
+      "videoEditor": "या व्हिडिओचे काय करायचे?",
+      "workspace": "तुम्हाला काय तयार करायचे आहे?"
+    },
+    "placeholder": {
+      "imageEditor": "बदल लिहा, उदा. बॅकग्राउंड काढून टाका",
+      "videoEditor": "बदल लिहा, उदा. 2 सेकंदाला शीर्षक जोडा",
+      "workspace": "तयार करायची इमेज किंवा व्हिडिओ वर्णन करा"
+    },
+    "examples": {
+      "imageEditor": {
+        "1": "बॅकग्राउंड काढून टाका",
+        "2": "थोडी उबदार आणि उजळ करा",
+        "3": "ही इमेज 2x अपस्केल करा"
+      },
+      "videoEditor": {
+        "1": "0.5 सेकंदाला 2 सेकंदांसाठी ठळक 'Welcome' शीर्षक जोडा",
+        "2": "शांत भाग काढून टाका",
+        "3": "या व्हिडिओसाठी कॅप्शन तयार करा"
+      },
+      "workspace": {
+        "1": "लाकडी टेबलावरील सिरॅमिक मगचा प्रॉडक्ट फोटो तयार करा",
+        "2": "सूर्यास्ताच्या वेळच्या लाटांचा 5 सेकंदांचा व्हिडिओ बनवा",
+        "3": "नवीन उभा व्हिडिओ प्रोजेक्ट सुरू करा"
+      }
+    },
+    "status": {
+      "running": "चालू आहे",
+      "done": "पूर्ण",
+      "failed": "अयशस्वी"
+    },
+    "blocked": {
+      "selfHost": "सहाय्यक Parallax क्लाउडवर चालतो, त्यामुळे सेल्फ-होस्टेड बिल्डमध्ये उपलब्ध नाही.",
+      "signIn": "प्रॉम्प्टने सूचना देण्यासाठी साइन इन करा.",
+      "signInAction": "सहाय्यक वापरण्यासाठी साइन इन करा"
+    },
+    "errors": {
+      "missingField": "\"{{field}}\" नाही",
+      "serverRequired": "सध्या Iris सर्व्हरशी संपर्क होत नाही.",
+      "generationFailed": "निर्मिती विनंती अयशस्वी झाली.",
+      "projectFailed": "प्रोजेक्ट तयार करता आला नाही.",
+      "projectOpenFailed": "प्रोजेक्ट तयार झाला, पण उघडता आला नाही.",
+      "notFound": "तो आयटम सापडला नाही.",
+      "unknownPage": "अज्ञात स्क्रीन: {{page}}",
+      "unsavedWorkflow": "आधी उघडलेला वर्कफ्लो सेव्ह करा किंवा बंद करा."
+    },
+    "notes": {
+      "imageReady": "इमेज तयार आहे, इमेज पानावर पाहा",
+      "imageQueued": "इमेज रांगेत आहे, इमेज पानावर दिसेल",
+      "videoQueued": "व्हिडिओ रांगेत आहे, व्हिडिओ पानावर दिसेल",
+      "projectOpened": "व्हिडिओ एडिटरमध्ये प्रोजेक्ट उघडला"
+    },
+    "defaults": {
+      "projectName": "शीर्षक नसलेला प्रोजेक्ट"
+    }
   }
 }

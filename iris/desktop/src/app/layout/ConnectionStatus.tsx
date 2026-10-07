@@ -70,13 +70,50 @@ export function ConnectionStatus({ isExpanded }: ConnectionStatusProps) {
     return null;
   };
 
+  // Compact (icon rail): the status text stays in the DOM as visually hidden
+  // text, and only update actions get a small icon button.
+  const renderCompactAction = () => {
+    if (isDownloaded) {
+      return (
+        <button onClick={installUpdate} className="dt-conn-action dt-conn-action-icon" title="Restart to update">
+          <RefreshCw className="w-3 h-3" />
+        </button>
+      );
+    }
+    if (isDownloading) {
+      const percent = downloadProgress ? Math.round(downloadProgress.percent) : 0;
+      return (
+        <span className="dt-conn-action dt-conn-action-icon" title={`${percent}%`}>
+          <Download className="w-3 h-3 animate-bounce" />
+        </span>
+      );
+    }
+    if (hasUpdate) {
+      return (
+        <button
+          onClick={downloadUpdate}
+          className="dt-conn-action dt-conn-action-icon"
+          title={`Update to ${status?.updateAvailable?.version}`}
+        >
+          <ArrowUpCircle className="w-3 h-3" />
+        </button>
+      );
+    }
+    return null;
+  };
+
   return (
-    <div className="dt-conn" title={tooltipText}>
+    <div className={`dt-conn${isExpanded ? '' : ' dt-conn-compact'}`} title={tooltipText}>
       <span className={`dt-conn-dot${isServerConnected ? '' : ' dt-conn-dot-err'}`} />
-      {isExpanded && (
+      {isExpanded ? (
         <>
           <span>{statusLabel}</span>
           {renderRightSlot()}
+        </>
+      ) : (
+        <>
+          <span className="sr-only">{statusLabel}</span>
+          {renderCompactAction()}
         </>
       )}
     </div>

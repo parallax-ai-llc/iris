@@ -121,7 +121,8 @@
     "bugReportSuccess": "Bug report submitted successfully",
     "bugReportError": "Failed to submit bug report",
     "bugReportRateLimit": "Too many reports. Please try again later.",
-    "bugReportThankYou": "Thank you for your report! We will review it shortly."
+    "bugReportThankYou": "Thank you for your report! We will review it shortly.",
+    "workWithAgent": "Work with Agent"
   },
   "editor": {
     "localFileWarning": {
@@ -177,5 +178,76 @@
   },
   "errors": {
     "unknown": "অজানা ত্রুটি ঘটেছে"
+  },
+  "assistant": {
+    "title": "সহকারী",
+    "inputLabel": "প্রম্পট",
+    "inputHint": "পাঠাতে Enter · নতুন লাইনের জন্য Shift+Enter",
+    "send": "পাঠান",
+    "stop": "থামান",
+    "clear": "কথোপকথন মুছুন",
+    "close": "সহকারী বন্ধ করুন",
+    "resize": "সহকারী প্যানেলের আকার বদলান",
+    "surface": {
+      "imageEditor": "ছবি সম্পাদক",
+      "videoEditor": "ভিডিও সম্পাদক",
+      "workspace": "ওয়ার্কস্পেস"
+    },
+    "empty": {
+      "imageEditor": "এই ছবিতে কী বদলাবেন?",
+      "videoEditor": "এই ভিডিও দিয়ে কী করবেন?",
+      "workspace": "কী বানাতে চান?"
+    },
+    "placeholder": {
+      "imageEditor": "সম্পাদনা লিখুন, যেমন ব্যাকগ্রাউন্ড সরাও",
+      "videoEditor": "সম্পাদনা লিখুন, যেমন ২ সেকেন্ডে শিরোনাম দাও",
+      "workspace": "যে ছবি বা ভিডিও বানাতে চান তা বর্ণনা করুন"
+    },
+    "examples": {
+      "imageEditor": {
+        "1": "ব্যাকগ্রাউন্ড সরিয়ে দাও",
+        "2": "একটু উষ্ণ আর উজ্জ্বল করো",
+        "3": "এই ছবিটি ২ গুণ আপস্কেল করো"
+      },
+      "videoEditor": {
+        "1": "০.৫ সেকেন্ডে ২ সেকেন্ডের জন্য মোটা হরফে 'Welcome' শিরোনাম দাও",
+        "2": "নীরব অংশগুলো কেটে দাও",
+        "3": "এই ভিডিওর ক্যাপশন তৈরি করো"
+      },
+      "workspace": {
+        "1": "কাঠের টেবিলে রাখা সিরামিক মগের প্রোডাক্ট ছবি বানাও",
+        "2": "সূর্যাস্তের সময় ঢেউয়ের ৫ সেকেন্ডের ভিডিও বানাও",
+        "3": "নতুন উল্লম্ব ভিডিও প্রজেক্ট শুরু করো"
+      }
+    },
+    "status": {
+      "running": "চলছে",
+      "done": "সম্পন্ন",
+      "failed": "ব্যর্থ"
+    },
+    "blocked": {
+      "selfHost": "সহকারী Parallax ক্লাউডে চলে, তাই সেলফ-হোস্টেড বিল্ডে পাওয়া যায় না।",
+      "signIn": "প্রম্পট দিয়ে নির্দেশ দিতে সাইন ইন করুন।",
+      "signInAction": "সহকারী ব্যবহার করতে সাইন ইন করুন"
+    },
+    "errors": {
+      "missingField": "\"{{field}}\" নেই",
+      "serverRequired": "এই মুহূর্তে Iris সার্ভারে সংযোগ করা যাচ্ছে না।",
+      "generationFailed": "তৈরির অনুরোধ ব্যর্থ হয়েছে।",
+      "projectFailed": "প্রজেক্ট তৈরি করা যায়নি।",
+      "projectOpenFailed": "প্রজেক্ট তৈরি হয়েছে, কিন্তু খোলা যায়নি।",
+      "notFound": "আইটেমটি পাওয়া যায়নি।",
+      "unknownPage": "অজানা স্ক্রিন: {{page}}",
+      "unsavedWorkflow": "আগে খোলা ওয়ার্কফ্লো সংরক্ষণ বা বন্ধ করুন।"
+    },
+    "notes": {
+      "imageReady": "ছবি তৈরি, ছবি পাতায় দেখুন",
+      "imageQueued": "ছবি সারিতে আছে, ছবি পাতায় দেখা যাবে",
+      "videoQueued": "ভিডিও সারিতে আছে, ভিডিও পাতায় দেখা যাবে",
+      "projectOpened": "ভিডিও সম্পাদকে প্রজেক্ট খোলা হয়েছে"
+    },
+    "defaults": {
+      "projectName": "শিরোনামহীন প্রজেক্ট"
+    }
   }
 }

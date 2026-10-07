@@ -61,7 +61,7 @@ import { probeVideoFile, probeAudioFile } from '@/features/video-editor/lib/prob
 import { ProxyGenerationModal } from './modals/ProxyGenerationModal';
 import { ProxyQueueIndicator } from './ProxyQueueIndicator';
 import { usePreRenderGate } from '@/features/video-editor/hooks/usePreRenderGate';
-import { VideoEditorChatPanel } from './Chat/VideoEditorChatPanel';
+import { setVideoChatModalHandlers } from '@/features/video-editor/chat/commandExecutor';
 
 // Allowed extensions for drag-and-drop import (extension-based: dropped OS files
 // may report an empty MIME type, so classify by extension like ImportMediaModal).
@@ -165,6 +165,17 @@ export const VideoEditor = memo(function VideoEditor({
   const [showAutoCaptions, setShowAutoCaptions] = useState(false);
   const [showAutoCut, setShowAutoCut] = useState(false);
   const [showAutoReframe, setShowAutoReframe] = useState(false);
+
+  // The app-wide assistant (left panel) can ask the video editor to open the
+  // silence-removal and auto-captions modals. Register the openers while the
+  // editor is mounted.
+  useEffect(() => {
+    setVideoChatModalHandlers({
+      openSilenceRemoval: onOpenSilenceRemoval,
+      openAutoCaptions: () => setShowAutoCaptions(true),
+    });
+    return () => setVideoChatModalHandlers({});
+  }, [onOpenSilenceRemoval]);
   // Sync export modal with external control
   useEffect(() => {
     if (openExportModal !== undefined && openExportModal !== showExport) {
@@ -1530,12 +1541,6 @@ export const VideoEditor = memo(function VideoEditor({
           </div>
         )}
       </div>
-
-      {/* AI chat assistant — right-docked panel (opened from the title bar button) */}
-      <VideoEditorChatPanel
-        onOpenSilenceRemoval={onOpenSilenceRemoval}
-        onOpenAutoCaptions={() => setShowAutoCaptions(true)}
-      />
 
       {/* Modals */}
       <KeyboardShortcutsModal

@@ -498,10 +498,11 @@
 .center { display: flex; align-items: center; justify-content: center; }
 
 /* ════════════════════════════════════════════════════════════
-   DESKTOP SHELL — title bar + nav rail + user chip
+   DESKTOP SHELL — title bar + [icon rail][assistant panel][page]
+   (the assistant panel styles live in features/assistant/components/assistant.css)
    ════════════════════════════════════════════════════════════ */
 .dt-shell { display: grid; grid-template-rows: 36px 1fr; height: 100vh; }
-.dt-shell-body { display: grid; grid-template-columns: 220px 1fr; min-height: 0; }
+.dt-shell-body { display: flex; min-height: 0; }
 .dt-shell-mac { grid-template-rows: 36px 1fr; }
 
 /* Title bar */
@@ -537,6 +538,19 @@
 }
 .dt-titlebar-icon:hover { background: var(--surf-2); color: var(--text-1); }
 .dt-titlebar-icon[data-active="true"] { background: var(--surf-2); color: var(--text-1); }
+.dt-titlebar-agent {
+  height: 26px; margin-right: 6px; padding: 0 11px 0 9px;
+  display: inline-flex; align-items: center; gap: 6px;
+  border-radius: 999px;
+  border: 1px solid var(--line-1);
+  background: var(--surf-1);
+  color: var(--text-2);
+  font-size: 12px; font-weight: 600; white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.dt-titlebar-agent:hover { background: var(--surf-2); color: var(--text-1); }
+.dt-titlebar-agent[data-active="true"] { background: var(--surf-2); color: var(--text-1); border-color: var(--line-2); }
 .dt-titlebar-win {
   width: 46px; height: 36px;
   display: inline-flex; align-items: center; justify-content: center;
@@ -549,25 +563,25 @@
 .dt-titlebar-win:hover { background: var(--surf-2); color: var(--text-1); }
 .dt-titlebar-win.close:hover { background: #e81123; color: #fff; }
 
-/* Nav rail */
+/* Nav rail — icon only (labels live in the tooltip + sr-only text) */
 .dt-rail {
-  display: flex; flex-direction: column;
+  display: flex; flex-direction: column; align-items: center;
+  width: 60px; flex-shrink: 0;
   border-right: 1px solid var(--line-1);
   background: linear-gradient(180deg, rgba(0,0,0,0.3), rgba(0,0,0,0.18));
-  padding: 12px 10px 10px 10px;
+  padding: 10px 8px;
   min-height: 0;
 }
-.dt-rail-items { display: flex; flex-direction: column; gap: 2px; flex: 1; overflow: auto; }
+.dt-rail-items { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; overflow: auto; width: 100%; }
 .dt-rail-item {
-  display: flex; align-items: center; gap: 12px;
-  height: 38px; padding: 0 12px;
-  border-radius: 9px;
-  font-size: 13px; font-weight: 500;
+  display: flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; padding: 0;
+  border-radius: 10px;
   color: var(--text-3);
   border: 1px solid transparent;
   transition: all 0.14s ease;
   position: relative;
-  width: 100%;
+  flex-shrink: 0;
   background: transparent;
   cursor: pointer;
 }
@@ -578,30 +592,22 @@
   border-color: rgba(167,139,250,0.18);
 }
 .dt-rail-item[data-active="true"]::before {
-  content: ""; position: absolute; left: -10px; top: 8px; bottom: 8px; width: 2px;
+  content: ""; position: absolute; left: -9px; top: 9px; bottom: 9px; width: 2px;
   background: var(--iris-grad); border-radius: 2px;
 }
-.dt-rail-item-kbd {
-  margin-left: auto;
-  font-family: var(--font-mono);
-  font-size: 10px; color: var(--text-4);
-  padding: 2px 5px; border-radius: 4px;
-  background: var(--surf-1); border: 1px solid var(--line-1);
-}
 .dt-rail-item-dimmed { opacity: 0.5; }
+.dt-rail-item-badge { position: absolute; top: 4px; right: 4px; width: 10px; height: 10px; color: var(--text-4); }
 
-/* User chip */
+/* User chip (avatar → profile, plus logout) */
 .dt-chip {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 6px 0;
   border-radius: 12px;
   background: var(--surf-1);
   border: 1px solid var(--line-2);
   margin-top: 8px;
   transition: all 0.15s;
-  cursor: pointer;
-  text-align: left;
-  width: 100%;
+  width: 44px;
 }
 .dt-chip:hover { background: var(--surf-2); border-color: var(--line-3); }
 .dt-chip[data-active="true"] {
@@ -615,11 +621,9 @@
   color: #0a0a0c; font-weight: 700; font-size: 12px;
   flex-shrink: 0;
   overflow: hidden;
+  border: none; padding: 0; cursor: pointer;
 }
 .dt-chip-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.dt-chip-meta { min-width: 0; flex: 1; line-height: 1.15; }
-.dt-chip-name { font-size: 12.5px; font-weight: 600; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.dt-chip-email { font-size: 10.5px; color: var(--text-4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--font-mono); }
 .dt-chip-icon {
   color: var(--text-3); width: 26px; height: 26px;
   display: inline-flex; align-items: center; justify-content: center;
@@ -646,6 +650,8 @@
   display: inline-flex; align-items: center; gap: 4px;
 }
 .dt-conn-action:hover { background: rgba(167,139,250,0.2); }
+.dt-conn-compact { justify-content: center; flex-direction: column; gap: 6px; padding: 4px 0 2px; }
+.dt-conn-compact .dt-conn-action-icon { margin-left: 0; padding: 3px; }
 
 @keyframes irisPulse {
   0%, 100% { opacity: 1; }
@@ -653,7 +659,7 @@
 }
 
 /* Main content area */
-.dt-main { overflow: auto; position: relative; min-height: 0; background: transparent; }
+.dt-main { flex: 1; min-width: 0; overflow: auto; position: relative; min-height: 0; background: transparent; }
 .dt-page { padding: 28px 32px 48px; max-width: 1200px; margin: 0 auto; }
 .dt-page-wide { padding: 28px 32px 48px; }
 .dt-main-flush { padding: 0; height: 100%; }

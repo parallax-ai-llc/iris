@@ -144,7 +144,8 @@
     "bugReportSuccess": "Informe de error enviado correctamente",
     "bugReportError": "No se pudo enviar el informe de error",
     "bugReportRateLimit": "Demasiados informes. Por favor, inténtalo de nuevo más tarde.",
-    "bugReportThankYou": "¡Gracias por tu informe! Lo revisaremos en breve."
+    "bugReportThankYou": "¡Gracias por tu informe! Lo revisaremos en breve.",
+    "workWithAgent": "Work with Agent"
   },
   "editor": {
     "localFileWarning": {
@@ -176,6 +177,77 @@
       "probingDimensions": "Comprobando resolución del video...",
       "probingDuration": "Comprobando duración del video...",
       "preparingEditor": "Preparando editor..."
+    }
+  },
+  "assistant": {
+    "title": "Asistente",
+    "inputLabel": "Instrucción",
+    "inputHint": "Enter para enviar · Shift+Enter para nueva línea",
+    "send": "Enviar",
+    "stop": "Detener",
+    "clear": "Borrar conversación",
+    "close": "Cerrar asistente",
+    "resize": "Cambiar el tamaño del panel del asistente",
+    "surface": {
+      "imageEditor": "Editor de imágenes",
+      "videoEditor": "Editor de video",
+      "workspace": "Espacio de trabajo"
+    },
+    "empty": {
+      "imageEditor": "¿Qué cambiamos en esta imagen?",
+      "videoEditor": "¿Qué hacemos con este video?",
+      "workspace": "¿Qué quieres crear?"
+    },
+    "placeholder": {
+      "imageEditor": "Describe un cambio, p. ej. quita el fondo",
+      "videoEditor": "Describe un cambio, p. ej. añade un título en el segundo 2",
+      "workspace": "Describe una imagen o un video para crear"
+    },
+    "examples": {
+      "imageEditor": {
+        "1": "Quita el fondo",
+        "2": "Hazla más cálida y un poco más luminosa",
+        "3": "Amplía esta imagen al doble"
+      },
+      "videoEditor": {
+        "1": "Añade un título en negrita 'Welcome' en 0.5 s durante 2 segundos",
+        "2": "Quita las partes en silencio",
+        "3": "Genera subtítulos para este video"
+      },
+      "workspace": {
+        "1": "Genera una foto de producto de una taza de cerámica sobre una mesa de madera",
+        "2": "Haz un video de 5 segundos de olas al atardecer",
+        "3": "Empieza un nuevo proyecto de video vertical"
+      }
+    },
+    "status": {
+      "running": "En curso",
+      "done": "Listo",
+      "failed": "Error"
+    },
+    "blocked": {
+      "selfHost": "El asistente funciona en la nube de Parallax, así que no está disponible en la versión autoalojada.",
+      "signIn": "Inicia sesión para dar instrucciones con texto.",
+      "signInAction": "Inicia sesión para usar el asistente"
+    },
+    "errors": {
+      "missingField": "Falta \"{{field}}\"",
+      "serverRequired": "Ahora mismo no se puede conectar con el servidor de Iris.",
+      "generationFailed": "La solicitud de generación falló.",
+      "projectFailed": "No se pudo crear el proyecto.",
+      "projectOpenFailed": "El proyecto se creó, pero no se pudo abrir.",
+      "notFound": "No se encontró ese elemento.",
+      "unknownPage": "Pantalla desconocida: {{page}}",
+      "unsavedWorkflow": "Guarda o cierra primero el flujo de trabajo abierto."
+    },
+    "notes": {
+      "imageReady": "Imagen lista en Imágenes",
+      "imageQueued": "Imagen en cola, aparecerá en Imágenes",
+      "videoQueued": "Video en cola, aparecerá en Videos",
+      "projectOpened": "Proyecto abierto en el editor de video"
+    },
+    "defaults": {
+      "projectName": "Proyecto sin título"
     }
   }
 }

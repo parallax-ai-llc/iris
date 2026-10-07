@@ -32,7 +32,6 @@ import { TitleBar } from '@/app/layout/TitleBar';
 import { FullScreenLayout } from '@/app/layout/FullScreenLayout';
 import { ConfirmDialog } from '@/shared/components/ui/Modal';
 import { PresetCreatorModal } from '@/features/tools/components/PresetCreatorModal';
-import { EditorChatPanel } from '@/features/image-editor/components/Chat/EditorChatPanel';
 import { downloadCmykTiff } from '@/features/image-editor/canvas/cmykExport';
 import { exportAsWebP, exportAsRgbTiff, exportAsBmp, downloadBlob, downloadBytes } from '@/features/image-editor/canvas/formatExport';
 import { useUIStore } from '@/shared/stores/ui.store';
@@ -1354,9 +1353,6 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
           <div className="flex items-center justify-end px-4 py-1.5 bg-zinc-900 border-t border-zinc-800">
             <ZoomControls />
           </div>
-
-          {/* AI Chat Panel */}
-          <EditorChatPanel />
         </div>
 
         {/* Right: Persistent Panel (Layers/History/Info) */}

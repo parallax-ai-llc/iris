@@ -50,6 +50,16 @@ const navItems: NavItem[] = [
   { id: 'storage', labelKey: 'nav.storage', icon: HardDrive, path: '/storage', requiresServer: true, selfHostHidden: true, kbd: '0' },
 ].filter((item) => !(IS_SELF_HOST && item.selfHostHidden));
 
+const platform = window.electronAPI?.app?.getPlatform?.() || navigator.platform || '';
+const isMac = platform === 'darwin' || navigator.platform?.startsWith('Mac');
+const MOD_KEY = isMac ? '⌘' : 'Ctrl+';
+
+/**
+ * Icon-only navigation rail. The left column belongs to the assistant panel
+ * (mounted next to this rail by the shell), so the rail stays narrow: labels
+ * and shortcuts move into the tooltip, and the label is kept as visually
+ * hidden text for screen readers and text-based selectors.
+ */
 export function Sidebar() {
   const { currentPage, setCurrentPage, openLogin } = useUIStore();
   const { user, logout } = useAuthStore();
@@ -60,65 +70,56 @@ export function Sidebar() {
 
   return (
     <aside className="dt-rail">
-      <nav className="dt-rail-items">
+      <nav className="dt-rail-items" aria-label="sidebar">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentPage === item.id;
           const isDimmed = item.requiresServer && !isServerConnected;
+          const label = t(item.labelKey as Parameters<typeof t>[0]);
+          const tooltip = [
+            item.kbd ? `${label} (${MOD_KEY}${item.kbd})` : label,
+            isDimmed ? t('editor:header.serverRequired') : null,
+          ]
+            .filter(Boolean)
+            .join(' · ');
           return (
             <button
               key={item.id}
               onClick={() => setCurrentPage(item.id)}
               className={`dt-rail-item${isDimmed ? ' dt-rail-item-dimmed' : ''}`}
               data-active={isActive}
-              title={isDimmed ? t('editor:header.serverRequired') : undefined}
+              aria-current={isActive ? 'page' : undefined}
+              title={tooltip}
             >
               <Icon className="w-[18px] h-[18px] flex-shrink-0" />
-              <span>{t(item.labelKey as Parameters<typeof t>[0])}</span>
-              {item.kbd && (
-                <span className="dt-rail-item-kbd">{item.kbd}</span>
-              )}
-              {isDimmed && (
-                <WifiOff className="w-3 h-3 ml-1" style={{ color: 'var(--text-4)' }} />
-              )}
+              <span className="sr-only">{label}</span>
+              {isDimmed && <WifiOff className="dt-rail-item-badge" aria-hidden />}
             </button>
           );
         })}
       </nav>
 
       {user && (
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={() => setCurrentPage('profile')}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              setCurrentPage('profile');
-            }
-          }}
-          className="dt-chip"
-          data-active={currentPage === 'profile'}
-        >
-          <div className="dt-chip-avatar">
+        <div className="dt-chip" data-active={currentPage === 'profile'}>
+          <button
+            type="button"
+            onClick={() => setCurrentPage('profile')}
+            className="dt-chip-avatar"
+            title={user.email ? `${user.name || 'User'} · ${user.email}` : user.name || 'User'}
+          >
             {user.profileImageThumbnail ? (
               <img src={user.profileImageThumbnail} alt={user.name || 'User'} />
             ) : (
               <span>{initial}</span>
             )}
-          </div>
-          <div className="dt-chip-meta">
-            <div className="dt-chip-name">{user.name || 'User'}</div>
-            <div className="dt-chip-email">{user.email}</div>
-          </div>
+            <span className="sr-only">{user.name || 'User'}</span>
+          </button>
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              logout();
-            }}
+            onClick={() => logout()}
             className="dt-chip-icon"
             title={t('buttons.logout')}
+            aria-label={t('buttons.logout')}
           >
             <LogOut className="w-3.5 h-3.5" />
           </button>
@@ -135,11 +136,11 @@ export function Sidebar() {
           title={t('buttons.login')}
         >
           <LogIn className="w-[18px] h-[18px] flex-shrink-0" />
-          <span>{t('buttons.login')}</span>
+          <span className="sr-only">{t('buttons.login')}</span>
         </button>
       )}
 
-      <ConnectionStatus isExpanded={true} />
+      <ConnectionStatus isExpanded={false} />
     </aside>
   );
 }

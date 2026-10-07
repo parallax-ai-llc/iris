@@ -150,7 +150,8 @@
     "bugReportSuccess": "Bug report submitted successfully",
     "bugReportError": "Failed to submit bug report",
     "bugReportRateLimit": "Too many reports. Please try again later.",
-    "bugReportThankYou": "Thank you for your report! We will review it shortly."
+    "bugReportThankYou": "Thank you for your report! We will review it shortly.",
+    "workWithAgent": "Work with Agent"
   },
   "editor": {
     "localFileWarning": {
@@ -182,6 +183,77 @@
       "probingDimensions": "Checking video resolution...",
       "probingDuration": "Checking video duration...",
       "preparingEditor": "Preparing editor..."
+    }
+  },
+  "assistant": {
+    "title": "Assistant",
+    "inputLabel": "Prompt",
+    "inputHint": "Enter to send · Shift+Enter for a new line",
+    "send": "Send",
+    "stop": "Stop",
+    "clear": "Clear conversation",
+    "close": "Close assistant",
+    "resize": "Resize assistant panel",
+    "surface": {
+      "imageEditor": "Image editor",
+      "videoEditor": "Video editor",
+      "workspace": "Workspace"
+    },
+    "empty": {
+      "imageEditor": "What should we change in this image?",
+      "videoEditor": "What should we do with this video?",
+      "workspace": "What do you want to make?"
+    },
+    "placeholder": {
+      "imageEditor": "Describe an edit, e.g. remove the background",
+      "videoEditor": "Describe an edit, e.g. add a title at 2s",
+      "workspace": "Describe an image or video to create"
+    },
+    "examples": {
+      "imageEditor": {
+        "1": "Remove the background",
+        "2": "Make it warmer and a bit brighter",
+        "3": "Upscale this image 2x"
+      },
+      "videoEditor": {
+        "1": "Add a bold 'Welcome' title at 0.5s for 2 seconds",
+        "2": "Remove the silent parts",
+        "3": "Generate captions for this video"
+      },
+      "workspace": {
+        "1": "Generate a product photo of a ceramic mug on a wooden table",
+        "2": "Make a 5 second video of waves at sunset",
+        "3": "Start a new vertical video project"
+      }
+    },
+    "status": {
+      "running": "Running",
+      "done": "Done",
+      "failed": "Failed"
+    },
+    "blocked": {
+      "selfHost": "The assistant runs on the Parallax cloud, so it is not available in the self-hosted build.",
+      "signIn": "Sign in to give instructions by prompt.",
+      "signInAction": "Sign in to use the assistant"
+    },
+    "errors": {
+      "missingField": "Missing \"{{field}}\"",
+      "serverRequired": "The Iris server is not reachable right now.",
+      "generationFailed": "The generation request failed.",
+      "projectFailed": "Could not create the project.",
+      "projectOpenFailed": "The project was created but could not be opened.",
+      "notFound": "Could not find that item.",
+      "unknownPage": "Unknown screen: {{page}}",
+      "unsavedWorkflow": "Save or close the open workflow first."
+    },
+    "notes": {
+      "imageReady": "Image ready in Images",
+      "imageQueued": "Image queued, it will show up in Images",
+      "videoQueued": "Video queued, it will show up in Videos",
+      "projectOpened": "Project opened in the video editor"
+    },
+    "defaults": {
+      "projectName": "Untitled project"
     }
   }
 }

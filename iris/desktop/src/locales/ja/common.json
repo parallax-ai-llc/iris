@@ -150,7 +150,8 @@
     "bugReportSuccess": "バグレポートが正常に送信されました",
     "bugReportError": "バグレポートの送信に失敗しました",
     "bugReportRateLimit": "バグレポートの送信回数が多すぎます。しばらくしてから再度お試しください。",
-    "bugReportThankYou": "レポートをお送りいただきありがとうございます！早急に確認いたします。"
+    "bugReportThankYou": "レポートをお送りいただきありがとうございます！早急に確認いたします。",
+    "workWithAgent": "Work with Agent"
   },
   "editor": {
     "localFileWarning": {
@@ -182,6 +183,77 @@
       "probingDimensions": "動画の解像度を確認中...",
       "probingDuration": "動画の長さを確認中...",
       "preparingEditor": "エディターを準備中..."
+    }
+  },
+  "assistant": {
+    "title": "アシスタント",
+    "inputLabel": "プロンプト",
+    "inputHint": "Enterで送信 · Shift+Enterで改行",
+    "send": "送信",
+    "stop": "停止",
+    "clear": "会話を消去",
+    "close": "アシスタントを閉じる",
+    "resize": "アシスタントパネルのサイズを変更",
+    "surface": {
+      "imageEditor": "画像エディター",
+      "videoEditor": "動画エディター",
+      "workspace": "ワークスペース"
+    },
+    "empty": {
+      "imageEditor": "この画像のどこを変えますか?",
+      "videoEditor": "この動画で何をしますか?",
+      "workspace": "何を作りますか?"
+    },
+    "placeholder": {
+      "imageEditor": "編集内容を入力(例: 背景を消して)",
+      "videoEditor": "編集内容を入力(例: 2秒にタイトルを入れて)",
+      "workspace": "作りたい画像や動画を説明してください"
+    },
+    "examples": {
+      "imageEditor": {
+        "1": "背景を消して",
+        "2": "少し暖かく、明るくして",
+        "3": "この画像を2倍にアップスケールして"
+      },
+      "videoEditor": {
+        "1": "0.5秒に太字の'Welcome'タイトルを2秒間入れて",
+        "2": "無音部分をカットして",
+        "3": "この動画の字幕を作って"
+      },
+      "workspace": {
+        "1": "木のテーブルに置いた陶器のマグカップの商品写真を作って",
+        "2": "夕暮れの波の5秒動画を作って",
+        "3": "縦型の動画プロジェクトを新しく始めて"
+      }
+    },
+    "status": {
+      "running": "実行中",
+      "done": "完了",
+      "failed": "失敗"
+    },
+    "blocked": {
+      "selfHost": "アシスタントはParallaxクラウドで動作するため、セルフホスト版では使えません。",
+      "signIn": "ログインすると、プロンプトで直接指示できます。",
+      "signInAction": "ログインしてアシスタントを使う"
+    },
+    "errors": {
+      "missingField": "\"{{field}}\" がありません",
+      "serverRequired": "現在Irisサーバーに接続できません。",
+      "generationFailed": "生成リクエストに失敗しました。",
+      "projectFailed": "プロジェクトを作成できませんでした。",
+      "projectOpenFailed": "プロジェクトは作成されましたが、開けませんでした。",
+      "notFound": "該当する項目が見つかりません。",
+      "unknownPage": "不明な画面です: {{page}}",
+      "unsavedWorkflow": "開いているワークフローを先に保存するか閉じてください。"
+    },
+    "notes": {
+      "imageReady": "画像が完成しました(画像ページ)",
+      "imageQueued": "画像の生成を開始しました。画像ページに表示されます",
+      "videoQueued": "動画の生成を開始しました。動画ページに表示されます",
+      "projectOpened": "動画エディターでプロジェクトを開きました"
+    },
+    "defaults": {
+      "projectName": "無題のプロジェクト"
     }
   }
 }
