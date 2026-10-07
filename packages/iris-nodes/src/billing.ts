@@ -36,8 +36,12 @@ const DEFINITIONS: Record<string, NodeDefinition> = {
 
 // ─── Price arithmetic ──────────────────────────────────────────────────────
 
-/** Provider cost is marked up by 10%. */
-export const BILLING_MARKUP_MULTIPLIER = 1.1;
+/**
+ * Provider cost is marked up by 40% (x1.4). This is the one markup every
+ * credit charge uses: core/server and core/llm import it, and apps that cannot
+ * import iris-nodes are pinned to it by drift tests.
+ */
+export const BILLING_MARKUP_MULTIPLIER = 1.4;
 /** $1 of (marked-up) provider cost = 100,000 tokens (= 100 credits). */
 export const BILLING_TOKENS_PER_USD = 100_000;
 /** Seconds billed for a per-second model when the length is not known. */

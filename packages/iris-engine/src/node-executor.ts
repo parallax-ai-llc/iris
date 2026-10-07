@@ -229,7 +229,7 @@ export class NodeExecutor {
       // Charge after a successful run, on the same params as the check.
       // Usage-based nodes (WEB, agent mode, LLM analyzers) are charged their
       // reported usage through the same price function (usdToBillingTokens:
-      // provider cost x 1.1, $1 = 100,000 tokens).
+      // provider cost x BILLING_MARKUP_MULTIPLIER, $1 = 100,000 tokens).
       let tokensConsumed = 0;
       if (isBilled) {
         const chargeParams = await this.resolveBillingParams(

@@ -23,11 +23,16 @@ export interface PricingTable {
   costs: Record<string, number>;
 }
 
-const MARKUP_MULTIPLIER = 1.1;
+/**
+ * Credit markup. Same value as iris-nodes `BILLING_MARKUP_MULTIPLIER` (the one
+ * markup every credit charge uses); kept local so this module stays import-free.
+ * core/server `iris-media-generation-pricing.test.ts` fails when they differ.
+ */
+export const MARKUP_MULTIPLIER = 1.4;
 const TOKENS_PER_DOLLAR = 100_000;
 
 /**
- * Token cost of one call to `modelId` (catalog price + 10% markup, $1 = 100K
+ * Token cost of one call to `modelId` (catalog price x1.4 markup, $1 = 100K
  * tokens). Models outside the catalog fall back to the flat node cost.
  * Same formula as core/server `calculateModelTokenCost`.
  */
