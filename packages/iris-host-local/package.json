@@ -1,6 +1,6 @@
 {
   "name": "iris-host-local",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "license": "SEE LICENSE IN LICENSE.md",
   "description": "Open-source local host for the Iris workflow engine. Run `npx iris-flow` to launch a local server, build workflows in the browser, and execute them with your own AI API keys (BYOK). No server, database, GCS, or billing required.",
@@ -33,7 +33,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "tsc -p tsconfig.json && node --test test/access-guard.test.mjs test/store-public.test.mjs test/asset-access.test.mjs test/node-cache-store.test.mjs",
     "start": "node dist/cli.js",
-    "clean": "rimraf dist"
+    "clean": "rimraf dist",
+    "pack:npm": "node scripts/pack-npm.mjs"
   },
   "dependencies": {
     "@fastify/cors": "^9.0.1",
@@ -46,6 +47,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "esbuild": "^0.21.5",
     "rimraf": "^5.0.0",
     "typescript": "^5.4.0"
   }

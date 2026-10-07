@@ -9,6 +9,10 @@
 Build node-graph AI workflows in your browser, then execute them locally with
 your own API keys (BYOK). No server, database, or cloud account required.
 
+<img src="assets/demo.gif" alt="Building and running an Iris workflow locally: a manual trigger feeds GPT 5.2, which writes an image prompt for Gemini 3.1 Flash Image" width="100%" />
+
+<sub>Real run on the local host (<code>pnpm iris-flow</code>) with BYOK keys. The model wait is sped up.</sub>
+
 </div>
 
 ---
@@ -54,7 +58,7 @@ You'll see:
 Open the printed URL — the editor (`/`) and API (`/api/iris/*`) are served on the
 same origin, and everything runs on your machine.
 
-Once published to npm you'll be able to skip the clone with `npx iris-flow`.
+Or skip the clone entirely: `npx iris-flow` (Node 20+).
 
 ### Bring your own keys (BYOK)
 

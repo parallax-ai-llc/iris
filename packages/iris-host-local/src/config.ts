@@ -132,8 +132,11 @@ export async function loadConfig(): Promise<ResolvedConfig> {
 
   const port = Number(process.env.PORT) || merged.port || DEFAULT_PORT;
   const host = process.env.IRIS_FLOW_HOST || merged.host || DEFAULT_HOST;
-  const dataDir =
-    process.env.IRIS_FLOW_DATA_DIR || merged.dataDir || defaultDataDir();
+  // Absolute so @fastify/static (which rejects relative roots) and every store
+  // agree on one location even when the setting is relative to the cwd.
+  const dataDir = path.resolve(
+    process.env.IRIS_FLOW_DATA_DIR || merged.dataDir || defaultDataDir(),
+  );
   const openBrowser =
     process.env.IRIS_FLOW_NO_OPEN === '1' ? false : merged.openBrowser !== false;
 

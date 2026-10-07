@@ -9,7 +9,7 @@ required — a fully self-hosted experience.
 
 ## Quick start
 
-### Option A — `npx` (once published to npm)
+### Option A — `npx` (Node 20+)
 
 ```bash
 npx iris-flow
