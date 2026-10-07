@@ -219,15 +219,18 @@ export class ReplicateAdapter extends BaseProviderAdapter {
         urls: { get: string };
       };
 
-      // Poll for completion
-      const result = await this.pollForCompletion<{ output: string[] }>(
+      // Poll for completion. FLUX.1 [schnell] returns an array of URLs, the
+      // FLUX.2 / 1.1 [pro] models a single URL string.
+      const result = await this.pollForCompletion<{
+        output: string | string[];
+      }>(
         async () => {
           const statusRes = await fetch(data.urls.get, {
             headers: { Authorization: `Bearer ${this.credentials!.apiKey}` },
           });
           const statusData = (await statusRes.json()) as {
             status: string;
-            output?: string[];
+            output?: string | string[];
             error?: string;
           };
 
@@ -244,7 +247,10 @@ export class ReplicateAdapter extends BaseProviderAdapter {
         { interval: 2000, maxWait: 120000 }
       );
 
-      const outputs = result.output.map(url => OutputBuilder.image({ url }));
+      const urls = Array.isArray(result.output)
+        ? result.output
+        : [result.output];
+      const outputs = urls.map(url => OutputBuilder.image({ url }));
       const modelInfo = this.getModelInfo(model);
       const cost = CostCalculator.forImages(
         modelInfo?.pricing?.outputCost ?? 0.003,
@@ -969,33 +975,11 @@ export class ReplicateAdapter extends BaseProviderAdapter {
         };
       }
 
-      const response = await fetch(
-        `${this.baseUrl}/models/${replicateModel}/predictions`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${this.credentials!.apiKey}`,
-            'Content-Type': 'application/json',
-            Prefer: 'wait',
-          },
-          body: JSON.stringify({ input }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        return ResponseBuilder.apiError(
-          this.name,
-          response.status,
-          (errorData as { detail?: string; error?: string }).detail ||
-            (errorData as { error?: string }).error ||
-            'Unknown error',
-          request.model,
-          startTime
-        );
-      }
-
-      const data = (await response.json()) as {
+      // ProPainter and MiniMax Remover are community models, and Replicate's
+      // /models/{owner}/{name}/predictions route only runs official models,
+      // so these go through /predictions with the model's latest version.
+      const version = await this.getLatestModelVersion(replicateModel);
+      const data = (await this.createPredictionWithVersion(version, input)) as {
         id: string;
         urls: { get: string };
         status: string;

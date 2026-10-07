@@ -475,6 +475,9 @@ export const IMAGE_MODEL_MAP: Record<string, string> = {
  * Map video model IDs to Replicate model paths
  */
 export const VIDEO_MODEL_MAP: Record<string, string> = {
+  // Kling 3.0 — text-to-video and image-to-video (start_image / end_image),
+  // same input shape as the 2.x models (replicate.com/kwaivgi/kling-v3-video).
+  'kling-3.0': 'kwaivgi/kling-v3-video',
   // Kling 2.x models
   'kling-2.6': 'kwaivgi/kling-v2.6',
   'kling-2.5': 'kwaivgi/kling-v2.5-turbo-pro',

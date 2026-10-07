@@ -37,6 +37,26 @@ const FAL_VIDEO_POLL_MAX_WAIT_MS = 30 * 60 * 1000;
 /** fal caps Seedance 2.5 reference-to-video at 50 mixed references per request. */
 const FAL_MAX_VIDEO_REFERENCES = 50;
 
+/**
+ * fal FLUX endpoints take `image_size` as a preset name (square_hd,
+ * landscape_16_9, …), not a ratio. Nodes store ratios like '16:9', which fal
+ * rejects, so ratios are mapped to the closest preset. A preset name passes
+ * through unchanged.
+ */
+const FAL_IMAGE_SIZE_PRESETS: Record<string, string> = {
+  '1:1': 'square_hd',
+  '16:9': 'landscape_16_9',
+  '9:16': 'portrait_16_9',
+  '4:3': 'landscape_4_3',
+  '3:4': 'portrait_4_3',
+};
+
+function toFalImageSize(aspectRatio: unknown): string {
+  if (typeof aspectRatio !== 'string' || !aspectRatio) return 'square_hd';
+  if (!aspectRatio.includes(':')) return aspectRatio;
+  return FAL_IMAGE_SIZE_PRESETS[aspectRatio] ?? 'square_hd';
+}
+
 export class FalAdapter extends BaseProviderAdapter {
   readonly name: ProviderName = 'fal';
   protected baseUrl = 'https://fal.run';
@@ -367,7 +387,7 @@ export class FalAdapter extends BaseProviderAdapter {
         },
         body: JSON.stringify({
           prompt,
-          image_size: parameters.aspectRatio || 'square_hd',
+          image_size: toFalImageSize(parameters.aspectRatio),
           num_images: parameters.numOutputs || 1,
           enable_safety_checker: true,
         }),
@@ -439,7 +459,7 @@ export class FalAdapter extends BaseProviderAdapter {
       // Use flux-dev/canny or flux-dev/depth for image-to-image
       // For basic img2img, we use the redux model
       const img2imgModel = model.includes('pro')
-        ? 'fal-ai/flux-pro/redux'
+        ? 'fal-ai/flux-pro/v1.1/redux'
         : 'fal-ai/flux/schnell/redux';
 
       const response = await fetch(`${this.baseUrl}/${img2imgModel}`, {
@@ -451,7 +471,7 @@ export class FalAdapter extends BaseProviderAdapter {
         body: JSON.stringify({
           prompt: prompt || 'Generate a variation of this image',
           image_url: imageUrl,
-          image_size: parameters.aspectRatio || 'square_hd',
+          image_size: toFalImageSize(parameters.aspectRatio),
           num_images: parameters.numOutputs || 1,
           strength: parameters.strength || 0.75,
           enable_safety_checker: true,

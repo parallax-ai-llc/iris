@@ -885,7 +885,7 @@ Do NOT modify facial features or hairstyle.`;
     startTime: number
   ): Promise<AIResponse> {
     const { prompt, systemPrompt, parameters = {} } = request;
-    const model = request.model || 'gemini-2.0-flash-exp';
+    const model = request.model || 'gemini-3.8-flash';
 
     // Build request body
     const requestBody: Record<string, unknown> = {
@@ -900,15 +900,11 @@ Do NOT modify facial features or hairstyle.`;
       requestBody.systemInstruction = { parts: [{ text: systemPrompt }] };
     }
 
-    // Add web search grounding if enabled (Google uses google_search_retrieval)
+    // Web search grounding. `google_search_retrieval` only ever worked on the
+    // Gemini 1.5 models (all shut down); Gemini 2.0 and later take the
+    // `google_search` tool instead.
     if (parameters.enableWebSearch) {
-      requestBody.tools = [
-        {
-          google_search_retrieval: {
-            dynamic_retrieval_config: { mode: 'MODE_DYNAMIC' },
-          },
-        },
-      ];
+      requestBody.tools = [{ google_search: {} }];
     }
 
     const response = await fetch(
@@ -940,7 +936,11 @@ Do NOT modify facial features or hairstyle.`;
       };
     };
 
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    // Grounded and thinking responses can split the answer across parts.
+    const text =
+      data.candidates?.[0]?.content?.parts
+        ?.map(part => part.text ?? '')
+        .join('') || '';
     const inputTokens = data.usageMetadata?.promptTokenCount || 0;
     const outputTokens = data.usageMetadata?.candidatesTokenCount || 0;
     const totalTokens = data.usageMetadata?.totalTokenCount || 0;
@@ -1142,7 +1142,11 @@ Do NOT modify facial features or hairstyle.`;
       };
     };
 
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    // Grounded and thinking responses can split the answer across parts.
+    const text =
+      data.candidates?.[0]?.content?.parts
+        ?.map(part => part.text ?? '')
+        .join('') || '';
     const inputTokens = data.usageMetadata?.promptTokenCount || 0;
     const outputTokens = data.usageMetadata?.candidatesTokenCount || 0;
     const totalTokens = data.usageMetadata?.totalTokenCount || 0;

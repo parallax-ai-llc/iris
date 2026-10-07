@@ -47,6 +47,69 @@ export class OpenAIAdapter extends BaseProviderAdapter {
   ];
 
   readonly models: ModelInfo[] = [
+    // GPT-6 family (developers.openai.com/api/docs/models, checked
+    // 2026-10-07): Chat Completions supported, 128K max output. Reasoning
+    // models, so the request uses max_completion_tokens and no temperature.
+    {
+      id: 'gpt-6-astra',
+      name: 'GPT-6 Astra',
+      provider: 'openai',
+      capabilities: ['text-to-text', 'image-analysis', 'document-analysis'],
+      inputTypes: ['text', 'image', 'document'],
+      outputTypes: ['text'],
+      constraints: { maxTokens: 128000 },
+      pricing: {
+        unit: 'token',
+        inputCost: 10 / 1_000_000,
+        outputCost: 50 / 1_000_000,
+        currency: 'USD',
+      },
+      defaultParameters: { maxTokens: 32000 },
+    },
+    {
+      id: 'gpt-6.1-sol',
+      name: 'GPT-6.1 Sol',
+      provider: 'openai',
+      capabilities: ['text-to-text', 'image-analysis', 'document-analysis'],
+      inputTypes: ['text', 'image', 'document'],
+      outputTypes: ['text'],
+      constraints: { maxTokens: 128000 },
+      pricing: {
+        unit: 'token',
+        inputCost: 2 / 1_000_000,
+        outputCost: 10 / 1_000_000,
+        currency: 'USD',
+      },
+      defaultParameters: { maxTokens: 32000 },
+    },
+    {
+      id: 'gpt-6-luna',
+      name: 'GPT-6 Luna',
+      provider: 'openai',
+      capabilities: ['text-to-text', 'image-analysis', 'document-analysis'],
+      inputTypes: ['text', 'image', 'document'],
+      outputTypes: ['text'],
+      constraints: { maxTokens: 128000 },
+      pricing: {
+        unit: 'token',
+        inputCost: 0.1 / 1_000_000,
+        outputCost: 0.5 / 1_000_000,
+        currency: 'USD',
+      },
+      defaultParameters: { maxTokens: 32000 },
+    },
+    // Replacement for whisper-1 (shut down 2027-02-26) on /audio/transcriptions.
+    {
+      id: 'gpt-transcribe',
+      name: 'GPT Transcribe',
+      provider: 'openai',
+      capabilities: ['speech-to-text'],
+      inputTypes: ['audio'],
+      outputTypes: ['text'],
+      constraints: {
+        supportedFormats: ['mp3', 'mp4', 'mpeg', 'mpga', 'm4a', 'wav', 'webm'],
+      },
+    },
     {
       id: 'gpt-4o',
       name: 'GPT-4o',
@@ -450,10 +513,9 @@ export class OpenAIAdapter extends BaseProviderAdapter {
       messages.push({ role: 'user', content: request.prompt || '' });
     }
 
-    const isGpt5OrNewer =
-      request.model.startsWith('gpt-5') ||
-      request.model.startsWith('o1') ||
-      request.model.startsWith('o3');
+    // GPT-5 and later (gpt-5*, gpt-6*, …) and the o-series are reasoning
+    // models: max_completion_tokens instead of max_tokens, default temperature.
+    const isGpt5OrNewer = /^(?:gpt-(?:[5-9]|\d{2,})|o\d)/.test(request.model);
     const defaultMaxTokens = isGpt5OrNewer ? 32000 : 16000;
     const maxTokensParam = isGpt5OrNewer
       ? {

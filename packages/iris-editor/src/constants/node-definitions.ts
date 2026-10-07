@@ -175,6 +175,11 @@ export const PROVIDER_OPTIONS = [
   { value: 'typesafe', label: 'TypeSafe (Jev)' },
 ];
 
+// Every entry here must be callable by the engine adapter for that provider
+// (packages/iris-engine/src/providers). Retired or deprecated provider models
+// are removed rather than kept "for old workflows": a saved workflow keeps its
+// model id in the node config and still runs while the provider serves it.
+// Last checked against the providers' model and deprecation pages: 2026-10-07.
 export const MODEL_OPTIONS: Record<string, Record<string, Array<{ value: string; label: string }>>> = {
   // AI_DECISION — decision-only model; not in the agents store, so the
   // selector falls back to this static list.
@@ -183,33 +188,37 @@ export const MODEL_OPTIONS: Record<string, Record<string, Array<{ value: string;
   },
   'text-to-text': {
     openai: [
-      { value: 'gpt-5.2', label: 'GPT 5.2' },
+      { value: 'gpt-6-astra', label: 'GPT-6 Astra' },
+      { value: 'gpt-6.1-sol', label: 'GPT-6.1 Sol' },
+      { value: 'gpt-6-luna', label: 'GPT-6 Luna' },
+      { value: 'gpt-5.2', label: 'GPT-5.2' },
       { value: 'gpt-4o', label: 'GPT-4o' },
       { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
     ],
     anthropic: [
-      { value: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
-      { value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet' },
-      { value: 'claude-3-5-haiku-20241022', label: 'Claude 3.5 Haiku' },
+      { value: 'claude-fable-5-1', label: 'Claude Fable 5.1' },
+      { value: 'claude-opus-5-5', label: 'Claude Opus 5.5' },
+      { value: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5' },
+      { value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5' },
     ],
     google: [
-      { value: 'gemini-2.0-flash-exp', label: 'Gemini 2.0 Flash' },
-      { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
-      { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
+      { value: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash' },
+      { value: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (Preview)' },
+      { value: 'gemini-3.5-flash-lite', label: 'Gemini 3.5 Flash-Lite' },
     ],
     xai: [
-      { value: 'grok-3', label: 'Grok 3' },
-      { value: 'grok-3-mini', label: 'Grok 3 Mini' },
+      { value: 'grok-4.7', label: 'Grok 4.7' },
+      { value: 'grok-4.3', label: 'Grok 4.3' },
     ],
   },
   'text-to-image': {
     openai: [
-      { value: 'gpt-image-1', label: 'GPT Image 1' },
-      { value: 'gpt-image-2', label: 'GPT Image 2' },
-      { value: 'gpt-image-2.5-flare', label: 'GPT Image 2.5 Flare' },
       { value: 'gpt-image-2.5-sunburst', label: 'GPT Image 2.5 Sunburst' },
+      { value: 'gpt-image-2.5-flare', label: 'GPT Image 2.5 Flare' },
+      { value: 'gpt-image-2', label: 'GPT Image 2' },
     ],
     google: [
+      { value: 'gemini-nano-banana-2.1', label: 'Nano Banana 2.1' },
       { value: 'gemini-3-pro-image', label: 'Gemini 3 Pro Image' },
       { value: 'gemini-3.1-flash-image', label: 'Gemini 3.1 Flash Image' },
     ],
@@ -221,94 +230,95 @@ export const MODEL_OPTIONS: Record<string, Record<string, Array<{ value: string;
       { value: 'sd3.5-large-turbo', label: 'SD 3.5 Large Turbo' },
       { value: 'sd3.5-medium', label: 'SD 3.5 Medium' },
     ],
+    // fal endpoint ids — the adapter POSTs to https://fal.run/<id>.
     fal: [
-      { value: 'flux-pro', label: 'Flux Pro' },
-      { value: 'flux-dev', label: 'Flux Dev' },
-      { value: 'flux-schnell', label: 'Flux Schnell' },
+      { value: 'fal-ai/flux-2-pro', label: 'FLUX.2 [pro]' },
+      { value: 'fal-ai/flux-2', label: 'FLUX.2 [dev]' },
+      { value: 'fal-ai/flux/schnell', label: 'FLUX.1 [schnell]' },
     ],
+    // Replicate official models (runnable without a version id).
     replicate: [
-      { value: 'sdxl-lightning', label: 'SDXL Lightning' },
-      { value: 'sdxl', label: 'SDXL' },
+      { value: 'black-forest-labs/flux-2-pro', label: 'FLUX.2 [pro]' },
+      { value: 'black-forest-labs/flux-schnell', label: 'FLUX.1 [schnell]' },
     ],
   },
   'image-to-image': {
+    openai: [
+      { value: 'gpt-image-2.5-sunburst', label: 'GPT Image 2.5 Sunburst' },
+      { value: 'gpt-image-2.5-flare', label: 'GPT Image 2.5 Flare' },
+    ],
+    google: [
+      { value: 'gemini-3-pro-image', label: 'Gemini 3 Pro Image' },
+      { value: 'gemini-3.1-flash-image', label: 'Gemini 3.1 Flash Image' },
+    ],
     stability: [
       { value: 'sd3.5-large', label: 'SD 3.5 Large' },
       { value: 'sd3.5-medium', label: 'SD 3.5 Medium' },
     ],
     fal: [
-      { value: 'flux-dev', label: 'Flux Dev' },
+      { value: 'fal-ai/flux/schnell/redux', label: 'FLUX.1 [schnell] Redux' },
     ],
   },
   'inpaint': {
     google: [
-      { value: 'gemini-2.5-flash-preview-05-20', label: 'Gemini 2.5 Flash Image' },
+      { value: 'gemini-3-pro-image', label: 'Gemini 3 Pro Image' },
+      { value: 'gemini-3.1-flash-image', label: 'Gemini 3.1 Flash Image' },
     ],
     stability: [
       { value: 'sd3.5-large', label: 'SD 3.5 Large' },
     ],
-    fal: [
-      { value: 'flux-fill', label: 'Flux Fill' },
-    ],
     replicate: [
-      { value: 'sdxl-inpaint', label: 'SDXL Inpaint' },
+      { value: 'black-forest-labs/flux-fill-pro', label: 'FLUX.1 Fill [pro]' },
     ],
   },
   'text-to-video': {
-    runway: [
-      { value: 'gen3a_turbo', label: 'Gen-3 Alpha Turbo' },
-      { value: 'gen3a', label: 'Gen-3 Alpha' },
-    ],
+    // Kling runs through Replicate (see mapKlingModelToReplicate).
     kling: [
+      { value: 'kling-3.0', label: 'Kling 3.0' },
       { value: 'kling-2.6', label: 'Kling 2.6' },
-      { value: 'kling-2.5', label: 'Kling 2.5' },
-      { value: 'kling-2.5-turbo', label: 'Kling 2.5 Turbo' },
+      { value: 'kling-2.5-turbo', label: 'Kling 2.5 Turbo Pro' },
       { value: 'kling-2.1', label: 'Kling 2.1' },
       { value: 'kling-2.0', label: 'Kling 2.0' },
     ],
     luma: [
       { value: 'ray-2', label: 'Ray 2' },
-      { value: 'ray-1.6', label: 'Ray 1.6' },
+      { value: 'ray-flash-2', label: 'Ray 2 Flash' },
     ],
     google: [
       { value: 'veo-3.1-generate-001', label: 'Veo 3.1' },
     ],
     fal: [
-      { value: 'minimax-video-01', label: 'MiniMax Video' },
+      { value: 'seedance-2.5', label: 'Seedance 2.5' },
     ],
   },
   'image-to-video': {
     kling: [
-      { value: 'kling-2.6', label: 'Kling 2.6 (First/Last Frame)' },
-      { value: 'kling-2.5', label: 'Kling 2.5 (First/Last Frame)' },
-      { value: 'kling-2.5-turbo', label: 'Kling 2.5 Turbo' },
+      { value: 'kling-3.0', label: 'Kling 3.0' },
+      { value: 'kling-2.6', label: 'Kling 2.6' },
+      { value: 'kling-2.5-turbo', label: 'Kling 2.5 Turbo Pro' },
       { value: 'kling-2.1', label: 'Kling 2.1' },
       { value: 'kling-2.0', label: 'Kling 2.0' },
-      { value: 'kling-1.6-standard', label: 'Kling 1.6 Standard' },
     ],
   },
   'text-to-speech': {
-    openai: [
-      { value: 'tts-1', label: 'TTS-1' },
-      { value: 'tts-1-hd', label: 'TTS-1 HD' },
-    ],
     elevenlabs: [
       { value: 'eleven_multilingual_v2', label: 'Multilingual v2' },
-      { value: 'eleven_turbo_v2', label: 'Turbo v2' },
+      { value: 'eleven_flash_v2_5', label: 'Flash v2.5' },
     ],
     google: [
       { value: 'gemini-3.8-flash-tts', label: 'Gemini 3.8 Flash TTS' },
+      { value: 'gemini-3.8-flash-lite-tts', label: 'Gemini 3.8 Flash-Lite TTS' },
     ],
   },
   'speech-to-text': {
     openai: [
-      { value: 'whisper-1', label: 'Whisper' },
+      { value: 'gpt-transcribe', label: 'GPT Transcribe' },
     ],
     google: [
       { value: 'chirp', label: 'Chirp' },
     ],
     elevenlabs: [
-      { value: 'scribe_v1', label: 'Scribe v1' },
+      { value: 'scribe_v2', label: 'Scribe v2' },
     ],
   },
   'motion-control': {
@@ -329,11 +339,9 @@ export const MODEL_OPTIONS: Record<string, Record<string, Array<{ value: string;
   },
   'text-to-music': {
     suno: [
-      { value: 'suno-v5', label: 'Suno V5 (Latest)' },
-      { value: 'suno-v4.5-all', label: 'Suno V4.5 All' },
-      { value: 'suno-v4.5-plus', label: 'Suno V4.5 Plus' },
-      { value: 'suno-v4.5', label: 'Suno V4.5' },
-      { value: 'suno-v4', label: 'Suno V4' },
+      { value: 'suno-v6', label: 'Suno V6' },
+      { value: 'suno-v6-wild', label: 'Suno V6 Wild' },
+      { value: 'suno-v6-mini', label: 'Suno V6 Mini' },
     ],
   },
 };

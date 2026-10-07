@@ -45,7 +45,15 @@ interface SunoGenerateRequest {
   /** Vocal gender: 'm' for male, 'f' for female */
   vocalGender?: 'm' | 'f';
   /** Model version */
-  model?: 'V4' | 'V4_5' | 'V4_5PLUS' | 'V4_5ALL' | 'V5';
+  model?:
+    | 'V4'
+    | 'V4_5'
+    | 'V4_5PLUS'
+    | 'V4_5ALL'
+    | 'V5'
+    | 'V6'
+    | 'V6_WILD'
+    | 'V6_MINI';
   /** Required by Suno; unused here because this adapter polls for the result */
   callBackUrl?: string;
 }
@@ -117,6 +125,58 @@ export class SunoAdapter extends BaseProviderAdapter {
   readonly capabilities: AICapability[] = ['text-to-music'];
 
   readonly models: ModelInfo[] = [
+    // V6 series — the current models. sunoapi.org marks V4 through V5_5 as
+    // deprecated ("remain available only for backward compatibility"),
+    // docs.sunoapi.org/suno-api/generate-music, checked 2026-10-07. V6 limits:
+    // style 1000, lyrics 5000, title 80 characters.
+    {
+      id: 'suno-v6',
+      name: 'Suno V6',
+      provider: 'suno',
+      capabilities: ['text-to-music'],
+      inputTypes: ['text'],
+      outputTypes: ['audio'],
+      constraints: { maxTokens: 5000, supportedFormats: ['mp3'] },
+      pricing: {
+        unit: 'request',
+        inputCost: 0,
+        outputCost: SUNO_COST_PER_TRACK,
+        currency: 'USD',
+      },
+      defaultParameters: { customMode: false, instrumental: false },
+    },
+    {
+      id: 'suno-v6-wild',
+      name: 'Suno V6 Wild',
+      provider: 'suno',
+      capabilities: ['text-to-music'],
+      inputTypes: ['text'],
+      outputTypes: ['audio'],
+      constraints: { maxTokens: 5000, supportedFormats: ['mp3'] },
+      pricing: {
+        unit: 'request',
+        inputCost: 0,
+        outputCost: SUNO_COST_PER_TRACK,
+        currency: 'USD',
+      },
+      defaultParameters: { customMode: false, instrumental: false },
+    },
+    {
+      id: 'suno-v6-mini',
+      name: 'Suno V6 Mini',
+      provider: 'suno',
+      capabilities: ['text-to-music'],
+      inputTypes: ['text'],
+      outputTypes: ['audio'],
+      constraints: { maxTokens: 5000, supportedFormats: ['mp3'] },
+      pricing: {
+        unit: 'request',
+        inputCost: 0,
+        outputCost: SUNO_COST_PER_TRACK,
+        currency: 'USD',
+      },
+      defaultParameters: { customMode: false, instrumental: false },
+    },
     {
       id: 'suno-v4',
       name: 'Suno V4',
@@ -495,8 +555,14 @@ export class SunoAdapter extends BaseProviderAdapter {
         return 'V4_5ALL';
       case 'suno-v5':
         return 'V5';
+      case 'suno-v6':
+        return 'V6';
+      case 'suno-v6-wild':
+        return 'V6_WILD';
+      case 'suno-v6-mini':
+        return 'V6_MINI';
       default:
-        return 'V4_5'; // Default to V4.5
+        return 'V6'; // sunoapi.org's default model
     }
   }
 

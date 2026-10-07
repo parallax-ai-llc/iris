@@ -220,7 +220,8 @@ export class XAIAdapter extends BaseProviderAdapter {
     startTime: number
   ): Promise<AIResponse> {
     const { prompt, systemPrompt, inputImage, parameters = {} } = request;
-    const model = request.model || 'grok-3';
+    // grok-3 was retired 2026-05-15 (docs.x.ai migration guide).
+    const model = request.model || 'grok-4.3';
 
     const messages: Array<{
       role: string;

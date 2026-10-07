@@ -201,6 +201,12 @@ export class StabilityAdapter extends BaseProviderAdapter {
     const formData = new FormData();
     formData.append('prompt', prompt || '');
     formData.append('output_format', 'png');
+    // The sd3 endpoint picks the model from the `model` field (sd3.5-large,
+    // sd3.5-large-turbo, sd3.5-medium) and falls back to sd3.5-large without
+    // it, so Turbo and Medium were silently generated with Large before.
+    if (endpoint.endsWith('/sd3') && /^sd3\.5-/.test(model)) {
+      formData.append('model', model);
+    }
     formData.append(
       'aspect_ratio',
       mapToStabilityAspectRatio((parameters.aspectRatio as string) || '1:1')

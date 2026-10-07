@@ -154,7 +154,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
         label: 'Image Generator',
         positionX: 400,
         positionY: 200,
-        config: { provider: 'fal', model: 'flux-pro', aspectRatio: '1:1' },
+        config: { provider: 'fal', model: 'fal-ai/flux-2-pro', aspectRatio: '1:1' },
       },
       {
         nodeId: 'upscale-1',
@@ -314,7 +314,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
         label: 'Image Generator',
         positionX: 400,
         positionY: 200,
-        config: { provider: 'fal', model: 'flux-pro', aspectRatio: '16:9' },
+        config: { provider: 'fal', model: 'fal-ai/flux-2-pro', aspectRatio: '16:9' },
       },
       {
         nodeId: 'img2video-1',
@@ -322,7 +322,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
         label: 'Image to Video',
         positionX: 700,
         positionY: 200,
-        config: { provider: 'kling', model: 'kling-2.5', duration: '5', aspectRatio: '16:9' },
+        config: { provider: 'kling', model: 'kling-2.5-turbo', duration: '5', aspectRatio: '16:9' },
       },
     ],
     presetEdges: [
@@ -373,7 +373,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
         label: 'Image to Video',
         positionX: 400,
         positionY: 200,
-        config: { provider: 'kling', model: 'kling-2.5', duration: '5', aspectRatio: '16:9' },
+        config: { provider: 'kling', model: 'kling-2.5-turbo', duration: '5', aspectRatio: '16:9' },
       },
       {
         nodeId: 'storage-1',
@@ -425,7 +425,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
         label: 'Text to Video',
         positionX: 400,
         positionY: 150,
-        config: { provider: 'runway', model: 'gen3a_turbo', duration: '10', aspectRatio: '16:9' },
+        config: { provider: 'kling', model: 'kling-2.5-turbo', duration: '10', aspectRatio: '16:9' },
       },
       {
         nodeId: 'gen-music-1',
@@ -433,7 +433,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
         label: 'Text to Music',
         positionX: 400,
         positionY: 350,
-        config: { provider: 'suno', model: 'suno-v4.5', instrumental: false },
+        config: { provider: 'suno', model: 'suno-v6', instrumental: false },
       },
       {
         nodeId: 'merge-1',
@@ -505,7 +505,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
         positionY: 200,
         config: {
           provider: 'anthropic',
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-5-5',
           systemPrompt: 'You are an SEO expert. Create a detailed blog post outline with H2 and H3 headings. Include SEO keywords naturally.',
           temperature: 0.7,
         },
@@ -518,7 +518,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
         positionY: 200,
         config: {
           provider: 'anthropic',
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-5-5',
           systemPrompt: 'You are a professional content writer. Write a complete, engaging blog post based on the given outline. Use markdown formatting.',
           temperature: 0.8,
         },
@@ -649,7 +649,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
         positionY: 200,
         config: {
           provider: 'anthropic',
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-5-5',
           systemPrompt: 'You are a podcast scriptwriter. Write a natural, conversational podcast script for a single host. Include intro, main content, and outro. Use natural speech patterns.',
           temperature: 0.8,
         },
@@ -839,7 +839,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
         positionY: 200,
         config: {
           provider: 'anthropic',
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-5-5',
           systemPrompt: 'You are a content generation assistant. Process the incoming webhook data and generate appropriate content based on the payload. Output structured, professional content.',
           temperature: 0.7,
         },
@@ -1280,7 +1280,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
         positionY: 300,
         config: {
           provider: 'anthropic',
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-5-5',
           systemPrompt: 'You are a pricing strategist. Given competitor changes, recommend a concise price/promo response per item.',
           temperature: 0.5,
         },
@@ -1365,7 +1365,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
         positionY: 300,
         config: {
           provider: 'anthropic',
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-5-5',
           systemPrompt:
             'You are a research analyst. Plan, then search, scrape, and read sources until you have enough evidence to write a sourced market/competitor report. Cite every claim.',
           temperature: 0.4,
@@ -1396,7 +1396,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
         label: 'Long-Context Q&A (tool)',
         positionX: 640,
         positionY: 520,
-        config: { provider: 'anthropic', model: 'claude-sonnet-4-20250514', enableCache: true, temperature: 0.2 },
+        config: { provider: 'anthropic', model: 'claude-sonnet-5-5', enableCache: true, temperature: 0.2 },
       },
       {
         nodeId: 'doc-grep-1',
@@ -1414,7 +1414,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
         positionY: 300,
         config: {
           provider: 'anthropic',
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-5-5',
           schema:
             '{ "type": "object", "properties": { "title": {"type":"string"}, "summary": {"type":"string"}, "sections": {"type":"array","items":{"type":"object","properties":{"heading":{"type":"string"},"body":{"type":"string"},"sources":{"type":"array","items":{"type":"string"}}}}} }, "required": ["title","summary","sections"] }',
           instruction: 'Structure the agent report into title, summary, and cited sections.',
@@ -1566,7 +1566,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
         positionY: 320,
         config: {
           provider: 'anthropic',
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-5-5',
           systemPrompt:
             'Write a concise, persuasive product description (80-120 words) from the notes provided. Be specific and concrete. Plain text only.',
           temperature: 0.7,
@@ -1605,7 +1605,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
         positionY: 320,
         config: {
           provider: 'anthropic',
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-5-5',
           systemPrompt:
             'Rewrite the product description below so it is specific, concrete and 80-120 words. Keep every factual claim. Return only the rewritten text.',
           temperature: 0.5,
