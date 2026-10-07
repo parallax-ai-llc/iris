@@ -25,8 +25,9 @@ export function createLocalT(): (
     const val = dotGet(enIris, stripped);
     if (typeof val === 'string') {
       if (params && typeof params === 'object') {
-        return val.replace(/\{(\w+)\}/g, (_, k) =>
-          String((params as Record<string, unknown>)[k] ?? ''),
+        // The dictionary uses {{name}}; accept {name} too.
+        return val.replace(/\{\{\s*(\w+)\s*\}\}|\{(\w+)\}/g, (_, k2, k1) =>
+          String((params as Record<string, unknown>)[k2 ?? k1] ?? ''),
         );
       }
       return val;

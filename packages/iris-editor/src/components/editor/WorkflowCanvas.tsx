@@ -398,7 +398,7 @@ function CanvasInner() {
               backdropFilter: 'blur(12px)',
             }}
           >
-            <span>{t('iris.canvas.dragToAdd') || '드래그해서 추가'}</span>
+            <span>{t('iris.canvas.dragToAdd') || 'Drag to add'}</span>
             <span style={{ color: 'var(--color-iris-text-5, rgba(255,255,255,0.22))' }}>·</span>
             <kbd
               style={{
@@ -410,7 +410,7 @@ function CanvasInner() {
             >
               Space
             </kbd>
-            <span>{t('iris.canvas.pan') || '이동'}</span>
+            <span>{t('iris.canvas.pan') || 'Pan'}</span>
             <span style={{ color: 'var(--color-iris-text-5, rgba(255,255,255,0.22))' }}>·</span>
             <kbd
               style={{
@@ -422,7 +422,7 @@ function CanvasInner() {
             >
               ⌘ ↵
             </kbd>
-            <span>{t('iris.canvas.run') || '실행'}</span>
+            <span>{t('iris.canvas.run') || 'Run'}</span>
           </div>
         </Panel>
 
