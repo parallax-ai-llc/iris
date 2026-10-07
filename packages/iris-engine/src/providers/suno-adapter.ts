@@ -18,6 +18,18 @@ import {
 } from '../types.js';
 import { ResponseBuilder, OutputBuilder } from './response-builder.js';
 
+/**
+ * Suno requires `callBackUrl` on every generate call, but this adapter polls
+ * `record-info` for the result, so the notification is never consumed. Hosts
+ * that do handle Suno callbacks set SUNO_CALLBACK_URL; everyone else gets a
+ * reserved (RFC 2606) placeholder so no real server receives them.
+ */
+const SUNO_CALLBACK_PLACEHOLDER = 'https://example.com/suno-callback';
+
+function sunoCallbackUrl(): string {
+  return process.env.SUNO_CALLBACK_URL?.trim() || SUNO_CALLBACK_PLACEHOLDER;
+}
+
 // ============================================================
 // TYPES
 // ============================================================
@@ -34,7 +46,7 @@ interface SunoGenerateRequest {
   vocalGender?: 'm' | 'f';
   /** Model version */
   model?: 'V4' | 'V4_5' | 'V4_5PLUS' | 'V4_5ALL' | 'V5';
-  /** Callback URL (not used in polling approach) */
+  /** Required by Suno; unused here because this adapter polls for the result */
   callBackUrl?: string;
 }
 
@@ -317,7 +329,7 @@ export class SunoAdapter extends BaseProviderAdapter {
         style: combinedStyle || description || 'instrumental',
         title: (title || this.deriveTitle(description)).slice(0, titleLimit),
         model: modelVersion,
-        callBackUrl: 'https://api.parallax.kr/api/webhooks/suno',
+        callBackUrl: sunoCallbackUrl(),
       };
     } else if (lyrics) {
       // Vocals with user-provided lyrics: custom mode, prompt = lyrics.
@@ -328,7 +340,7 @@ export class SunoAdapter extends BaseProviderAdapter {
         style: combinedStyle,
         title: (title || this.deriveTitle(description)).slice(0, titleLimit),
         model: modelVersion,
-        callBackUrl: 'https://api.parallax.kr/api/webhooks/suno',
+        callBackUrl: sunoCallbackUrl(),
       };
     } else {
       // Vocals but no explicit lyrics: non-custom mode so Suno writes lyrics that
@@ -342,7 +354,7 @@ export class SunoAdapter extends BaseProviderAdapter {
         customMode: false,
         instrumental: false,
         model: modelVersion,
-        callBackUrl: 'https://api.parallax.kr/api/webhooks/suno',
+        callBackUrl: sunoCallbackUrl(),
       };
     }
 
