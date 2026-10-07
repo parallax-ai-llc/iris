@@ -11,7 +11,7 @@ your own API keys (BYOK). No server, database, or cloud account required.
 
 <img src="assets/demo.gif" alt="Building and running an Iris workflow locally: a manual trigger feeds GPT 5.2, which writes an image prompt for Gemini 3.1 Flash Image" width="100%" />
 
-<sub>Real run on the local host (<code>pnpm iris-flow</code>) with BYOK keys. The model wait is sped up.</sub>
+<sub>Real run on the local host (<code>npx iris-flow</code>) with BYOK keys. The model wait is sped up.</sub>
 
 </div>
 
@@ -41,13 +41,10 @@ Run a local Iris server and build/execute workflows in your browser with your ow
 AI keys. No server, database, or cloud account required.
 
 ```bash
-# from a clone of this repo
-pnpm install
-pnpm build:packages
-pnpm iris-flow
+npx iris-flow
 ```
 
-You'll see:
+Requires Node 20+. You'll see:
 
 ```
   iris-flow running at http://localhost:4747
@@ -58,7 +55,13 @@ You'll see:
 Open the printed URL — the editor (`/`) and API (`/api/iris/*`) are served on the
 same origin, and everything runs on your machine.
 
-Or skip the clone entirely: `npx iris-flow` (Node 20+).
+To run from a clone instead (for hacking on the engine or editor):
+
+```bash
+pnpm install
+pnpm build:packages
+pnpm iris-flow
+```
 
 ### Bring your own keys (BYOK)
 
