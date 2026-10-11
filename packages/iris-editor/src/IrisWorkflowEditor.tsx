@@ -14,6 +14,7 @@ import { useWorkflowEditor, useMobilePanel } from './orchestrator/hooks';
 import {
   LoadingState,
   NotFoundState,
+  LoadErrorState,
   ConfirmDialog,
   EditorHeader,
   MobileMenu,
@@ -36,6 +37,8 @@ export function IrisWorkflowEditor({
   const {
     workflow,
     isLoading,
+    loadError,
+    retryLoad,
     isSaving,
     isValidating,
     validationResult,
@@ -74,7 +77,12 @@ export function IrisWorkflowEditor({
   const isPaidUser = true;
 
   if (isLoading) return <LoadingState />;
-  if (!workflow) return <NotFoundState />;
+  if (!workflow) {
+    if (loadError && loadError !== 'not_found') {
+      return <LoadErrorState workflowId={workflowId} kind={loadError} onRetry={retryLoad} />;
+    }
+    return <NotFoundState />;
+  }
 
   return (
     <div

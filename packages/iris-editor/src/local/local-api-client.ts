@@ -20,7 +20,9 @@ import type {
   SchedulePreviewResult,
   SchedulePresetsResponse,
   CronPreset,
+  WorkflowLoadResult,
 } from '@editor/lib/apis/iris-api-client';
+import { workflowLoadErrorFromStatus } from '@editor/lib/apis/iris-api-client';
 import type {
   ExecutionStatusResponse,
   NodeResult,
@@ -129,6 +131,47 @@ export function createLocalApiClient(baseUrl = ''): IrisApiClient {
         `/api/iris/workflows/${id}`,
       );
       return workflow ? toCloudWorkflow(workflow) : null;
+    },
+
+    async loadWorkflow(id): Promise<WorkflowLoadResult> {
+      let res: Response;
+      try {
+        res = await fetch(`${baseUrl}/api/iris/workflows/${id}`);
+      } catch (error) {
+        // Local engine not reachable.
+        return {
+          ok: false,
+          error: 'error',
+          message: error instanceof Error ? error.message : undefined,
+        };
+      }
+      if (!res.ok) {
+        let message: string | undefined;
+        try {
+          message = ((await res.json()) as { error?: string }).error;
+        } catch {
+          /* ignore */
+        }
+        return {
+          ok: false,
+          error: workflowLoadErrorFromStatus(res.status),
+          status: res.status,
+          message,
+        };
+      }
+      try {
+        const { workflow } = (await res.json()) as { workflow?: LocalWorkflow };
+        return workflow
+          ? { ok: true, workflow: toCloudWorkflow(workflow) }
+          : { ok: false, error: 'not_found', status: res.status };
+      } catch (error) {
+        return {
+          ok: false,
+          error: 'error',
+          status: res.status,
+          message: error instanceof Error ? error.message : undefined,
+        };
+      }
     },
 
     async updateWorkflow(id, data: UpdateWorkflowData) {

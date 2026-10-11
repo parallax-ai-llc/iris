@@ -3,7 +3,12 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Node, Edge } from '@xyflow/react';
 import { toast } from 'sonner';
-import { irisApiClient, Workflow as WorkflowType, TokenCostsResponse } from '@editor/lib/apis/iris-api-client';
+import {
+  irisApiClient,
+  Workflow as WorkflowType,
+  TokenCostsResponse,
+  type WorkflowLoadErrorKind,
+} from '@editor/lib/apis/iris-api-client';
 import { useI18n } from '@editor/hooks/usei18n';
 import { useSeams } from '@editor/seams';
 import { usePlanAccessStore } from '@editor/store/planAccess';
@@ -54,7 +59,10 @@ function normalizePartial(partial: unknown): PartialRunOptions | undefined {
 }
 
 export function useWorkflowEditor(workflowId: string) {
-  const { navigate } = useSeams();
+  const { navigate, onUnauthorized } = useSeams();
+  // Read through a ref so a host that rebuilds its seams does not refetch.
+  const onUnauthorizedRef = useRef(onUnauthorized);
+  onUnauthorizedRef.current = onUnauthorized;
   // Verbatim call sites below use `router.push(path)`; back it with the seam.
   // Memoized: this is in effect deps, so a fresh object each render would loop.
   const router = useMemo(
@@ -66,6 +74,10 @@ export function useWorkflowEditor(workflowId: string) {
   // Local state
   const [workflow, setWorkflow] = useState<WorkflowType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // Why the last load failed (null while loading or after success).
+  const [loadError, setLoadError] = useState<WorkflowLoadErrorKind | null>(null);
+  // Bumped by `retryLoad` to re-run the fetch effect.
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
@@ -154,11 +166,15 @@ export function useWorkflowEditor(workflowId: string) {
 
   // Fetch workflow data
   useEffect(() => {
+    let cancelled = false;
     const fetchWorkflow = async () => {
       setIsLoading(true);
+      setLoadError(null);
       try {
-        const data = await irisApiClient.getWorkflow(workflowId);
-        if (data) {
+        const result = await irisApiClient.loadWorkflow(workflowId);
+        if (cancelled) return;
+        if (result.ok) {
+          const data = result.workflow;
           setWorkflow(data);
           
           const dbIdToNodeId = new Map<string, string>();
@@ -193,20 +209,46 @@ export function useWorkflowEditor(workflowId: string) {
           }));
           
           initWorkflow(data.id, data.name, rfNodes, rfEdges);
-        } else {
-          toast.error(t('iris.editor.notFound'));
-          router.push('/');
+          return;
+        }
+
+        setWorkflow(null);
+        setLoadError(result.error);
+        switch (result.error) {
+          case 'not_found':
+            // Unchanged behavior: tell the user and leave the editor.
+            toast.error(t('iris.editor.notFound'));
+            router.push('/');
+            break;
+          case 'unauthorized':
+            // The host decides where sign-in lives; without one the editor
+            // shows its "sign in required" screen.
+            onUnauthorizedRef.current?.({ workflowId });
+            break;
+          case 'forbidden':
+            // The "no access" screen says it; no toast on top.
+            break;
+          default:
+            toast.error(t('iris.editor.loadFailed'));
         }
       } catch (error) {
+        if (cancelled) return;
         console.error('Failed to fetch workflow:', error);
+        setWorkflow(null);
+        setLoadError('error');
         toast.error(t('iris.editor.loadFailed'));
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
     fetchWorkflow();
-  }, [workflowId, router, initWorkflow, t]);
+    return () => {
+      cancelled = true;
+    };
+  }, [workflowId, router, initWorkflow, t, loadAttempt]);
+
+  const retryLoad = useCallback(() => setLoadAttempt((n) => n + 1), []);
 
   // Fetch token costs and plan access on mount
   useEffect(() => {
@@ -546,6 +588,7 @@ export function useWorkflowEditor(workflowId: string) {
     // State
     workflow,
     isLoading,
+    loadError,
     isSaving,
     isValidating,
     validationResult,
@@ -560,6 +603,7 @@ export function useWorkflowEditor(workflowId: string) {
     ignoreCache,
     
     // Actions
+    retryLoad,
     handleValidate,
     handleSave,
     handleExecute,

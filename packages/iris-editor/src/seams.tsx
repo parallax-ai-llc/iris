@@ -45,6 +45,12 @@ export interface IrisEditorSeams {
   useModels: () => ModelsSeam;
   /** App navigation (back / upgrade / not-found). No-op if omitted. */
   navigate?: (path: string) => void;
+  /**
+   * Called when loading the workflow fails with 401 (no valid session). Hosts
+   * with accounts send the user to sign-in and back to the current editor URL.
+   * When omitted the editor shows a "sign in required" screen instead.
+   */
+  onUnauthorized?: (info: { workflowId: string }) => void;
   /** Optional media/storage components (storage input source, output picker). */
   StorageBrowserModal?: ComponentType<Record<string, unknown>>;
   StorageLocationPicker?: ComponentType<Record<string, unknown>>;

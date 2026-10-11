@@ -203,9 +203,50 @@ export interface SchedulePresetsResponse {
   restrictions?: Record<string, string>;
 }
 
+/**
+ * Why loading a workflow failed. The editor shows a different screen for each:
+ *   - `not_found`    404, or a host that returns `null` from `getWorkflow`.
+ *   - `unauthorized` 401: no (valid) session. The editor calls the host's
+ *                    `onUnauthorized` seam (e.g. send the user to sign-in).
+ *   - `forbidden`    403: signed in, but this workflow is not theirs.
+ *   - `error`        anything else (5xx, network, timeout): retryable.
+ */
+export type WorkflowLoadErrorKind =
+  | 'not_found'
+  | 'unauthorized'
+  | 'forbidden'
+  | 'error';
+
+export type WorkflowLoadResult =
+  | { ok: true; workflow: Workflow }
+  | {
+      ok: false;
+      error: WorkflowLoadErrorKind;
+      /** HTTP status when known. */
+      status?: number;
+      message?: string;
+    };
+
+/** Map an HTTP status (undefined = no response) to a load error kind. */
+export function workflowLoadErrorFromStatus(
+  status: number | undefined,
+): WorkflowLoadErrorKind {
+  if (status === 404) return 'not_found';
+  if (status === 401) return 'unauthorized';
+  if (status === 403) return 'forbidden';
+  return 'error';
+}
+
 /** The contract the editor needs from the host's backend. */
 export interface IrisApiClient {
   getWorkflow(id: string): Promise<Workflow | null>;
+  /**
+   * Optional typed load used by the editor. Hosts that implement it let the
+   * editor tell not-found / unauthorized / forbidden / other errors apart.
+   * Without it the editor falls back to `getWorkflow` (`null` = not found,
+   * a throw = generic error), which is the pre-existing behavior.
+   */
+  loadWorkflow?(id: string): Promise<WorkflowLoadResult>;
   updateWorkflow(
     id: string,
     data: UpdateWorkflowData,
@@ -290,6 +331,22 @@ type IrisApiClientProxy = {
 /** Singleton proxy — methods delegate to the injected implementation. */
 export const irisApiClient: IrisApiClientProxy = {
   getWorkflow: id => client().getWorkflow(id),
+  loadWorkflow: async id => {
+    const impl = client();
+    if (impl.loadWorkflow) return impl.loadWorkflow(id);
+    try {
+      const workflow = await impl.getWorkflow(id);
+      return workflow
+        ? { ok: true, workflow }
+        : { ok: false, error: 'not_found' };
+    } catch (error) {
+      return {
+        ok: false,
+        error: 'error',
+        message: error instanceof Error ? error.message : undefined,
+      };
+    }
+  },
   updateWorkflow: (id, data) => client().updateWorkflow(id, data),
   updateNodes: (wid, nodes) => client().updateNodes(wid, nodes),
   updateEdges: (wid, edges) => client().updateEdges(wid, edges),

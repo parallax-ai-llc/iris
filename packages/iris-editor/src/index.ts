@@ -16,7 +16,11 @@ export type { IrisEditorSeams, ModelsSeam } from './seams';
 // API client seam (injectable singleton + the types consumers need). PortType
 // is intentionally NOT re-exported here — node-definitions' PortType is the one
 // consumers use; this avoids an ambiguous re-export.
-export { irisApiClient, setIrisApiClient } from './lib/apis/iris-api-client';
+export {
+  irisApiClient,
+  setIrisApiClient,
+  workflowLoadErrorFromStatus,
+} from './lib/apis/iris-api-client';
 export type {
   IrisApiClient,
   Workflow,
@@ -29,6 +33,8 @@ export type {
   ExecuteWorkflowData,
   ValidationResultDTO,
   TokenCostsResponse,
+  WorkflowLoadErrorKind,
+  WorkflowLoadResult,
 } from './lib/apis/iris-api-client';
 export type { StorageFile } from './lib/apis/storage-api-client';
 
