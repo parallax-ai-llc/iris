@@ -13,6 +13,7 @@ import { useI18n } from '@editor/hooks/usei18n';
 import { useSeams } from '@editor/seams';
 import { usePlanAccessStore } from '@editor/store/planAccess';
 import { useIrisEditorStore, IrisNodeData } from '@editor/store/iris-editor';
+import { saveWorkflowGraph } from '../save-workflow';
 import { 
   ValidationResult, 
   ConfirmDialogState, 
@@ -97,7 +98,6 @@ export function useWorkflowEditor(workflowId: string) {
     edges, 
     nodeConfigs, 
     isDirty, 
-    setDirty, 
     isExecuting, 
     setExecuting,
     setNodeValidationError, 
@@ -354,53 +354,21 @@ export function useWorkflowEditor(workflowId: string) {
     return false;
   }, [workflow, nodes, edges, nodeConfigs, clearValidationErrors, setNodeValidationError, t]);
 
-  // Save workflow
+  // Save workflow. The graph is snapshotted when the save starts; `isDirty`
+  // is cleared only if nothing was edited while the requests were in flight
+  // (see save-workflow.ts). A failed save keeps `isDirty`.
   const performSave = useCallback(async () => {
     if (!workflow) return;
 
     setIsSaving(true);
     try {
-      const hasTrigger = nodes.some((node) => node.data.type.startsWith('TRIGGER_'));
-      const newStatus = hasTrigger ? 'ACTIVE' : 'DRAFT';
-
-      await irisApiClient.updateWorkflow(workflow.id, {
-        name: workflow.name,
-        description: workflow.description,
-        status: newStatus,
+      const { status } = await saveWorkflowGraph({
+        workflow,
+        getState: useIrisEditorStore.getState,
+        api: irisApiClient,
       });
 
-      const apiNodes = nodes.map((node) => {
-        const storeConfig = nodeConfigs[node.id];
-        const mergedConfig = {
-          ...(node.data.config as unknown as Record<string, unknown>),
-          model: storeConfig?.model,
-          provider: storeConfig?.provider,
-          settings: storeConfig?.settings || {},
-          inputs: storeConfig?.inputs || {},
-          outputs: storeConfig?.outputs || {},
-        };
-        return {
-          nodeId: node.id,
-          type: node.data.type,
-          label: node.data.label,
-          positionX: node.position.x,
-          positionY: node.position.y,
-          config: mergedConfig,
-        };
-      });
-      await irisApiClient.updateNodes(workflow.id, apiNodes);
-
-      const apiEdges = edges.map((edge) => ({
-        edgeId: edge.id,
-        sourceNodeId: edge.source,
-        sourceHandle: edge.sourceHandle || 'output',
-        targetNodeId: edge.target,
-        targetHandle: edge.targetHandle || 'input',
-      }));
-      await irisApiClient.updateEdges(workflow.id, apiEdges);
-
-      setWorkflow((prev) => prev ? { ...prev, status: newStatus } : prev);
-      setDirty(false);
+      setWorkflow((prev) => prev ? { ...prev, status } : prev);
       toast.success(t('iris.editor.saveSuccess'));
     } catch (error) {
       console.error('Failed to save workflow:', error);
@@ -408,7 +376,7 @@ export function useWorkflowEditor(workflowId: string) {
     } finally {
       setIsSaving(false);
     }
-  }, [workflow, nodes, edges, nodeConfigs, setDirty, t]);
+  }, [workflow, t]);
 
   // Execute workflow
   const performExecute = useCallback(async (userInput?: UserInput, partial?: PartialRunOptions) => {

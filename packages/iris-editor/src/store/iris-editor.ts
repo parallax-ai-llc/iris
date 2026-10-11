@@ -1,14 +1,14 @@
 import { create } from 'zustand';
 import {
-  Node,
-  Edge,
-  Connection,
+  type Node,
+  type Edge,
+  type Connection,
   addEdge,
   applyNodeChanges,
   applyEdgeChanges,
-  NodeChange,
-  EdgeChange,
-  XYPosition,
+  type NodeChange,
+  type EdgeChange,
+  type XYPosition,
 } from '@xyflow/react';
 import { nanoid } from 'nanoid';
 
@@ -78,6 +78,13 @@ interface IrisEditorState {
   workflowId: string | null;
   workflowName: string;
   isDirty: boolean;
+  /**
+   * Bumped by every edit (any update that sets `isDirty: true`). A save
+   * records it when it snapshots the graph and clears `isDirty` only if it
+   * has not moved since (`markSaved`), so edits made while the save
+   * requests are in flight stay unsaved.
+   */
+  editRevision: number;
 
   // React Flow state
   nodes: Node<IrisNodeData>[];
@@ -105,6 +112,11 @@ interface IrisEditorState {
   resetEditor: () => void;
   clearWorkflow: () => void;  // Clear nodes and edges but keep workflow ID
   setDirty: (dirty: boolean) => void;
+  /**
+   * Clear `isDirty` after a save of the graph taken at `revision`. Returns
+   * false (and keeps `isDirty`) when the graph was edited after that point.
+   */
+  markSaved: (revision: number) => boolean;
 
   // Actions - Nodes
   addNode: (type: string, position: XYPosition, data: Partial<IrisNodeData>) => string;
@@ -155,11 +167,29 @@ const DEFAULT_NODE_CONFIG: NodeConfig = {
 
 const MAX_HISTORY_SIZE = 50;
 
-export const useIrisEditorStore = create<IrisEditorState>()((set, get) => ({
+type EditorSet = (
+  partial:
+    | Partial<IrisEditorState>
+    | ((state: IrisEditorState) => Partial<IrisEditorState>),
+) => void;
+
+export const useIrisEditorStore = create<IrisEditorState>()((rawSet, get) => {
+  // Every update that marks the graph dirty is an edit: bump editRevision in
+  // the same update so a save in flight can tell it was overtaken.
+  const set: EditorSet = (partial) =>
+    rawSet((state) => {
+      const next = typeof partial === 'function' ? partial(state) : partial;
+      return next.isDirty === true
+        ? { ...next, editRevision: state.editRevision + 1 }
+        : next;
+    });
+
+  return {
   // Initial state
   workflowId: null,
   workflowName: 'Untitled Workflow',
   isDirty: false,
+  editRevision: 0,
   nodes: [],
   edges: [],
   selectedNodeId: null,
@@ -230,6 +260,12 @@ export const useIrisEditorStore = create<IrisEditorState>()((set, get) => ({
   },
 
   setDirty: (dirty) => set({ isDirty: dirty }),
+
+  markSaved: (revision) => {
+    if (get().editRevision !== revision) return false;
+    set({ isDirty: false });
+    return true;
+  },
 
   // Node actions
   addNode: (type, position, data) => {
@@ -317,9 +353,10 @@ export const useIrisEditorStore = create<IrisEditorState>()((set, get) => ({
   selectNode: (id) => set({ selectedNodeId: id }),
 
   onNodesChange: (changes) => {
-    // Don't mark as dirty for selection-only changes
+    // Selection and measured-size changes are not edits: nothing saved
+    // changes, so they must not mark the graph dirty.
     const hasNonSelectionChange = changes.some(
-      (change) => change.type !== 'select'
+      (change) => change.type !== 'select' && change.type !== 'dimensions'
     );
 
     // Detect end-of-drag: a position change with dragging === false.
@@ -329,9 +366,10 @@ export const useIrisEditorStore = create<IrisEditorState>()((set, get) => ({
       (change) => change.type === 'position' && change.dragging === false
     );
 
+    // Only a real change counts as an edit (selection must not bump editRevision).
     set((state) => ({
       nodes: applyNodeChanges(changes, state.nodes) as Node<IrisNodeData>[],
-      isDirty: hasNonSelectionChange ? true : state.isDirty,
+      ...(hasNonSelectionChange ? { isDirty: true } : {}),
     }));
 
     if (isDragEnd) {
@@ -341,6 +379,9 @@ export const useIrisEditorStore = create<IrisEditorState>()((set, get) => ({
 
   // Edge actions
   onEdgesChange: (changes) => {
+    // Selecting an edge is not an edit.
+    const hasEdit = changes.some((change) => change.type !== 'select');
+
     set((state) => {
       // Handle edge removals - clear corresponding nodeConfigs.inputs
       const updatedNodeConfigs = { ...state.nodeConfigs };
@@ -368,7 +409,7 @@ export const useIrisEditorStore = create<IrisEditorState>()((set, get) => ({
       return {
         edges: applyEdgeChanges(changes, state.edges),
         nodeConfigs: updatedNodeConfigs,
-        isDirty: true,
+        ...(hasEdit ? { isDirty: true } : {}),
       };
     });
   },
@@ -681,4 +722,5 @@ export const useIrisEditorStore = create<IrisEditorState>()((set, get) => ({
 
     return variables;
   },
-}));
+};
+});

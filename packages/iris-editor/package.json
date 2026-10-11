@@ -21,6 +21,7 @@
     "dev": "vite",
     "build": "vite build",
     "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node --test test/save-workflow.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {
