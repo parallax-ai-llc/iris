@@ -6,6 +6,7 @@ import { memo, useState, useEffect } from 'react';
 import { X, FolderOpen, Film, Clock, Loader2 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { useVideoProjectStore } from '@/features/video-editor/stores/videoProject.store';
+import { useModalShortcutBlock } from '@/shared/lib/shortcuts';
 
 interface OpenProjectModalProps {
   isOpen: boolean;
@@ -18,6 +19,8 @@ export const OpenProjectModal = memo(function OpenProjectModal({
   onClose,
   onOpen,
 }: OpenProjectModalProps) {
+  // Block editor/global shortcuts while this dialog is open.
+  useModalShortcutBlock(isOpen);
   const { projects, projectsLoading, fetchProjects } = useVideoProjectStore();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 

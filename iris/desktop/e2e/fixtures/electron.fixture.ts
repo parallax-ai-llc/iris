@@ -50,6 +50,8 @@ export const test = base.extend<ElectronFixtures>({
     // development → main.ts에서 loadURL('http://localhost:5173') 사용 (renderer 빌드 불필요)
     env.NODE_ENV = 'development';
     env.TEST_MODE = 'true';
+    // Run with a hidden window unless explicitly headed (--headed / E2E_SHOW_WINDOW=true).
+    if (process.env.E2E_SHOW_WINDOW !== 'true') env.E2E_HIDE_WINDOW = 'true';
 
     const app = await electron.launch({
       args: [mainPath],
@@ -72,7 +74,7 @@ export const test = base.extend<ElectronFixtures>({
     // 'load' fires when HTML is parsed — React may not have rendered yet.
     // We wait for either the login form or the main app sidebar to appear,
     // which guarantees checkAuth() has completed and the UI is interactive.
-    await window.waitForLoadState('load');
+    await window.waitForLoadState('load', { timeout: 90_000 }); // vite dev transforms changed modules on first load
     await window.waitForSelector(
       'input[type="email"], nav[aria-label="sidebar"], [data-testid="sidebar"]',
       { state: 'visible', timeout: 30_000 }

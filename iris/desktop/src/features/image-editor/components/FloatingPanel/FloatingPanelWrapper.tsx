@@ -65,7 +65,9 @@ export const FloatingPanelWrapper = memo(function FloatingPanelWrapper({
       ref={panelRef}
       className={cn(
         'absolute bg-zinc-900/95 backdrop-blur-sm border border-zinc-700 rounded-xl shadow-2xl',
-        'flex flex-col overflow-hidden z-20',
+        // z-40: above the canvas "Processing..." overlay (z-30) so controls like Stop waiting stay clickable,
+        // below the full-screen "Loading image" overlay (z-50).
+        'flex flex-col overflow-hidden z-40',
         isDragging && 'cursor-grabbing'
       )}
       style={{

@@ -6,6 +6,7 @@ import { memo, useCallback } from 'react';
 import { PenTool, Pencil, Eraser, Droplet, PaintBucket, Copy, Sun, Moon, Droplets, Wind, ZoomIn, Wand2, Bandage, Eye, Hash, ArrowLeftRight, Grid3X3, RotateCcw, Palette, Trash2, EyeOff, ArrowRight, Circle, Diamond, RotateCw } from 'lucide-react';
 import { useImageEditorStore, type DrawTool, type GradientType } from '@/features/image-editor/stores/imageEditor.store';
 import { PillButtonGroup, CompactSlider, BarSeparator } from '../shared';
+import { resolveGradientStops } from '@/features/image-editor/lib/gradientTool';
 
 const DRAW_TOOL_OPTIONS = [
   { id: 'brush', label: 'Brush', icon: <PenTool className="w-3 h-3" /> },
@@ -104,7 +105,17 @@ export const DrawingOptions = memo(function DrawingOptions() {
     setLocalAdjustStrength,
     gradientSettings,
     setGradientSettings,
+    backgroundColor,
   } = useImageEditorStore();
+
+  // Gradient ends shown in the pickers: foreground -> background until the user
+  // picks custom colours (then the stored stops are used).
+  const gradientStops = resolveGradientStops({ ...gradientSettings, reverse: false }, brushSettings.color, backgroundColor);
+  const setGradientStopColor = (index: number, color: string) => {
+    const stops = gradientStops.map((stop) => ({ ...stop }));
+    stops[index] = { ...stops[index], color };
+    setGradientSettings({ colorStops: stops, colorSource: 'custom' });
+  };
 
   const handleToolChange = useCallback((tool: string) => {
     setActiveTool(tool as DrawTool);
@@ -226,23 +237,15 @@ export const DrawingOptions = memo(function DrawingOptions() {
         <>
           <input
             type="color"
-            value={gradientSettings.colorStops[0]?.color ?? '#000000'}
-            onChange={(e) => {
-              const stops = [...gradientSettings.colorStops];
-              stops[0] = { ...stops[0], color: e.target.value };
-              setGradientSettings({ colorStops: stops });
-            }}
+            value={gradientStops[0]?.color ?? '#000000'}
+            onChange={(e) => setGradientStopColor(0, e.target.value)}
             className="w-5 h-5 rounded cursor-pointer border-0 bg-transparent"
             title="Start color"
           />
           <input
             type="color"
-            value={gradientSettings.colorStops[1]?.color ?? '#ffffff'}
-            onChange={(e) => {
-              const stops = [...gradientSettings.colorStops];
-              stops[1] = { ...stops[1], color: e.target.value };
-              setGradientSettings({ colorStops: stops });
-            }}
+            value={gradientStops[gradientStops.length - 1]?.color ?? '#ffffff'}
+            onChange={(e) => setGradientStopColor(gradientStops.length - 1, e.target.value)}
             className="w-5 h-5 rounded cursor-pointer border-0 bg-transparent"
             title="End color"
           />

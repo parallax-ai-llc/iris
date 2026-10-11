@@ -6,6 +6,7 @@
 import { memo, useEffect, useCallback } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
+import { useModalShortcutBlock } from '@/shared/lib/shortcuts';
 
 export interface ErrorModalProps {
   isOpen: boolean;
@@ -22,6 +23,8 @@ export const ErrorModal = memo(function ErrorModal({
   message,
   closeLabel = 'Close',
 }: ErrorModalProps) {
+  // Block editor/global shortcuts while this dialog is open.
+  useModalShortcutBlock(isOpen);
   // Handle escape key
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {

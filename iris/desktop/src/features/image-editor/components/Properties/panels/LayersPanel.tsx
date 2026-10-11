@@ -60,6 +60,8 @@ interface LayerItemProps {
   onDragEnd: () => void;
   onDrop: (index: number) => void;
   onContextMenu: (e: React.MouseEvent) => void;
+  /** Double-click on a text layer opens it in the text tool. */
+  onEditText: () => void;
 }
 
 const LayerItem = memo(function LayerItem({
@@ -78,6 +80,7 @@ const LayerItem = memo(function LayerItem({
   onDragEnd,
   onDrop,
   onContextMenu,
+  onEditText,
 }: LayerItemProps) {
   const isGroup = layer.type === 'group';
   const isAdjustment = layer.type === 'adjustment';
@@ -90,6 +93,7 @@ const LayerItem = memo(function LayerItem({
       onDragEnd={onDragEnd}
       onDrop={() => onDrop(index)}
       onContextMenu={onContextMenu}
+      onDoubleClick={layer.text ? onEditText : undefined}
       style={{ paddingLeft: `${depth * 12 + 8}px` }}
       className={cn(
         'flex items-center gap-2 pr-2 py-1.5 rounded-lg transition-colors cursor-grab active:cursor-grabbing',
@@ -505,6 +509,7 @@ export const LayersPanel = memo(function LayersPanel() {
                 onDragEnd={handleDragEnd}
                 onDrop={handleDrop}
                 onContextMenu={(e) => handleLayerContextMenu(e, layer.id)}
+                onEditText={() => useImageEditorStore.getState().requestTextEdit(layer.id)}
               />
             ))}
           </div>

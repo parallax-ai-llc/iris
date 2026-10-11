@@ -335,23 +335,44 @@ export async function skyReplaceImage(id: string, backgroundPrompt?: string): Pr
 }
 
 /**
- * Relight image
- * Creates a new asset with adjusted lighting
+ * Error from a server AI edit request. `statusCode` lets the caller tell
+ * "sign in" (401) and "not enough credits" (402) apart from other failures.
  */
-export async function relightImage(id: string, lightingPrompt?: string): Promise<IrisAsset | null> {
-  const originalAsset = await getImage(id);
-  if (!originalAsset) return null;
+export class AssetEditError extends Error {
+  readonly statusCode?: number;
 
-  const prompt = lightingPrompt || 'soft natural lighting from the left';
+  constructor(message: string, statusCode?: number) {
+    super(message);
+    this.name = 'AssetEditError';
+    this.statusCode = statusCode;
+  }
+}
+
+export interface RelightImageOptions {
+  /** Lighting description. The server's IC-Light adapter reads only `prompt`. */
+  prompt: string;
+}
+
+/**
+ * Relight image (fal IC-Light V2, same request as iris/web Relight).
+ * Starts the job and returns the new asset (usually PROCESSING; poll it with
+ * `waitForEditResult`). Throws `AssetEditError` when the job cannot start.
+ */
+export async function relightImage(id: string, options: RelightImageOptions): Promise<IrisAsset> {
+  const prompt = options.prompt.trim();
+  if (!prompt) throw new AssetEditError('Lighting description is empty');
+
+  const originalAsset = await getImage(id);
 
   const response = await apiClient.post<{ asset: IrisAsset }>(
     '/api/iris/assets/generate',
     {
       assetType: 'IMAGE',
-      storagePath: originalAsset.path || 'images',
+      storagePath: originalAsset?.path || 'images',
       prompt,
       editMode: 'relight',
       parentAssetId: id,
+      sourceAssetId: id,
       settings: {
         model: 'fal-ai/iclight-v2',
         providerId: 'fal',
@@ -365,7 +386,77 @@ export async function relightImage(id: string, lightingPrompt?: string): Promise
     { requireAuth: true }
   );
 
-  return response.success && response.data?.asset ? response.data.asset : null;
+  if (!response.success || !response.data?.asset) {
+    throw new AssetEditError(response.error || 'Failed to start relight', response.statusCode);
+  }
+  return response.data.asset;
+}
+
+export interface WaitForEditResultOptions {
+  signal?: AbortSignal;
+  /** Called after every poll with a 0..90 estimate. */
+  onProgress?: (progress: number) => void;
+  intervalMs?: number;
+  maxAttempts?: number;
+}
+
+/** Thrown by `waitForEditResult` when its signal is aborted. */
+export class EditWaitAbortedError extends Error {
+  constructor() {
+    super('Stopped waiting');
+    this.name = 'EditWaitAbortedError';
+  }
+}
+
+function abortableDelay(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new EditWaitAbortedError());
+      return;
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(new EditWaitAbortedError());
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+/**
+ * Poll a server AI edit job until it is READY and return the finished asset.
+ * Throws `AssetEditError` on FAILED/ERROR or timeout, and
+ * `EditWaitAbortedError` when `signal` is aborted (the server job keeps
+ * running; there is no cancel endpoint).
+ */
+export async function waitForEditResult(
+  id: string,
+  options: WaitForEditResultOptions = {},
+): Promise<IrisAsset> {
+  const { signal, onProgress, intervalMs = 2000, maxAttempts = 60 } = options;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    if (signal?.aborted) throw new EditWaitAbortedError();
+    const status = await getAssetStatus(id);
+    if (signal?.aborted) throw new EditWaitAbortedError();
+    if (!status) throw new AssetEditError('Failed to get processing status');
+
+    if (status.status === 'READY' || status.status === 'COMPLETED') {
+      if (!status.asset) throw new AssetEditError('Processing finished without a result');
+      return status.asset;
+    }
+    if (status.status === 'FAILED' || status.status === 'ERROR') {
+      throw new AssetEditError(status.error || 'Processing failed');
+    }
+
+    onProgress?.(Math.min(90, ((attempt + 1) / maxAttempts) * 100));
+    await abortableDelay(intervalMs, signal);
+  }
+
+  throw new AssetEditError('Processing timeout');
 }
 
 /**

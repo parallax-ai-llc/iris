@@ -24,6 +24,7 @@ import {
   ClipboardPaste,
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
+import { OpenDocumentsBar } from './OpenDocumentsBar';
 import {
   useImageStore,
   ASPECT_RATIOS,
@@ -43,7 +44,6 @@ import { getTokenCosts, calculateModelTokenCost } from '@/shared/api/token.api';
 import { formatTokenCost } from '@/shared/hooks/useTokenCost';
 import { CachedImage, ModelSelector } from '@/shared/components/common';
 import { useEditorTabsStore } from '@/features/image-editor/stores/editorTabs.store';
-import { useImageEditorStore } from '@/features/image-editor/stores/imageEditor.store';
 import { useUIStore } from '@/shared/stores/ui.store';
 import { importPsd } from '@/features/image-editor/psd/importPsd';
 import { useRequiresServer } from '@/shared/hooks/useRequiresServer';
@@ -551,7 +551,7 @@ export function ImagesPage() {
   }, [fetchImages, t]);
 
   const handleOpenLocal = useCallback(async () => {
-    const openWithFile = (file: File) => {
+    const openWithFile = (file: File, sourcePath?: string) => {
       const blobUrl = URL.createObjectURL(file);
       const fakeAsset = {
         id: `local-${Date.now()}`,
@@ -564,7 +564,7 @@ export function ImagesPage() {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       } as unknown as IrisAsset;
-      openImageEditor(fakeAsset);
+      openImageEditor(fakeAsset, sourcePath ? { sourcePath } : undefined);
     };
 
     // Electron: use native file dialog
@@ -574,6 +574,8 @@ export function ImagesPage() {
           filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif'] }],
         });
         if (!filePath) return;
+        // Same file already open: focus its tab instead of opening a duplicate
+        if (useEditorTabsStore.getState().focusTabForPath(filePath)) return;
 
         const fileData = await window.electronAPI.files.readFile(filePath);
         if (!fileData) {
@@ -587,7 +589,7 @@ export function ImagesPage() {
           png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
           webp: 'image/webp', gif: 'image/gif',
         };
-        openWithFile(new File([fileData], fileName, { type: mimeMap[ext] || 'image/png' }));
+        openWithFile(new File([fileData], fileName, { type: mimeMap[ext] || 'image/png' }), filePath);
       } catch (err) {
         console.error('Failed to open local image:', err);
         toast.error(t('toasts.openFileFailed', { error: err instanceof Error ? err.message : String(err) }));
@@ -681,7 +683,7 @@ export function ImagesPage() {
           const response = await fetch(url);
           const buffer = await response.arrayBuffer();
           const result = importPsd(buffer);
-          useImageEditorStore.getState().openEditorWithLayers(image, result.layers, result.compositeDataUrl || '', result.width, result.height, result.textLayers);
+          openTabWithLayers(image, result.layers, result.compositeDataUrl || '', result.width, result.height, result.textLayers);
           toast.success(t('toasts.psdOpened', { name: image.name, count: result.layers.length }));
         } catch (error) {
           console.error('PSD open error:', error);
@@ -693,7 +695,7 @@ export function ImagesPage() {
       // Open editor - pendingToolMode will be consumed by ImageEditorPage
       openImageEditor(image);
     },
-    [openImageEditor, t, tCommon]
+    [openImageEditor, openTabWithLayers, t, tCommon]
   );
 
   const handleKeyDown = useCallback(
@@ -1225,6 +1227,9 @@ export function ImagesPage() {
             />
           </div>
         </div>
+
+        {/* Documents still open in the hidden image editor */}
+        <OpenDocumentsBar />
 
         {/* Pending Tool Mode Banner */}
         {pendingToolMode && pendingToolMode.category === 'image' && (

@@ -196,6 +196,15 @@ export interface Track {
   sends?: TrackSend[];
 }
 
+/**
+ * The opened/saved state of the project: the history entry that was current and
+ * the persisted projection (JSON of TimelineData) at that moment.
+ */
+export interface SavePoint {
+  entry: EditorProject | null;
+  content: string;
+}
+
 export interface EditorProject {
   id: string;
   name: string;
@@ -550,6 +559,9 @@ export interface EditorState {
   historyIndex: number;
   historyLabels: string[];
 
+  /** Opened/saved state the unsaved-changes check compares against (stores/editor/documentLifecycle.ts). */
+  savePoint: SavePoint;
+
   // In/Out points
   inPoint: number | null;
   outPoint: number | null;
@@ -872,6 +884,14 @@ export interface EditorActions {
   pushHistory: (label?: string) => void;
   jumpToHistory: (index: number) => void;
   clearHistory: () => void;
+
+  // Document lifecycle (stores/editor/documentLifecycle.ts)
+  /** Snapshot of the current state, to be committed with markSaved once a save succeeds. */
+  captureSavePoint: () => SavePoint;
+  /** Record a successful save (or a state that equals what is stored). */
+  markSaved: (point?: SavePoint) => void;
+  /** True when leaving the project would lose work. The only check every leave path uses. */
+  hasUnsavedChanges: () => boolean;
 
   // Gap Management
   removeAllGaps: () => void;

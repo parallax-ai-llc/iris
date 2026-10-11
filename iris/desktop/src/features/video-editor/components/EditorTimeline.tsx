@@ -104,7 +104,7 @@ export const EditorTimeline = memo(function EditorTimeline({
   const {
     seek, setZoom, zoomIn, zoomOut, setScrollLeft,
     addTrack, addClip, addAdjustmentLayer,
-    clearSelection, selectAll, deleteSelected, duplicateSelectedClips,
+    clearSelection,
     selectClipsInRange, updateDrag, endDrag, moveClipToTrack,
     addMarker, removeMarker, updateMarker, toggleMarkerList,
     removeAllGaps, alignClips, fitToView,
@@ -745,64 +745,6 @@ export const EditorTimeline = memo(function EditorTimeline({
       if (up) document.removeEventListener('mouseup', up);
     };
   }, []);
-
-  // Timeline keyboard shortcuts (when the timeline area has focus)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Only handle if not typing in an input
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-
-      // Ctrl/Cmd + A: select all clips
-      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
-        e.preventDefault();
-        selectAll();
-        return;
-      }
-
-      // Delete / Backspace: delete selected clips
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        const state = useEditorStore.getState();
-        if (state.selection.clipIds.length > 0) {
-          e.preventDefault();
-          deleteSelected();
-        }
-        return;
-      }
-
-      // Ctrl/Cmd + D: duplicate selected clips
-      if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
-        const state = useEditorStore.getState();
-        if (state.selection.clipIds.length > 1) {
-          e.preventDefault();
-          duplicateSelectedClips();
-        }
-        // Single-clip duplication is handled by VideoEditor keyboard handler
-        return;
-      }
-
-      // Arrow keys: seek control
-      if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-        e.preventDefault();
-        const state = useEditorStore.getState();
-        if (state.isPlaying) state.pause();
-
-        if (e.key === 'ArrowUp') {
-          seek(0); // Go to beginning
-        } else if (e.key === 'ArrowDown') {
-          seek(state.duration); // Go to end
-        } else if (e.key === 'ArrowLeft') {
-          seek(state.currentTime - 1);
-        } else if (e.key === 'ArrowRight') {
-          seek(state.currentTime + 1);
-        }
-        return;
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [selectAll, deleteSelected, duplicateSelectedClips, seek]);
 
   // Subscribe to currentTime outside React render cycle.
   // Updates the playhead DOM element directly and handles auto-scroll.

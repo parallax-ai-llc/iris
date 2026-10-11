@@ -7,7 +7,7 @@
 
 import { memo, useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useEditorStore, type Track, type Clip, hasEffects, hasVolume } from '@/features/video-editor/stores/editor.store';
+import { useEditorStore } from '@/features/video-editor/stores/editor.store';
 import { useVideoProjectStore } from '@/features/video-editor/stores/videoProject.store';
 import { useUIStore } from '@/shared/stores/ui.store';
 import { assetDownloadUrl } from '@/shared/api/iris-local';
@@ -23,7 +23,15 @@ import { TitleBar } from '@/app/layout/TitleBar';
 import { FullScreenLayout } from '@/app/layout/FullScreenLayout';
 import { Upload } from 'lucide-react';
 import { ConfirmDialog } from '@/shared/components/ui/Modal';
-import type { TimelineData, TimelineTrack, TimelineClip, ExportOptions } from '@/types/videoProject.types';
+import type { ExportOptions } from '@/types/videoProject.types';
+import { convertEditorTracksToTimelineData } from '@/features/video-editor/lib/editorTimelineData';
+import { saveEditorTimeline } from '@/features/video-editor/lib/saveEditorTimeline';
+import { capturePreviewThumbnail } from '@/features/video-editor/lib/capturePreviewThumbnail';
+import {
+  useProjectLeaveGuard,
+  type LeaveSaveResult,
+  type ProjectLeaveAction,
+} from '@/features/video-editor/hooks/useProjectLeaveGuard';
 import type { IrisAsset } from '@/shared/api/types';
 import { useAutoSave } from '@/features/video-editor/hooks/useAutoSave';
 import {
@@ -35,6 +43,8 @@ import {
 import { ProjectAutoCaptionsModal } from '@/features/video-editor/components/ProjectAutoCaptionsModal';
 import { SilenceRemovalModal } from '@/features/video-editor/components/modals/SilenceRemovalModal';
 import * as videoProjectApi from '@/shared/api/videoProject.api';
+import { useKeymapLayer, useModalShortcutBlock, type ShortcutHandler } from '@/shared/lib/shortcuts';
+import { VIDEO_EDITOR_KEYMAP, type VideoEditorFileCommand } from '@/features/video-editor/lib/shortcuts/videoEditorKeymap';
 
 /** Create a placeholder IrisAsset for project-based editor sessions */
 function createPlaceholderAsset(id: string, name: string): IrisAsset {
@@ -50,176 +60,6 @@ function createPlaceholderAsset(id: string, name: string): IrisAsset {
     isPublic: false,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-  };
-}
-
-/**
- * Capture thumbnail from preview video at time 0
- */
-async function capturePreviewThumbnail(): Promise<string | null> {
-  // Find the preview video element
-  const video = document.querySelector('[data-editor-preview-video]') as HTMLVideoElement;
-  if (!video) {
-    console.warn('Preview video element not found for thumbnail capture');
-    return null;
-  }
-
-  return new Promise((resolve) => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      resolve(null);
-      return;
-    }
-
-    // Use video's natural dimensions, scaled down for thumbnail
-    const maxWidth = 640;
-    const maxHeight = 360;
-    let width = video.videoWidth || 1920;
-    let height = video.videoHeight || 1080;
-
-    // Scale down if needed
-    if (width > maxWidth) {
-      height = (height * maxWidth) / width;
-      width = maxWidth;
-    }
-    if (height > maxHeight) {
-      width = (width * maxHeight) / height;
-      height = maxHeight;
-    }
-
-    canvas.width = width;
-    canvas.height = height;
-
-    // Store original time
-    const originalTime = video.currentTime;
-    
-    // Seek to start for thumbnail
-    const captureFrame = () => {
-      ctx.drawImage(video, 0, 0, width, height);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-      
-      // Restore original time
-      video.currentTime = originalTime;
-      
-      resolve(dataUrl);
-    };
-
-    // If video is at time 0 and has data, capture immediately
-    if (video.readyState >= 2 && video.currentTime === 0) {
-      captureFrame();
-    } else {
-      // Seek to 0 and capture
-      const handleSeeked = () => {
-        video.removeEventListener('seeked', handleSeeked);
-        captureFrame();
-      };
-      
-      video.addEventListener('seeked', handleSeeked);
-      video.currentTime = 0;
-      
-      // Timeout fallback
-      setTimeout(() => {
-        video.removeEventListener('seeked', handleSeeked);
-        if (video.readyState >= 2) {
-          captureFrame();
-        } else {
-          resolve(null);
-        }
-      }, 2000);
-    }
-  });
-}
-
-// Convert editor.store Track/Clip to videoProject TimelineData format
-function convertEditorTracksToTimelineData(
-  tracks: Track[],
-  markers: import('@/types/editor.types').Marker[] = [],
-): TimelineData {
-  const convertClip = (clip: Clip): TimelineClip => {
-    // Image clips are stored as VideoClip (mediaType: 'image') in the editor —
-    // persist them with the 'image' ClipType so the load path restores the flag
-    // (otherwise they reload as plain videos and fail to render as overlays).
-    const isImageClip = clip.type === 'video' && clip.mediaType === 'image';
-
-    const baseClip: TimelineClip = {
-      id: clip.id,
-      type: clip.type === 'music' ? 'audio' : isImageClip ? 'image' : clip.type,
-      trackId: clip.trackId,
-      startTime: clip.startTime,
-      endTime: clip.endTime,
-      duration: clip.endTime - clip.startTime,
-      sourceUrl: 'assetId' in clip ? clip.assetId : undefined,
-      sourceWidth: clip.type === 'video' ? clip.sourceWidth : undefined,
-      sourceHeight: clip.type === 'video' ? clip.sourceHeight : undefined,
-      inPoint: clip.sourceStartTime,
-      outPoint: clip.sourceEndTime,
-      opacity: clip.type === 'video' ? clip.transform.opacity : (clip.type === 'adjustment' ? clip.opacity : 1),
-      scale: clip.type === 'video' ? clip.transform.scale : 1,
-      x: clip.type === 'video' ? (clip.transform.x ?? 0) : 0,
-      y: clip.type === 'video' ? (clip.transform.y ?? 0) : 0,
-      rotation: clip.type === 'video' ? clip.transform.rotation : 0,
-      volume: hasVolume(clip) ? clip.volume : 1,
-      fadeIn: (clip.type === 'audio' || clip.type === 'music') ? clip.fadeIn : 0,
-      fadeOut: (clip.type === 'audio' || clip.type === 'music') ? clip.fadeOut : 0,
-      speed: 'speed' in clip ? clip.speed ?? 1 : 1,
-      effects: hasEffects(clip) ? clip.effects : [],
-      keyframes: hasEffects(clip) ? clip.keyframes : [],
-      audioExtracted: clip.type === 'video' ? clip.audioExtracted : undefined,
-      name: clip.name,
-      locked: false,
-    };
-
-    // Add subtitle-specific properties
-    if (clip.type === 'subtitle') {
-      baseClip.content = clip.text;
-      baseClip.fontFamily = clip.style.fontFamily;
-      baseClip.fontSize = clip.style.fontSize;
-      baseClip.fontColor = clip.style.fontColor;
-      baseClip.backgroundColor = clip.style.backgroundColor;
-      baseClip.backgroundOpacity = clip.style.backgroundOpacity;
-      baseClip.textAlign = clip.style.alignment;
-      baseClip.textPositionX = clip.style.position.x;
-      baseClip.textPositionY = clip.style.position.y;
-      baseClip.textWidth = clip.style.width;
-      baseClip.textHeight = clip.style.height;
-      baseClip.textPaddingX = clip.style.paddingX;
-      baseClip.textPaddingY = clip.style.paddingY;
-      baseClip.verticalAlign = clip.style.verticalAlign;
-    }
-
-    return baseClip;
-  };
-
-  const convertTrack = (track: Track): TimelineTrack => ({
-    id: track.id,
-    type: track.type === 'music' ? 'audio' : track.type,
-    name: track.name,
-    locked: track.locked,
-    muted: track.muted,
-    visible: track.visible,
-    height: track.height,
-    clips: track.clips.map(convertClip),
-  });
-
-  return {
-    version: 1,
-    settings: {
-      backgroundColor: '#000000',
-      defaultTransitionDuration: 0.5,
-      audioFadeDefault: 0.3,
-    },
-    tracks: tracks.map(convertTrack),
-    markers: markers.map((m) => ({
-      id: m.id,
-      time: m.time,
-      label: m.label,
-      color: m.color,
-      type: m.type,
-      url: m.url,
-      endTime: m.endTime,
-      comment: m.comment,
-    })),
   };
 }
 
@@ -291,17 +131,14 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
 
   const isProvisional = useVideoProjectStore((state) => state.isProvisional);
   const closeProject = useVideoProjectStore((state) => state.closeProject);
-  const saveTimeline = useVideoProjectStore((state) => state.saveTimeline);
   const createProject = useVideoProjectStore((state) => state.createProject);
   const duplicateProject = useVideoProjectStore((state) => state.duplicateProject);
-  const updateTimelineData = useVideoProjectStore((state) => state.updateTimelineData);
   const setCurrentPage = useUIStore((state) => state.setCurrentPage);
   // Remember which page the user came from so "Go Back" returns there
   const entryPageRef = useRef<string>(useUIStore.getState().currentPage);
   const backPage = entryPageRef.current === 'projects' ? 'projects' : 'videos';
   const toast = useToast();
   
-  const isDirty = useVideoProjectStore((state) => state.isDirty);
   const editorTracks = useEditorStore((s) => s.tracks);
   const hasSubtitleClips = useMemo(
     () => editorTracks.some((t) => t.type === 'subtitle' && t.clips.some((c) => c.type === 'subtitle')),
@@ -314,25 +151,14 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
     ),
     [editorTracks]
   );
-  const hasLocalClips = useMemo(
-    () => editorTracks.some((t) =>
-      t.clips.some((c) => {
-        const id = (c as { assetId?: string }).assetId ?? '';
-        return id.startsWith('blob:') || id.startsWith('file://');
-      })
-    ),
-    [editorTracks]
-  );
   const [isInitializing, setIsInitializing] = useState(false);
   const [initStep, setInitStep] = useState('');
   const initCancelledRef = useRef(false);
-  const [showLocalCloseConfirm, setShowLocalCloseConfirm] = useState(false);
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
   const [showOpenProjectModal, setShowOpenProjectModal] = useState(false);
   const [showSaveProjectModal, setShowSaveProjectModal] = useState(false);
   const [showSaveAsModal, setShowSaveAsModal] = useState(false);
   const [showProjectAutoCaptions, setShowProjectAutoCaptions] = useState(false);
-  const [showUnsavedModal, setShowUnsavedModal] = useState<'new' | 'open' | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showSilenceRemoval, setShowSilenceRemoval] = useState(false);
 
@@ -344,6 +170,11 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
     if (!asset) return;
 
     initCancelledRef.current = false;
+    // Per-run token: a re-run (asset switch, or StrictMode's dev double-invoke)
+    // must stop the previous run from touching the stores after its awaits,
+    // otherwise its late initializeProject() wipes the timeline of the newer run.
+    let runCancelled = false;
+    const cancelled = () => runCancelled || initCancelledRef.current;
 
     const initProject = async () => {
       const store = useVideoProjectStore.getState();
@@ -387,7 +218,7 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
           try {
             const assetUrl = await assetDownloadUrl(asset.id);
             const authToken = await window.electronAPI.auth.getToken();
-            if (!initCancelledRef.current) {
+            if (!cancelled()) {
               const probed = await window.electronAPI.video.probeDimensions(assetUrl, authToken ?? undefined);
               if (probed && probed.width > 0 && probed.height > 0) {
                 rawWidth = probed.width;
@@ -399,7 +230,7 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
           }
         }
 
-        if (initCancelledRef.current) return;
+        if (cancelled()) return;
 
         // Fallback: probe duration from video element if missing
         if (!duration && asset.previewUrl) {
@@ -433,7 +264,7 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
           }
         }
 
-        if (initCancelledRef.current) return;
+        if (cancelled()) return;
 
         setInitStep(t('editor.videoInit.preparingEditor'));
         if (!rawWidth) rawWidth = 1920;
@@ -472,13 +303,15 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
           fileSize: asset.sizeBytes ? Math.round(asset.sizeBytes) : null,
         });
 
+        if (cancelled()) return;
+
         // Download all server assets to local storage
         await useEditorStore.getState().downloadAllAssets();
 
       } catch (error) {
         console.error('Failed to initialize project:', error);
       } finally {
-        if (!initCancelledRef.current) {
+        if (!cancelled()) {
           setIsInitializing(false);
           setInitStep('');
         }
@@ -486,6 +319,9 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
     };
 
     initProject();
+    return () => {
+      runCancelled = true;
+    };
     // Intentionally narrow deps to asset.id: re-running on the full `asset`
     // object or translation function would needlessly re-initialize the project.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -501,44 +337,44 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
     setCurrentPage(backPage);
   }, [closeProject, closeEditor, setCurrentPage, backPage]);
 
-  // Handle back navigation
-  const handleClose = useCallback(() => {
-    if (hasLocalClips) {
-      setShowLocalCloseConfirm(true);
-      return;
+  // Leaving the project (Go Back / header X, New, Open) goes through one gate:
+  // it asks first when hasUnsavedChanges() is true, and only then.
+  const proceedLeave = useCallback((action: ProjectLeaveAction) => {
+    if (action === 'close') {
+      closeProject();
+      closeEditor();
+      setCurrentPage(backPage);
+    } else if (action === 'new') {
+      setShowNewProjectModal(true);
+    } else {
+      setShowOpenProjectModal(true);
     }
-    closeProject();
-    closeEditor();
-    setCurrentPage(backPage);
-  }, [closeProject, closeEditor, setCurrentPage, hasLocalClips, backPage]);
+  }, [closeProject, closeEditor, setCurrentPage, backPage]);
+  const leaveGuard = useProjectLeaveGuard(proceedLeave);
+  const { requestLeave, takeParkedAction } = leaveGuard;
 
-  // Handle save
-  const handleSave = useCallback(async () => {
+  // Handle back navigation
+  const handleClose = useCallback(() => requestLeave('close'), [requestLeave]);
+
+  // Handle save. A first save of a provisional project asks for a name first
+  // ('deferred'); handleSaveWithName finishes it.
+  const handleSave = useCallback(async (): Promise<LeaveSaveResult> => {
     if (!currentProject || isProvisional) {
       setShowSaveProjectModal(true);
-      return;
+      return 'deferred';
     }
-
-    const currentTracks = useEditorStore.getState().tracks;
-    const currentDuration = useEditorStore.getState().duration;
-    const currentMarkers = useEditorStore.getState().markers;
-    const timelineData = convertEditorTracksToTimelineData(currentTracks, currentMarkers);
 
     // Capture thumbnail from preview
     const thumbnail = await capturePreviewThumbnail();
 
-    updateTimelineData(timelineData);
-    const saved = await saveTimeline({
-      timelineData,
-      duration: currentDuration,
-      thumbnail: thumbnail || undefined,
-    });
+    const saved = await saveEditorTimeline({ thumbnail });
     if (saved) {
       toast.success('Project saved');
     } else {
       toast.error('Failed to save project');
     }
-  }, [currentProject, isProvisional, saveTimeline, updateTimelineData, toast]);
+    return saved;
+  }, [currentProject, isProvisional, toast]);
 
   // Handle save as — provisional projects have nothing to copy yet, so they fall
   // back to the plain "name" save modal; existing projects get the richer modal
@@ -572,8 +408,7 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
 
     // Save current state to the original project first (silent) — the original
     // keeps its own resolution and layout untouched.
-    updateTimelineData(timelineData);
-    await saveTimeline({ timelineData, duration: currentDuration, thumbnail: thumbnail || undefined });
+    await saveEditorTimeline({ thumbnail });
 
     // Duplicate project (clones the original layout at the original resolution)
     const duplicated = await duplicateProject(currentProject.id);
@@ -594,14 +429,14 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
     }
 
     // Switch to the new project without navigating away (no page flash)
-    useVideoProjectStore.setState({ currentProject: finalProject, isDirty: false });
+    useVideoProjectStore.setState({ currentProject: finalProject });
 
     // Apply the new resolution + reframed layout to the copy only.
     if (ratioChanged) {
       const reframed = reframeTimelineData(timelineData, oldW, oldH, newW, newH);
       const projectStore = useVideoProjectStore.getState();
       await projectStore.updateProject({ width: newW, height: newH });
-      updateTimelineData(reframed);
+      projectStore.updateTimelineData(reframed);
       await projectStore.saveTimeline({ timelineData: reframed, duration: currentDuration });
       // Refresh the live editor so the preview ratio + element positions update.
       useEditorStore.getState().loadFromTimelineData(reframed, currentDuration);
@@ -610,14 +445,13 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
     useVideoProjectStore.getState().fetchProjects();
 
     toast.success(ratioChanged ? `Saved as: ${name} (${newW}×${newH})` : `Saved as: ${name}`);
-  }, [currentProject, duplicateProject, updateTimelineData, saveTimeline, toast]);
+  }, [currentProject, duplicateProject, toast]);
 
-  // Handle save with project name (first-time save or provisional → real)
+  // Handle save with project name (first-time save or provisional → real).
+  // When "Save & Continue" parked a leave action for this name prompt, it is
+  // resumed once the save succeeded.
   const handleSaveWithName = useCallback(async (name: string) => {
-    const currentTracks = useEditorStore.getState().tracks;
-    const currentDuration = useEditorStore.getState().duration;
-    const currentMarkers = useEditorStore.getState().markers;
-    const timelineData = convertEditorTracksToTimelineData(currentTracks, currentMarkers);
+    const parkedAction = takeParkedAction();
     const thumbnail = await capturePreviewThumbnail();
 
     if (isProvisional) {
@@ -625,38 +459,22 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
       useVideoProjectStore.setState((state) => ({
         currentProject: state.currentProject ? { ...state.currentProject, name } : null,
       }));
-      updateTimelineData(timelineData);
-      const saved = await saveTimeline({
-        timelineData,
-        duration: currentDuration,
-        thumbnail: thumbnail || undefined,
-      });
-      if (saved) {
-        toast.success('Project saved');
-      } else {
-        toast.error('Failed to save project');
+    } else {
+      const project = await createProject({ name });
+      if (!project) {
+        toast.error('Failed to create project');
+        return;
       }
-      return;
     }
 
-    const project = await createProject({ name });
-    if (!project) {
-      toast.error('Failed to create project');
-      return;
-    }
-
-    updateTimelineData(timelineData);
-    const saved = await saveTimeline({
-      timelineData,
-      duration: currentDuration,
-      thumbnail: thumbnail || undefined,
-    });
+    const saved = await saveEditorTimeline({ thumbnail });
     if (saved) {
       toast.success('Project saved');
+      if (parkedAction) proceedLeave(parkedAction);
     } else {
       toast.error('Failed to save project');
     }
-  }, [isProvisional, createProject, saveTimeline, updateTimelineData, toast]);
+  }, [isProvisional, createProject, toast, takeParkedAction, proceedLeave]);
 
 
   // Handle export
@@ -867,13 +685,7 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
   }, [collectSubtitleEntries, currentProject?.name, toast]);
 
   // Handle new project
-  const handleNew = useCallback(() => {
-    if (currentProject && isDirty) {
-      setShowUnsavedModal('new');
-      return;
-    }
-    setShowNewProjectModal(true);
-  }, [currentProject, isDirty]);
+  const handleNew = useCallback(() => requestLeave('new'), [requestLeave]);
 
   const handleCreateNewProject = useCallback(async (name: string, width: number, height: number) => {
     setIsInitializing(true);
@@ -900,13 +712,7 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
   }, [toast]);
 
   // Handle open project
-  const handleOpenProject = useCallback(() => {
-    if (currentProject && isDirty) {
-      setShowUnsavedModal('open');
-      return;
-    }
-    setShowOpenProjectModal(true);
-  }, [currentProject, isDirty]);
+  const handleOpenProject = useCallback(() => requestLeave('open'), [requestLeave]);
 
   const handleLoadProject = useCallback(async (projectId: string) => {
     setIsInitializing(true);
@@ -978,43 +784,25 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
     }
   }, [closeEditor, toast]);
 
-  // Unsaved changes modal handlers
-  const handleUnsavedSave = useCallback(async () => {
-    const action = showUnsavedModal;
-    setShowUnsavedModal(null);
-    await handleSave();
-    if (action === 'new') setShowNewProjectModal(true);
-    else if (action === 'open') setShowOpenProjectModal(true);
-  }, [showUnsavedModal, handleSave]);
-
-  const handleUnsavedDiscard = useCallback(() => {
-    const action = showUnsavedModal;
-    setShowUnsavedModal(null);
-    useVideoProjectStore.getState().markClean();
-    if (action === 'new') setShowNewProjectModal(true);
-    else if (action === 'open') setShowOpenProjectModal(true);
-  }, [showUnsavedModal]);
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
-        e.preventDefault();
-        handleNew();
-      } else if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
-        e.preventDefault();
-        handleOpenProject();
-      } else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 's') {
-        e.preventDefault();
-        handleSave();
-      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'S') {
-        e.preventDefault();
-        handleSaveAs();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleNew, handleOpenProject, handleSave, handleSaveAs]);
+  // Keyboard shortcuts — project commands from VIDEO_EDITOR_KEYMAP (editing
+  // and playback keys are registered by VideoEditor). Any page dialog blocks
+  // every editor shortcut underneath it.
+  useModalShortcutBlock(
+    showNewProjectModal ||
+      showOpenProjectModal ||
+      showSaveProjectModal ||
+      showSaveAsModal ||
+      showProjectAutoCaptions ||
+      leaveGuard.pendingAction !== null ||
+      showExportModal ||
+      showSilenceRemoval,
+  );
+  useKeymapLayer('editor', VIDEO_EDITOR_KEYMAP, {
+    newProject: () => handleNew(),
+    openProject: () => handleOpenProject(),
+    saveProject: () => { void handleSave(); },
+    saveProjectAs: () => handleSaveAs(),
+  } satisfies Record<VideoEditorFileCommand, ShortcutHandler>);
 
   return (
     <FullScreenLayout
@@ -1133,28 +921,11 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
         onClose={() => setShowSilenceRemoval(false)}
       />
 
-      {/* Local file close confirmation */}
-      <ConfirmDialog
-        isOpen={showLocalCloseConfirm}
-        onClose={() => setShowLocalCloseConfirm(false)}
-        onConfirm={() => {
-          setShowLocalCloseConfirm(false);
-          closeProject();
-          closeEditor();
-          setCurrentPage(backPage);
-        }}
-        title={t('editor.localFileWarning.videoTitle')}
-        message={t('editor.localFileWarning.videoMessage')}
-        confirmText={t('editor.localFileWarning.closeWithoutSaving')}
-        cancelText={t('buttons.cancel')}
-        variant="danger"
-      />
-
       {/* Unsaved changes confirmation */}
       <ConfirmDialog
-        isOpen={!!showUnsavedModal}
-        onClose={() => setShowUnsavedModal(null)}
-        onConfirm={handleUnsavedDiscard}
+        isOpen={leaveGuard.pendingAction !== null}
+        onClose={leaveGuard.cancelLeave}
+        onConfirm={leaveGuard.discardAndLeave}
         title={t('editor.videoUnsavedWarning.title')}
         message={t('editor.videoUnsavedWarning.message')}
         confirmText={t('editor.videoUnsavedWarning.discard')}
@@ -1162,7 +933,7 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
         variant="danger"
         secondaryAction={{
           text: t('editor.videoUnsavedWarning.saveAndContinue'),
-          onClick: handleUnsavedSave,
+          onClick: () => { void leaveGuard.saveAndLeave(handleSave); },
         }}
       />
     </FullScreenLayout>

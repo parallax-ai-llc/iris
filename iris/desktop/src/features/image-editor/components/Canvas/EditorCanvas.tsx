@@ -6,6 +6,7 @@
 import { memo, useRef, useEffect, useState, useCallback, forwardRef, useImperativeHandle, useMemo } from 'react';
 import { cn } from '@/shared/lib/utils';
 import { useImageEditorStore } from '@/features/image-editor/stores/imageEditor.store';
+import { useImageEditorCanvasShortcuts } from '@/features/image-editor/hooks/useImageEditorCanvasShortcuts';
 import { useCachedAssetUrl } from '@/shared/hooks/useCachedAssetUrl';
 import { Loader2, ImageIcon } from 'lucide-react';
 import { CropOverlay } from './CropOverlay';
@@ -146,10 +147,9 @@ export const EditorCanvas = memo(forwardRef<EditorCanvasHandle>(function EditorC
   const moveLayerIdRef = useRef<string | null>(null);
   const moveOffsetRef = useRef({ x: 0, y: 0 });
 
-  // Debounced history push for keyboard nudge
-  const nudgeHistoryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Layer image cache to avoid re-parsing base64 every render
   const layerImageCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
+  const renderAllLayersRef = useRef<(() => Promise<void>) | null>(null);
 
   // Clean up stale cache entries when layers change
   useEffect(() => {
@@ -459,7 +459,8 @@ export const EditorCanvas = memo(forwardRef<EditorCanvasHandle>(function EditorC
         blank.width = w;
         blank.height = h;
         // Transparent by default; that's fine — render filters overwrite pixels.
-        const newId = addLayer(blank.toDataURL(), label);
+        // The filter pushes its own history entry once it has run.
+        const newId = addLayer(blank.toDataURL(), label, { history: false });
         targetLayerId = newId;
         targetLayer = { id: newId, imageData: blank.toDataURL() } as typeof targetLayer;
         setActiveLayer(newId);
@@ -668,29 +669,38 @@ export const EditorCanvas = memo(forwardRef<EditorCanvasHandle>(function EditorC
 
     img.onload = () => {
       imageRef.current = img;
-      setImageDimensions({ width: img.width, height: img.height });
+
+      // A tab that already has layers (layered open, or this tab's canvas is
+      // re-mounted after a tab switch) keeps its own size and content: the
+      // layers, not the source image, are the document.
+      const { canvasWidth, canvasHeight, layers: currentLayers } = useImageEditorStore.getState();
+      const hasLayers = currentLayers.length > 0;
+      const docW = hasLayers && canvasWidth > 0 ? canvasWidth : img.width;
+      const docH = hasLayers && canvasHeight > 0 ? canvasHeight : img.height;
+      setImageDimensions({ width: docW, height: docH });
 
       // Sync canvas dimensions to store (for layer merging / flatten)
-      const { canvasWidth, canvasHeight } = useImageEditorStore.getState();
       if (canvasWidth === 0 || canvasHeight === 0) {
         useImageEditorStore.setState({ canvasWidth: img.width, canvasHeight: img.height });
       }
 
       // Setup main canvas
       if (canvasRef.current) {
-        canvasRef.current.width = img.width;
-        canvasRef.current.height = img.height;
+        canvasRef.current.width = docW;
+        canvasRef.current.height = docH;
         const ctx = canvasRef.current.getContext('2d');
-        if (ctx) {
+        if (ctx && !hasLayers) {
           ctx.drawImage(img, 0, 0);
+        } else if (hasLayers) {
+          void renderAllLayersRef.current?.();
         }
 
         // Create Background layer with the image data (Photoshop-style)
         // Only create if no layers exist yet
-        const { layers: currentLayers } = useImageEditorStore.getState();
-        if (currentLayers.length === 0) {
+        if (!hasLayers) {
           const imageData = canvasRef.current.toDataURL();
-          const layerId = addLayer(imageData, 'Background');
+          // Part of opening the document: the 'Open' baseline entry below covers it.
+          const layerId = addLayer(imageData, 'Background', { history: false });
           updateLayer(layerId, { width: img.width, height: img.height });
           setActiveLayer(layerId);
           // Push initial state so undo works from the start (don't mark dirty)
@@ -706,8 +716,8 @@ export const EditorCanvas = memo(forwardRef<EditorCanvasHandle>(function EditorC
 
       // Setup overlay canvas
       if (overlayCanvasRef.current) {
-        overlayCanvasRef.current.width = img.width;
-        overlayCanvasRef.current.height = img.height;
+        overlayCanvasRef.current.width = docW;
+        overlayCanvasRef.current.height = docH;
       }
 
       // Initial histogram calculation
@@ -1134,6 +1144,11 @@ export const EditorCanvas = memo(forwardRef<EditorCanvasHandle>(function EditorC
     }
   }, [layers, activeLayerId, activeLayerFilterString, activeChannelId, channelVisibility, colorProofing, gamutWarning]);
 
+  // Lets the image-load effect (declared above) repaint the layers
+  useEffect(() => {
+    renderAllLayersRef.current = renderAllLayers;
+  }, [renderAllLayers]);
+
   // Re-render when layers change, then update histogram
   useEffect(() => {
     renderAllLayers().then(() => {
@@ -1495,7 +1510,8 @@ export const EditorCanvas = memo(forwardRef<EditorCanvasHandle>(function EditorC
         let targetId = hitLayer.id;
         // Alt+drag: duplicate layer first, then move the copy
         if (e.altKey) {
-          const newId = duplicateLayer(hitLayer.id);
+          // One step with the move: 'Move Layer' is pushed on mouse up.
+          const newId = duplicateLayer(hitLayer.id, { history: false });
           if (newId) {
             targetId = newId;
           }
@@ -1575,134 +1591,9 @@ export const EditorCanvas = memo(forwardRef<EditorCanvasHandle>(function EditorC
     };
   }, [getImageCoordsForMove, imageDimensions.height, imageDimensions.width]);
 
-  // Keyboard shortcuts: arrow nudge + delete selection + CMYK proofing
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+Shift+Y: toggle gamut warning (Ctrl+Y is handled by ImageEditorPage for Redo)
-      if (e.ctrlKey && e.shiftKey && (e.key === 'y' || e.key === 'Y')) {
-        e.preventDefault();
-        useImageEditorStore.getState().toggleGamutWarning();
-        return;
-      }
-
-      // Don't intercept keyboard when editing text content
-      const active = document.activeElement;
-      if (active && (
-        active.getAttribute('contenteditable') === 'true' ||
-        active.tagName === 'INPUT' ||
-        active.tagName === 'TEXTAREA'
-      )) {
-        return;
-      }
-
-      // Delete/Backspace: erase selected area on active layer
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        const state = useImageEditorStore.getState();
-        const { selection, activeLayerId, layers, updateLayer, clearSelection, pushHistory } = state;
-        if (!selection?.maskDataUrl || !activeLayerId) return;
-        const layer = layers.find(l => l.id === activeLayerId);
-        if (!layer || layer.locked || !layer.imageData) return;
-
-        e.preventDefault();
-
-        // Load layer image and mask, erase masked area
-        const layerImg = new Image();
-        layerImg.onload = () => {
-          const maskImg = new Image();
-          maskImg.onload = () => {
-            const c = document.createElement('canvas');
-            c.width = layer.width || layerImg.width;
-            c.height = layer.height || layerImg.height;
-            const ctx = c.getContext('2d');
-            if (!ctx) return;
-
-            // Draw layer
-            ctx.drawImage(layerImg, 0, 0, c.width, c.height);
-
-            // Convert mask (R channel = mask value, A = 255) to alpha-based mask
-            // destination-out uses source alpha to erase, so we must move mask value to alpha channel
-            const alphaMaskCanvas = document.createElement('canvas');
-            alphaMaskCanvas.width = c.width;
-            alphaMaskCanvas.height = c.height;
-            const alphaMaskCtx = alphaMaskCanvas.getContext('2d');
-            if (!alphaMaskCtx) return;
-            alphaMaskCtx.drawImage(maskImg, 0, 0, c.width, c.height);
-            const maskData = alphaMaskCtx.getImageData(0, 0, c.width, c.height);
-            const pixels = maskData.data;
-            for (let i = 0; i < pixels.length; i += 4) {
-              pixels[i + 3] = pixels[i]; // A = R (mask value)
-              pixels[i] = 0;
-              pixels[i + 1] = 0;
-              pixels[i + 2] = 0;
-            }
-            alphaMaskCtx.putImageData(maskData, 0, 0);
-
-            // Erase masked area using corrected alpha mask
-            ctx.globalCompositeOperation = 'destination-out';
-            ctx.drawImage(alphaMaskCanvas, 0, 0);
-            ctx.globalCompositeOperation = 'source-over';
-
-            const newImageData = c.toDataURL('image/png');
-            updateLayer(activeLayerId, { imageData: newImageData });
-            clearSelection();
-
-            // Push history after render
-            requestAnimationFrame(() => {
-              if (canvasRef.current) {
-                pushHistory('Delete Selection', canvasRef.current.toDataURL());
-              }
-            });
-          };
-          maskImg.src = selection.maskDataUrl!;
-        };
-        layerImg.src = layer.imageData;
-        return;
-      }
-
-      // Arrow keys: nudge layer in select mode
-      if (editMode !== 'select') return;
-      const { activeLayerId, layers, updateLayer } = useImageEditorStore.getState();
-      if (!activeLayerId) return;
-      const layer = layers.find(l => l.id === activeLayerId);
-      if (!layer || layer.locked) return;
-
-      let dx = 0;
-      let dy = 0;
-      const step = e.shiftKey ? 10 : 1;
-
-      switch (e.key) {
-        case 'ArrowUp': dy = -step; break;
-        case 'ArrowDown': dy = step; break;
-        case 'ArrowLeft': dx = -step; break;
-        case 'ArrowRight': dx = step; break;
-        default: return;
-      }
-
-      e.preventDefault();
-      updateLayer(activeLayerId, { x: (layer.x ?? 0) + dx, y: (layer.y ?? 0) + dy });
-
-      // Debounced history push: wait 300ms after last nudge so rapid presses create one entry
-      if (nudgeHistoryTimeoutRef.current) {
-        clearTimeout(nudgeHistoryTimeoutRef.current);
-      }
-      nudgeHistoryTimeoutRef.current = setTimeout(() => {
-        requestAnimationFrame(() => {
-          if (canvasRef.current) {
-            const { pushHistory } = useImageEditorStore.getState();
-            pushHistory('Nudge Layer', canvasRef.current.toDataURL());
-          }
-        });
-      }, 300);
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      if (nudgeHistoryTimeoutRef.current) {
-        clearTimeout(nudgeHistoryTimeoutRef.current);
-      }
-    };
-  }, [editMode]);
+  // Keyboard shortcuts: Delete erases the selection, arrows nudge the layer
+  // (keys in IMAGE_EDITOR_KEYMAP, routed by the central dispatcher).
+  useImageEditorCanvasShortcuts(canvasRef);
 
   // Spacebar panning (Photoshop-style: hold Space to temporarily activate hand tool)
   useEffect(() => {

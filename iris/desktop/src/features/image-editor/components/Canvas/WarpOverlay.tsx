@@ -67,6 +67,7 @@ export const WarpOverlay = memo(function WarpOverlay({
   });
 
   const handlePointerDown = (e: React.PointerEvent, row: number, col: number) => {
+    if (useImageEditorStore.getState().isSpacePanning) return; // Spacebar panning takes priority
     e.preventDefault();
     dragging.current = { row, col };
     (e.target as SVGElement).setPointerCapture(e.pointerId);

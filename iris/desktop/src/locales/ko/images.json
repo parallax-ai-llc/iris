@@ -68,5 +68,10 @@
     "title": "선택한 이미지 삭제",
     "message": "선택한 {{count}}개의 이미지를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
     "confirm": "삭제"
+  },
+  "openDocuments": {
+    "label": "열린 문서 {{count}}개",
+    "unsaved": "저장 안 됨 {{count}}개",
+    "return": "편집기로 돌아가기"
   }
 }

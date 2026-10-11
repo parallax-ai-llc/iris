@@ -68,5 +68,10 @@
     "psdUrlMissing": "PSD ఫైల్ URL అందుబాటులో లేదు",
     "psdOpened": "{{name}} {{count}} లేయర్‌లతో తెరవబడింది",
     "psdOpenFailed": "PSD ఫైల్‌ను తెరవడం విఫలమైంది"
+  },
+  "openDocuments": {
+    "label": "తెరిచిన పత్రాలు: {{count}}",
+    "unsaved": "{{count}} సేవ్ చేయలేదు",
+    "return": "ఎడిటర్‌కు తిరిగి వెళ్ళండి"
   }
 }

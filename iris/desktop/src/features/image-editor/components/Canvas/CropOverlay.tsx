@@ -5,6 +5,7 @@
 
 import { memo, useCallback, useState, useEffect } from 'react';
 import { useImageEditorStore, CropData } from '@/features/image-editor/stores/imageEditor.store';
+import { rectFromDrag } from '@/features/image-editor/lib/cropGeometry';
 
 interface CropOverlayProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
@@ -32,6 +33,8 @@ export const CropOverlay = memo(function CropOverlay({
   const [resizeHandle, setResizeHandle] = useState<HandlePosition | null>(null);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [initialCrop, setInitialCrop] = useState<CropData | null>(null);
+  // Anchor of a new box being drawn (image coordinates); the box spans anchor..pointer
+  const [createAnchor, setCreateAnchor] = useState<{ x: number; y: number } | null>(null);
 
   const scale = zoom / 100;
 
@@ -98,6 +101,7 @@ export const CropOverlay = memo(function CropOverlay({
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       if (e.button !== 0) return; // Left click only
+      if (useImageEditorStore.getState().isSpacePanning) return; // Spacebar panning takes priority
 
       const target = e.target as HTMLElement;
       const handle = target.dataset.handle as HandlePosition | undefined;
@@ -125,8 +129,9 @@ export const CropOverlay = memo(function CropOverlay({
         };
 
         setCropData(newCrop);
+        setCreateAnchor({ x: newCrop.x, y: newCrop.y });
         setIsResizing(true);
-        setResizeHandle('se');
+        setResizeHandle(null);
         setDragStart({ x: e.clientX, y: e.clientY });
         setInitialCrop(newCrop);
       }
@@ -140,6 +145,13 @@ export const CropOverlay = memo(function CropOverlay({
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
       if (!initialCrop) return;
+
+      if (createAnchor) {
+        // Drawing a new box: any drag direction works (Shift = square)
+        const ratio = getAspectRatio() ?? (e.shiftKey ? 1 : null);
+        setCropData(rectFromDrag(createAnchor, screenToImage(e.clientX, e.clientY), imageDimensions, ratio));
+        return;
+      }
 
       const deltaX = (e.clientX - dragStart.x) / scale;
       const deltaY = (e.clientY - dragStart.y) / scale;
@@ -221,6 +233,8 @@ export const CropOverlay = memo(function CropOverlay({
       imageDimensions,
       setCropData,
       getAspectRatio,
+      createAnchor,
+      screenToImage,
     ]
   );
 
@@ -230,6 +244,7 @@ export const CropOverlay = memo(function CropOverlay({
     setIsResizing(false);
     setResizeHandle(null);
     setInitialCrop(null);
+    setCreateAnchor(null);
   }, []);
 
   // Add global mouse listeners

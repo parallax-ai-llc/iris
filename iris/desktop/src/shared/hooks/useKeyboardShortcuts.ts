@@ -1,11 +1,24 @@
 /**
- * useKeyboardShortcuts - Global keyboard shortcuts hook
+ * useKeyboardShortcuts - global shortcuts (sidebar navigation) + the legacy
+ * `registerShortcut` / `useShortcut` API, all running on the central
+ * dispatcher in `@/shared/lib/shortcuts`.
+ *
+ * Global shortcuts live in the lowest scope, so an open editor wins:
+ * in the image editor Ctrl+0 / Ctrl+1 zoom instead of navigating.
  */
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { useUIStore } from '@/shared/stores/ui.store';
+import {
+  registerShortcutLayer,
+  useKeymapLayer,
+  useShortcutLayer,
+  type Keymap,
+  type ShortcutBinding,
+  type ShortcutHandler,
+} from '@/shared/lib/shortcuts';
 
-interface ShortcutHandler {
+interface ShortcutHandlerSpec {
   key: string;
   ctrl?: boolean;
   shift?: boolean;
@@ -15,153 +28,79 @@ interface ShortcutHandler {
   when?: () => boolean;
 }
 
-// Global shortcuts registry
-const shortcuts: ShortcutHandler[] = [];
+/** Ctrl+1~0 follow the sidebar order; Ctrl+, opens settings. */
+export const GLOBAL_NAV_KEYMAP = {
+  navHome: { keys: ['Mod+1'], description: 'Go to Home' },
+  navTemplates: { keys: ['Mod+2'], description: 'Go to Templates' },
+  navImages: { keys: ['Mod+3'], description: 'Go to Images' },
+  navVideos: { keys: ['Mod+4'], description: 'Go to Videos' },
+  navProjects: { keys: ['Mod+5'], description: 'Go to Projects' },
+  navWorkflows: { keys: ['Mod+6'], description: 'Go to Workflows' },
+  navBatch: { keys: ['Mod+7'], description: 'Go to Batch' },
+  navExtensions: { keys: ['Mod+8'], description: 'Go to Extensions' },
+  navLibrary: { keys: ['Mod+9'], description: 'Go to Library' },
+  navStorage: { keys: ['Mod+0'], description: 'Go to Storage' },
+  navSettings: { keys: ['Mod+,'], description: 'Open Settings' },
+} as const satisfies Keymap<string>;
 
-export function registerShortcut(shortcut: ShortcutHandler) {
-  // Remove existing shortcut with same key combo
-  const index = shortcuts.findIndex(
-    (s) =>
-      s.key === shortcut.key &&
-      s.ctrl === shortcut.ctrl &&
-      s.shift === shortcut.shift &&
-      s.alt === shortcut.alt
-  );
-  if (index !== -1) {
-    shortcuts.splice(index, 1);
-  }
-  shortcuts.push(shortcut);
+export type GlobalNavCommand = keyof typeof GLOBAL_NAV_KEYMAP;
 
-  return () => {
-    const idx = shortcuts.indexOf(shortcut);
-    if (idx !== -1) {
-      shortcuts.splice(idx, 1);
-    }
+export const GLOBAL_NAV_TARGETS: Record<GlobalNavCommand, string> = {
+  navHome: 'home',
+  navTemplates: 'templates',
+  navImages: 'images',
+  navVideos: 'videos',
+  navProjects: 'projects',
+  navWorkflows: 'workflows',
+  navBatch: 'batch',
+  navExtensions: 'extensions',
+  navLibrary: 'library',
+  navStorage: 'storage',
+  navSettings: 'settings',
+};
+
+/** Legacy spec → dispatcher binding. `ctrl` means Ctrl on Windows, Cmd on macOS. */
+function toBinding(spec: Omit<ShortcutHandlerSpec, 'description'> & { description?: string }): ShortcutBinding {
+  const parts: string[] = [];
+  if (spec.ctrl) parts.push('Mod');
+  if (spec.alt) parts.push('Alt');
+  if (spec.shift) parts.push('Shift');
+  parts.push(spec.key);
+  const isEscape = spec.key.toLowerCase() === 'escape' || spec.key.toLowerCase() === 'esc';
+  return {
+    keys: parts.join('+'),
+    run: () => spec.handler(),
+    when: spec.when,
+    allowInInput: isEscape,
+    id: spec.description,
   };
+}
+
+/**
+ * Register a global shortcut (used by the extension runtime). Later
+ * registrations of the same combo win. Returns the unregister function.
+ */
+export function registerShortcut(shortcut: ShortcutHandlerSpec): () => void {
+  return registerShortcutLayer('global', [toBinding(shortcut)], { priority: 1 });
 }
 
 export function useKeyboardShortcuts() {
   const setCurrentPage = useUIStore((state) => state.setCurrentPage);
 
-  // Handle keyboard events
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      // Ignore if typing in an input
-      const target = e.target as HTMLElement;
-      if (
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable
-      ) {
-        // Allow Escape to work even in inputs
-        if (e.key !== 'Escape') {
-          return;
-        }
-      }
+  const handlers = useMemo(() => {
+    const out = {} as Record<GlobalNavCommand, ShortcutHandler>;
+    for (const id of Object.keys(GLOBAL_NAV_TARGETS) as GlobalNavCommand[]) {
+      out[id] = () => setCurrentPage(GLOBAL_NAV_TARGETS[id]);
+    }
+    return out;
+  }, [setCurrentPage]);
 
-      // Map shortcut.key → KeyboardEvent.code for physical-key fallback.
-      // Needed primarily on macOS where Option (Alt) + a letter/bracket
-      // produces special characters (e.g. Alt+] → '‘'), making e.key
-      // unreliable. e.code reflects the physical key regardless of layout.
-      const keyToCode = (key: string): string | null => {
-        const k = key.toLowerCase();
-        if (k.length === 1 && k >= 'a' && k <= 'z') return `Key${k.toUpperCase()}`;
-        if (k.length === 1 && k >= '0' && k <= '9') return `Digit${k}`;
-        if (k === ']') return 'BracketRight';
-        if (k === '[') return 'BracketLeft';
-        if (k === ',') return 'Comma';
-        if (k === '.') return 'Period';
-        if (k === '/') return 'Slash';
-        if (k === ';') return 'Semicolon';
-        if (k === "'") return 'Quote';
-        if (k === '\\') return 'Backslash';
-        if (k === '`') return 'Backquote';
-        if (k === '-') return 'Minus';
-        if (k === '=') return 'Equal';
-        return null;
-      };
-
-      // Check registered shortcuts
-      for (const shortcut of shortcuts) {
-        const ctrlMatch = shortcut.ctrl ? e.ctrlKey || e.metaKey : !e.ctrlKey && !e.metaKey;
-        const shiftMatch = shortcut.shift ? e.shiftKey : !e.shiftKey;
-        const altMatch = shortcut.alt ? e.altKey : !e.altKey;
-        const expectedCode = keyToCode(shortcut.key);
-        const keyMatch =
-          e.key.toLowerCase() === shortcut.key.toLowerCase() ||
-          (expectedCode !== null && e.code === expectedCode);
-
-        if (ctrlMatch && shiftMatch && altMatch && keyMatch) {
-          if (!shortcut.when || shortcut.when()) {
-            e.preventDefault();
-            shortcut.handler();
-            return;
-          }
-        }
-      }
-
-      // Built-in navigation shortcuts (Ctrl+1~0 maps to sidebar order)
-      if (e.ctrlKey || e.metaKey) {
-        switch (e.key) {
-          case '1':
-            e.preventDefault();
-            setCurrentPage('home');
-            break;
-          case '2':
-            e.preventDefault();
-            setCurrentPage('templates');
-            break;
-          case '3':
-            e.preventDefault();
-            setCurrentPage('images');
-            break;
-          case '4':
-            e.preventDefault();
-            setCurrentPage('videos');
-            break;
-          case '5':
-            e.preventDefault();
-            setCurrentPage('projects');
-            break;
-          case '6':
-            e.preventDefault();
-            setCurrentPage('workflows');
-            break;
-          case '7':
-            e.preventDefault();
-            setCurrentPage('batch');
-            break;
-          case '8':
-            e.preventDefault();
-            setCurrentPage('extensions');
-            break;
-          case '9':
-            e.preventDefault();
-            setCurrentPage('library');
-            break;
-          case '0':
-            e.preventDefault();
-            setCurrentPage('storage');
-            break;
-          case ',':
-            e.preventDefault();
-            setCurrentPage('settings');
-            break;
-        }
-      }
-    },
-    [setCurrentPage]
-  );
-
-  useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
+  useKeymapLayer('global', GLOBAL_NAV_KEYMAP, handlers);
 
   return { registerShortcut };
 }
 
-// Hook for component-specific shortcuts
+/** Component-scoped global shortcut (kept for API compatibility). */
 export function useShortcut(
   key: string,
   handler: () => void,
@@ -171,25 +110,27 @@ export function useShortcut(
     alt?: boolean;
     description?: string;
     when?: () => boolean;
-  } = {}
+  } = {},
 ) {
   const handlerRef = useRef(handler);
   handlerRef.current = handler;
-
   const whenRef = useRef(options.when);
   whenRef.current = options.when;
 
-  useEffect(() => {
-    return registerShortcut({
-      key,
-      handler: () => handlerRef.current(),
-      ctrl: options.ctrl,
-      shift: options.shift,
-      alt: options.alt,
-      description: options.description || '',
-      when: whenRef.current ? () => whenRef.current!() : undefined,
-    });
-  }, [key, options.ctrl, options.shift, options.alt, options.description]);
+  const binding = useMemo(
+    () =>
+      toBinding({
+        key,
+        ctrl: options.ctrl,
+        shift: options.shift,
+        alt: options.alt,
+        description: options.description,
+        handler: () => handlerRef.current(),
+        when: () => (whenRef.current ? whenRef.current() : true),
+      }),
+    [key, options.ctrl, options.shift, options.alt, options.description],
+  );
+  useShortcutLayer('global', [binding], { priority: 1 });
 }
 
 export default useKeyboardShortcuts;

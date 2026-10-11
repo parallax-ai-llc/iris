@@ -44,7 +44,7 @@ export function TitleBar({ leftContent, rightContent, hideNav }: TitleBarProps =
       window.electronAPI.window.onMaximizeChange(setIsMaximized);
       window.electronAPI.window.onCloseRequested(() => {
         const imageEditorDirty = useEditorTabsStore.getState().tabs.some((t) => t.isDirty);
-        const videoEditorDirty = useVideoProjectStore.getState().isDirty;
+        const videoEditorDirty = useEditorStore.getState().hasUnsavedChanges();
         const isClientProcessing = useEditorStore.getState().clientProcessingInProgress;
         const workflowDirty = useIrisEditorStore.getState().isDirty;
         if (isClientProcessing) {
@@ -68,7 +68,7 @@ export function TitleBar({ leftContent, rightContent, hideNav }: TitleBarProps =
 
   const handleClose = () => {
     const imageEditorDirty = useEditorTabsStore.getState().tabs.some((t) => t.isDirty);
-    const videoEditorDirty = useVideoProjectStore.getState().isDirty;
+    const videoEditorDirty = useEditorStore.getState().hasUnsavedChanges();
     const isClientProcessing = useEditorStore.getState().clientProcessingInProgress;
     const workflowDirty = useIrisEditorStore.getState().isDirty;
 

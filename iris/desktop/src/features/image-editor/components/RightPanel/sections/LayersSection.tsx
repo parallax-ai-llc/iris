@@ -62,6 +62,8 @@ interface LayerItemProps {
   onDragEnd: () => void;
   onDrop: (index: number) => void;
   onContextMenu: (e: React.MouseEvent) => void;
+  /** Double-click on a text layer opens it in the text tool. */
+  onEditText: () => void;
 }
 
 const LayerItem = memo(function LayerItem({
@@ -82,6 +84,7 @@ const LayerItem = memo(function LayerItem({
   onDragEnd,
   onDrop,
   onContextMenu,
+  onEditText,
 }: LayerItemProps) {
   return (
     <div
@@ -91,6 +94,7 @@ const LayerItem = memo(function LayerItem({
       onDragEnd={onDragEnd}
       onDrop={() => onDrop(index)}
       onContextMenu={onContextMenu}
+      onDoubleClick={layer.text ? onEditText : undefined}
       className={cn(
         'flex items-center gap-1.5 p-1.5 rounded-md transition-colors cursor-grab active:cursor-grabbing',
         isActive ? 'bg-white/10 border border-white/20' : 'bg-zinc-800/50 border border-transparent hover:bg-zinc-700/50',
@@ -368,6 +372,7 @@ export const LayersSection = memo(function LayersSection() {
                 onDragEnd={handleDragEnd}
                 onDrop={handleDrop}
                 onContextMenu={(e) => handleLayerContextMenu(e, layer.id)}
+                onEditText={() => useImageEditorStore.getState().requestTextEdit(layer.id)}
               />
             );
           })}

@@ -381,6 +381,11 @@ function processPsdLayers(
       layer.adjustmentValues = adjustment.values;
     }
 
+    // Text: keep the source text and style so the text tool can re-edit it
+    if (textData) {
+      layer.text = { content: textData.text, settings: textData.settings };
+    }
+
     // Layer effects
     if (effects.length > 0) {
       layer.effects = effects;

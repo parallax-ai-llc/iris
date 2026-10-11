@@ -68,5 +68,10 @@
     "title": "選択した画像を削除",
     "message": "選択した{{count}}枚の画像を削除しますか？この操作は元に戻せません。",
     "confirm": "削除"
+  },
+  "openDocuments": {
+    "label": "開いているドキュメント: {{count}}",
+    "unsaved": "未保存 {{count}}",
+    "return": "エディターに戻る"
   }
 }

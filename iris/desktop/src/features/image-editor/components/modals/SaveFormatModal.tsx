@@ -6,6 +6,7 @@
 import { memo, useState, useEffect, useRef } from 'react';
 import { X, Save, Layers, ImageIcon, HardDrive, Cloud } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
+import { useModalShortcutBlock } from '@/shared/lib/shortcuts';
 
 export type SaveFormatChoice = 'psd' | 'image';
 export type SaveDestination = 'local' | 'cloud';
@@ -25,6 +26,8 @@ export const SaveFormatModal = memo(function SaveFormatModal({
   onSavePsd,
   defaultName = 'Untitled Project',
 }: SaveFormatModalProps) {
+  // Block editor/global shortcuts while this dialog is open.
+  useModalShortcutBlock(isOpen);
   const [name, setName] = useState(defaultName);
   const [format, setFormat] = useState<SaveFormatChoice>('psd');
   const [destination, setDestination] = useState<SaveDestination>('local');

@@ -4,7 +4,6 @@
  */
 
 import { memo, useEffect, useCallback, useRef, useState, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Save, Loader2 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { useImageEditorStore } from '@/features/image-editor/stores/imageEditor.store';
@@ -14,7 +13,7 @@ import { getOrCreateStore } from '@/features/image-editor/stores/imageEditorRegi
 import { EditorTabBar } from '@/features/image-editor/components/tabs/EditorTabBar';
 import { EditorMenuBar } from '@/features/image-editor/components/tabs/EditorMenuBar';
 import { EditorCanvas, EditorCanvasHandle } from '@/features/image-editor/components/Canvas/EditorCanvas';
-import { ToolPanel, SHORTCUT_TO_GROUP } from '@/features/image-editor/components/Toolbar/ToolPanel';
+import { ToolPanel } from '@/features/image-editor/components/Toolbar/ToolPanel';
 import { RightPanel } from '@/features/image-editor/components/RightPanel/RightPanel';
 import { OptionsBar } from '@/features/image-editor/components/OptionsBar/OptionsBar';
 import { FloatingAIPanel } from '@/features/image-editor/components/FloatingPanel/FloatingAIPanel';
@@ -30,7 +29,7 @@ import { ImageSizeModal } from '@/features/image-editor/components/modals/ImageS
 import { ExportAsModal, ExportAsSettings } from '@/features/image-editor/components/modals/ExportAsModal';
 import { TitleBar } from '@/app/layout/TitleBar';
 import { FullScreenLayout } from '@/app/layout/FullScreenLayout';
-import { ConfirmDialog } from '@/shared/components/ui/Modal';
+import { CloseTabConfirmDialog } from '@/features/image-editor/components/tabs/CloseTabConfirmDialog';
 import { PresetCreatorModal } from '@/features/tools/components/PresetCreatorModal';
 import { downloadCmykTiff } from '@/features/image-editor/canvas/cmykExport';
 import { exportAsWebP, exportAsRgbTiff, exportAsBmp, downloadBlob, downloadBytes } from '@/features/image-editor/canvas/formatExport';
@@ -42,6 +41,8 @@ import { toast } from '@/shared/lib/toast';
 import { openImageFile } from '@/features/image-editor/lib/openImageFile';
 import { jsPDF } from 'jspdf';
 import { useImageEditorLayerShortcuts } from '@/features/image-editor/hooks/useImageEditorLayerShortcuts';
+import { useImageEditorShortcuts } from '@/features/image-editor/hooks/useImageEditorShortcuts';
+import { textLayersForExport } from '@/features/image-editor/lib/textLayerEdit';
 
 /**
  * Outer wrapper — provides the active tab's store via React context so that
@@ -59,7 +60,10 @@ export const ImageEditorPage = memo(function ImageEditorPage() {
 
   return (
     <ImageEditorStoreProvider store={activeStore}>
-      <ImageEditorPageInner />
+      {/* key: every component below reads the ACTIVE tab's store; a tab switch
+          re-mounts the subtree so nothing keeps showing the previous tab (the
+          per-tab document state lives in the tab's store and is restored). */}
+      <ImageEditorPageInner key={activeTabId} />
     </ImageEditorStoreProvider>
   );
 });
@@ -67,46 +71,25 @@ export const ImageEditorPage = memo(function ImageEditorPage() {
 const ImageEditorPageInner = memo(function ImageEditorPageInner() {
   const {
     sourceAsset,
-    canUndo,
-    canRedo,
-    undo,
-    redo,
     rotation,
     flipHorizontal,
     flipVertical,
     resetAllTransforms,
     setProcessing,
-    isDirty,
     clearDirty,
     editMode,
     setEditMode,
-    setActiveTool,
-    brushSettings,
-    setBrushSettings,
-    zoomIn,
-    zoomOut,
-    toggleLayersPanel,
-    toggleImageInfoPanel,
     layers,
     textLayers,
-    clearSelection,
-    invertSelection,
     isCanvasReady,
-    resetDefaultColors,
-    swapColors,
-    selectionTool,
-    setSelectionTool,
-    activeTool,
-    navigationTool,
-    setNavigationTool,
-    lastUsedToolPerGroup,
-    setLastUsedToolForGroup,
-    zoomToFit,
-    zoomTo100,
   } = useImageEditorStore();
 
-  const { activeTabId, closeTab, hideEditor, openTabWithLayers } = useEditorTabsStore();
-  const { t } = useTranslation('common');
+  const activeTabId = useEditorTabsStore((s) => s.activeTabId);
+  const closeTab = useEditorTabsStore((s) => s.closeTab);
+  const requestCloseTab = useEditorTabsStore((s) => s.requestCloseTab);
+  const requestLeaveEditor = useEditorTabsStore((s) => s.requestLeaveEditor);
+  const openTabWithLayers = useEditorTabsStore((s) => s.openTabWithLayers);
+  const pendingClose = useEditorTabsStore((s) => s.pendingClose);
 
   // Photoshop-style layer shortcuts (Ctrl+J, Ctrl+E, ...) — only active
   // while the image editor page is mounted.
@@ -133,9 +116,6 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
   const [showImageInfoModal, setShowImageInfoModal] = useState(false);
   const [showFilterGalleryModal, setShowFilterGalleryModal] = useState(false);
   const [filterGallerySource, setFilterGallerySource] = useState<HTMLCanvasElement | null>(null);
-  const [showCloseConfirmModal, setShowCloseConfirmModal] = useState(false);
-  const [pendingCloseTabId, setPendingCloseTabId] = useState<string | null>(null);
-  const [showLocalBackConfirm, setShowLocalBackConfirm] = useState(false);
   const [currentDimensions, setCurrentDimensions] = useState<{ width: number; height: number } | undefined>();
   const [clipboardImageSize, setClipboardImageSize] = useState<{ width: number; height: number } | null>(null);
   // Preset creator modal state (opened from EditorMenuBar Presets menu)
@@ -167,15 +147,10 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
     }
   }, [editMode]);
 
-  // Handle back navigation (go to gallery, keep tabs alive)
+  // Back / Esc: go to the gallery, tabs stay alive (a dirty local file asks first)
   const handleBack = useCallback(() => {
-    const isLocalAsset = sourceAsset?.id?.startsWith('local-');
-    if (isLocalAsset) {
-      setShowLocalBackConfirm(true);
-      return;
-    }
-    hideEditor();
-  }, [hideEditor, sourceAsset]);
+    requestLeaveEditor();
+  }, [requestLeaveEditor]);
 
   // Handle new project - open modal and detect clipboard image size
   const handleNew = useCallback(async () => {
@@ -282,8 +257,8 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
   };
 
   // Process file data after opening (shared between Electron and browser paths)
-  const processOpenedFile = useCallback(async (fileData: ArrayBuffer, fileName: string) => {
-    await openImageFile(fileData, fileName);
+  const processOpenedFile = useCallback(async (fileData: ArrayBuffer, fileName: string, sourcePath?: string) => {
+    await openImageFile(fileData, fileName, sourcePath);
   }, []);
 
   // Handle open file (PSD or image)
@@ -298,6 +273,8 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
           ],
         });
         if (!filePath) return;
+        // Same file already open: focus its tab instead of opening a duplicate
+        if (useEditorTabsStore.getState().focusTabForPath(filePath)) return;
 
         const fileData = await window.electronAPI.files.readFile(filePath);
         if (!fileData) {
@@ -306,7 +283,7 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
         }
 
         const fileName = filePath.split(/[/\\]/).pop() || 'file';
-        await processOpenedFile(fileData, fileName);
+        await processOpenedFile(fileData, fileName, filePath);
       } catch (error) {
         console.error('Open error:', error);
         toast.error('Failed to open file');
@@ -382,7 +359,7 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
       const compositeCanvas = createFinalCanvas();
       const cw = compositeCanvas?.width ?? 1920;
       const ch = compositeCanvas?.height ?? 1080;
-      const blob = await exportAsPsd(layers, cw, ch, compositeCanvas, textLayers);
+      const blob = await exportAsPsd(layers, cw, ch, compositeCanvas, textLayersForExport(layers, textLayers));
       const fileName = name.replace(/\.[^/.]+$/, '') + '.psd';
 
       if (destination === 'local') {
@@ -555,7 +532,7 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
         const compositeCanvas = createFinalCanvas();
         const cw = compositeCanvas?.width ?? 1920;
         const ch = compositeCanvas?.height ?? 1080;
-        const blob = await exportAsPsd(layers, cw, ch, compositeCanvas, textLayers);
+        const blob = await exportAsPsd(layers, cw, ch, compositeCanvas, textLayersForExport(layers, textLayers));
 
         if (destination === 'cloud') {
           const file = new File([blob], outputFileName, { type: 'application/octet-stream' });
@@ -936,320 +913,39 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
     setShowImageInfoModal(true);
   }, []);
 
-  // Close tab handler for menu bar
+  // Ctrl+W / File > Close Tab: same decision as the tab X (asks only when dirty)
   const handleCloseTab = useCallback(() => {
-    if (activeTabId) {
-      if (isDirty) {
-        setPendingCloseTabId(activeTabId);
-        setShowCloseConfirmModal(true);
-      } else {
-        closeTab(activeTabId);
-      }
-    }
-  }, [activeTabId, isDirty, closeTab]);
+    if (activeTabId) requestCloseTab(activeTabId);
+  }, [activeTabId, requestCloseTab]);
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Escape: prioritize closing menus/modes before closing editor
-      if (e.key === 'Escape') {
-        // If any modal is open, let the modal handle Escape
-        if (showNewProjectModal || showSaveFormatModal || showSaveConfirmModal || showSaveAsModal || showImageInfoModal || showCloseConfirmModal || showLocalBackConfirm || presetMode) {
-          return;
-        }
-        // If in an edit mode (not 'none'), reset to 'none' first
-        if (editMode !== 'none') {
-          setEditMode('none');
-          return;
-        }
-        // Only close editor if no mode is active
-        handleBack();
-        return;
-      }
-
-      // While typing in an input/textarea/contenteditable (e.g. file-name field
-      // inside Save / Export / Canvas Size modals), never hijack the keystroke —
-      // bail before any preventDefault below so normal text editing (incl. IME
-      // composition, Ctrl+A/V/Z, etc.) works.
-      const target = e.target as HTMLElement | null;
-      if (
-        target && (
-          target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.isContentEditable
-        )
-      ) {
-        return;
-      }
-
-      // Enter: apply crop when in crop mode
-      if (e.key === 'Enter' && editMode === 'crop') {
-        e.preventDefault();
-        useImageEditorStore.getState().applyCrop();
-        return;
-      }
-
-      // Ctrl/Cmd + Z for undo
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        if (canUndo()) undo();
-        return;
-      }
-
-      // Ctrl/Cmd + Shift + Z or Ctrl/Cmd + Y for redo
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
-        e.preventDefault();
-        if (canRedo()) redo();
-        return;
-      }
-
-      // Ctrl/Cmd + W for close tab
-      if ((e.ctrlKey || e.metaKey) && e.key === 'w') {
-        e.preventDefault();
-        if (activeTabId) {
-          if (isDirty) {
-            setPendingCloseTabId(activeTabId);
-            setShowCloseConfirmModal(true);
-          } else {
-            closeTab(activeTabId);
-          }
-        }
-        return;
-      }
-
-      // Ctrl/Cmd + N for new
-      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
-        e.preventDefault();
-        handleNew();
-        return;
-      }
-
-      // Ctrl/Cmd + V for paste image from clipboard
-      if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
-        e.preventDefault();
-        pasteImageFromClipboard();
-        return;
-      }
-
-      // Ctrl/Cmd + O for open
-      if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
-        e.preventDefault();
-        handleOpen();
-        return;
-      }
-
-      // Ctrl/Cmd + Shift + S for save as (must check before plain Ctrl+S)
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'S' || e.key === 's')) {
-        e.preventDefault();
-        setShowSaveAsModal(true);
-        return;
-      }
-
-      // Ctrl/Cmd + S for save
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 's') {
-        e.preventDefault();
-        handleSaveClick();
-        return;
-      }
-
-      // Ctrl/Cmd + T for free transform (Photoshop standard)
-      if ((e.ctrlKey || e.metaKey) && e.key === 't') {
-        e.preventDefault();
-        setEditMode('freeTransform');
-        return;
-      }
-
-      // Ctrl/Cmd + = for zoom in
-      if ((e.ctrlKey || e.metaKey) && (e.key === '=' || e.key === '+')) {
-        e.preventDefault();
-        zoomIn();
-        return;
-      }
-
-      // Ctrl/Cmd + - for zoom out
-      if ((e.ctrlKey || e.metaKey) && e.key === '-') {
-        e.preventDefault();
-        zoomOut();
-        return;
-      }
-
-      // Ctrl/Cmd + 0 for fit to view (Photoshop standard)
-      if ((e.ctrlKey || e.metaKey) && e.key === '0') {
-        e.preventDefault();
-        e.stopImmediatePropagation(); // Prevent global nav shortcut
-        zoomToFit();
-        return;
-      }
-
-      // Ctrl/Cmd + 1 for 100% zoom (Photoshop standard)
-      if ((e.ctrlKey || e.metaKey) && e.key === '1') {
-        e.preventDefault();
-        e.stopImmediatePropagation(); // Prevent global nav shortcut
-        zoomTo100();
-        return;
-      }
-
-      // Ctrl/Cmd + D for deselect
-      if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
-        e.preventDefault();
-        clearSelection();
-        return;
-      }
-
-      // Ctrl/Cmd + A for select all
-      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
-        e.preventDefault();
-        const state = useImageEditorStore.getState();
-        const { layers, activeLayerId } = state;
-        const layer = layers.find(l => l.id === activeLayerId);
-        if (layer) {
-          const w = layer.width || 0;
-          const h = layer.height || 0;
-          if (w > 0 && h > 0) {
-            state.setSelection({
-              bounds: { x: 0, y: 0, width: w, height: h },
-              maskDataUrl: '',
-              feather: 0,
-              isInverted: false,
-            });
-          }
-        }
-        return;
-      }
-
-      // Ctrl/Cmd + Shift + I for invert selection
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'I') {
-        e.preventDefault();
-        invertSelection();
-        return;
-      }
-
-      // F-key shortcuts (no modifier needed)
-      if (e.key === 'F7') {
-        e.preventDefault();
-        toggleLayersPanel();
-        return;
-      }
-      if (e.key === 'F8') {
-        e.preventDefault();
-        toggleImageInfoPanel();
-        return;
-      }
-
-      // --- Single-key tool shortcuts (Photoshop-style) ---
-      // Skip if modifier keys held. (Input-target guard handled at top.)
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-
-      const key = e.key.toLowerCase();
-
-      // Brush size shortcuts
-      if (key === '[') {
-        e.preventDefault();
-        setBrushSettings({ size: Math.max(1, brushSettings.size - 5) });
-        return;
-      }
-      if (key === ']') {
-        e.preventDefault();
-        setBrushSettings({ size: Math.min(500, brushSettings.size + 5) });
-        return;
-      }
-
-      // D = Reset default colors (Photoshop standard: black foreground, white background)
-      if (key === 'd') {
-        e.preventDefault();
-        resetDefaultColors();
-        return;
-      }
-
-      // X = Swap foreground/background colors (Photoshop standard)
-      if (key === 'x') {
-        e.preventDefault();
-        swapColors();
-        return;
-      }
-
-      // Photoshop-standard tool shortcuts with group cycling
-      // Single-tool shortcuts
-      const singleShortcuts: Record<string, { editMode?: string; navigationTool?: 'hand' | 'zoom' }> = {
-        v: { editMode: 'move' },
-        c: { editMode: 'crop' },
-        p: { editMode: 'pen' },
-        t: { editMode: 'text' },
-        u: { editMode: 'shape' },
-        h: { navigationTool: 'hand' },
-        z: { navigationTool: 'zoom' },
-      };
-
-      const single = singleShortcuts[key];
-      if (single) {
-        e.preventDefault();
-        if (single.navigationTool) {
-          setNavigationTool(single.navigationTool);
-        } else {
-          setNavigationTool('none');
-          if (single.editMode) setEditMode(single.editMode as typeof editMode);
-        }
-        return;
-      }
-
-      // Group-cycling shortcuts: repeated press cycles through group items
-      const group = SHORTCUT_TO_GROUP[key];
-      if (group) {
-        e.preventDefault();
-        const items = group.items;
-        const lastUsed = lastUsedToolPerGroup[group.groupId] || items[0].id;
-
-        // Check if already in this group to determine cycling
-        const isInGroup = items.some((item) => {
-          const a = item.action;
-          if (a.type === 'drawTool') return editMode === 'drawing' && activeTool === a.tool;
-          if (a.type === 'selectionTool') return editMode === 'selection' && selectionTool === a.tool;
-          if (a.type === 'editMode') return editMode === a.mode;
-          if (a.type === 'navigationTool') return navigationTool === a.tool;
-          return false;
-        });
-
-        let targetItem: typeof items[0];
-        if (isInGroup && items.length > 1) {
-          // Cycle to next item in group
-          const currentIdx = items.findIndex((item) => {
-            const a = item.action;
-            if (a.type === 'drawTool') return activeTool === a.tool;
-            if (a.type === 'selectionTool') return selectionTool === a.tool;
-            if (a.type === 'editMode') return editMode === a.mode;
-            if (a.type === 'navigationTool') return navigationTool === a.tool;
-            return false;
-          });
-          const nextIdx = (currentIdx + 1) % items.length;
-          targetItem = items[nextIdx];
-        } else {
-          // Activate last-used item in group
-          targetItem = items.find((i) => i.id === lastUsed) || items[0];
-        }
-
-        setLastUsedToolForGroup(group.groupId, targetItem.id);
-        const action = targetItem.action;
-        if (action.type === 'navigationTool') {
-          setNavigationTool(action.tool);
-        } else {
-          setNavigationTool('none');
-          if (action.type === 'drawTool') {
-            setEditMode('drawing');
-            setActiveTool(action.tool as Parameters<typeof setActiveTool>[0]);
-          } else if (action.type === 'selectionTool') {
-            setSelectionTool(action.tool as Parameters<typeof setSelectionTool>[0]);
-            setEditMode('selection');
-          } else if (action.type === 'editMode') {
-            setEditMode(action.mode as typeof editMode);
-          }
-        }
-        return;
-      }
+  // "Save and Close" from the close dialog: open the save flow, close after it
+  const handleSaveAndClose = useCallback((tabId: string) => {
+    onAfterSaveRef.current = () => {
+      closeTab(tabId);
     };
+    setShowSaveFormatModal(true);
+  }, [closeTab]);
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleBack, handleNew, handleOpen, handleSaveClick, canUndo, canRedo, undo, redo, editMode, setEditMode, setActiveTool, activeTool, selectionTool, setSelectionTool, navigationTool, setNavigationTool, lastUsedToolPerGroup, setLastUsedToolForGroup, brushSettings.size, setBrushSettings, zoomIn, zoomOut, zoomToFit, zoomTo100, toggleLayersPanel, toggleImageInfoPanel, clearSelection, invertSelection, resetDefaultColors, swapColors, showNewProjectModal, showSaveFormatModal, showSaveConfirmModal, showSaveAsModal, showImageInfoModal, showCloseConfirmModal, showLocalBackConfirm, presetMode, pasteImageFromClipboard, activeTabId, closeTab, isDirty]);
+  // Keyboard shortcuts — keys live in IMAGE_EDITOR_KEYMAP, routed by the
+  // central dispatcher (editor scope beats the global Ctrl+1~0 navigation).
+  useImageEditorShortcuts({
+    onBack: handleBack,
+    onNew: handleNew,
+    onOpen: handleOpen,
+    onSave: handleSaveClick,
+    onSaveAs: () => setShowSaveAsModal(true),
+    onCloseTab: handleCloseTab,
+    onPaste: pasteImageFromClipboard,
+    modalOpen:
+      showNewProjectModal ||
+      showSaveFormatModal ||
+      showSaveConfirmModal ||
+      showSaveAsModal ||
+      showImageInfoModal ||
+      showFilterGalleryModal ||
+      pendingClose !== null ||
+      presetMode !== null,
+  });
 
   if (!sourceAsset) {
     return (
@@ -1470,50 +1166,8 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
         />
       )}
 
-      {/* Local file back confirmation */}
-      <ConfirmDialog
-        isOpen={showLocalBackConfirm}
-        onClose={() => setShowLocalBackConfirm(false)}
-        onConfirm={() => { setShowLocalBackConfirm(false); hideEditor(); }}
-        title={t('editor.localFileWarning.imageTitle')}
-        message={t('editor.localFileWarning.imageMessage')}
-        confirmText={t('editor.localFileWarning.closeWithoutSaving')}
-        cancelText={t('buttons.cancel')}
-        variant="danger"
-      />
-
-      {/* Close Tab Confirmation Modal (dirty tab) */}
-      <ConfirmDialog
-        isOpen={showCloseConfirmModal}
-        onClose={() => { setShowCloseConfirmModal(false); setPendingCloseTabId(null); }}
-        onConfirm={() => {
-          setShowCloseConfirmModal(false);
-          if (pendingCloseTabId) {
-            clearDirty();
-            closeTab(pendingCloseTabId);
-            setPendingCloseTabId(null);
-          }
-        }}
-        title={t('editor.closeTabWarning.title')}
-        message={t('editor.closeTabWarning.message')}
-        confirmText={t('editor.closeTabWarning.closeWithoutSaving')}
-        cancelText={t('buttons.cancel')}
-        variant="danger"
-        secondaryAction={{
-          text: t('editor.closeTabWarning.saveAndClose'),
-          onClick: () => {
-            setShowCloseConfirmModal(false);
-            if (pendingCloseTabId) {
-              const tabToClose = pendingCloseTabId;
-              onAfterSaveRef.current = () => {
-                closeTab(tabToClose);
-              };
-              setPendingCloseTabId(null);
-              setShowSaveFormatModal(true);
-            }
-          },
-        }}
-      />
+      {/* Unsaved-changes dialog for every close path (tab X, Ctrl+W, menu, Back on a dirty local file) */}
+      <CloseTabConfirmDialog onSaveAndClose={handleSaveAndClose} />
     </FullScreenLayout>
   );
 });

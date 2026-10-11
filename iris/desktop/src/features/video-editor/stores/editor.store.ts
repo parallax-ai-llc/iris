@@ -44,6 +44,16 @@ import type {
 import type { MasterTextStyle, VectorPath, PanelLayout } from '@/types/editor.types';
 
 import { DEFAULT_SUBTITLE_STYLE, DEFAULT_TRANSFORM, hasEffects } from '@/types/editor.types';
+import {
+  DEFAULT_PIXELS_PER_SECOND,
+  EMPTY_SAVE_POINT,
+  PROJECT_VIEW_RESET,
+  applyBackgroundClipPatch,
+  createSavePoint,
+  hasUnsavedEditorChanges,
+  savePointAfterClearHistory,
+  timelineContentKey,
+} from './editor/documentLifecycle';
 
 // ==================== Helper Functions ====================
 
@@ -316,8 +326,10 @@ function snapToEdges(
     }
   }
 
-  // Also check grid — only when snap-to-grid is enabled
-  if (snapToGridEnabled && gridSize > 0) {
+  // Grid is a fallback: a clip edge / playhead / marker within the threshold
+  // always wins, otherwise a nearby grid line pulls the clip off the edge and
+  // leaves a gap.
+  if (snapTarget === null && snapToGridEnabled && gridSize > 0) {
     const gridSnap = Math.round(time / gridSize) * gridSize;
     const gridDist = Math.abs(time - gridSnap);
     if (gridDist < bestDist) {
@@ -347,7 +359,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
     volume: 1,
     isMuted: false,
 
-    pixelsPerSecond: 50,
+    pixelsPerSecond: DEFAULT_PIXELS_PER_SECOND,
     scrollLeft: 0,
     tracks: [],
     markers: [],
@@ -363,6 +375,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
     history: [],
     historyIndex: -1,
     historyLabels: [],
+    savePoint: EMPTY_SAVE_POINT,
 
     inPoint: null,
     outPoint: null,
@@ -569,7 +582,9 @@ export const useEditorStore = create<EditorState & EditorActions>()(
     // ==================== Project Actions ====================
 
     openEditor: (asset) => {
-      set({ isEditorOpen: true, asset, videoUrl: '' });
+      // A newly opened project starts with the default timeline zoom (nothing of the
+      // previous project carries over).
+      set({ isEditorOpen: true, asset, videoUrl: '', ...PROJECT_VIEW_RESET });
       // If the asset already carries a duration in metadata, seed the editor
       // with it so the timeline isn't briefly stuck at the 30s placeholder.
       const metaDuration = ((asset.metadata || {}) as { duration?: number }).duration;
@@ -611,6 +626,8 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         keyframeClipboard: [],
         attributeClipboard: null,
         clipClipboard: null,
+        savePoint: EMPTY_SAVE_POINT,
+        ...PROJECT_VIEW_RESET,
       });
     },
 
@@ -624,6 +641,10 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         ? { ...project, tracks: structuredClone(tracks), duration, updatedAt: new Date().toISOString() }
         : null;
 
+      const historyPatch = initialProject
+        ? { project: initialProject, history: [initialProject], historyIndex: 0, historyLabels: ['Load Project'] }
+        : { history: [], historyIndex: -1, historyLabels: [] };
+
       set({
         isEditorOpen: true,
         tracks,
@@ -636,9 +657,9 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         outPoint: null,
         selection: { clipIds: [], trackIds: [] },
         selectedClip: null,
-        ...(initialProject
-          ? { project: initialProject, history: [initialProject], historyIndex: 0, historyLabels: ['Load Project'] }
-          : { history: [], historyIndex: -1, historyLabels: [] }),
+        ...historyPatch,
+        // The loaded timeline is what is stored: it is the save point.
+        savePoint: createSavePoint({ ...historyPatch, tracks, markers: restoredMarkers }),
       });
     },
 
@@ -689,6 +710,8 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         duration,
         history: [project],
         historyIndex: 0,
+        // A freshly initialised project is the opened (clean) state.
+        savePoint: { entry: project, content: timelineContentKey(tracks, []) },
         // Reset project-scoped state when starting a fresh project
         markers: [],
         sequenceMarkers: [],
@@ -709,23 +732,12 @@ export const useEditorStore = create<EditorState & EditorActions>()(
 
           window.electronAPI.audioExtract.separate(videoPath, audioOutputPath).then((result) => {
             if (result.success && result.outputPath) {
-              // Update audio clip to use separated audio file
-              const { tracks: currentTracks } = get();
-              const audioTrack = currentTracks.find((t) => t.type === 'audio');
+              // Update audio clip to use separated audio file. This is not a user
+              // edit: it is applied to every history snapshot and keeps a clean
+              // project clean (documentLifecycle.applyBackgroundClipPatch).
+              const audioTrack = get().tracks.find((t) => t.type === 'audio');
               if (audioTrack) {
-                const updatedTracks = currentTracks.map((t) =>
-                  t.id === audioTrack.id
-                    ? {
-                        ...t,
-                        clips: t.clips.map((c) =>
-                          c.id === 'clip-audio-main'
-                            ? { ...c, assetId: result.outputPath! }
-                            : c
-                        ),
-                      }
-                    : t
-                );
-                set({ tracks: updatedTracks });
+                set(applyBackgroundClipPatch(get(), 'clip-audio-main', { assetId: result.outputPath! }));
                 // Store audio path for subtitle generation and export
                 get().setAssetPath(`audio:${asset.id}`, result.outputPath!);
               }
@@ -1475,7 +1487,9 @@ export const useEditorStore = create<EditorState & EditorActions>()(
     deleteSelected: () => {
       const { tracks, selection } = get();
 
-      // Collect linked clip IDs that should also be deleted
+      // Collect linked clip IDs that should also be deleted. Clips on locked
+      // tracks are never removed (a lock must protect against Delete/Cut too,
+      // not only against dragging).
       const idsToDelete = new Set(selection.clipIds);
       for (const track of tracks) {
         for (const clip of track.clips) {
@@ -1484,6 +1498,11 @@ export const useEditorStore = create<EditorState & EditorActions>()(
           }
         }
       }
+      for (const track of tracks) {
+        if (!track.locked) continue;
+        for (const clip of track.clips) idsToDelete.delete(clip.id);
+      }
+      if (idsToDelete.size === 0) return;
 
       // Collect source assetIds of audio/music clips being deleted so a surviving
       // video clip from the same source stops playing its embedded audio.
@@ -1537,7 +1556,14 @@ export const useEditorStore = create<EditorState & EditorActions>()(
       const { tracks, selection } = get();
       if (selection.clipIds.length === 0) return;
 
+      const deletable = tracks.some(
+        (t) => !t.locked && t.clips.some((c) => selection.clipIds.includes(c.id)),
+      );
+      if (!deletable) return;
+
       const newTracks = tracks.map((track) => {
+        // Locked tracks keep their clips and their gaps.
+        if (track.locked) return track;
         // Find deleted clips on this track
         const deletedClips = track.clips.filter((c) => selection.clipIds.includes(c.id));
         if (deletedClips.length === 0) return track;
@@ -1668,9 +1694,14 @@ export const useEditorStore = create<EditorState & EditorActions>()(
       };
 
       if (dragState.operation === 'move') {
-        // Anchor the clip's LEFT EDGE to the cursor (drop x position), regardless
-        // of where within the clip body the user grabbed it.
-        const rawStart = currentTime;
+        // Keep the grab offset: the point of the clip under the cursor at
+        // mousedown (dragState.startTime) stays under the cursor, so a small
+        // mouse move is a small clip move instead of a jump to the cursor.
+        const grabOffset = Math.min(
+          Math.max(0, dragState.startTime - originalClip.startTime),
+          clipDuration,
+        );
+        const rawStart = currentTime - grabOffset;
 
         // Only apply snap if user has moved clip more than a minimal threshold
         // This prevents the clip from jumping to a snap point immediately on click
@@ -2145,8 +2176,19 @@ export const useEditorStore = create<EditorState & EditorActions>()(
     },
 
     clearHistory: () => {
-      set({ history: [], historyIndex: -1, historyLabels: [] });
+      const savePoint = savePointAfterClearHistory(get());
+      set({ history: [], historyIndex: -1, historyLabels: [], savePoint });
     },
+
+    // ==================== Document Lifecycle ====================
+
+    captureSavePoint: () => createSavePoint(get()),
+
+    markSaved: (point) => {
+      set({ savePoint: point ?? createSavePoint(get()) });
+    },
+
+    hasUnsavedChanges: () => hasUnsavedEditorChanges(get()),
 
     pushHistory: (label = 'Edit') => {
       const { project, tracks, history, historyIndex, historyLabels } = get();

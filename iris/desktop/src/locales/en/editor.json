@@ -76,5 +76,66 @@
     }
   },
   "undo": "Undo (Ctrl+Z)",
-  "redo": "Redo (Ctrl+Shift+Z)"
+  "redo": "Redo (Ctrl+Shift+Z)",
+  "relight": {
+    "title": "Relight",
+    "menuLabel": "Relight",
+    "layerName": "Relight",
+    "description": "Change the lighting of your photo with AI. The result is added as a new layer.",
+    "preset": {
+      "label": "Lighting preset",
+      "natural": "Natural",
+      "studio": "Studio",
+      "dramatic": "Dramatic",
+      "soft": "Soft"
+    },
+    "direction": {
+      "label": "Light direction",
+      "auto": "Auto",
+      "left": "Left",
+      "right": "Right",
+      "top": "Top",
+      "bottom": "Bottom",
+      "diagonalSoon": "Diagonal directions are not supported yet"
+    },
+    "color": {
+      "label": "Light color",
+      "auto": "Auto",
+      "warm": "Warm",
+      "neutral": "Neutral",
+      "cool": "Cool",
+      "neon": "Neon"
+    },
+    "intensity": {
+      "label": "Strength",
+      "hint": "Sets the result layer opacity. Changing it later costs no credits."
+    },
+    "custom": {
+      "label": "Describe the lighting (optional)",
+      "placeholder": "e.g. warm sunset light from behind",
+      "hint": "Overrides the preset, direction and color when filled in."
+    },
+    "output": {
+      "newLayer": "Add as new layer",
+      "newLayerHint": "Keep existing layers, add result on top",
+      "replaceWarning": "The result replaces the image and is at most 512 px.",
+      "onlySelection": "Apply only inside the selection",
+      "resolutionNote": "Relight results are up to 512 px and are scaled to the canvas."
+    },
+    "run": "Relight",
+    "processing": "Relighting image...",
+    "stopWaiting": "Stop waiting",
+    "stoppedToast": "Stopped waiting. The result will be saved to your image gallery.",
+    "successToast": "Relight added as a new layer",
+    "loginRequired": "Relight runs in the cloud with your Parallax credits. Sign in to use it.",
+    "loginButton": "Sign in",
+    "selfHostNotice": "Relight needs a Parallax account, so it is not available in this self-hosted build.",
+    "errors": {
+      "loginRequired": "Please sign in to use Relight.",
+      "insufficientCredits": "Not enough credits for Relight.",
+      "failed": "Relight failed.",
+      "timeout": "Relight is taking longer than expected. Check your image gallery later.",
+      "applyFailed": "Could not add the result to the canvas."
+    }
+  }
 }

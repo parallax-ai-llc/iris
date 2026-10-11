@@ -17,9 +17,11 @@ import type { IrisAsset } from '@/shared/api/types';
 import type { HistogramData } from '@/features/image-editor/canvas/histogram';
 import { generateId } from '@/shared/lib/utils/id';
 import type { BlendMode } from '@/types/blendMode';
-import { compositeLayers } from '@/features/image-editor/canvas/layerCompositor';
-import { useActionsStore } from '@/features/image-editor/stores/actions.store';
 import { getActiveStore } from './imageEditorRegistry';
+import { createHistorySlice } from './slices/history.slice';
+import { createLayerStructureSlice, type LayerHistoryOptions } from './slices/layerStructure.slice';
+import { createLayerCreateSlice } from './slices/layerCreate.slice';
+import { INITIAL_DIRTY_STATE, type SavedTransform } from './dirtyTracking';
 
 // ==================== Types ====================
 
@@ -44,6 +46,7 @@ export type EditMode =
   | 'outpaint'
   | 'faceRestore'
   | 'colorize'
+  | 'relight'
   | 'pen'
   // Phase 3 modes
   | 'quickMask'
@@ -161,6 +164,11 @@ export interface GradientSettings {
   colorStops: GradientColorStop[];
   angle: number;  // for linear gradient (0-360)
   reverse: boolean;
+  /**
+   * 'foreground-background' (default, Photoshop): the drag runs from the
+   * foreground to the background colour. 'custom': use `colorStops`.
+   */
+  colorSource?: 'foreground-background' | 'custom';
 }
 
 export interface ShapeSettings {
@@ -428,6 +436,14 @@ export interface Layer {
   linkedGroupId?: string;         // layers with same linkedGroupId are linked
   // Phase 5: Advanced Blending (Blend If)
   blendIf?: BlendIfSettings;
+  /** Text layer: the source text and style, so the text tool can re-edit it. */
+  text?: LayerTextData;
+}
+
+/** Content + style of a text layer (the raster pixels are rendered from it). */
+export interface LayerTextData {
+  content: string;
+  settings: TextSettings;
 }
 
 export interface TextLayer {
@@ -444,6 +460,18 @@ export interface HistoryState {
   timestamp: number;
   imageData: string;  // base64 data URL of canvas state
   layers?: Layer[];
+  /** Document size at this state (restored by undo / redo / history click). */
+  canvasWidth?: number;
+  canvasHeight?: number;
+}
+
+/** Options of `pushHistory`. */
+export interface PushHistoryOptions {
+  /**
+   * Entry of a layer-structure change. An explicit push in the same task
+   * replaces it instead of adding a second entry.
+   */
+  absorbable?: boolean;
 }
 
 export interface UpscaleSettings {
@@ -711,6 +739,7 @@ export const DEFAULT_GRADIENT_SETTINGS: GradientSettings = {
   ],
   angle: 0,
   reverse: false,
+  colorSource: 'foreground-background',
 };
 
 export const DEFAULT_SHAPE_SETTINGS: ShapeSettings = {
@@ -839,6 +868,8 @@ export interface ImageEditorState {
   // Text layers
   textLayers: TextLayer[];
   activeTextLayerId: string | null;
+  /** Text layer the text tool should open for editing (Layers panel double-click). */
+  textEditRequest: string | null;
   
   // History (Undo/Redo)
   history: HistoryState[];
@@ -859,8 +890,11 @@ export interface ImageEditorState {
   // Document settings
   documentDpi: number;
 
-  // Dirty tracking
+  // Dirty tracking — `isDirty` is derived (see dirtyTracking.ts), never set by hand
   isDirty: boolean;
+  savedHistoryIndex: number | null;
+  savedTransform: SavedTransform;
+  hasUntrackedChanges: boolean;
 
   // UI state
   showGrid: boolean;
@@ -1067,14 +1101,15 @@ export interface ImageEditorActions {
   _cropApplyCallback: (() => void) | null;
   
   // Layers
-  addLayer: (imageData: string, name?: string) => string;
+  // Layer-structure actions record one history entry unless `{ history: false }`.
+  addLayer: (imageData: string, name?: string, options?: LayerHistoryOptions) => string;
   addLayerFromUrl: (imageUrl: string, name?: string) => Promise<string | null>;
-  removeLayer: (layerId: string) => void;
+  removeLayer: (layerId: string, options?: LayerHistoryOptions) => void;
   updateLayer: (layerId: string, updates: Partial<Layer>) => void;
   setActiveLayer: (layerId: string | null) => void;
-  reorderLayers: (fromIndex: number, toIndex: number) => void;
-  duplicateLayer: (layerId: string) => string | null;
-  mergeLayerDown: (layerId: string) => void;
+  reorderLayers: (fromIndex: number, toIndex: number, options?: LayerHistoryOptions) => void;
+  duplicateLayer: (layerId: string, options?: LayerHistoryOptions) => string | null;
+  mergeLayerDown: (layerId: string) => Promise<void>;
   flattenLayers: () => Promise<void>;
 
   // Layer groups
@@ -1103,13 +1138,17 @@ export interface ImageEditorActions {
   toggleClippingMask: (layerId: string) => void;
   
   // Text layers
+  /** Adds a real text layer (raster + `text` data) with one 'Text' history entry. */
   addTextLayer: (text: string, x: number, y: number) => string;
+  /** Open a text layer in the text tool; false when the layer has no text data. */
+  requestTextEdit: (layerId: string) => boolean;
+  clearTextEditRequest: () => void;
   removeTextLayer: (layerId: string) => void;
   updateTextLayer: (layerId: string, updates: Partial<TextLayer>) => void;
   setActiveTextLayer: (layerId: string | null) => void;
   
   // History
-  pushHistory: (label: string, imageData: string, markDirty?: boolean) => void;
+  pushHistory: (label: string, imageData: string, markDirty?: boolean, options?: PushHistoryOptions) => void;
   undo: () => void;
   redo: () => void;
   goToHistoryState: (index: number) => void;
@@ -1187,7 +1226,7 @@ export interface ImageEditorActions {
   selectSimilar: () => void;
 
   // Layer operations (Phase 1)
-  stampVisible: () => void;
+  stampVisible: () => Promise<void>;
 
   // Canvas/Image operations (Phase 1)
   resizeCanvas: (width: number, height: number, anchor: string) => void;
@@ -1404,6 +1443,7 @@ const initialState: ImageEditorState = {
   
   textLayers: [],
   activeTextLayerId: null,
+  textEditRequest: null,
   
   history: [],
   historyIndex: -1,
@@ -1420,7 +1460,7 @@ const initialState: ImageEditorState = {
   prompt: '',
   negativePrompt: '',
   
-  isDirty: false,
+  ...INITIAL_DIRTY_STATE,
 
   showGrid: false,
   showRulers: false,
@@ -1611,8 +1651,16 @@ export function _createImageEditorSlice(
         rotation: 0,
         flipHorizontal: false,
         flipVertical: false,
-        history: [],
-        historyIndex: -1,
+        // Baseline 'Open' entry so the first edit can be undone (the canvas only
+        // pushes one for single-image documents that start without layers).
+        history: [{
+          id: generateId(),
+          label: 'Open',
+          timestamp: Date.now(),
+          imageData: compositeUrl,
+          layers: layers.map((l) => ({ ...l })),
+        }],
+        historyIndex: 0,
         layers,
         activeLayerId: layers.length > 0 ? layers[layers.length - 1].id : null,
         textLayers: textLayers || [],
@@ -1625,7 +1673,7 @@ export function _createImageEditorSlice(
         maskDataUrl: null,
         prompt: '',
         negativePrompt: '',
-        // Start clean - only mark dirty when actual changes are made
+        // Start clean: `isDirty: false` records the 'Open' entry as the saved point
         isDirty: false,
         canvasWidth: _width,
         canvasHeight: _height,
@@ -1682,8 +1730,10 @@ export function _createImageEditorSlice(
       set({ panOffset: offset });
     },
 
-    setRotation: (rotation, markDirty = true) => {
-      set({ rotation: rotation % 360, isDirty: markDirty });
+    // Rotation/flip dirty state is derived from the saved transform (dirtyTracking.ts);
+    // `_markDirty` is kept for call-site compatibility.
+    setRotation: (rotation, _markDirty = true) => {
+      set({ rotation: rotation % 360 });
     },
 
     setFlipHorizontal: (flip) => {
@@ -1695,11 +1745,11 @@ export function _createImageEditorSlice(
     },
 
     toggleFlipHorizontal: () => {
-      set((state) => ({ flipHorizontal: !state.flipHorizontal, isDirty: true }));
+      set((state) => ({ flipHorizontal: !state.flipHorizontal }));
     },
 
     toggleFlipVertical: () => {
-      set((state) => ({ flipVertical: !state.flipVertical, isDirty: true }));
+      set((state) => ({ flipVertical: !state.flipVertical }));
     },
 
     resetAllTransforms: () => {
@@ -1820,7 +1870,7 @@ export function _createImageEditorSlice(
       set((state) => ({
         adjustments: { ...state.adjustments, [key]: value },
         activeFilterPreset: 'none',  // Clear preset when manually adjusting
-        isDirty: true,
+        // Preview only: not dirty until Apply pushes a history entry
       }));
     },
 
@@ -2315,92 +2365,11 @@ export function _createImageEditorSlice(
 
     // ==================== Layers ====================
 
-    addLayer: (imageData, name) => {
-      const { layers } = get();
-      const id = generateId();
-      const newLayer: Layer = {
-        id,
-        name: name || `Layer ${layers.length + 1}`,
-        visible: true,
-        locked: false,
-        opacity: 100,
-        fillOpacity: 100,
-        blendMode: 'normal',
-        imageData,
-        x: 0,
-        y: 0,
-        width: 0,
-        height: 0,
-      };
-      set({
-        layers: [...layers, newLayer],
-        activeLayerId: id,
-      });
-      // Asynchronously resolve image dimensions
-      const img = new Image();
-      img.onload = () => {
-        const { updateLayer } = get();
-        updateLayer(id, { width: img.width, height: img.height });
-      };
-      img.src = imageData;
-      return id;
-    },
-
-    addLayerFromUrl: async (imageUrl, name) => {
-      try {
-        // Fetch the image and convert to data URL
-        const response = await fetch(imageUrl);
-        const blob = await response.blob();
-
-        return new Promise<string | null>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const dataUrl = reader.result as string;
-
-            // Get image dimensions
-            const img = new Image();
-            img.onload = () => {
-              const { layers } = get();
-              const id = generateId();
-              const newLayer: Layer = {
-                id,
-                name: name || `Layer ${layers.length + 1}`,
-                visible: true,
-                locked: false,
-                opacity: 100,
-                blendMode: 'normal',
-                imageData: dataUrl,
-                x: 0,
-                y: 0,
-                width: img.width,
-                height: img.height,
-              };
-              set({
-                layers: [...layers, newLayer],
-                activeLayerId: id,
-              });
-              resolve(id);
-            };
-            img.onerror = () => resolve(null);
-            img.src = dataUrl;
-          };
-          reader.onerror = () => resolve(null);
-          reader.readAsDataURL(blob);
-        });
-      } catch (error) {
-        console.error('Failed to add layer from URL:', error);
-        return null;
-      }
-    },
-
-    removeLayer: (layerId) => {
-      const { layers, activeLayerId } = get();
-      const newLayers = layers.filter((l) => l.id !== layerId);
-      set({
-        layers: newLayers,
-        activeLayerId: activeLayerId === layerId ? (newLayers[0]?.id || null) : activeLayerId,
-      });
-    },
+    // Add / delete / reorder / duplicate / merge / flatten / stamp / groups
+    // live in slices/layerStructure.slice.ts (each records one history entry).
+    ...createLayerStructureSlice(set, get),
+    // Adjustment / fill / text layer creation (slices/layerCreate.slice.ts)
+    ...createLayerCreateSlice(set, get, { defaultAdjustments: DEFAULT_ADJUSTMENTS }),
 
     updateLayer: (layerId, updates) => {
       set((state) => ({
@@ -2429,117 +2398,7 @@ export function _createImageEditorSlice(
       });
     },
 
-    reorderLayers: (fromIndex, toIndex) => {
-      const { layers } = get();
-      const newLayers = [...layers];
-      const [removed] = newLayers.splice(fromIndex, 1);
-      newLayers.splice(toIndex, 0, removed);
-      set({ layers: newLayers });
-    },
-
-    duplicateLayer: (layerId) => {
-      const { layers } = get();
-      const layer = layers.find((l) => l.id === layerId);
-      if (!layer) return null;
-
-      const id = generateId();
-      const newLayer: Layer = {
-        ...layer,
-        id,
-        name: `${layer.name} (copy)`,
-      };
-
-      const index = layers.findIndex((l) => l.id === layerId);
-      const newLayers = [...layers];
-      newLayers.splice(index + 1, 0, newLayer);
-
-      set({ layers: newLayers, activeLayerId: id });
-      return id;
-    },
-
-    mergeLayerDown: (layerId) => {
-      const { layers } = get();
-      const index = layers.findIndex((l) => l.id === layerId);
-      if (index <= 0) return;
-
-      // In a real implementation, this would merge imageData
-      // For now, just remove the layer
-      const newLayers = layers.filter((l) => l.id !== layerId);
-      set({ layers: newLayers, activeLayerId: newLayers[index - 1]?.id || null });
-    },
-
-    flattenLayers: async () => {
-      const { layers, canvasWidth: storeW, canvasHeight: storeH } = get();
-      if (layers.length === 0) return;
-
-      const canvasWidth = storeW > 0 ? storeW : Math.max(...layers.map((l) => l.x + l.width), 1);
-      const canvasHeight = storeH > 0 ? storeH : Math.max(...layers.map((l) => l.y + l.height), 1);
-
-      const composited = await compositeLayers(layers, canvasWidth, canvasHeight);
-      const dataUrl = composited.toDataURL('image/png');
-
-      const flatLayer: Layer = {
-        id: generateId(),
-        name: 'Flattened',
-        visible: true,
-        locked: false,
-        opacity: 100,
-        blendMode: 'normal',
-        imageData: dataUrl,
-        x: 0,
-        y: 0,
-        width: composited.width,
-        height: composited.height,
-      };
-
-      set({ layers: [flatLayer], activeLayerId: flatLayer.id });
-    },
-
     // ==================== Layer Groups ====================
-
-    createLayerGroup: (name = 'Group') => {
-      const id = generateId();
-      const group: Layer = {
-        id,
-        name,
-        visible: true,
-        locked: false,
-        opacity: 100,
-        blendMode: 'normal',
-        imageData: '',
-        x: 0, y: 0, width: 0, height: 0,
-        type: 'group',
-        children: [],
-        isExpanded: true,
-      };
-      set((state) => ({
-        layers: [...state.layers, group],
-        activeLayerId: id,
-      }));
-      return id;
-    },
-
-    moveLayerToGroup: (layerId, groupId) => {
-      set((state) => {
-        const layers = state.layers.map((l) => {
-          // Remove from old parent
-          if (l.type === 'group' && l.children?.includes(layerId)) {
-            return { ...l, children: l.children.filter((c) => c !== layerId) };
-          }
-          // Add to new parent
-          if (groupId && l.id === groupId && l.type === 'group') {
-            return { ...l, children: [...(l.children || []), layerId] };
-          }
-          return l;
-        });
-        // Update parentId on the moved layer
-        return {
-          layers: layers.map((l) =>
-            l.id === layerId ? { ...l, parentId: groupId ?? undefined } : l
-          ),
-        };
-      });
-    },
 
     toggleGroupExpansion: (groupId) => {
       set((state) => ({
@@ -2551,51 +2410,7 @@ export function _createImageEditorSlice(
       }));
     },
 
-    ungroupLayers: (groupId) => {
-      set((state) => {
-        const group = state.layers.find((l) => l.id === groupId);
-        if (!group || group.type !== 'group') return state;
-        const layers = state.layers
-          .map((l) => {
-            if (l.parentId === groupId) return { ...l, parentId: undefined };
-            return l;
-          })
-          .filter((l) => l.id !== groupId);
-        return { layers, activeLayerId: state.activeLayerId === groupId ? null : state.activeLayerId };
-      });
-    },
-
     // ==================== Adjustment Layers ====================
-
-    addAdjustmentLayer: (adjustmentType, values = {}) => {
-      const id = generateId();
-      const names: Record<string, string> = {
-        'brightness-contrast': 'Brightness/Contrast',
-        'hue-saturation': 'Hue/Saturation',
-        'levels': 'Levels',
-        'curves': 'Curves',
-        'exposure': 'Exposure',
-        'color-balance': 'Color Balance',
-      };
-      const adjLayer: Layer = {
-        id,
-        name: names[adjustmentType] ?? adjustmentType,
-        visible: true,
-        locked: false,
-        opacity: 100,
-        blendMode: 'normal',
-        imageData: '',
-        x: 0, y: 0, width: 0, height: 0,
-        type: 'adjustment',
-        adjustmentType,
-        adjustmentValues: { ...DEFAULT_ADJUSTMENTS, ...values },
-      };
-      set((state) => ({
-        layers: [...state.layers, adjLayer],
-        activeLayerId: id,
-      }));
-      return id;
-    },
 
     updateAdjustmentLayer: (layerId, values) => {
       set((state) => ({
@@ -2725,23 +2540,6 @@ export function _createImageEditorSlice(
 
     // ==================== Text Layers ====================
 
-    addTextLayer: (text, x, y) => {
-      const { textLayers, textSettings } = get();
-      const id = generateId();
-      const newTextLayer: TextLayer = {
-        id,
-        text,
-        x,
-        y,
-        settings: { ...textSettings },
-      };
-      set({
-        textLayers: [...textLayers, newTextLayer],
-        activeTextLayerId: id,
-      });
-      return id;
-    },
-
     removeTextLayer: (layerId) => {
       const { textLayers, activeTextLayerId } = get();
       const newLayers = textLayers.filter((l) => l.id !== layerId);
@@ -2763,107 +2561,8 @@ export function _createImageEditorSlice(
       set({ activeTextLayerId: layerId });
     },
 
-    // ==================== History ====================
-
-    pushHistory: (label, imageData, markDirty = true) => {
-      // Auto-record to actions store if recording
-      try {
-        const actionsState = useActionsStore.getState();
-        if (actionsState.isRecording) {
-          // Map history labels to action step types
-          const labelToType: Record<string, string> = {
-            'Crop': 'crop:apply',
-            'Adjustments': 'adjust:apply',
-            'Transform': 'transform:rotate',
-            'Flip Horizontal': 'transform:flip-h',
-            'Flip Vertical': 'transform:flip-v',
-            'Brush Stroke': 'draw:brush-stroke',
-            'Fill': 'draw:fill',
-            'Layer Added': 'layer:add',
-            'Layer Deleted': 'layer:delete',
-            'Layer Duplicated': 'layer:duplicate',
-            'Merge Down': 'layer:merge-down',
-            'Filter': 'filter:apply',
-            'Content-Aware Fill': 'selection:content-aware-fill',
-          };
-          const actionType = labelToType[label] || 'adjust:apply';
-          actionsState.recordStep(actionType as Parameters<typeof actionsState.recordStep>[0], { label });
-        }
-      } catch { /* actions store not available */ }
-
-      const { history, historyIndex, maxHistoryStates, layers } = get();
-
-      const newState: HistoryState = {
-        id: generateId(),
-        label,
-        timestamp: Date.now(),
-        imageData,
-        // Save layers snapshot for proper undo/redo
-        layers: layers.map(l => ({ ...l })),
-      };
-
-      // Remove any future states if we're in the middle of history
-      const newHistory = [...history.slice(0, historyIndex + 1), newState];
-
-      // Limit history size
-      const trimmedHistory = newHistory.slice(-maxHistoryStates);
-
-      set({
-        history: trimmedHistory,
-        historyIndex: trimmedHistory.length - 1,
-        isDirty: markDirty,
-      });
-    },
-
-    undo: () => {
-      const { historyIndex, history } = get();
-      if (historyIndex > 0) {
-        const targetState = history[historyIndex - 1];
-        const updates: Partial<ImageEditorState> = { historyIndex: historyIndex - 1 };
-        if (targetState.layers) {
-          updates.layers = targetState.layers.map(l => ({ ...l }));
-        }
-        set(updates);
-      }
-    },
-
-    redo: () => {
-      const { history, historyIndex } = get();
-      if (historyIndex < history.length - 1) {
-        const targetState = history[historyIndex + 1];
-        const updates: Partial<ImageEditorState> = { historyIndex: historyIndex + 1 };
-        if (targetState.layers) {
-          updates.layers = targetState.layers.map(l => ({ ...l }));
-        }
-        set(updates);
-      }
-    },
-
-    goToHistoryState: (index) => {
-      const { history } = get();
-      if (index >= 0 && index < history.length) {
-        const targetState = history[index];
-        const updates: Partial<ImageEditorState> = { historyIndex: index };
-        if (targetState.layers) {
-          updates.layers = targetState.layers.map(l => ({ ...l }));
-        }
-        set(updates);
-      }
-    },
-
-    clearHistory: () => {
-      set({ history: [], historyIndex: -1 });
-    },
-
-    canUndo: () => {
-      const { historyIndex } = get();
-      return historyIndex > 0;
-    },
-
-    canRedo: () => {
-      const { history, historyIndex } = get();
-      return historyIndex < history.length - 1;
-    },
+    // ==================== History (slices/history.slice.ts) ====================
+    ...createHistorySlice(set, get),
 
     // ==================== AI Processing ====================
 
@@ -2895,16 +2594,6 @@ export function _createImageEditorSlice(
 
     setNegativePrompt: (negativePrompt) => {
       set({ negativePrompt });
-    },
-
-    // ==================== Dirty Tracking ====================
-
-    markDirty: () => {
-      set({ isDirty: true });
-    },
-
-    clearDirty: () => {
-      set({ isDirty: false });
     },
 
     // ==================== UI Toggles ====================
@@ -3407,68 +3096,37 @@ export function _createImageEditorSlice(
       // Delegate to canvas component via callback pattern
       // The actual mask manipulation happens in the canvas component
       // which has access to the pixel data
-      set({ isDirty: true });
+      // Placeholder: the selection is not changed yet, and selection is not document content.
     },
 
     contractSelectionBy: (_amount) => {
       const state = get();
       if (!state.selection?.maskDataUrl) return;
-      set({ isDirty: true });
+      // Placeholder: the selection is not changed yet, and selection is not document content.
     },
 
     smoothSelectionBy: (_radius) => {
       const state = get();
       if (!state.selection?.maskDataUrl) return;
-      set({ isDirty: true });
+      // Placeholder: the selection is not changed yet, and selection is not document content.
     },
 
     borderSelectionBy: (_width) => {
       const state = get();
       if (!state.selection?.maskDataUrl) return;
-      set({ isDirty: true });
+      // Placeholder: the selection is not changed yet, and selection is not document content.
     },
 
     growSelectionByColor: () => {
       const state = get();
       if (!state.selection?.maskDataUrl) return;
-      set({ isDirty: true });
+      // Placeholder: the selection is not changed yet, and selection is not document content.
     },
 
     selectSimilar: () => {
       const state = get();
       if (!state.selection?.maskDataUrl) return;
-      set({ isDirty: true });
-    },
-
-    // ==================== Stamp Visible (Phase 1) ====================
-
-    stampVisible: () => {
-      const state = get();
-      if (state.layers.length === 0) return;
-
-      // Create a composite of all visible layers as a new layer
-      // This is done by the canvas component — we just add a new layer placeholder
-      const newLayer: Layer = {
-        id: `layer-${Date.now()}`,
-        name: 'Stamped Visible',
-        visible: true,
-        locked: false,
-        opacity: 100,
-        fillOpacity: 100,
-        blendMode: 'normal',
-        imageData: '', // Will be filled by canvas component
-        x: 0,
-        y: 0,
-        width: state.layers[0]?.width || 0,
-        height: state.layers[0]?.height || 0,
-        type: 'raster',
-      };
-
-      set((s) => ({
-        layers: [newLayer, ...s.layers],
-        activeLayerId: newLayer.id,
-        isDirty: true,
-      }));
+      // Placeholder: the selection is not changed yet, and selection is not document content.
     },
 
     // ==================== Canvas / Image Operations (Phase 1) ====================
@@ -3502,7 +3160,6 @@ export function _createImageEditorSlice(
         layers: newLayers,
         canvasWidth: width,
         canvasHeight: height,
-        isDirty: true,
       });
 
       get().pushHistory('Canvas Size', '');
@@ -3569,7 +3226,6 @@ export function _createImageEditorSlice(
           layers: updated,
           canvasWidth: width,
           canvasHeight: height,
-          isDirty: true,
         });
 
         get().pushHistory('Image Size', '');
@@ -3656,32 +3312,6 @@ export function _createImageEditorSlice(
         layerComps: layerComps.filter((c) => c.id !== id),
         activeLayerCompId: activeLayerCompId === id ? null : activeLayerCompId,
       });
-    },
-
-    // Fill Layers
-    addFillLayer: (fillType, options = {}) => {
-      const { layers } = get();
-      const newLayer: Layer = {
-        id: generateId(),
-        name: `${fillType.charAt(0).toUpperCase() + fillType.slice(1)} Fill`,
-        visible: true,
-        locked: false,
-        opacity: 100,
-        fillOpacity: 100,
-        blendMode: 'normal',
-        imageData: '',
-        x: 0,
-        y: 0,
-        width: 0,
-        height: 0,
-        type: 'fill',
-        fillType,
-        fillColor: fillType === 'solid' ? (options.fillColor ?? '#ffffff') : undefined,
-        fillGradient: fillType === 'gradient' ? (options.fillGradient ?? { colors: ['#000000', '#ffffff'], angle: 0, type: 'linear' }) : undefined,
-        fillPattern: fillType === 'pattern' ? (options.fillPattern ?? { url: '', scale: 100 }) : undefined,
-        ...options,
-      };
-      set({ layers: [newLayer, ...layers], activeLayerId: newLayer.id, isDirty: true });
     },
 
     // Measure Tool
@@ -3894,9 +3524,8 @@ export function _createImageEditorSlice(
 
     // SVG Import
     importSvg: (_svgString) => {
-      // In production, parse SVG and create vector layers
-      // For now, mark as dirty to acknowledge the intent
-      set({ isDirty: true });
+      // Placeholder: parsing SVG into vector layers is not implemented, so the
+      // document does not change (and does not become dirty).
     },
 
     // Batch Processing

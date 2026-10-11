@@ -31,6 +31,7 @@ import type {
   SelectionData,
   DropShadowSettings,
   GlowSettings,
+  TextLayer,
 } from '../imageEditor.store';
 import type { IrisAsset } from '@/shared/api/types';
 import type { HistogramData } from '@/features/image-editor/canvas/histogram';
@@ -44,7 +45,8 @@ function resetStore() {
 }
 
 function addLayer(name = 'Layer', opts: Partial<Layer> = {}): string {
-  const id = useImageEditorStore.getState().addLayer(IMG, name);
+  // Fixture layers: no history entry (the tests below push their own states).
+  const id = useImageEditorStore.getState().addLayer(IMG, name, { history: false });
   if (Object.keys(opts).length > 0) {
     useImageEditorStore.getState().updateLayer(id, opts);
   }
@@ -1241,13 +1243,13 @@ describe('Selection Modify actions', () => {
     resetStore();
   });
 
-  it('expandSelectionBy marks dirty and preserves selection when selection exists', () => {
+  it('expandSelectionBy does not dirty the document (placeholder; selection is not document content) and preserves selection', () => {
     const originalSel = setTestSelection();
     const boundsBefore = { ...originalSel.bounds };
     useImageEditorStore.setState({ isDirty: false });
     useImageEditorStore.getState().expandSelectionBy(5);
     const state = useImageEditorStore.getState();
-    expect(state.isDirty).toBe(true);
+    expect(state.isDirty).toBe(false);
     // Selection should still exist after expand operation
     expect(state.selection).not.toBeNull();
     expect(state.selection!.maskDataUrl).toBeTruthy();
@@ -1266,55 +1268,55 @@ describe('Selection Modify actions', () => {
     expect(state.selection).toBeNull();
   });
 
-  it('contractSelectionBy marks dirty and preserves selection when selection exists', () => {
+  it('contractSelectionBy does not dirty the document (placeholder; selection is not document content) and preserves selection', () => {
     const originalSel = setTestSelection();
     const boundsBefore = { ...originalSel.bounds };
     useImageEditorStore.setState({ isDirty: false });
     useImageEditorStore.getState().contractSelectionBy(3);
     const state = useImageEditorStore.getState();
-    expect(state.isDirty).toBe(true);
+    expect(state.isDirty).toBe(false);
     expect(state.selection).not.toBeNull();
     expect(state.selection!.maskDataUrl).toBeTruthy();
     // Store stub: bounds unchanged; canvas component handles pixel contraction
     expect(state.selection!.bounds).toEqual(boundsBefore);
   });
 
-  it('smoothSelectionBy marks dirty and preserves selection when selection exists', () => {
+  it('smoothSelectionBy does not dirty the document (placeholder; selection is not document content) and preserves selection', () => {
     setTestSelection();
     useImageEditorStore.setState({ isDirty: false });
     useImageEditorStore.getState().smoothSelectionBy(2);
     const state = useImageEditorStore.getState();
-    expect(state.isDirty).toBe(true);
+    expect(state.isDirty).toBe(false);
     expect(state.selection).not.toBeNull();
     expect(state.selection!.maskDataUrl).toBeTruthy();
   });
 
-  it('borderSelectionBy marks dirty and preserves selection when selection exists', () => {
+  it('borderSelectionBy does not dirty the document (placeholder; selection is not document content) and preserves selection', () => {
     setTestSelection();
     useImageEditorStore.setState({ isDirty: false });
     useImageEditorStore.getState().borderSelectionBy(3);
     const state = useImageEditorStore.getState();
-    expect(state.isDirty).toBe(true);
+    expect(state.isDirty).toBe(false);
     expect(state.selection).not.toBeNull();
     expect(state.selection!.bounds).toBeDefined();
   });
 
-  it('growSelectionByColor marks dirty and preserves selection when selection exists', () => {
+  it('growSelectionByColor does not dirty the document (placeholder; selection is not document content) and preserves selection', () => {
     setTestSelection();
     useImageEditorStore.setState({ isDirty: false });
     useImageEditorStore.getState().growSelectionByColor();
     const state = useImageEditorStore.getState();
-    expect(state.isDirty).toBe(true);
+    expect(state.isDirty).toBe(false);
     expect(state.selection).not.toBeNull();
     expect(state.selection!.maskDataUrl).toBeTruthy();
   });
 
-  it('selectSimilar marks dirty and preserves selection when selection exists', () => {
+  it('selectSimilar does not dirty the document (placeholder; selection is not document content) and preserves selection', () => {
     setTestSelection();
     useImageEditorStore.setState({ isDirty: false });
     useImageEditorStore.getState().selectSimilar();
     const state = useImageEditorStore.getState();
-    expect(state.isDirty).toBe(true);
+    expect(state.isDirty).toBe(false);
     expect(state.selection).not.toBeNull();
     expect(state.selection!.maskDataUrl).toBeTruthy();
   });
@@ -1369,27 +1371,29 @@ describe('stampVisible', () => {
     resetStore();
   });
 
-  it('adds a new "Stamped Visible" layer at the top', () => {
+  it('adds a new "Stamped Visible" layer above the active layer', async () => {
     addLayer('BG', { width: 100, height: 100 });
 
-    useImageEditorStore.getState().stampVisible();
+    await useImageEditorStore.getState().stampVisible();
 
     const { layers, activeLayerId } = useImageEditorStore.getState();
     expect(layers).toHaveLength(2);
-    expect(layers[0].name).toBe('Stamped Visible');
-    expect(layers[0].width).toBe(100);
-    expect(activeLayerId).toBe(layers[0].id);
+    // index 0 is the bottom of the stack; the stamp sits above the active (BG) layer
+    expect(layers[1].name).toBe('Stamped Visible');
+    expect(layers[1].width).toBe(100);
+    expect(layers[1].imageData).not.toBe('');
+    expect(activeLayerId).toBe(layers[1].id);
   });
 
-  it('does nothing when no layers exist', () => {
-    useImageEditorStore.getState().stampVisible();
+  it('does nothing when no layers exist', async () => {
+    await useImageEditorStore.getState().stampVisible();
     expect(useImageEditorStore.getState().layers).toHaveLength(0);
   });
 
-  it('marks dirty after stamp', () => {
+  it('marks dirty after stamp', async () => {
     addLayer('BG');
     useImageEditorStore.setState({ isDirty: false });
-    useImageEditorStore.getState().stampVisible();
+    await useImageEditorStore.getState().stampVisible();
     expect(useImageEditorStore.getState().isDirty).toBe(true);
   });
 });
@@ -1744,27 +1748,34 @@ describe('Text Layers', () => {
     resetStore();
   });
 
-  it('addTextLayer creates text layer with current settings', () => {
+  it('addTextLayer creates a real text layer with the current settings', () => {
     const id = useImageEditorStore.getState().addTextLayer('Hello', 50, 60);
-    const tl = useImageEditorStore.getState().textLayers.find((l) => l.id === id);
-    expect(tl).toBeDefined();
-    expect(tl!.text).toBe('Hello');
-    expect(tl!.x).toBe(50);
-    expect(tl!.y).toBe(60);
+    const layer = useImageEditorStore.getState().layers.find((l) => l.id === id);
+    expect(layer).toBeDefined();
+    expect(layer!.text?.content).toBe('Hello');
+    expect(layer!.text?.settings).toEqual(useImageEditorStore.getState().textSettings);
+    expect(layer!.x).toBe(50);
+    expect(layer!.y).toBe(60);
+    expect(layer!.imageData).toMatch(/^data:image\/png/);
     expect(useImageEditorStore.getState().activeTextLayerId).toBe(id);
+    expect(useImageEditorStore.getState().activeLayerId).toBe(id);
+  });
+
+  const legacyTextLayer = (id: string, text: string): TextLayer => ({
+    id, text, x: 0, y: 0, settings: { ...useImageEditorStore.getState().textSettings },
   });
 
   it('removeTextLayer removes and clears activeTextLayerId', () => {
-    const id = useImageEditorStore.getState().addTextLayer('Test', 0, 0);
-    useImageEditorStore.getState().removeTextLayer(id);
+    useImageEditorStore.setState({ textLayers: [legacyTextLayer('t1', 'Test')], activeTextLayerId: 't1' });
+    useImageEditorStore.getState().removeTextLayer('t1');
     expect(useImageEditorStore.getState().textLayers).toHaveLength(0);
     expect(useImageEditorStore.getState().activeTextLayerId).toBeNull();
   });
 
   it('updateTextLayer updates text layer properties', () => {
-    const id = useImageEditorStore.getState().addTextLayer('Original', 0, 0);
-    useImageEditorStore.getState().updateTextLayer(id, { text: 'Updated', x: 100 });
-    const tl = useImageEditorStore.getState().textLayers.find((l) => l.id === id);
+    useImageEditorStore.setState({ textLayers: [legacyTextLayer('t1', 'Original')] });
+    useImageEditorStore.getState().updateTextLayer('t1', { text: 'Updated', x: 100 });
+    const tl = useImageEditorStore.getState().textLayers.find((l) => l.id === 't1');
     expect(tl!.text).toBe('Updated');
     expect(tl!.x).toBe(100);
   });
@@ -1837,10 +1848,10 @@ describe('SVG Import', () => {
     resetStore();
   });
 
-  it('importSvg marks dirty', () => {
+  it('importSvg is a placeholder and does not dirty the document', () => {
     useImageEditorStore.setState({ isDirty: false });
     useImageEditorStore.getState().importSvg('<svg></svg>');
-    expect(useImageEditorStore.getState().isDirty).toBe(true);
+    expect(useImageEditorStore.getState().isDirty).toBe(false);
   });
 });
 

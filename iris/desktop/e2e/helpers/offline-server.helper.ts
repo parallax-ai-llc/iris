@@ -166,3 +166,104 @@ export async function installOfflineServer(page: Page): Promise<void> {
     }
   );
 }
+
+// ==================== Relight (AI edit) stand-in ====================
+
+export const MOCK_RELIGHT_JOB_ID = 'e2e-relight-job';
+
+export interface RelightMockOptions {
+  /** 'ready' (default): READY after `pendingPolls`; 'fail': FAILED; 'hang': PROCESSING forever. */
+  outcome?: 'ready' | 'fail' | 'hang';
+  /** PROCESSING answers before the final one. */
+  pendingPolls?: number;
+}
+
+/**
+ * Answer the Relight job instead of the cloud so no credits are spent:
+ *   - POST /api/iris/assets/generate with editMode "relight" → 202-style { asset } (PROCESSING)
+ *   - GET  /api/iris/assets/e2e-relight-job → PROCESSING, then READY with a 512x512 PNG
+ *     (the IC-Light output size), or FAILED / PROCESSING forever.
+ * Every other request passes through. Relight request bodies are kept in
+ * window.__relightRequests so a spec can check the prompt that was sent.
+ * Re-run after a reload; calling it again replaces the options.
+ */
+export async function installRelightMock(page: Page, options: RelightMockOptions = {}): Promise<void> {
+  const resultUrl = 'data:image/png;base64,' + makeGradientPng(512, 512).toString('base64');
+  await page.evaluate(
+    ({ apiOrigin, jobId, image, outcome, pendingPolls, now }) => {
+      type W = {
+        fetch: typeof fetch;
+        __relightMock?: { outcome: string; pendingPolls: number; polls: number };
+        __relightRequests?: unknown[];
+      };
+      const w = window as unknown as W;
+      const firstInstall = !w.__relightMock;
+      w.__relightMock = { outcome, pendingPolls, polls: 0 };
+      w.__relightRequests = [];
+      if (!firstInstall) return;
+
+      const realFetch = w.fetch.bind(window);
+      const json = (body: unknown, status = 200) =>
+        new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+      const job = (status: string, extra: Record<string, unknown> = {}) => ({
+        id: jobId,
+        userId: 'e2e-user',
+        name: 'e2e-relight.png',
+        storagePath: 'e2e/relight.png',
+        currentVersion: 2,
+        assetType: 'IMAGE',
+        mimeType: 'image/png',
+        sizeBytes: 1024,
+        isPublic: false,
+        processingStatus: status,
+        createdAt: now,
+        updatedAt: now,
+        ...extra,
+      });
+
+      w.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+        const raw = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+        const url = new URL(raw, window.location.href);
+        if (url.origin !== apiOrigin) return realFetch(input, init);
+        const method = (init?.method ?? (typeof input === 'object' && 'method' in input ? input.method : 'GET')).toUpperCase();
+        const state = w.__relightMock!;
+
+        if (url.pathname === '/api/iris/assets/generate' && method === 'POST' && typeof init?.body === 'string') {
+          let body: { editMode?: string } | null = null;
+          try {
+            body = JSON.parse(init.body);
+          } catch {
+            body = null;
+          }
+          if (body?.editMode === 'relight') {
+            w.__relightRequests!.push(body);
+            state.polls = 0;
+            return json({ asset: job('PROCESSING') }, 202);
+          }
+        }
+        if (url.pathname === '/api/iris/assets/' + jobId && method === 'GET') {
+          state.polls += 1;
+          if (state.outcome === 'hang' || state.polls <= state.pendingPolls) return json(job('PROCESSING'));
+          if (state.outcome === 'fail') return json(job('FAILED', { processingError: 'E2E relight failure' }));
+          return json(job('READY', { thumbnailUrl: image, previewUrl: image, publicUrl: image }));
+        }
+        return realFetch(input, init);
+      };
+    },
+    {
+      apiOrigin: API_ORIGIN,
+      jobId: MOCK_RELIGHT_JOB_ID,
+      image: resultUrl,
+      outcome: options.outcome ?? 'ready',
+      pendingPolls: options.pendingPolls ?? 1,
+      now: NOW,
+    }
+  );
+}
+
+/** Relight request bodies captured by installRelightMock. */
+export async function getRelightRequests(page: Page): Promise<Array<Record<string, unknown>>> {
+  return page.evaluate(
+    () => ((window as unknown as { __relightRequests?: Array<Record<string, unknown>> }).__relightRequests ?? [])
+  );
+}

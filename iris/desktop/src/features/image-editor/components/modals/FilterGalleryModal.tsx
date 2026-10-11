@@ -16,6 +16,7 @@ import {
   type GalleryCategory,
   type GalleryFilter,
 } from '@/features/image-editor/canvas/filterGalleryCatalog';
+import { useModalShortcutBlock } from '@/shared/lib/shortcuts';
 
 const THUMB_SIZE = 128;
 const PREVIEW_MAX = 512;
@@ -114,6 +115,8 @@ export const FilterGalleryModal = memo(function FilterGalleryModal({
   sourceCanvas,
   onApply,
 }: FilterGalleryModalProps) {
+  // Block editor/global shortcuts while this dialog is open.
+  useModalShortcutBlock(isOpen);
   const [activeCategory, setActiveCategory] = useState<GalleryCategory>('artistic');
   const [selectedFilterId, setSelectedFilterId] = useState<string | null>(null);
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});

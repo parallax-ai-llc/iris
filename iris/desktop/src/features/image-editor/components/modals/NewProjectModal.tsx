@@ -5,6 +5,7 @@
 import { memo, useState, useCallback, useEffect } from 'react';
 import { X, Plus } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
+import { useModalShortcutBlock } from '@/shared/lib/shortcuts';
 
 interface NewProjectModalProps {
   isOpen: boolean;
@@ -35,6 +36,8 @@ export const NewProjectModal = memo(function NewProjectModal({
   onCreate,
   clipboardImageSize,
 }: NewProjectModalProps) {
+  // Block editor/global shortcuts while this dialog is open.
+  useModalShortcutBlock(isOpen);
   const [name, setName] = useState('Untitled');
   const [selectedPreset, setSelectedPreset] = useState(0);
   const [customWidth, setCustomWidth] = useState(1920);

@@ -4,7 +4,7 @@
  */
 
 import { memo } from 'react';
-import { Eraser, Wand2, ImagePlus, Smile, Droplets, ArrowUpCircle } from 'lucide-react';
+import { Eraser, Wand2, ImagePlus, Smile, Droplets, ArrowUpCircle, Lightbulb } from 'lucide-react';
 import { useImageEditorStore } from '@/features/image-editor/stores/imageEditor.store';
 
 const AI_MODE_INFO: Record<string, { label: string; icon: React.ReactNode; hint: string }> = {
@@ -14,6 +14,7 @@ const AI_MODE_INFO: Record<string, { label: string; icon: React.ReactNode; hint:
   outpaint: { label: 'AI Outpaint', icon: <ImagePlus className="w-3.5 h-3.5" />, hint: 'Configure expansion settings in the floating panel' },
   faceRestore: { label: 'Face Restore', icon: <Smile className="w-3.5 h-3.5" />, hint: 'Configure restoration settings in the floating panel' },
   colorize: { label: 'Colorize', icon: <Droplets className="w-3.5 h-3.5" />, hint: 'Configure colorization settings in the floating panel' },
+  relight: { label: 'Relight', icon: <Lightbulb className="w-3.5 h-3.5" />, hint: 'Configure lighting in the floating panel' },
 };
 
 export const AIOptions = memo(function AIOptions() {

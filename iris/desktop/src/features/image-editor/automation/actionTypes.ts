@@ -53,6 +53,7 @@ export type ActionStepType =
   | 'ai:inpaint'
   | 'ai:face-restore'
   | 'ai:colorize'
+  | 'ai:relight'
   // Phase 4: Export/Import
   | 'file:export-as'
   | 'file:import-svg'

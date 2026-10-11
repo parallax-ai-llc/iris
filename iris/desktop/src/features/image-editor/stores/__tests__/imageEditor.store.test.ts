@@ -613,9 +613,9 @@ describe('Image Editor Store', () => {
       expect(useImageEditorStore.getState().isDirty).toBe(true);
     });
 
-    it('should set to true when adjustment changes', () => {
+    it('stays false while an adjustment is only previewed (Apply pushes history)', () => {
       useImageEditorStore.getState().setAdjustment('brightness', 50);
-      expect(useImageEditorStore.getState().isDirty).toBe(true);
+      expect(useImageEditorStore.getState().isDirty).toBe(false);
     });
 
     it('should set to true when pushHistory is called', () => {

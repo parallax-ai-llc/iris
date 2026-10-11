@@ -68,5 +68,10 @@
     "psdUrlMissing": "ไม่มี URL ของไฟล์ PSD",
     "psdOpened": "เปิด {{name}} ด้วย {{count}} เลเยอร์",
     "psdOpenFailed": "เปิดไฟล์ PSD ไม่สำเร็จ"
+  },
+  "openDocuments": {
+    "label": "เอกสารที่เปิดอยู่: {{count}}",
+    "unsaved": "ยังไม่บันทึก {{count}}",
+    "return": "กลับไปที่ตัวแก้ไข"
   }
 }

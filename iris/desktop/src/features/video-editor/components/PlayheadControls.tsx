@@ -20,6 +20,8 @@ import {
   Scissors,
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
+import { shortcutLabel } from '@/shared/lib/shortcuts';
+import { VIDEO_EDITOR_KEYMAP } from '@/features/video-editor/lib/shortcuts/videoEditorKeymap';
 import { useEditorStore } from '@/features/video-editor/stores/editor.store';
 import { useVideoProjectStore } from '@/features/video-editor/stores/videoProject.store';
 import { useShallow } from 'zustand/react/shallow';
@@ -145,7 +147,7 @@ export const PlayheadControls = memo(function PlayheadControls({
           )}
           onClick={undo}
           disabled={!canUndo}
-          title="Undo (Ctrl+Z)"
+          title={`Undo (${shortcutLabel(VIDEO_EDITOR_KEYMAP, 'undo')})`}
         >
           <Undo2 className="w-4 h-4" />
         </button>
@@ -156,7 +158,7 @@ export const PlayheadControls = memo(function PlayheadControls({
           )}
           onClick={redo}
           disabled={!canRedo}
-          title="Redo (Ctrl+Y)"
+          title={`Redo (${shortcutLabel(VIDEO_EDITOR_KEYMAP, 'redo')})`}
         >
           <Redo2 className="w-4 h-4" />
         </button>
@@ -242,7 +244,7 @@ export const PlayheadControls = memo(function PlayheadControls({
         )}
         onClick={handleSplit}
         disabled={!canSplit}
-        title="Split clip at playhead (S)"
+        title={`Split clip at playhead (${shortcutLabel(VIDEO_EDITOR_KEYMAP, 'splitAtPlayhead')})`}
       >
         <Scissors className="w-4 h-4" />
         <span className="text-xs">Split</span>

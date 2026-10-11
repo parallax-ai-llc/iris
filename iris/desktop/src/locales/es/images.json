@@ -68,5 +68,10 @@
     "psdUrlMissing": "URL del archivo PSD no disponible",
     "psdOpened": "Se abrió {{name}} con {{count}} capas",
     "psdOpenFailed": "No se pudo abrir el archivo PSD"
+  },
+  "openDocuments": {
+    "label": "Documentos abiertos: {{count}}",
+    "unsaved": "{{count}} sin guardar",
+    "return": "Volver al editor"
   }
 }

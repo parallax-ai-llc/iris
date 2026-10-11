@@ -76,5 +76,66 @@
     }
   },
   "undo": "Undo (Ctrl+Z)",
-  "redo": "Redo (Ctrl+Shift+Z)"
+  "redo": "Redo (Ctrl+Shift+Z)",
+  "relight": {
+    "title": "Relight",
+    "menuLabel": "Relight",
+    "layerName": "Relight",
+    "description": "Ubah pencahayaan foto Anda dengan AI. Hasilnya ditambahkan sebagai layer baru.",
+    "preset": {
+      "label": "Preset pencahayaan",
+      "natural": "Alami",
+      "studio": "Studio",
+      "dramatic": "Dramatis",
+      "soft": "Lembut"
+    },
+    "direction": {
+      "label": "Arah cahaya",
+      "auto": "Otomatis",
+      "left": "Kiri",
+      "right": "Kanan",
+      "top": "Atas",
+      "bottom": "Bawah",
+      "diagonalSoon": "Arah diagonal belum didukung"
+    },
+    "color": {
+      "label": "Warna cahaya",
+      "auto": "Otomatis",
+      "warm": "Hangat",
+      "neutral": "Netral",
+      "cool": "Dingin",
+      "neon": "Neon"
+    },
+    "intensity": {
+      "label": "Kekuatan",
+      "hint": "Mengatur opasitas layer hasil. Mengubahnya nanti tidak memakai kredit."
+    },
+    "custom": {
+      "label": "Jelaskan pencahayaan (opsional)",
+      "placeholder": "mis. cahaya senja hangat dari belakang",
+      "hint": "Jika diisi, menggantikan preset, arah, dan warna."
+    },
+    "output": {
+      "newLayer": "Tambahkan sebagai layer baru",
+      "newLayerHint": "Pertahankan layer yang ada, tambahkan hasil di atas",
+      "replaceWarning": "Hasil akan mengganti gambar dan maksimal 512 px.",
+      "onlySelection": "Terapkan hanya di dalam seleksi",
+      "resolutionNote": "Hasil Relight maksimal 512 px dan diskalakan ke ukuran kanvas."
+    },
+    "run": "Relight",
+    "processing": "Mengubah pencahayaan...",
+    "stopWaiting": "Berhenti menunggu",
+    "stoppedToast": "Berhenti menunggu. Hasilnya akan disimpan di galeri gambar Anda.",
+    "successToast": "Relight ditambahkan sebagai layer baru",
+    "loginRequired": "Relight berjalan di cloud dengan kredit Parallax Anda. Masuk untuk menggunakannya.",
+    "loginButton": "Masuk",
+    "selfHostNotice": "Relight memerlukan akun Parallax, jadi tidak tersedia di build self-hosted ini.",
+    "errors": {
+      "loginRequired": "Silakan masuk untuk menggunakan Relight.",
+      "insufficientCredits": "Kredit tidak cukup untuk Relight.",
+      "failed": "Relight gagal.",
+      "timeout": "Relight memakan waktu lebih lama dari perkiraan. Periksa galeri gambar Anda nanti.",
+      "applyFailed": "Tidak dapat menambahkan hasil ke kanvas."
+    }
+  }
 }

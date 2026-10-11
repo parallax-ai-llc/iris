@@ -41,6 +41,7 @@ const ACTION_TYPE_LABELS: Record<string, string> = {
   'ai:inpaint': 'AI Inpaint',
   'ai:face-restore': 'AI Face Restore',
   'ai:colorize': 'AI Colorize',
+  'ai:relight': 'AI Relight',
 };
 
 export const ActionsSection = memo(function ActionsSection() {

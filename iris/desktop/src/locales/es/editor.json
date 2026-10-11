@@ -76,5 +76,66 @@
     }
   },
   "undo": "Undo (Ctrl+Z)",
-  "redo": "Redo (Ctrl+Shift+Z)"
+  "redo": "Redo (Ctrl+Shift+Z)",
+  "relight": {
+    "title": "Reiluminar",
+    "menuLabel": "Reiluminar",
+    "layerName": "Reiluminar",
+    "description": "Cambia la iluminación de tu foto con IA. El resultado se añade como una capa nueva.",
+    "preset": {
+      "label": "Preajuste de iluminación",
+      "natural": "Natural",
+      "studio": "Estudio",
+      "dramatic": "Dramática",
+      "soft": "Suave"
+    },
+    "direction": {
+      "label": "Dirección de la luz",
+      "auto": "Automática",
+      "left": "Izquierda",
+      "right": "Derecha",
+      "top": "Arriba",
+      "bottom": "Abajo",
+      "diagonalSoon": "Las direcciones diagonales aún no están disponibles"
+    },
+    "color": {
+      "label": "Color de la luz",
+      "auto": "Automático",
+      "warm": "Cálida",
+      "neutral": "Neutra",
+      "cool": "Fría",
+      "neon": "Neón"
+    },
+    "intensity": {
+      "label": "Intensidad",
+      "hint": "Define la opacidad de la capa resultante. Cambiarla después no consume créditos."
+    },
+    "custom": {
+      "label": "Describe la iluminación (opcional)",
+      "placeholder": "p. ej. luz cálida de atardecer desde atrás",
+      "hint": "Si lo rellenas, sustituye al preajuste, la dirección y el color."
+    },
+    "output": {
+      "newLayer": "Añadir como capa nueva",
+      "newLayerHint": "Mantén las capas existentes y añade el resultado encima",
+      "replaceWarning": "El resultado reemplaza la imagen y tiene como máximo 512 px.",
+      "onlySelection": "Aplicar solo dentro de la selección",
+      "resolutionNote": "Los resultados de Reiluminar tienen como máximo 512 px y se escalan al lienzo."
+    },
+    "run": "Reiluminar",
+    "processing": "Cambiando la iluminación...",
+    "stopWaiting": "Dejar de esperar",
+    "stoppedToast": "Has dejado de esperar. El resultado se guardará en tu galería de imágenes.",
+    "successToast": "Reiluminación añadida como capa nueva",
+    "loginRequired": "Reiluminar se ejecuta en la nube con tus créditos de Parallax. Inicia sesión para usarlo.",
+    "loginButton": "Iniciar sesión",
+    "selfHostNotice": "Reiluminar necesita una cuenta de Parallax, así que no está disponible en esta versión autoalojada.",
+    "errors": {
+      "loginRequired": "Inicia sesión para usar Reiluminar.",
+      "insufficientCredits": "No tienes créditos suficientes para Reiluminar.",
+      "failed": "No se pudo reiluminar.",
+      "timeout": "Está tardando más de lo previsto. Revisa tu galería de imágenes más tarde.",
+      "applyFailed": "No se pudo añadir el resultado al lienzo."
+    }
+  }
 }

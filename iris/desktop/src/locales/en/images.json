@@ -68,5 +68,10 @@
     "title": "Delete Selected Images",
     "message": "Are you sure you want to delete {{count}} selected image(s)? This action cannot be undone.",
     "confirm": "Delete"
+  },
+  "openDocuments": {
+    "label": "Open documents: {{count}}",
+    "unsaved": "{{count}} unsaved",
+    "return": "Return to editor"
   }
 }

@@ -121,13 +121,15 @@ export async function executeActionStep(step: ActionStep): Promise<void> {
     case 'ai:bg-remove':
     case 'ai:inpaint':
     case 'ai:face-restore':
-    case 'ai:colorize': {
+    case 'ai:colorize':
+    case 'ai:relight': {
       const modeMap: Record<string, string> = {
         'ai:upscale': 'upscale',
         'ai:bg-remove': 'bgRemove',
         'ai:inpaint': 'inpaint',
         'ai:face-restore': 'faceRestore',
         'ai:colorize': 'colorize',
+        'ai:relight': 'relight',
       };
       store.setEditMode(modeMap[step.type] as Parameters<typeof store.setEditMode>[0]);
       break;

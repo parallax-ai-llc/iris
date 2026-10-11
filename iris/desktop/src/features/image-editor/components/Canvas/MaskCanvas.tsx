@@ -121,6 +121,7 @@ export function MaskCanvas({
     (e: React.PointerEvent) => {
       if (editMode !== 'mask' || !hasMask) return;
       if (activeTool !== 'brush' && activeTool !== 'eraser') return;
+      if (useImageEditorStore.getState().isSpacePanning) return; // Spacebar panning takes priority
 
       e.currentTarget.setPointerCapture(e.pointerId);
 

@@ -1,14 +1,11 @@
 /**
- * useAutoSave - React hook for video project auto-save lifecycle.
- * Manages the subscription and timer cleanup properly via useEffect.
+ * useAutoSave - mounts the video project auto-save (lib/autoSave.ts) for the
+ * lifetime of the editor page and clears its timer on unmount.
  */
 
 import { useEffect } from 'react';
-import { setupAutoSave } from '@/features/video-editor/stores/videoProject.store';
+import { setupAutoSave } from '../lib/autoSave';
 
 export function useAutoSave() {
-  useEffect(() => {
-    const cleanup = setupAutoSave();
-    return cleanup;
-  }, []);
+  useEffect(() => setupAutoSave(), []);
 }

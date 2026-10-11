@@ -68,5 +68,10 @@
     "psdUrlMissing": "URL du fichier PSD non disponible",
     "psdOpened": "{{name}} ouvert avec {{count}} calques",
     "psdOpenFailed": "Échec de l'ouverture du fichier PSD"
+  },
+  "openDocuments": {
+    "label": "Documents ouverts : {{count}}",
+    "unsaved": "{{count}} non enregistré(s)",
+    "return": "Revenir à l'éditeur"
   }
 }

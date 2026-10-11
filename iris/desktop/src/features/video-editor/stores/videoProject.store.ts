@@ -38,11 +38,11 @@ interface VideoProjectState {
   // Provisional = opened from video but not yet saved to DB
   isProvisional: boolean;
 
-  // Dirty State (unsaved changes)
-  isDirty: boolean;
+  // Last successful save (server updatedAt). "Unsaved changes" is not stored
+  // here: it is derived by useEditorStore.getState().hasUnsavedChanges().
   lastSavedAt: string | null;
 
-  // Auto-save
+  // Auto-save (lib/autoSave.ts)
   autoSaveEnabled: boolean;
   autoSaveInterval: number; // milliseconds
 
@@ -68,8 +68,6 @@ interface VideoProjectActions {
   // Timeline
   saveTimeline: (input?: SaveTimelineInput) => Promise<boolean>;
   updateTimelineData: (timelineData: TimelineData) => void;
-  markDirty: () => void;
-  markClean: () => void;
 
   // Media Pool
   addMedia: (input: AddMediaInput) => Promise<ProjectMedia | null>;
@@ -101,7 +99,6 @@ const initialState: VideoProjectState = {
 
   isProvisional: false,
 
-  isDirty: false,
   lastSavedAt: null,
 
   autoSaveEnabled: true,
@@ -188,7 +185,6 @@ export const useVideoProjectStore = create<VideoProjectStore>()(
           mediaPool: [],
         },
         isProvisional: true,
-        isDirty: false,
         lastSavedAt: null,
       });
     },
@@ -228,7 +224,6 @@ export const useVideoProjectStore = create<VideoProjectStore>()(
         set({
           currentProject: project,
           currentProjectLoading: false,
-          isDirty: false,
           lastSavedAt: project.updatedAt,
         });
         // Refresh projects list
@@ -255,7 +250,6 @@ export const useVideoProjectStore = create<VideoProjectStore>()(
         set({
           currentProject: project,
           currentProjectLoading: false,
-          isDirty: false,
           lastSavedAt: project.updatedAt,
         });
         return project;
@@ -295,7 +289,7 @@ export const useVideoProjectStore = create<VideoProjectStore>()(
       if (result.success) {
         const { currentProject } = get();
         if (currentProject?.id === projectId) {
-          set({ currentProject: null, isDirty: false, lastSavedAt: null });
+          set({ currentProject: null, lastSavedAt: null });
         }
         // Refresh projects list
         get().fetchProjects();
@@ -320,7 +314,6 @@ export const useVideoProjectStore = create<VideoProjectStore>()(
         currentProject: null,
         currentProjectError: null,
         isProvisional: false,
-        isDirty: false,
         lastSavedAt: null,
       });
     },
@@ -360,7 +353,14 @@ export const useVideoProjectStore = create<VideoProjectStore>()(
           });
         }
 
-        set({ isProvisional: false });
+        // The project exists in the cloud now: switch to its real id right away,
+        // so a timeline write that fails below is retried against it (never
+        // against the provisional id, and never by creating a second project).
+        // Skipped when the user closed/switched projects meanwhile.
+        const now = get().currentProject;
+        if (now?.id === currentProject.id) {
+          set({ isProvisional: false, currentProject: { ...now, id: projectId } });
+        }
       }
 
       const saveInput: SaveTimelineInput = input || {
@@ -371,11 +371,15 @@ export const useVideoProjectStore = create<VideoProjectStore>()(
       const result = await videoProjectApi.saveTimeline(projectId, saveInput);
 
       if (result.success && result.data) {
-        set({
-          currentProject: result.data,
-          isDirty: false,
-          lastSavedAt: result.data.updatedAt,
-        });
+        // Only adopt the response when this project is still the open one: a
+        // save that finishes after the user closed or switched projects must
+        // not bring the old project back.
+        if (get().currentProject?.id === projectId) {
+          set({
+            currentProject: result.data,
+            lastSavedAt: result.data.updatedAt,
+          });
+        }
         get().fetchProjects();
         return true;
       }
@@ -402,16 +406,7 @@ export const useVideoProjectStore = create<VideoProjectStore>()(
           timelineData,
           duration: maxEndTime,
         },
-        isDirty: true,
       });
-    },
-
-    markDirty: () => {
-      set({ isDirty: true });
-    },
-
-    markClean: () => {
-      set({ isDirty: false });
     },
 
     // ==================== Media Pool ====================
@@ -580,52 +575,4 @@ export const selectCurrentProject = (state: VideoProjectStore) => state.currentP
 export const selectProjects = (state: VideoProjectStore) => state.projects;
 export const selectMediaPool = (state: VideoProjectStore) => state.currentProject?.mediaPool ?? EMPTY_MEDIA_POOL;
 export const selectTimelineData = (state: VideoProjectStore) => state.currentProject?.timelineData;
-export const selectIsDirty = (state: VideoProjectStore) => state.isDirty;
 export const selectIsLoading = (state: VideoProjectStore) => state.currentProjectLoading || state.projectsLoading;
-
-// ==================== Auto-save Hook ====================
-
-let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
-
-export function setupAutoSave() {
-  const unsubscribe = useVideoProjectStore.subscribe(
-    (state) => ({ isDirty: state.isDirty, autoSaveEnabled: state.autoSaveEnabled }),
-    ({ isDirty, autoSaveEnabled }) => {
-      const { autoSaveInterval } = useVideoProjectStore.getState();
-
-      // Clear existing timer
-      if (autoSaveTimer) {
-        clearTimeout(autoSaveTimer);
-        autoSaveTimer = null;
-      }
-
-      // Set up new timer if enabled and dirty
-      if (autoSaveEnabled && isDirty) {
-        const scheduleNext = () => {
-          autoSaveTimer = setTimeout(async () => {
-            const state = useVideoProjectStore.getState();
-            if (state.isDirty && state.currentProject) {
-              await state.saveTimeline();
-            }
-            // Re-check and schedule next only if still dirty and enabled
-            const current = useVideoProjectStore.getState();
-            if (current.autoSaveEnabled && current.isDirty) {
-              scheduleNext();
-            } else {
-              autoSaveTimer = null;
-            }
-          }, autoSaveInterval);
-        };
-        scheduleNext();
-      }
-    }
-  );
-
-  return () => {
-    unsubscribe();
-    if (autoSaveTimer) {
-      clearTimeout(autoSaveTimer);
-      autoSaveTimer = null;
-    }
-  };
-}

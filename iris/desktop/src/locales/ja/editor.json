@@ -76,5 +76,66 @@
     }
   },
   "undo": "元に戻す (Ctrl+Z)",
-  "redo": "やり直す (Ctrl+Shift+Z)"
+  "redo": "やり直す (Ctrl+Shift+Z)",
+  "relight": {
+    "title": "リライト",
+    "menuLabel": "リライト(ライティング変更)",
+    "layerName": "リライト",
+    "description": "AIで写真のライティングを変更します。結果は新しいレイヤーとして追加されます。",
+    "preset": {
+      "label": "ライティングプリセット",
+      "natural": "自然光",
+      "studio": "スタジオ",
+      "dramatic": "ドラマチック",
+      "soft": "ソフト"
+    },
+    "direction": {
+      "label": "光の方向",
+      "auto": "自動",
+      "left": "左",
+      "right": "右",
+      "top": "上",
+      "bottom": "下",
+      "diagonalSoon": "斜め方向はまだサポートされていません"
+    },
+    "color": {
+      "label": "光の色",
+      "auto": "自動",
+      "warm": "暖色",
+      "neutral": "ニュートラル",
+      "cool": "寒色",
+      "neon": "ネオン"
+    },
+    "intensity": {
+      "label": "強さ",
+      "hint": "結果レイヤーの不透明度です。後から変更してもクレジットはかかりません。"
+    },
+    "custom": {
+      "label": "ライティングの説明(任意)",
+      "placeholder": "例: 背後からの暖かい夕日の光",
+      "hint": "入力すると、プリセット・方向・色の設定の代わりにこの文を使います。"
+    },
+    "output": {
+      "newLayer": "新しいレイヤーとして追加",
+      "newLayerHint": "既存のレイヤーを残し、結果を一番上に追加します",
+      "replaceWarning": "結果が画像を置き換え、解像度は最大512pxです。",
+      "onlySelection": "選択範囲内のみに適用",
+      "resolutionNote": "リライトの結果は最大512pxで、キャンバスサイズに合わせて拡大されます。"
+    },
+    "run": "リライト",
+    "processing": "ライティングを変更中...",
+    "stopWaiting": "待機を停止",
+    "stoppedToast": "待機を停止しました。結果は画像ギャラリーに保存されます。",
+    "successToast": "リライトを新しいレイヤーとして追加しました",
+    "loginRequired": "リライトはParallaxのクレジットでクラウド上で実行されます。ログインしてご利用ください。",
+    "loginButton": "ログイン",
+    "selfHostNotice": "リライトにはParallaxアカウントが必要なため、セルフホスト版では利用できません。",
+    "errors": {
+      "loginRequired": "リライトを使うにはログインしてください。",
+      "insufficientCredits": "リライトに必要なクレジットが不足しています。",
+      "failed": "リライトに失敗しました。",
+      "timeout": "処理に時間がかかっています。後で画像ギャラリーを確認してください。",
+      "applyFailed": "結果をキャンバスに追加できませんでした。"
+    }
+  }
 }

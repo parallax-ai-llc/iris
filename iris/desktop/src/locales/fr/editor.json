@@ -76,5 +76,66 @@
     }
   },
   "undo": "Undo (Ctrl+Z)",
-  "redo": "Redo (Ctrl+Shift+Z)"
+  "redo": "Redo (Ctrl+Shift+Z)",
+  "relight": {
+    "title": "Rééclairer",
+    "menuLabel": "Rééclairer",
+    "layerName": "Rééclairage",
+    "description": "Modifiez l'éclairage de votre photo avec l'IA. Le résultat est ajouté comme nouveau calque.",
+    "preset": {
+      "label": "Préréglage d'éclairage",
+      "natural": "Naturel",
+      "studio": "Studio",
+      "dramatic": "Dramatique",
+      "soft": "Doux"
+    },
+    "direction": {
+      "label": "Direction de la lumière",
+      "auto": "Auto",
+      "left": "Gauche",
+      "right": "Droite",
+      "top": "Haut",
+      "bottom": "Bas",
+      "diagonalSoon": "Les directions diagonales ne sont pas encore prises en charge"
+    },
+    "color": {
+      "label": "Couleur de la lumière",
+      "auto": "Auto",
+      "warm": "Chaude",
+      "neutral": "Neutre",
+      "cool": "Froide",
+      "neon": "Néon"
+    },
+    "intensity": {
+      "label": "Intensité",
+      "hint": "Définit l'opacité du calque résultat. La modifier plus tard ne coûte aucun crédit."
+    },
+    "custom": {
+      "label": "Décrivez l'éclairage (facultatif)",
+      "placeholder": "ex. lumière chaude de coucher de soleil venant de derrière",
+      "hint": "Si renseigné, remplace le préréglage, la direction et la couleur."
+    },
+    "output": {
+      "newLayer": "Ajouter comme nouveau calque",
+      "newLayerHint": "Conserver les calques existants et ajouter le résultat au-dessus",
+      "replaceWarning": "Le résultat remplace l'image et fait au maximum 512 px.",
+      "onlySelection": "Appliquer uniquement dans la sélection",
+      "resolutionNote": "Les résultats font au maximum 512 px et sont mis à l'échelle du canevas."
+    },
+    "run": "Rééclairer",
+    "processing": "Modification de l'éclairage...",
+    "stopWaiting": "Arrêter d'attendre",
+    "stoppedToast": "Attente arrêtée. Le résultat sera enregistré dans votre galerie d'images.",
+    "successToast": "Rééclairage ajouté comme nouveau calque",
+    "loginRequired": "Le rééclairage s'exécute dans le cloud avec vos crédits Parallax. Connectez-vous pour l'utiliser.",
+    "loginButton": "Se connecter",
+    "selfHostNotice": "Le rééclairage nécessite un compte Parallax et n'est donc pas disponible dans cette version auto-hébergée.",
+    "errors": {
+      "loginRequired": "Connectez-vous pour utiliser le rééclairage.",
+      "insufficientCredits": "Crédits insuffisants pour le rééclairage.",
+      "failed": "Le rééclairage a échoué.",
+      "timeout": "Le rééclairage prend plus de temps que prévu. Consultez votre galerie d'images plus tard.",
+      "applyFailed": "Impossible d'ajouter le résultat au canevas."
+    }
+  }
 }

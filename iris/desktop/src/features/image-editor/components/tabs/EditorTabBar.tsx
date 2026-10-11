@@ -4,11 +4,8 @@
  */
 
 import { memo, useCallback, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { cn } from '@/shared/lib/utils';
 import { useEditorTabsStore, type EditorTab } from '@/features/image-editor/stores/editorTabs.store';
-import { useImageEditorStore } from '@/features/image-editor/stores/imageEditor.store';
-import { ConfirmDialog } from '@/shared/components/ui/Modal';
 import { X, ImageIcon } from 'lucide-react';
 import { useCachedAssetUrl } from '@/shared/hooks/useCachedAssetUrl';
 import { openImageFile } from '@/features/image-editor/lib/openImageFile';
@@ -76,26 +73,17 @@ const TabItem = memo(function TabItem({ tab, isActive, onActivate, onClose }: Ta
 });
 
 export const EditorTabBar = memo(function EditorTabBar() {
-  const { t } = useTranslation('common');
   const tabs = useEditorTabsStore(state => state.tabs);
   const activeTabId = useEditorTabsStore(state => state.activeTabId);
   const switchTab = useEditorTabsStore(state => state.switchTab);
-  const closeTab = useEditorTabsStore(state => state.closeTab);
-  const [pendingCloseTabId, setPendingCloseTabId] = useState<string | null>(null);
+  const requestCloseTab = useEditorTabsStore(state => state.requestCloseTab);
 
+  // Same decision as Ctrl+W / File > Close Tab (asks only when the tab is dirty);
+  // the dialog itself is CloseTabConfirmDialog in the editor page.
   const handleClose = useCallback((e: React.MouseEvent, tabId: string) => {
     e.stopPropagation();
-    const tab = tabs.find(t => t.id === tabId);
-    const isLocalAsset = tab?.asset.id.startsWith('local-') ?? false;
-    // Check both synced isDirty and live store (active tab) for reliability
-    const isLiveDirty = tab?.id === activeTabId && useImageEditorStore.getState().isDirty;
-    const isDirtyCheck = (tab?.isDirty ?? false) || isLiveDirty;
-    if (tab && (isDirtyCheck || isLocalAsset)) {
-      setPendingCloseTabId(tabId);
-      return;
-    }
-    closeTab(tabId);
-  }, [closeTab, tabs, activeTabId]);
+    requestCloseTab(tabId);
+  }, [requestCloseTab]);
 
   // Drag-and-drop to open image as new tab
   const [isDragOver, setIsDragOver] = useState(false);
@@ -141,22 +129,6 @@ export const EditorTabBar = memo(function EditorTabBar() {
   if (tabs.length === 0 && !isDragOver) return null;
 
   return (
-    <>
-    <ConfirmDialog
-      isOpen={!!pendingCloseTabId}
-      onClose={() => setPendingCloseTabId(null)}
-      onConfirm={() => {
-        const id = pendingCloseTabId!;
-        setPendingCloseTabId(null);
-        closeTab(id);
-      }}
-      title={t('editor.closeTabWarning.title')}
-      message={t('editor.closeTabWarning.message')}
-      confirmText={t('editor.closeTabWarning.closeWithoutSaving')}
-      cancelText={t('buttons.cancel')}
-      variant="danger"
-    />
-
     <div
       className={cn(
         'flex items-end h-8 bg-zinc-950 border-b border-zinc-800 overflow-x-auto scrollbar-none',
@@ -183,7 +155,6 @@ export const EditorTabBar = memo(function EditorTabBar() {
         </div>
       )}
     </div>
-    </>
   );
 });
 

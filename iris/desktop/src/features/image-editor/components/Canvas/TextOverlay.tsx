@@ -2,6 +2,12 @@
  * TextOverlay
  * Handles text input on canvas: click to place, type text, commit as layer
  * Layer is created immediately on text box creation and updated in real-time.
+ *
+ * Clicking an existing text layer (one carrying `text` data) re-opens it with
+ * its content and style instead of creating a new layer; so does a Layers
+ * panel double-click (`textEditRequest`). Committing a changed re-edit updates
+ * the same layer with one 'Text' history entry; an unchanged or emptied
+ * re-edit restores the layer without an entry.
  */
 
 import React, { useRef, useEffect, useCallback, useState } from 'react';
@@ -9,6 +15,8 @@ import { useImageEditorStore } from '@/features/image-editor/stores/imageEditor.
 import { screenToImage } from '@/features/image-editor/canvas/canvasEngine';
 import { renderTextToCanvas } from '@/features/image-editor/canvas/canvasEngine';
 import { cn } from '@/shared/lib/utils';
+import type { Layer, TextSettings } from '@/features/image-editor/stores/imageEditor.store';
+import { findTextLayerAt, isSameText } from '@/features/image-editor/lib/textLayerEdit';
 
 interface TextOverlayProps {
   imageWidth: number;
@@ -30,13 +38,19 @@ export function TextOverlay({
   const editorRef = useRef<HTMLDivElement>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editPos, setEditPos] = useState({ x: 0, y: 0 }); // image coordinates
+  // Bumped on every edit start so the focus effect re-runs even when an edit
+  // follows another one without isEditing turning false in between.
+  const [editSession, setEditSession] = useState(0);
   const layerIdRef = useRef<string | null>(null);
   const textContentRef = useRef('');
+  /** The text layer as it was before a re-edit; null while placing new text. */
+  const originalLayerRef = useRef<Layer | null>(null);
 
   const {
     editMode,
     textSettings,
     setTextSettings,
+    textEditRequest,
     zoom,
     panOffset,
     rotation,
@@ -95,29 +109,71 @@ export function TextOverlay({
   // Finalize editing: remove layer if empty, otherwise keep it
   const finalizeEditing = useCallback(() => {
     const text = textContentRef.current.trim();
-    if (!text && layerIdRef.current) {
-      // Remove empty text layer
-      const { removeLayer } = useImageEditorStore.getState();
-      removeLayer(layerIdRef.current);
-    } else if (text && layerIdRef.current) {
+    const layerId = layerIdRef.current;
+    const original = originalLayerRef.current;
+    const { updateLayer, removeLayer, pushHistory } = useImageEditorStore.getState();
+    if (layerId && original?.text) {
+      // Re-edit of an existing text layer
+      if (!text || isSameText(original.text, text, textSettings)) {
+        // Nothing to record: put back exactly what the layer had.
+        updateLayer(layerId, {
+          imageData: original.imageData,
+          width: original.width,
+          height: original.height,
+          text: original.text,
+        });
+      } else {
+        const settings: TextSettings = { ...textSettings };
+        const { canvas } = renderTextToCanvas(text, settings);
+        const dataUrl = canvas.toDataURL();
+        updateLayer(layerId, {
+          imageData: dataUrl,
+          width: canvas.width,
+          height: canvas.height,
+          text: { content: text, settings },
+        });
+        pushHistory('Text', dataUrl);
+      }
+    } else if (!text && layerId) {
+      // The layer was added without a history entry, so dropping it needs none.
+      removeLayer(layerId, { history: false });
+    } else if (text && layerId) {
       // Final update with latest text and settings
-      const { updateLayer, pushHistory } = useImageEditorStore.getState();
-      const { canvas } = renderTextToCanvas(text, textSettings);
-      updateLayer(layerIdRef.current, {
-        imageData: canvas.toDataURL(),
+      const settings: TextSettings = { ...textSettings };
+      const { canvas } = renderTextToCanvas(text, settings);
+      const dataUrl = canvas.toDataURL();
+      updateLayer(layerId, {
+        imageData: dataUrl,
         width: canvas.width,
         height: canvas.height,
+        text: { content: text, settings },
       });
-      pushHistory('Text', canvas.toDataURL());
+      pushHistory('Text', dataUrl);
     }
     layerIdRef.current = null;
+    originalLayerRef.current = null;
     textContentRef.current = '';
     setIsEditing(false);
   }, [textSettings]);
 
+  // Open an existing text layer for editing with its own content and style
+  const startEditingLayer = useCallback((layer: Layer) => {
+    if (!layer.text) return;
+    const state = useImageEditorStore.getState();
+    if (state.activeLayerId !== layer.id) state.setActiveLayer(layer.id);
+    setTextSettings(layer.text.settings);
+    originalLayerRef.current = { ...layer };
+    layerIdRef.current = layer.id;
+    textContentRef.current = layer.text.content;
+    setEditPos({ x: layer.x, y: layer.y });
+    setIsEditing(true);
+    setEditSession((n) => n + 1);
+  }, [setTextSettings]);
+
   // Handle click on overlay - place text or finalize existing
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (editMode !== 'text') return;
+    if (useImageEditorStore.getState().isSpacePanning) return; // Spacebar panning takes priority
 
     // If already editing, finalize current text first
     if (isEditing) {
@@ -125,14 +181,23 @@ export function TextOverlay({
       return;
     }
 
-    // Start new text editing at click position
     const coords = getImageCoords(e);
+
+    // Clicking an existing text layer edits it (Photoshop Type tool)
+    const hit = findTextLayerAt(useImageEditorStore.getState().layers, coords.x, coords.y);
+    if (hit) {
+      startEditingLayer(hit);
+      return;
+    }
+
+    // Start new text editing at click position
     setEditPos({ x: coords.x, y: coords.y });
 
     // Immediately create a text layer
     const { addLayer, updateLayer } = useImageEditorStore.getState();
     const { canvas } = renderTextToCanvas(' ', textSettings);
-    const layerId = addLayer(canvas.toDataURL(), 'Text');
+    // No entry yet: finalizeEditing pushes 'Text' once something was typed.
+    const layerId = addLayer(canvas.toDataURL(), 'Text', { history: false });
     if (layerId) {
       updateLayer(layerId, {
         x: coords.x,
@@ -142,19 +207,46 @@ export function TextOverlay({
       });
       layerIdRef.current = layerId;
     }
+    originalLayerRef.current = null;
     textContentRef.current = '';
     setIsEditing(true);
-  }, [editMode, isEditing, finalizeEditing, getImageCoords, textSettings]);
+    setEditSession((n) => n + 1);
+  }, [editMode, isEditing, finalizeEditing, getImageCoords, textSettings, startEditingLayer]);
 
-  // Focus the editor when editing starts
+  // Layers panel double-click: open the requested text layer
+  useEffect(() => {
+    if (!textEditRequest || editMode !== 'text') return;
+    const state = useImageEditorStore.getState();
+    state.clearTextEditRequest();
+    const layer = state.layers.find((l) => l.id === textEditRequest);
+    if (!layer?.text) return;
+    if (isEditing) {
+      if (layerIdRef.current === layer.id) return;
+      finalizeEditing();
+    }
+    startEditingLayer(layer);
+  }, [textEditRequest, editMode, isEditing, finalizeEditing, startEditingLayer]);
+
+  // Focus the editor when editing starts (with the layer's text on a re-edit)
   useEffect(() => {
     if (isEditing && editorRef.current) {
-      editorRef.current.innerText = '';
+      editorRef.current.innerText = textContentRef.current;
       requestAnimationFrame(() => {
-        editorRef.current?.focus();
+        const el = editorRef.current;
+        if (!el) return;
+        el.focus();
+        // Caret at the end of the existing text
+        const selection = window.getSelection();
+        if (selection) {
+          const range = document.createRange();
+          range.selectNodeContents(el);
+          range.collapse(false);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
       });
     }
-  }, [isEditing]);
+  }, [isEditing, editSession]);
 
   // Handle input changes - update layer in real-time
   const handleInput = useCallback(() => {

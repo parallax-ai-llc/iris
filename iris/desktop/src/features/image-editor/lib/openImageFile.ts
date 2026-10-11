@@ -6,16 +6,23 @@
 import { importPsd } from '@/features/image-editor/psd/importPsd';
 import { toast } from '@/shared/lib/toast';
 import { useEditorTabsStore } from '@/features/image-editor/stores/editorTabs.store';
-import { useImageEditorStore } from '@/features/image-editor/stores/imageEditor.store';
+import { getActiveStoreSafe } from '@/features/image-editor/stores/imageEditorRegistry';
 import type { IrisAsset } from '@/shared/api/types';
 
 /**
  * Process and open an image file (PSD or regular image) as a new editor tab.
  * All processing is done client-side with no server upload.
+ *
+ * `sourcePath` (when the file came from disk) makes re-opening the same file
+ * focus its existing tab instead of creating a duplicate.
  */
-export async function openImageFile(fileData: ArrayBuffer, fileName: string): Promise<void> {
-  const { openTabWithLayers } = useEditorTabsStore.getState();
-  const { setProcessing } = useImageEditorStore.getState();
+export async function openImageFile(fileData: ArrayBuffer, fileName: string, sourcePath?: string): Promise<void> {
+  const { openTabWithLayers, focusTabForPath } = useEditorTabsStore.getState();
+  if (sourcePath && focusTabForPath(sourcePath)) return;
+  // Busy indicator on whichever tab is active (none when opened from the gallery)
+  const setProcessing = (busy: boolean, message?: string) =>
+    getActiveStoreSafe()?.getState().setProcessing(busy, message);
+  const options = sourcePath ? { sourcePath } : undefined;
 
   if (fileName.toLowerCase().endsWith('.psd')) {
     setProcessing(true, 'Opening PSD...');
@@ -27,7 +34,7 @@ export async function openImageFile(fileData: ArrayBuffer, fileName: string): Pr
         sizeBytes: fileData.byteLength, isPublic: false, previewUrl: result.compositeDataUrl || '',
         createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
       };
-      openTabWithLayers(localAsset, result.layers, result.compositeDataUrl || '', result.width, result.height, result.textLayers);
+      openTabWithLayers(localAsset, result.layers, result.compositeDataUrl || '', result.width, result.height, result.textLayers, options);
       toast.success(`Opened ${fileName} with ${result.layers.length} layers`);
     } catch (error) {
       console.error('PSD open error:', error);
@@ -67,7 +74,7 @@ export async function openImageFile(fileData: ArrayBuffer, fileName: string): Pr
             sizeBytes: fileData.byteLength, isPublic: false, previewUrl: dataUrl,
             createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
           };
-          openTabWithLayers(imgAsset, [layer], dataUrl, img.width, img.height);
+          openTabWithLayers(imgAsset, [layer], dataUrl, img.width, img.height, undefined, options);
           toast.success(`Opened ${fileName}`);
         }
         URL.revokeObjectURL(url);

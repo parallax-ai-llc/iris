@@ -68,5 +68,10 @@
     "psdUrlMissing": "URL file PSD tidak tersedia",
     "psdOpened": "{{name}} dibuka dengan {{count}} layer",
     "psdOpenFailed": "Gagal membuka file PSD"
+  },
+  "openDocuments": {
+    "label": "Dokumen terbuka: {{count}}",
+    "unsaved": "{{count}} belum disimpan",
+    "return": "Kembali ke editor"
   }
 }

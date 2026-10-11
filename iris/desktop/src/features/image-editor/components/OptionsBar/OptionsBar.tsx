@@ -19,7 +19,7 @@ import {
 } from './options';
 import { ShapeOptions } from './options/ShapeOptions';
 
-const AI_MODES = ['upscale', 'bgRemove', 'inpaint', 'outpaint', 'faceRestore', 'colorize'] as const;
+const AI_MODES = ['upscale', 'bgRemove', 'inpaint', 'outpaint', 'faceRestore', 'colorize', 'relight'] as const;
 
 export const OptionsBar = memo(function OptionsBar() {
   const editMode = useImageEditorStore((s) => s.editMode);

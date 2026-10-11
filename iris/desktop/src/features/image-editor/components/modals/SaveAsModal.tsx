@@ -5,6 +5,7 @@
 import { memo, useState, useCallback, useEffect, useRef } from 'react';
 import { X, FileImage, FileType, Download, HardDrive, Cloud } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
+import { useModalShortcutBlock } from '@/shared/lib/shortcuts';
 
 export type SaveFormat = 'png' | 'jpeg' | 'webp' | 'pdf' | 'psd';
 export type SaveAsDestination = 'local' | 'cloud';
@@ -30,6 +31,8 @@ export const SaveAsModal = memo(function SaveAsModal({
   onSave,
   fileName = 'image',
 }: SaveAsModalProps) {
+  // Block editor/global shortcuts while this dialog is open.
+  useModalShortcutBlock(isOpen);
   const [selectedFormat, setSelectedFormat] = useState<SaveFormat>('png');
   const [quality, setQuality] = useState(92);
   const [destination, setDestination] = useState<SaveAsDestination>('local');

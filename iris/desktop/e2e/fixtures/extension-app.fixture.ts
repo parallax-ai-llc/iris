@@ -37,6 +37,8 @@ export async function launchElectronApp(): Promise<LaunchedApp> {
   delete env.ELECTRON_RUN_AS_NODE;
   env.NODE_ENV = 'development';
   env.TEST_MODE = 'true';
+  // Hidden window unless explicitly headed (same as electron.fixture).
+  if (process.env.E2E_SHOW_WINDOW !== 'true') env.E2E_HIDE_WINDOW = 'true';
 
   const app = await electron.launch({ args: [mainPath], env });
 
@@ -44,7 +46,7 @@ export async function launchElectronApp(): Promise<LaunchedApp> {
   app.process().stderr?.on('data', (d: Buffer) => console.error('[MAIN ERR]', d.toString().trim()));
 
   const page = await app.firstWindow();
-  await page.waitForLoadState('load');
+  await page.waitForLoadState('load', { timeout: 90_000 }); // vite dev transforms changed modules on first load
 
   // React has rendered once either the sidebar (logged in or not — desktop is
   // usable without an account) or the login form is on screen.

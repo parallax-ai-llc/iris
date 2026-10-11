@@ -68,5 +68,10 @@
     "psdUrlMissing": "PSD கோப்பு URL கிடைக்கவில்லை",
     "psdOpened": "{{name}} {{count}} லேயர்களுடன் திறக்கப்பட்டது",
     "psdOpenFailed": "PSD கோப்பை திறக்க முடியவில்லை"
+  },
+  "openDocuments": {
+    "label": "திறந்த ஆவணங்கள்: {{count}}",
+    "unsaved": "{{count}} சேமிக்கப்படவில்லை",
+    "return": "எடிட்டருக்குத் திரும்பு"
   }
 }

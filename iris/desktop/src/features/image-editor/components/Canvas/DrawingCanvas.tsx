@@ -10,10 +10,6 @@ import {
   renderBrushDab,
   interpolatePoints,
   calculateSpacing,
-  renderLinearGradient,
-  renderRadialGradient,
-  renderAngularGradient,
-  renderDiamondGradient,
   renderCloneStamp,
   applyDodgeBurnAtPoint,
   applySpongeAtPoint,
@@ -24,8 +20,8 @@ import {
   applySpotHealingAtPoint,
   type Point,
   type BrushTip,
-  type GradientColorStop,
 } from '@/features/image-editor/canvas/brushEngine';
+import { renderGradientDrag } from '@/features/image-editor/lib/gradientTool';
 import {
   createOffscreenCanvas,
   screenToImage,
@@ -57,7 +53,8 @@ export function DrawingCanvas({
 }: DrawingCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [lastPoint, setLastPoint] = useState<Point | null>(null);
+  // Only the setter is used (re-render per move); handlers read lastPointRef.
+  const [, setLastPoint] = useState<Point | null>(null);
   const brushTipRef = useRef<BrushTip | null>(null);
   const strokeCanvasRef = useRef<HTMLCanvasElement | null>(null);
   // Per-stroke working copy of the main canvas for pixel-modify tools
@@ -96,8 +93,8 @@ export function DrawingCanvas({
   const [healingSource, setHealingSource] = useState<Point | null>(null);
   const [healingOffset, setHealingOffset] = useState<{ dx: number; dy: number } | null>(null);
 
-  // Gradient start/end points
-  const [gradientStart, setGradientStart] = useState<Point | null>(null);
+  // Gradient drag start (ref: the move/up handlers must see it immediately)
+  const gradientStartRef = useRef<Point | null>(null);
 
   const {
     editMode,
@@ -106,7 +103,6 @@ export function DrawingCanvas({
     dodgeBurnSettings,
     spongeMode,
     localAdjustStrength,
-    gradientSettings,
     zoom,
     panOffset,
     rotation,
@@ -115,7 +111,6 @@ export function DrawingCanvas({
     setBrushSettings,
     snapToGrid,
     gridSize,
-    isSpacePanning,
   } = useImageEditorStore();
 
   // Create brush tip when settings change
@@ -331,7 +326,9 @@ export function DrawingCanvas({
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
       if (editMode !== 'drawing') return;
-      if (isSpacePanning) return; // Spacebar panning takes priority
+      // Spacebar panning takes priority. Read the live value: this callback does
+      // not re-create when Space is pressed, so a captured value would be stale.
+      if (useImageEditorStore.getState().isSpacePanning) return;
 
       // Handle eyedropper
       if (activeTool === 'eyedropper') {
@@ -360,10 +357,13 @@ export function DrawingCanvas({
         return;
       }
 
-      // Handle gradient tool
+      // Handle gradient tool: drag from start to end, committed on pointer up
       if (activeTool === 'gradient') {
         e.currentTarget.setPointerCapture(e.pointerId);
-        setGradientStart(point);
+        isDrawingRef.current = true;
+        gradientStartRef.current = point;
+        lastPointRef.current = point;
+        setLastPoint(point);
         setIsDrawing(true);
         return;
       }
@@ -602,9 +602,9 @@ export function DrawingCanvas({
       // Show preview (eraser erases live on the main canvas; others use overlay)
       renderStrokePreview();
     },
-    // updateOverlay/isSpacePanning are defined later in the component but are
+    // updateOverlay is defined later in the component but is
     // only invoked from this callback when the user paints — by then all hooks
-    // have run. Adding them to deps would create a temporal-dead-zone error.
+    // have run. Adding it to deps would create a temporal-dead-zone error.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [editMode, activeTool, brushSettings, dodgeBurnSettings, spongeMode, localAdjustStrength, imageWidth, imageHeight, getImageCoords, handleEyedropper, handleBucketFill, handleCloneSourceSet, cloneSource, cloneOffset, healingSource, healingOffset, mainCanvasRef, onCommitStroke, paintBackgroundEraserDab]
   );
@@ -629,10 +629,10 @@ export function DrawingCanvas({
       }
 
       // Handle gradient preview
-      if (activeTool === 'gradient' && gradientStart) {
+      if (activeTool === 'gradient' && gradientStartRef.current) {
         lastPointRef.current = point;
         setLastPoint(point);
-        updateGradientPreview(gradientStart, point);
+        updateGradientPreview(gradientStartRef.current, point);
         return;
       }
 
@@ -747,7 +747,7 @@ export function DrawingCanvas({
     // but are only invoked from this callback when the user paints — by then
     // all hooks have run. Adding them to deps would create a TDZ error.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [activeTool, brushSettings, dodgeBurnSettings, spongeMode, localAdjustStrength, getImageCoords, gradientStart, cloneOffset, healingOffset, mainCanvasRef, paintBackgroundEraserDab]
+    [activeTool, brushSettings, dodgeBurnSettings, spongeMode, localAdjustStrength, getImageCoords, cloneOffset, healingOffset, mainCanvasRef, paintBackgroundEraserDab]
   );
 
   // Update gradient preview on overlay
@@ -810,33 +810,16 @@ export function DrawingCanvas({
       e.currentTarget.releasePointerCapture(e.pointerId);
 
       // Handle gradient tool completion
-      if (activeTool === 'gradient' && gradientStart && lastPoint) {
-        const { canvas, ctx } = createOffscreenCanvas(imageWidth, imageHeight, true);
-
-        // Convert gradient settings to color stops
-        const colorStops: GradientColorStop[] = gradientSettings?.colorStops || [
-          { offset: 0, color: brushSettings.color },
-          { offset: 1, color: '#ffffff' },
-        ];
-
-        const gradientType = gradientSettings?.type || 'linear';
-        const dx = lastPoint.x - gradientStart.x;
-        const dy = lastPoint.y - gradientStart.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
-        if (gradientType === 'linear') {
-          renderLinearGradient(ctx, gradientStart.x, gradientStart.y, lastPoint.x, lastPoint.y, colorStops, imageWidth, imageHeight);
-        } else if (gradientType === 'radial') {
-          renderRadialGradient(ctx, gradientStart.x, gradientStart.y, distance, colorStops, imageWidth, imageHeight);
-        } else if (gradientType === 'angular') {
-          const angle = Math.atan2(dy, dx);
-          renderAngularGradient(ctx, gradientStart.x, gradientStart.y, angle, colorStops, imageWidth, imageHeight);
-        } else if (gradientType === 'diamond') {
-          renderDiamondGradient(ctx, gradientStart.x, gradientStart.y, distance, colorStops, imageWidth, imageHeight);
+      if (activeTool === 'gradient' && gradientStartRef.current) {
+        const start = gradientStartRef.current;
+        const end = lastPointRef.current ?? start;
+        const { gradientSettings: settings, backgroundColor } = useImageEditorStore.getState();
+        const moved = Math.abs(end.x - start.x) + Math.abs(end.y - start.y) >= 1;
+        // A click without a drag has no direction: nothing to paint.
+        if (moved) {
+          onCommitStroke(renderGradientDrag(settings, brushSettings.color, backgroundColor, start, end, imageWidth, imageHeight));
         }
-
-        onCommitStroke(canvas);
-        setGradientStart(null);
+        gradientStartRef.current = null;
         setLastPoint(null);
         setIsDrawing(false);
         // Clear refs
@@ -903,7 +886,7 @@ export function DrawingCanvas({
         }
       }
     },
-    [activeTool, onCommitStroke, gradientStart, lastPoint, gradientSettings, brushSettings.color, imageWidth, imageHeight, mainCanvasRef]
+    [activeTool, onCommitStroke, brushSettings.color, imageWidth, imageHeight, mainCanvasRef]
   );
 
   // Update overlay canvas to show stroke preview

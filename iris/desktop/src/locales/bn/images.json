@@ -68,5 +68,10 @@
     "psdUrlMissing": "PSD ফাইল URL উপলব্ধ নয়",
     "psdOpened": "{{name}} {{count}}টি লেয়ার সহ খোলা হয়েছে",
     "psdOpenFailed": "PSD ফাইল খুলতে ব্যর্থ"
+  },
+  "openDocuments": {
+    "label": "খোলা নথি: {{count}}",
+    "unsaved": "{{count}}টি সংরক্ষিত হয়নি",
+    "return": "এডিটরে ফিরে যান"
   }
 }

@@ -68,5 +68,10 @@
     "psdUrlMissing": "PSD फाइल URL उपलब्ध नाही",
     "psdOpened": "{{name}} {{count}} लेयर्ससह उघडले",
     "psdOpenFailed": "PSD फाइल उघडण्यात अयशस्वी"
+  },
+  "openDocuments": {
+    "label": "उघडलेले दस्तऐवज: {{count}}",
+    "unsaved": "{{count}} जतन केलेले नाहीत",
+    "return": "एडिटरवर परत जा"
   }
 }

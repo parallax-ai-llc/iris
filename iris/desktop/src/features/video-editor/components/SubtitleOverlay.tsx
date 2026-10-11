@@ -2,8 +2,9 @@
  * SubtitleOverlay - Draggable subtitle display with animation support
  */
 
-import { memo, useRef, useState, useCallback, useEffect } from 'react';
+import { memo, useRef, useState, useCallback } from 'react';
 import { cn } from '@/shared/lib/utils';
+import { useShortcutLayer } from '@/shared/lib/shortcuts';
 import type { SubtitleClip } from '@/types/editor.types';
 
 interface SubtitleOverlayProps {
@@ -473,37 +474,29 @@ export const SubtitleOverlay = memo(function SubtitleOverlay({
     [onSelect, onResize, style.width, style.height, style.position, videoRect]
   );
 
-  // Arrow-key nudge for the selected subtitle. Registered in the capture phase with
-  // stopPropagation so it preempts the timeline's document-level arrow handler (which
-  // would otherwise seek the playhead). Shift = coarse (10px) step.
-  useEffect(() => {
-    if (!isSelected) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight' && e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
-      const target = e.target as HTMLElement | null;
-      const tag = target?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable) return;
-
-      e.preventDefault();
-      e.stopPropagation();
-
-      const stepX = videoRect ? (1 / videoRect.width) * 100 : 0.5;
-      const stepY = videoRect ? (1 / videoRect.height) * 100 : 0.5;
-      const mult = e.shiftKey ? 10 : 1;
-
-      let { x, y } = style.position;
-      if (e.key === 'ArrowLeft') x -= stepX * mult;
-      else if (e.key === 'ArrowRight') x += stepX * mult;
-      else if (e.key === 'ArrowUp') y -= stepY * mult;
-      else if (e.key === 'ArrowDown') y += stepY * mult;
-
-      onPositionChange({ x: clampPct(x), y: clampPct(y) });
-    };
-
-    document.addEventListener('keydown', handleKeyDown, true);
-    return () => document.removeEventListener('keydown', handleKeyDown, true);
-  }, [isSelected, videoRect, style.position, onPositionChange]);
+  // Arrow-key nudge for the selected subtitle. Same editor scope as the
+  // timeline's arrow seek, but a higher priority, so a selected subtitle wins
+  // (the playhead does not move). Shift = coarse (10px) step.
+  const nudge = (dxDir: number, dyDir: number) => (e: KeyboardEvent) => {
+    const stepX = videoRect ? (1 / videoRect.width) * 100 : 0.5;
+    const stepY = videoRect ? (1 / videoRect.height) * 100 : 0.5;
+    const mult = e.shiftKey ? 10 : 1;
+    const { x, y } = style.position;
+    onPositionChange({
+      x: clampPct(x + dxDir * stepX * mult),
+      y: clampPct(y + dyDir * stepY * mult),
+    });
+  };
+  useShortcutLayer(
+    'editor',
+    [
+      { id: 'subtitle.nudgeLeft', keys: ['ArrowLeft', 'Shift+ArrowLeft'], run: nudge(-1, 0) },
+      { id: 'subtitle.nudgeRight', keys: ['ArrowRight', 'Shift+ArrowRight'], run: nudge(1, 0) },
+      { id: 'subtitle.nudgeUp', keys: ['ArrowUp', 'Shift+ArrowUp'], run: nudge(0, -1) },
+      { id: 'subtitle.nudgeDown', keys: ['ArrowDown', 'Shift+ArrowDown'], run: nudge(0, 1) },
+    ],
+    { enabled: isSelected, priority: 1 },
+  );
 
   // The box is anchored by its center (position.x/y) on both axes — independent of
   // `alignment`/`verticalAlign`, which only justify text *inside* the box. This keeps the

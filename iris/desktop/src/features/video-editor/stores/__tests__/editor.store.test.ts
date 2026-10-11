@@ -557,7 +557,7 @@ describe('audioExtracted on paired-audio removal', () => {
 // ─── Clip move drag anchors the LEFT EDGE to the cursor (drop x) ──────────────
 
 describe('move drag left-edge anchoring', () => {
-  it('places the clip left edge at the cursor time, ignoring the grab offset', () => {
+  it('keeps the grab offset: the grabbed point stays under the cursor', () => {
     const clip = makeVideoClip({ id: 'v', startTime: 10, endTime: 20 });
     useEditorStore.setState({
       tracks: [makeTrack('video', [clip])],
@@ -579,9 +579,45 @@ describe('move drag left-edge anchoring', () => {
     useEditorStore.getState().updateDrag(0, 30);
 
     const moved = useEditorStore.getState().tracks.flatMap((t) => t.clips).find((c) => c.id === 'v') as VideoClip;
-    // Left edge follows the cursor (30), NOT cursor minus grab offset (30 - 5 = 25).
-    expect(moved.startTime).toBeCloseTo(30, 5);
-    expect(moved.endTime).toBeCloseTo(40, 5);
+    // Grabbed 5s into the clip, so the left edge lands at cursor - 5 = 25.
+    expect(moved.startTime).toBeCloseTo(25, 5);
+    expect(moved.endTime).toBeCloseTo(35, 5);
+  });
+
+  it('a nearby clip edge wins over the grid (no gap left by grid snap)', () => {
+    const a = makeVideoClip({ id: 'a', startTime: 0, endTime: 3 });
+    const b = makeVideoClip({ id: 'b', startTime: 6, endTime: 8 });
+    useEditorStore.setState({
+      tracks: [makeTrack('video', [a, b])],
+      snapToGrid: true,
+      gridSize: 0.1,
+      pixelsPerSecond: 50,
+      currentTime: 20,
+      markers: [],
+    });
+    useEditorStore.getState().startDrag({
+      clipId: 'b', trackId: b.trackId, operation: 'move', startX: 0, startTime: 6, originalClip: { ...b },
+    });
+    // 3px right of a's end at 50px/s = 3.06s: grid would pick 3.1, the edge is 3.0.
+    useEditorStore.getState().updateDrag(0, 3.06);
+    const moved = useEditorStore.getState().tracks.flatMap((t) => t.clips).find((c) => c.id === 'b') as VideoClip;
+    expect(moved.startTime).toBeCloseTo(3, 5);
+  });
+});
+
+describe('locked tracks', () => {
+  it('Delete and ripple delete leave clips on a locked track alone', () => {
+    const v = makeVideoClip({ id: 'v', startTime: 0, endTime: 2 });
+    const track = { ...makeTrack('video', [v]), locked: true };
+    useEditorStore.setState({ tracks: [track], selection: { clipIds: ['v'], trackIds: [] } });
+    const historyBefore = useEditorStore.getState().history.length;
+
+    useEditorStore.getState().deleteSelected();
+    useEditorStore.getState().rippleDelete();
+
+    const clips = useEditorStore.getState().tracks.flatMap((t) => t.clips);
+    expect(clips.map((c) => c.id)).toEqual(['v']);
+    expect(useEditorStore.getState().history.length).toBe(historyBefore);
   });
 });
 

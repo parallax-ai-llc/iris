@@ -49,6 +49,8 @@ export const test = base.extend<AuthenticatedFixtures>({
     delete env.ELECTRON_RUN_AS_NODE;
     env.NODE_ENV = 'development';;
     env.TEST_MODE = 'true';
+    // Run with a hidden window unless explicitly headed (--headed / E2E_SHOW_WINDOW=true).
+    if (process.env.E2E_SHOW_WINDOW !== 'true') env.E2E_HIDE_WINDOW = 'true';
 
     const app = await electron.launch({
       args: [mainPath],
@@ -61,7 +63,7 @@ export const test = base.extend<AuthenticatedFixtures>({
 
   page: async ({ electronApp }, use) => {
     const appWindow = await electronApp.firstWindow();
-    await appWindow.waitForLoadState('load');
+    await appWindow.waitForLoadState('load', { timeout: 90_000 }); // vite dev transforms changed modules on first load
 
     // React 렌더링 완료 대기 — nav(sidebar)는 로그인 여부와 관계없이 항상 렌더된다.
     await appWindow.waitForSelector('nav', { state: 'visible', timeout: 30_000 });

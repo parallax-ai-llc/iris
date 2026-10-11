@@ -102,6 +102,7 @@ export const PathOverlay = memo(function PathOverlay({
   // Mouse handlers
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (!isPenMode) return;
+    if (useImageEditorStore.getState().isSpacePanning) return; // Spacebar panning takes priority
 
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;

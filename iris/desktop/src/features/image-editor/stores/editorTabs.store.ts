@@ -18,6 +18,7 @@ import {
   setActiveTabId,
   getActiveStoreSafe,
 } from '@/features/image-editor/stores/imageEditorRegistry';
+import { isSameLocalPath, isLocalAssetId } from '@/features/image-editor/lib/localPath';
 
 // ==================== Types ====================
 
@@ -27,16 +28,31 @@ export interface EditorTab {
   asset: IrisAsset;
   isDirty: boolean;
   createdAt: number;
+  /** Local file the document was opened from (dedupes re-opening the same file). */
+  sourcePath?: string;
+}
+
+export interface OpenTabOptions {
+  /** Local file path; opening the same path again focuses the existing tab. */
+  sourcePath?: string;
+}
+
+/** A close (or leave) that waits for the user's answer to the unsaved-changes dialog. */
+export interface PendingClose {
+  tabId: string;
+  /** Leaving the editor (Back / Esc) after the tab is closed. */
+  thenHide: boolean;
 }
 
 interface EditorTabsState {
   tabs: EditorTab[];
   activeTabId: string | null;
   isEditorVisible: boolean; // false = user navigated back to gallery, tabs stay alive
+  pendingClose: PendingClose | null;
 }
 
 interface EditorTabsActions {
-  openTab: (asset: IrisAsset) => void;
+  openTab: (asset: IrisAsset, options?: OpenTabOptions) => void;
   openTabWithLayers: (
     asset: IrisAsset,
     layers: Layer[],
@@ -44,10 +60,44 @@ interface EditorTabsActions {
     width: number,
     height: number,
     textLayers?: TextLayer[],
+    options?: OpenTabOptions,
   ) => void;
+  /** Focus (and show) the tab already holding this local file; false when none. */
+  focusTabForPath: (sourcePath: string) => boolean;
+  /** Close immediately (no questions asked). UI close paths use `requestCloseTab`. */
   closeTab: (tabId: string) => void;
+  /** Every UI close path (tab X, Ctrl+W, File > Close Tab): asks only when the tab is dirty. */
+  requestCloseTab: (tabId: string) => void;
+  /** Back / Esc: hide the editor; a dirty local document asks and is closed on confirm. */
+  requestLeaveEditor: () => void;
+  confirmPendingClose: () => void;
+  cancelPendingClose: () => void;
   switchTab: (tabId: string) => void;
   hideEditor: () => void; // go back to gallery without closing tabs
+  /** Show the hidden editor again on the last active tab (gallery "Return to editor"). */
+  showEditor: () => void;
+}
+
+// ==================== Close decision (single source of truth) ====================
+
+/** Live dirty state of a tab: its own store when it exists, otherwise the synced flag. */
+export function isTabDirty(tab: EditorTab): boolean {
+  const store = getStore(tab.id);
+  return store ? store.getState().isDirty : tab.isDirty;
+}
+
+/** The one rule every close path uses: warn only when the document has unsaved changes. */
+export function shouldConfirmClose(tab: EditorTab): boolean {
+  return isTabDirty(tab);
+}
+
+/**
+ * Leaving the editor keeps tabs alive, so nothing is lost and nothing is asked.
+ * Exception: a local file has no cloud copy, so leaving it is treated as
+ * closing it, under the same rule (ask only when dirty).
+ */
+export function leaveClosesTab(tab: EditorTab): boolean {
+  return isLocalAssetId(tab.asset.id) && shouldConfirmClose(tab);
 }
 
 // ==================== Store ====================
@@ -57,8 +107,10 @@ export const useEditorTabsStore = create<EditorTabsState & EditorTabsActions>()(
     tabs: [],
     activeTabId: null,
     isEditorVisible: false,
+    pendingClose: null,
 
-    openTabWithLayers: (asset, layers, compositeUrl, width, height, textLayers) => {
+    openTabWithLayers: (asset, layers, compositeUrl, width, height, textLayers, options) => {
+      if (options?.sourcePath && get().focusTabForPath(options.sourcePath)) return;
       const { tabs } = get();
 
       const newTabId = crypto.randomUUID();
@@ -68,6 +120,7 @@ export const useEditorTabsStore = create<EditorTabsState & EditorTabsActions>()(
         asset,
         isDirty: false,
         createdAt: Date.now(),
+        sourcePath: options?.sourcePath,
       };
 
       // Create a dedicated store for this tab and load the asset with layers
@@ -84,14 +137,16 @@ export const useEditorTabsStore = create<EditorTabsState & EditorTabsActions>()(
       });
     },
 
-    openTab: (asset) => {
+    openTab: (asset, options) => {
       const { tabs, activeTabId } = get();
 
       // Always show editor when opening a tab
       set({ isEditorVisible: true });
 
-      // Dedup: if this asset is already open, focus it
-      const existing = tabs.find((t) => t.assetId === asset.id);
+      // Dedup: if this asset (or this local file) is already open, focus it
+      const existing = tabs.find(
+        (t) => t.assetId === asset.id || isSameLocalPath(t.sourcePath, options?.sourcePath),
+      );
       if (existing) {
         if (existing.id !== activeTabId) {
           get().switchTab(existing.id);
@@ -107,6 +162,7 @@ export const useEditorTabsStore = create<EditorTabsState & EditorTabsActions>()(
         asset,
         isDirty: false,
         createdAt: Date.now(),
+        sourcePath: options?.sourcePath,
       };
 
       // Create a dedicated store for this tab and load the asset
@@ -167,6 +223,49 @@ export const useEditorTabsStore = create<EditorTabsState & EditorTabsActions>()(
       deleteStore(tabId);
     },
 
+    focusTabForPath: (sourcePath) => {
+      const { tabs, activeTabId } = get();
+      const existing = tabs.find((t) => isSameLocalPath(t.sourcePath, sourcePath));
+      if (!existing) return false;
+      if (existing.id !== activeTabId) get().switchTab(existing.id);
+      set({ isEditorVisible: true });
+      return true;
+    },
+
+    requestCloseTab: (tabId) => {
+      const tab = get().tabs.find((t) => t.id === tabId);
+      if (!tab) return;
+      if (!shouldConfirmClose(tab)) {
+        get().closeTab(tabId);
+        return;
+      }
+      // Show the document being asked about (and let "Save and Close" save it)
+      get().switchTab(tabId);
+      set({ pendingClose: { tabId, thenHide: false } });
+    },
+
+    requestLeaveEditor: () => {
+      const { tabs, activeTabId } = get();
+      const tab = tabs.find((t) => t.id === activeTabId);
+      if (tab && leaveClosesTab(tab)) {
+        set({ pendingClose: { tabId: tab.id, thenHide: true } });
+        return;
+      }
+      get().hideEditor();
+    },
+
+    confirmPendingClose: () => {
+      const pending = get().pendingClose;
+      set({ pendingClose: null });
+      if (!pending) return;
+      get().closeTab(pending.tabId);
+      if (pending.thenHide) get().hideEditor();
+    },
+
+    cancelPendingClose: () => {
+      set({ pendingClose: null });
+    },
+
     switchTab: (tabId) => {
       const { activeTabId } = get();
       if (tabId === activeTabId) return;
@@ -178,6 +277,15 @@ export const useEditorTabsStore = create<EditorTabsState & EditorTabsActions>()(
 
     hideEditor: () => {
       set({ isEditorVisible: false });
+    },
+
+    showEditor: () => {
+      const { tabs, activeTabId } = get();
+      if (tabs.length === 0) return;
+      if (!activeTabId || !tabs.some((t) => t.id === activeTabId)) {
+        get().switchTab(tabs[tabs.length - 1].id);
+      }
+      set({ isEditorVisible: true });
     },
   })),
 );
