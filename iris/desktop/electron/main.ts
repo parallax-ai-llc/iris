@@ -20,6 +20,7 @@ import { setupBugReportHandlers } from './ipc/bug-report';
 import { setupExtensionHandlers } from './ipc/extensions';
 import { setupIrisHandlers, startIrisServer, stopIrisServer, startDaemon, stopDaemon } from './ipc/iris';
 import { ExtensionManager } from './extensions/extensionManager';
+import { installAppMenu } from './appMenu';
 
 // ESM build - __dirname is not available natively, use import.meta.url
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -418,6 +419,7 @@ app.whenReady().then(async () => {
     releaseUpdaterSplash = gate.releaseSplash;
   }
 
+  installAppMenu();
   createWindow();
   // Close the splash only AFTER the main window exists — otherwise
   // 'window-all-closed' fires and quits the app.
