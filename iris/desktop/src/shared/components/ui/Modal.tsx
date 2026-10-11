@@ -5,7 +5,6 @@
 import { memo, useEffect, useCallback } from 'react';
 import { X } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
-import { useModalShortcutBlock } from '@/shared/lib/shortcuts';
 
 export interface ModalProps {
   isOpen: boolean;
@@ -40,8 +39,6 @@ export const Modal = memo(function Modal({
   closeOnEscape = true,
   showCloseButton = true,
 }: ModalProps) {
-  // Block editor/global shortcuts while this dialog is open.
-  useModalShortcutBlock(isOpen);
   // Handle escape key
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {

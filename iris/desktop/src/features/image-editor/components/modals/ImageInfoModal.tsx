@@ -7,7 +7,6 @@ import { X, Image as ImageIcon, FileType, Calendar, Hash, Maximize } from 'lucid
 import { cn } from '@/shared/lib/utils';
 import { useCachedAssetUrl } from '@/shared/hooks/useCachedAssetUrl';
 import type { IrisAsset } from '@/shared/api/types';
-import { useModalShortcutBlock } from '@/shared/lib/shortcuts';
 
 interface ImageInfoModalProps {
   isOpen: boolean;
@@ -22,8 +21,6 @@ export const ImageInfoModal = memo(function ImageInfoModal({
   asset,
   currentDimensions,
 }: ImageInfoModalProps) {
-  // Block editor/global shortcuts while this dialog is open.
-  useModalShortcutBlock(isOpen);
   // Get cached thumbnail URL
   const { url: thumbnailUrl } = useCachedAssetUrl(asset, {
     type: 'thumbnail',

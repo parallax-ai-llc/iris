@@ -7,7 +7,6 @@
 import { memo, useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { X, Save } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
-import { useModalShortcutBlock } from '@/shared/lib/shortcuts';
 
 interface SaveAsProjectModalProps {
   isOpen: boolean;
@@ -49,8 +48,6 @@ export const SaveAsProjectModal = memo(function SaveAsProjectModal({
   originalWidth,
   originalHeight,
 }: SaveAsProjectModalProps) {
-  // Block editor/global shortcuts while this dialog is open.
-  useModalShortcutBlock(isOpen);
   // The first option always keeps the original resolution.
   const presets = useMemo<Preset[]>(
     () => [

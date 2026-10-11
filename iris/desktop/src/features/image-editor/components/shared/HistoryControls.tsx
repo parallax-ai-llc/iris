@@ -4,8 +4,6 @@
 
 import { memo } from 'react';
 import { cn } from '@/shared/lib/utils';
-import { shortcutLabel } from '@/shared/lib/shortcuts';
-import { IMAGE_EDITOR_KEYMAP } from '@/features/image-editor/lib/shortcuts/imageEditorKeymap';
 import { useImageEditorStore } from '@/features/image-editor/stores/imageEditor.store';
 import { Undo2, Redo2, Clock } from 'lucide-react';
 
@@ -27,7 +25,7 @@ export const HistoryControls = memo(function HistoryControls() {
             ? 'text-zinc-400 hover:text-white hover:bg-zinc-700'
             : 'text-zinc-600 cursor-not-allowed'
         )}
-        title={`Undo (${shortcutLabel(IMAGE_EDITOR_KEYMAP, 'undo')})`}
+        title="Undo (Ctrl+Z)"
       >
         <Undo2 className="w-4 h-4" />
       </button>
@@ -42,7 +40,7 @@ export const HistoryControls = memo(function HistoryControls() {
             ? 'text-zinc-400 hover:text-white hover:bg-zinc-700'
             : 'text-zinc-600 cursor-not-allowed'
         )}
-        title={`Redo (${shortcutLabel(IMAGE_EDITOR_KEYMAP, 'redo')})`}
+        title="Redo (Ctrl+Shift+Z)"
       >
         <Redo2 className="w-4 h-4" />
       </button>

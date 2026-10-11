@@ -8,7 +8,6 @@ import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Maximize2, X, Link2, Link2Off } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { useImageEditorStore } from '@/features/image-editor/stores/imageEditor.store';
-import { useModalShortcutBlock } from '@/shared/lib/shortcuts';
 
 type Unit = 'px' | 'percent';
 type Resample = 'nearest' | 'bilinear' | 'bicubic';
@@ -28,8 +27,6 @@ export const ImageSizeModal = memo(function ImageSizeModal({
   isOpen,
   onClose,
 }: ImageSizeModalProps) {
-  // Block editor/global shortcuts while this dialog is open.
-  useModalShortcutBlock(isOpen);
   const resizeImage = useImageEditorStore((s) => s.resizeImage);
   const storeWidth = useImageEditorStore((s) => s.canvasWidth);
   const storeHeight = useImageEditorStore((s) => s.canvasHeight);

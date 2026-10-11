@@ -7,7 +7,6 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Download, FileType, X } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
-import { useModalShortcutBlock } from '@/shared/lib/shortcuts';
 
 export type ExportFormat = 'png' | 'jpeg' | 'webp' | 'bmp' | 'tiff' | 'pdf';
 
@@ -44,8 +43,6 @@ export const ExportAsModal = memo(function ExportAsModal({
   defaultFileName = 'export',
   currentDimensions,
 }: ExportAsModalProps) {
-  // Block editor/global shortcuts while this dialog is open.
-  useModalShortcutBlock(isOpen);
   const [format, setFormat] = useState<ExportFormat>('png');
   const [quality, setQuality] = useState(92);
   const [scale, setScale] = useState(1);

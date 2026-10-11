@@ -54,7 +54,6 @@ import { AudioMixerPanel } from './AudioMixerPanel';
 import { LumetriColorPanel } from './LumetriColorPanel';
 import { MulticamMonitor } from './MulticamMonitor';
 import { KeyboardShortcutsModal } from './modals/KeyboardShortcutsModal';
-import { useVideoEditorShortcuts } from '@/features/video-editor/hooks/useVideoEditorShortcuts';
 import { ExportModal, type ExportOptions } from './modals/ExportModal';
 import { ImportMediaModal, type LocalFileImport } from './modals/ImportMediaModal';
 import { toLocalMediaUrl } from './modals/localMediaUrl';
@@ -193,6 +192,9 @@ export const VideoEditor = memo(function VideoEditor({
   const [showMixer, setShowMixer] = useState(false);
   const [showMulticam, setShowMulticam] = useState(false);
 
+  // Clipboard for copy/paste
+  const clipboardRef = useRef<import('@/features/video-editor/stores/editor.store').Clip | null>(null);
+
   // File drag-and-drop state
   const [isFileDragging, setIsFileDragging] = useState(false);
   const dragCounterRef = useRef(0);
@@ -299,9 +301,15 @@ export const VideoEditor = memo(function VideoEditor({
     undo,
     redo,
     seek,
+    clearSelection,
+    deleteSelected,
+    selectAll,
+    splitClip,
+    duplicateClip,
     addClipKeyframe,
     updateClipKeyframe,
     removeClipKeyframe,
+    enterCompoundClip,
     exitCompoundClip,
   } = useEditorStore();
 
@@ -422,6 +430,274 @@ export const VideoEditor = memo(function VideoEditor({
       setIsSaving(false);
     }
   }, [onSave, tracks, duration, snapToGrid, pixelsPerSecond]);
+
+  // Keyboard shortcuts handler
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
+      const store = useEditorStore.getState();
+
+      // Ctrl/Cmd + Z: Undo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+        return;
+      }
+
+      // Ctrl/Cmd + Shift + Z: Redo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) {
+        e.preventDefault();
+        redo();
+        return;
+      }
+
+      // Ctrl/Cmd + S: Save is handled by VideoEditorPage (the parent owns the
+      // save/save-as/provisional flow). Handling it here too fired the toast twice.
+
+      // Ctrl/Cmd + C: Copy selected clip
+      if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+        e.preventDefault();
+        if (store.selectedClip) {
+          clipboardRef.current = structuredClone(store.selectedClip);
+        }
+        return;
+      }
+
+      // Ctrl/Cmd + V: Paste clip at playhead
+      if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+        e.preventDefault();
+        const clip = clipboardRef.current;
+        if (clip) {
+          const clipDuration = clip.endTime - clip.startTime;
+          // Find matching track type
+          const targetTrack = store.tracks.find((t) => t.type === clip.type);
+          if (targetTrack) {
+            const { id: _id, trackId: _trackId, linkedClipId: _linked, ...clipData } = clip;
+            store.addClip(targetTrack.id, {
+              ...clipData,
+              startTime: store.currentTime,
+              endTime: store.currentTime + clipDuration,
+            });
+          }
+        }
+        return;
+      }
+
+      // Ctrl/Cmd + A: Select all
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        e.preventDefault();
+        selectAll();
+        return;
+      }
+
+      // Ctrl/Cmd + D: Duplicate selected clip
+      if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        e.preventDefault();
+        if (store.selectedClip) {
+          duplicateClip(store.selectedClip.id);
+        }
+        return;
+      }
+
+      // Ctrl/Cmd + G: Create compound clip from selected clips
+      if ((e.ctrlKey || e.metaKey) && e.key === 'g' && !e.shiftKey) {
+        e.preventDefault();
+        if (store.selection.clipIds.length >= 2) {
+          store.createCompoundClip();
+        }
+        return;
+      }
+
+      // Ctrl/Cmd + Shift + G: Expand compound clip
+      if ((e.ctrlKey || e.metaKey) && e.key === 'G' && e.shiftKey) {
+        e.preventDefault();
+        if (store.selectedClip?.type === 'compound') {
+          store.expandCompoundClip(store.selectedClip.id);
+        }
+        return;
+      }
+
+      // Enter compound clip (Enter key when a compound clip is selected)
+      if (e.key === 'Enter' && store.selectedClip?.type === 'compound') {
+        e.preventDefault();
+        enterCompoundClip(store.selectedClip.id);
+        return;
+      }
+
+      // Exit compound clip (Backspace when in compound editing mode with no clip selection)
+      if (e.key === 'Backspace' && store.compoundEditStack.length > 0 && store.selection.clipIds.length === 0) {
+        e.preventDefault();
+        exitCompoundClip();
+        return;
+      }
+
+      // Shift+Delete: Ripple delete (delete + close gap) — must check before plain Delete
+      if (e.shiftKey && (e.key === 'Delete' || e.key === 'Backspace')) {
+        e.preventDefault();
+        store.rippleDelete();
+        return;
+      }
+
+      // Delete/Backspace: Delete selected clips
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        deleteSelected();
+        return;
+      }
+
+      // C: Split clip at playhead (Razor tool)
+      if (e.key === 'c' && !e.ctrlKey && !e.metaKey) {
+        if (store.selectedClip) {
+          const clip = store.selectedClip;
+          if (store.currentTime > clip.startTime && store.currentTime < clip.endTime) {
+            splitClip(clip.id, store.currentTime);
+          }
+        }
+        return;
+      }
+
+      // Arrow keys are handled by EditorTimeline (1s step, Up/Down for start/end)
+
+      // Home: Jump to start
+      if (e.key === 'Home') {
+        e.preventDefault();
+        seek(0);
+        return;
+      }
+
+      // End: Jump to end
+      if (e.key === 'End') {
+        e.preventDefault();
+        seek(store.duration);
+        return;
+      }
+
+      // I: Set in point at playhead
+      if (e.key === 'i' && !e.ctrlKey && !e.metaKey) {
+        store.setInPoint(store.currentTime);
+        return;
+      }
+
+      // O: Set out point at playhead
+      if (e.key === 'o' && !e.ctrlKey && !e.metaKey) {
+        store.setOutPoint(store.currentTime);
+        return;
+      }
+
+      // Alt+X: Clear in/out points
+      if (e.altKey && e.key === 'x') {
+        e.preventDefault();
+        store.clearInOutPoints();
+        return;
+      }
+
+      // J/K/L: Shuttle playback
+      if (e.key === 'j') {
+        // J: Reverse / slow down
+        const rate = store.playbackRate;
+        if (store.isPlaying && rate > 0) {
+          // Playing forward → slow down or reverse
+          const newRate = rate <= 0.25 ? -1 : rate / 2;
+          store.setPlaybackRate(newRate);
+        } else if (store.isPlaying && rate < 0) {
+          // Already reverse → speed up reverse
+          store.setPlaybackRate(Math.max(-8, rate * 2));
+        } else {
+          // Not playing → start reverse
+          store.setPlaybackRate(-1);
+          store.play();
+        }
+        return;
+      }
+
+      if (e.key === 'k') {
+        // K: Stop
+        store.pause();
+        return;
+      }
+
+      if (e.key === 'l') {
+        // L: Forward / speed up
+        const rate = store.playbackRate;
+        if (store.isPlaying && rate > 0) {
+          // Already forward → speed up
+          store.setPlaybackRate(Math.min(8, rate * 2));
+        } else if (store.isPlaying && rate < 0) {
+          // Reverse → slow down or forward
+          const newRate = rate >= -0.25 ? 1 : rate / 2;
+          store.setPlaybackRate(newRate);
+        } else {
+          // Not playing → start forward
+          store.setPlaybackRate(1);
+          store.play();
+        }
+        return;
+      }
+
+      // Space: Toggle play/pause
+      if (e.key === ' ') {
+        e.preventDefault();
+        store.togglePlay();
+        return;
+      }
+
+      // Escape: Clear selection
+      if (e.key === 'Escape') {
+        clearSelection();
+        return;
+      }
+
+      // G: Toggle snap to grid
+      if (e.key === 'g' && !e.ctrlKey && !e.metaKey) {
+        store.toggleSnapToGrid();
+        return;
+      }
+
+      // M: Toggle mute on selected clip(s)
+      if (e.key === 'm' && !e.ctrlKey && !e.metaKey) {
+        const { selection, tracks: currentTracks } = store;
+        if (selection.clipIds.length > 0) {
+          for (const clipId of selection.clipIds) {
+            for (const track of currentTracks) {
+              const clip = track.clips.find((c) => c.id === clipId);
+              if (clip && (clip.type === 'video' || clip.type === 'audio')) {
+                store.updateClip(clipId, { muted: !clip.muted });
+              }
+            }
+          }
+        }
+        return;
+      }
+
+      // 1-9: Switch multicam angle (when multicam is enabled)
+      if (store.multicamEnabled && e.key >= '1' && e.key <= '9' && !e.ctrlKey && !e.metaKey) {
+        const angleIndex = parseInt(e.key) - 1;
+        if (angleIndex < store.multicamSources.length) {
+          store.setMulticamActiveAngle(angleIndex);
+          if (store.isPlaying) {
+            store.addMulticamCut(store.currentTime, angleIndex);
+          }
+        }
+        return;
+      }
+
+      // ?: Show shortcuts
+      if (e.key === '?') {
+        setShowShortcuts(true);
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo, clearSelection, deleteSelected, selectAll, splitClip, duplicateClip, seek, currentProject?.frameRate, enterCompoundClip, exitCompoundClip]);
 
   // Export handler
   const handleExport = useCallback(
@@ -659,21 +935,6 @@ export const VideoEditor = memo(function VideoEditor({
   const downloadVideo = useVideoStore((s) => s.downloadVideo);
   const isEditing = useVideoStore((s) => s.isEditing);
   const activeToolModal = useVideoStore((s) => s.activeToolModal);
-
-  // Keyboard shortcuts — keys live in VIDEO_EDITOR_KEYMAP, routed by the
-  // central dispatcher. Blocked while any of this editor's dialogs is open.
-  useVideoEditorShortcuts({
-    onShowShortcuts: () => setShowShortcuts(true),
-    modalOpen:
-      showExport ||
-      showImport ||
-      showProxyModal ||
-      showAutoCaptions ||
-      showAutoCut ||
-      showAutoReframe ||
-      !!sourceMonitorMedia ||
-      activeToolModal !== null,
-  });
   const openToolModal = useVideoStore((s) => s.openToolModal);
   const closeToolModal = useVideoStore((s) => s.closeToolModal);
 

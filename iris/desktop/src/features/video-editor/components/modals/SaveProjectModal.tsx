@@ -5,7 +5,6 @@
 import { memo, useState, useCallback, useEffect, useRef } from 'react';
 import { X, Save } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
-import { useModalShortcutBlock } from '@/shared/lib/shortcuts';
 
 interface SaveProjectModalProps {
   isOpen: boolean;
@@ -22,8 +21,6 @@ export const SaveProjectModal = memo(function SaveProjectModal({
   title = 'Save Project',
   defaultName = 'Untitled Project',
 }: SaveProjectModalProps) {
-  // Block editor/global shortcuts while this dialog is open.
-  useModalShortcutBlock(isOpen);
   const [name, setName] = useState(defaultName);
   const inputRef = useRef<HTMLInputElement>(null);
 
