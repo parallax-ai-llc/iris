@@ -40,6 +40,8 @@ import {
   GripVertical,
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
+import { shortcutLabel } from '@/shared/lib/shortcuts';
+import { VIDEO_EDITOR_KEYMAP } from '@/features/video-editor/lib/shortcuts/videoEditorKeymap';
 import { useEditorStore, selectHistoryLabels, selectHistoryIndex, selectHistoryLength } from '@/features/video-editor/stores/editor.store';
 
 /** Map action labels to lucide icons */
@@ -152,7 +154,7 @@ export const HistoryPanel = memo(function HistoryPanel({ className }: HistoryPan
           <button
             onClick={undo}
             disabled={!canUndo}
-            title="Undo (Ctrl+Z)"
+            title={`Undo (${shortcutLabel(VIDEO_EDITOR_KEYMAP, 'undo')})`}
             className={cn(
               'p-1 rounded transition-colors',
               canUndo
@@ -166,7 +168,7 @@ export const HistoryPanel = memo(function HistoryPanel({ className }: HistoryPan
           <button
             onClick={redo}
             disabled={!canRedo}
-            title="Redo (Ctrl+Shift+Z)"
+            title={`Redo (${shortcutLabel(VIDEO_EDITOR_KEYMAP, 'redo')})`}
             className={cn(
               'p-1 rounded transition-colors',
               canRedo

@@ -28,6 +28,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROTOCOL_NAME = 'iris-desktop';
 
 const isTestMode = process.env.TEST_MODE === 'true';
+const hideTestWindow = isTestMode && process.env.E2E_HIDE_WINDOW === 'true';
 const qaInstance = process.env.QA_INSTANCE; // "1", "2", etc. — enables multi-instance QA
 
 // Override userData path for E2E tests so tokens persist across test launches
@@ -227,6 +228,8 @@ function createWindow() {
       frame: false,
     } : {}),
     backgroundColor: '#09090b',
+    // E2E: keep the window off-screen so automated runs don't take over the desktop.
+    ...(hideTestWindow ? { show: false } : {}),
     icon: path.join(__dirname, '../resources/icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
@@ -240,6 +243,8 @@ function createWindow() {
       // in sandboxed renderers (track: https://github.com/electron/electron/issues/40462)
       sandbox: false,
       webSecurity: !isTestMode && !qaInstance,
+      // Hidden windows throttle rAF/timers; the canvas history relies on rAF.
+      ...(hideTestWindow ? { backgroundThrottling: false } : {}),
     },
   });
 

@@ -5,7 +5,9 @@
 
 import { memo, useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { cn, getModifierKey } from '@/shared/lib/utils';
+import { cn } from '@/shared/lib/utils';
+import { shortcutLabel } from '@/shared/lib/shortcuts';
+import { VIDEO_EDITOR_KEYMAP, type VideoEditorCommand } from '@/features/video-editor/lib/shortcuts/videoEditorKeymap';
 import { useEditorStore } from '@/features/video-editor/stores/editor.store';
 import { useVideoStore } from '@/features/videos/stores/video.store';
 import { useConnectionStore } from '@/shared/stores/connection.store';
@@ -15,7 +17,8 @@ import { useConnectionStore } from '@/shared/stores/connection.store';
 interface MenuItem {
   id: string;
   label: string;
-  shortcut?: string;
+  /** Keyboard shortcut — the label is read from VIDEO_EDITOR_KEYMAP. */
+  command?: VideoEditorCommand;
   action?: () => void;
   disabled?: boolean;
   separator?: boolean;
@@ -82,8 +85,8 @@ const MenuDropdown = memo(function MenuDropdown({
                 )}
               >
                 <span>{item.label}</span>
-                {item.shortcut && (
-                  <span className="text-zinc-600 text-[10px]">{item.shortcut}</span>
+                {item.command && (
+                  <span className="text-zinc-600 text-[10px]">{shortcutLabel(VIDEO_EDITOR_KEYMAP, item.command)}</span>
                 )}
               </button>
             );
@@ -180,47 +183,45 @@ export const VideoEditorMenuBar = memo(function VideoEditorMenuBar({
 
   const closeMenu = useCallback(() => setOpenMenuId(null), []);
 
-  const mod = getModifierKey();
-
   const menus: MenuDef[] = [
     {
       id: 'file',
       label: t('file.label'),
       items: [
-        { id: 'new', label: t('file.newProject'), shortcut: `${mod}+N`, action: onNew },
-        { id: 'open', label: t('file.openProject'), shortcut: `${mod}+O`, action: onOpenProject },
+        { id: 'new', label: t('file.newProject'), command: 'newProject', action: onNew },
+        { id: 'open', label: t('file.openProject'), command: 'openProject', action: onOpenProject },
         { id: 'sep0', label: '', separator: true },
-        { id: 'save', label: t('file.saveProject'), shortcut: `${mod}+S`, action: onSave, disabled: isSaving },
-        { id: 'saveAs', label: t('file.saveProjectAs'), shortcut: `${mod}+Shift+S`, action: onSaveAs, disabled: isSaving },
+        { id: 'save', label: t('file.saveProject'), command: 'saveProject', action: onSave, disabled: isSaving },
+        { id: 'saveAs', label: t('file.saveProjectAs'), command: 'saveProjectAs', action: onSaveAs, disabled: isSaving },
         { id: 'sep1', label: '', separator: true },
-        { id: 'close', label: t('file.goBack'), shortcut: 'Esc', action: onClose },
+        { id: 'close', label: t('file.goBack'), action: onClose },
       ],
     },
     {
       id: 'edit',
       label: t('edit.label'),
       items: [
-        { id: 'undo', label: t('edit.undo'), shortcut: `${mod}+Z`, action: undo, disabled: !canUndo },
-        { id: 'redo', label: t('edit.redo'), shortcut: `${mod}+Shift+Z`, action: redo, disabled: !canRedo },
+        { id: 'undo', label: t('edit.undo'), command: 'undo', action: undo, disabled: !canUndo },
+        { id: 'redo', label: t('edit.redo'), command: 'redo', action: redo, disabled: !canRedo },
         { id: 'sep1', label: '', separator: true },
-        { id: 'cut', label: t('edit.cut'), shortcut: `${mod}+X`, action: () => { copyClips(); deleteSelected(); }, disabled: noSelection },
-        { id: 'copy', label: t('edit.copy'), shortcut: `${mod}+C`, action: copyClips, disabled: noSelection },
-        { id: 'paste', label: t('edit.paste'), shortcut: `${mod}+V`, action: pasteClips, disabled: !hasClipClipboard },
-        { id: 'duplicate', label: t('edit.duplicate'), shortcut: `${mod}+D`, action: duplicateSelectedClips, disabled: noSelection },
+        { id: 'cut', label: t('edit.cut'), command: 'cut', action: () => { copyClips(); deleteSelected(); }, disabled: noSelection },
+        { id: 'copy', label: t('edit.copy'), command: 'copy', action: copyClips, disabled: noSelection },
+        { id: 'paste', label: t('edit.paste'), command: 'paste', action: pasteClips, disabled: !hasClipClipboard },
+        { id: 'duplicate', label: t('edit.duplicate'), command: 'duplicate', action: duplicateSelectedClips, disabled: noSelection },
         { id: 'sep2', label: '', separator: true },
-        { id: 'selectAll', label: t('edit.selectAll'), shortcut: `${mod}+A`, action: selectAll },
-        { id: 'delete', label: t('edit.deleteSelected'), shortcut: 'Del', action: deleteSelected, disabled: noSelection },
-        { id: 'rippleDelete', label: t('edit.rippleDelete'), shortcut: 'Shift+Del', action: rippleDelete, disabled: noSelection },
+        { id: 'selectAll', label: t('edit.selectAll'), command: 'selectAll', action: selectAll },
+        { id: 'delete', label: t('edit.deleteSelected'), command: 'deleteSelected', action: deleteSelected, disabled: noSelection },
+        { id: 'rippleDelete', label: t('edit.rippleDelete'), command: 'rippleDelete', action: rippleDelete, disabled: noSelection },
       ],
     },
     {
       id: 'view',
       label: t('view.label'),
       items: [
-        { id: 'zoomIn', label: t('view.zoomIn'), shortcut: `${mod}++`, action: zoomIn },
-        { id: 'zoomOut', label: t('view.zoomOut'), shortcut: `${mod}+-`, action: zoomOut },
+        { id: 'zoomIn', label: t('view.zoomIn'), command: 'zoomIn', action: zoomIn },
+        { id: 'zoomOut', label: t('view.zoomOut'), command: 'zoomOut', action: zoomOut },
         { id: 'sep1', label: '', separator: true },
-        { id: 'snap', label: `${snapToGrid ? '✓ ' : ''}${t('view.snapToGrid')}`, action: toggleSnapToGrid },
+        { id: 'snap', label: `${snapToGrid ? '✓ ' : ''}${t('view.snapToGrid')}`, command: 'toggleSnap', action: toggleSnapToGrid },
         { id: 'waveforms', label: `${showWaveforms ? '✓ ' : ''}${t('view.showWaveforms')}`, action: toggleWaveforms },
       ],
     },

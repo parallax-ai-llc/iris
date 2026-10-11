@@ -50,6 +50,8 @@ export const test = base.extend<ElectronFixtures>({
     // development → main.ts에서 loadURL('http://localhost:5173') 사용 (renderer 빌드 불필요)
     env.NODE_ENV = 'development';
     env.TEST_MODE = 'true';
+    // Run with a hidden window unless explicitly headed (--headed / E2E_SHOW_WINDOW=true).
+    if (process.env.E2E_SHOW_WINDOW !== 'true') env.E2E_HIDE_WINDOW = 'true';
 
     const app = await electron.launch({
       args: [mainPath],

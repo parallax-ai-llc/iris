@@ -4,6 +4,8 @@
 
 import { memo, useCallback } from 'react';
 import { cn } from '@/shared/lib/utils';
+import { shortcutLabel } from '@/shared/lib/shortcuts';
+import { IMAGE_EDITOR_KEYMAP } from '@/features/image-editor/lib/shortcuts/imageEditorKeymap';
 import { useImageEditorStore } from '@/features/image-editor/stores/imageEditor.store';
 import { ZoomIn, ZoomOut, Maximize, Square } from 'lucide-react';
 
@@ -23,7 +25,7 @@ export const ZoomControls = memo(function ZoomControls() {
           'p-1.5 rounded-lg transition-colors',
           'text-zinc-400 hover:text-white hover:bg-zinc-700'
         )}
-        title="Zoom Out (Ctrl+-)"
+        title={`Zoom Out (${shortcutLabel(IMAGE_EDITOR_KEYMAP, 'zoomOut')})`}
       >
         <ZoomOut className="w-4 h-4" />
       </button>
@@ -57,7 +59,7 @@ export const ZoomControls = memo(function ZoomControls() {
           'p-1.5 rounded-lg transition-colors',
           'text-zinc-400 hover:text-white hover:bg-zinc-700'
         )}
-        title="Zoom In (Ctrl++)"
+        title={`Zoom In (${shortcutLabel(IMAGE_EDITOR_KEYMAP, 'zoomIn')})`}
       >
         <ZoomIn className="w-4 h-4" />
       </button>
@@ -72,7 +74,7 @@ export const ZoomControls = memo(function ZoomControls() {
           'p-1.5 rounded-lg transition-colors',
           'text-zinc-400 hover:text-white hover:bg-zinc-700'
         )}
-        title="Fit to View (Ctrl+0)"
+        title={`Fit to View (${shortcutLabel(IMAGE_EDITOR_KEYMAP, 'zoomFit')})`}
       >
         <Maximize className="w-4 h-4" />
       </button>
@@ -84,7 +86,7 @@ export const ZoomControls = memo(function ZoomControls() {
           'p-1.5 rounded-lg transition-colors',
           'text-zinc-400 hover:text-white hover:bg-zinc-700'
         )}
-        title="Actual Size (Ctrl+1)"
+        title={`Actual Size (${shortcutLabel(IMAGE_EDITOR_KEYMAP, 'zoom100')})`}
       >
         <Square className="w-4 h-4" />
       </button>

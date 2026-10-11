@@ -35,6 +35,8 @@ import {
 import { ProjectAutoCaptionsModal } from '@/features/video-editor/components/ProjectAutoCaptionsModal';
 import { SilenceRemovalModal } from '@/features/video-editor/components/modals/SilenceRemovalModal';
 import * as videoProjectApi from '@/shared/api/videoProject.api';
+import { useKeymapLayer, useModalShortcutBlock, type ShortcutHandler } from '@/shared/lib/shortcuts';
+import { VIDEO_EDITOR_KEYMAP, type VideoEditorFileCommand } from '@/features/video-editor/lib/shortcuts/videoEditorKeymap';
 
 /** Create a placeholder IrisAsset for project-based editor sessions */
 function createPlaceholderAsset(id: string, name: string): IrisAsset {
@@ -995,26 +997,26 @@ export const VideoEditorPage = memo(function VideoEditorPage() {
     else if (action === 'open') setShowOpenProjectModal(true);
   }, [showUnsavedModal]);
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
-        e.preventDefault();
-        handleNew();
-      } else if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
-        e.preventDefault();
-        handleOpenProject();
-      } else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 's') {
-        e.preventDefault();
-        handleSave();
-      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'S') {
-        e.preventDefault();
-        handleSaveAs();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleNew, handleOpenProject, handleSave, handleSaveAs]);
+  // Keyboard shortcuts — project commands from VIDEO_EDITOR_KEYMAP (editing
+  // and playback keys are registered by VideoEditor). Any page dialog blocks
+  // every editor shortcut underneath it.
+  useModalShortcutBlock(
+    showLocalCloseConfirm ||
+      showNewProjectModal ||
+      showOpenProjectModal ||
+      showSaveProjectModal ||
+      showSaveAsModal ||
+      showProjectAutoCaptions ||
+      showUnsavedModal !== null ||
+      showExportModal ||
+      showSilenceRemoval,
+  );
+  useKeymapLayer('editor', VIDEO_EDITOR_KEYMAP, {
+    newProject: () => handleNew(),
+    openProject: () => handleOpenProject(),
+    saveProject: () => handleSave(),
+    saveProjectAs: () => handleSaveAs(),
+  } satisfies Record<VideoEditorFileCommand, ShortcutHandler>);
 
   return (
     <FullScreenLayout

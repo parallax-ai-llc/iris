@@ -4,7 +4,12 @@
 
 import { memo, useMemo } from 'react';
 import { X, Keyboard } from 'lucide-react';
-import { getModifierKey } from '@/shared/lib/utils';
+import { formatCombo, useModalShortcutBlock } from '@/shared/lib/shortcuts';
+import {
+  VIDEO_EDITOR_KEYMAP,
+  VIDEO_EDITOR_SHORTCUT_GROUPS,
+  type VideoEditorCommand,
+} from '@/features/video-editor/lib/shortcuts/videoEditorKeymap';
 
 interface KeyboardShortcutsModalProps {
   isOpen: boolean;
@@ -16,57 +21,35 @@ interface ShortcutGroup {
   shortcuts: { key: string; action: string }[];
 }
 
-function buildShortcutGroups(mod: string): ShortcutGroup[] {
+/** Display text for a command: its keys, minus Shift-variants of a key already shown. */
+function keysLabel(command: VideoEditorCommand): string {
+  if (command === 'multicamAngle') return '1-9';
+  const keys = VIDEO_EDITOR_KEYMAP[command].keys;
+  // Shift aliases (Shift+← etc.) are the same action; show the plain key only.
+  const shown = keys.filter((k, i) => i === 0 || !/(^|\+)Shift\+/.test(k));
+  return shown.map((k) => formatCombo(k)).join(' / ');
+}
+
+/** Mouse gestures are not keyboard shortcuts, so they are not in the keymap. */
+const MOUSE_GESTURES: ShortcutGroup = {
+  title: 'Mouse',
+  shortcuts: [
+    { key: 'Alt + Trim', action: 'Roll edit (adjust boundary)' },
+    { key: 'Alt + Drag', action: 'Slip edit (shift source)' },
+    { key: 'Alt + Shift + Trim End', action: 'Rate stretch (change speed)' },
+  ],
+};
+
+function buildShortcutGroups(): ShortcutGroup[] {
   return [
-    {
-      title: 'Playback',
-      shortcuts: [
-        { key: 'Space', action: 'Play / Pause' },
-        { key: 'J', action: 'Reverse / Speed up reverse' },
-        { key: 'K', action: 'Stop' },
-        { key: 'L', action: 'Forward / Speed up forward' },
-        { key: 'Left Arrow', action: 'Previous frame' },
-        { key: 'Right Arrow', action: 'Next frame' },
-        { key: 'Shift + Left/Right', action: 'Skip 10 frames' },
-        { key: 'Home', action: 'Go to start' },
-        { key: 'End', action: 'Go to end' },
-      ],
-    },
-    {
-      title: 'Editing',
-      shortcuts: [
-        { key: 'C', action: 'Split clip at playhead (Razor)' },
-        { key: 'Delete', action: 'Delete selected clips' },
-        { key: 'Shift + Delete', action: 'Ripple delete (close gap)' },
-        { key: `${mod} + C`, action: 'Copy clip' },
-        { key: `${mod} + V`, action: 'Paste clip at playhead' },
-        { key: `${mod} + A`, action: 'Select all clips' },
-        { key: `${mod} + D`, action: 'Duplicate clip' },
-        { key: 'M', action: 'Mute/unmute selected clip' },
-        { key: 'Alt + Trim', action: 'Roll edit (adjust boundary)' },
-        { key: 'Alt + Drag', action: 'Slip edit (shift source)' },
-        { key: 'Alt + Shift + Trim End', action: 'Rate stretch (change speed)' },
-        { key: 'Escape', action: 'Deselect all' },
-      ],
-    },
-    {
-      title: 'In/Out Points',
-      shortcuts: [
-        { key: 'I', action: 'Set in point at playhead' },
-        { key: 'O', action: 'Set out point at playhead' },
-        { key: 'Alt + X', action: 'Clear in/out points' },
-      ],
-    },
-    {
-      title: 'Project',
-      shortcuts: [
-        { key: `${mod} + Z`, action: 'Undo' },
-        { key: `${mod} + Shift + Z`, action: 'Redo' },
-        { key: `${mod} + S`, action: 'Save project' },
-        { key: 'G', action: 'Toggle snap to grid' },
-        { key: '?', action: 'Show shortcuts' },
-      ],
-    },
+    ...VIDEO_EDITOR_SHORTCUT_GROUPS.map((group) => ({
+      title: group.title,
+      shortcuts: group.commands.map((command) => ({
+        key: keysLabel(command),
+        action: VIDEO_EDITOR_KEYMAP[command].description,
+      })),
+    })),
+    MOUSE_GESTURES,
   ];
 }
 
@@ -74,7 +57,9 @@ export const KeyboardShortcutsModal = memo(function KeyboardShortcutsModal({
   isOpen,
   onClose,
 }: KeyboardShortcutsModalProps) {
-  const shortcutGroups = useMemo(() => buildShortcutGroups(getModifierKey()), []);
+  // Block editor/global shortcuts while this dialog is open.
+  useModalShortcutBlock(isOpen);
+  const shortcutGroups = useMemo(() => buildShortcutGroups(), []);
 
   if (!isOpen) return null;
 

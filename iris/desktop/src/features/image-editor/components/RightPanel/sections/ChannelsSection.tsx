@@ -18,12 +18,11 @@ const COLOR_CHANNELS: Array<{
   id: ColorChannelId;
   name: string;
   color: string;
-  shortcut: string;
 }> = [
-  { id: 'rgb', name: 'RGB', color: '#ffffff', shortcut: 'Ctrl+~' },
-  { id: 'red', name: 'Red', color: '#ef4444', shortcut: 'Ctrl+1' },
-  { id: 'green', name: 'Green', color: '#22c55e', shortcut: 'Ctrl+2' },
-  { id: 'blue', name: 'Blue', color: '#3b82f6', shortcut: 'Ctrl+3' },
+  { id: 'rgb', name: 'RGB', color: '#ffffff' },
+  { id: 'red', name: 'Red', color: '#ef4444' },
+  { id: 'green', name: 'Green', color: '#22c55e' },
+  { id: 'blue', name: 'Blue', color: '#3b82f6' },
 ];
 
 interface ChannelItemProps {
@@ -31,7 +30,6 @@ interface ChannelItemProps {
   color: string;
   isActive: boolean;
   visible: boolean;
-  shortcut?: string;
   onSelect: () => void;
   onToggleVisibility: () => void;
 }
@@ -41,7 +39,6 @@ const ChannelItem = memo(function ChannelItem({
   color,
   isActive,
   visible,
-  shortcut,
   onSelect,
   onToggleVisibility,
 }: ChannelItemProps) {
@@ -77,10 +74,6 @@ const ChannelItem = memo(function ChannelItem({
         {name}
       </span>
 
-      {/* Shortcut hint */}
-      {shortcut && (
-        <span className="text-[9px] text-zinc-600 flex-shrink-0">{shortcut}</span>
-      )}
     </div>
   );
 });
@@ -121,7 +114,6 @@ export const ChannelsSection = memo(function ChannelsSection() {
             color={ch.color}
             isActive={activeChannelId === ch.id && !activeAlphaChannelId}
             visible={channelVisibility[ch.id]}
-            shortcut={ch.shortcut}
             onSelect={() => handleSelectColorChannel(ch.id)}
             onToggleVisibility={() => toggleChannelVisibility(ch.id)}
           />

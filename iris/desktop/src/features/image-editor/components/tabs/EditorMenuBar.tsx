@@ -4,7 +4,10 @@
  */
 
 import { memo, useState, useRef, useEffect, useCallback } from 'react';
-import { cn, getModifierKey } from '@/shared/lib/utils';
+import { cn } from '@/shared/lib/utils';
+import { shortcutLabel } from '@/shared/lib/shortcuts';
+import { IMAGE_EDITOR_KEYMAP, type ImageEditorCommand } from '@/features/image-editor/lib/shortcuts/imageEditorKeymap';
+import { selectAllOnActiveLayer } from '@/features/image-editor/lib/selectAll';
 import { useImageEditorStore, FILTER_PRESETS } from '@/features/image-editor/stores/imageEditor.store';
 import { BUILTIN_PROFILES } from '@/features/image-editor/canvas/colorProfile';
 import * as F from '@/features/image-editor/canvas/filters';
@@ -14,7 +17,8 @@ import * as F from '@/features/image-editor/canvas/filters';
 interface MenuItem {
   id: string;
   label: string;
-  shortcut?: string;
+  /** Keyboard shortcut — the label is read from IMAGE_EDITOR_KEYMAP. */
+  command?: ImageEditorCommand;
   action?: () => void;
   disabled?: boolean;
   separator?: boolean;
@@ -100,8 +104,8 @@ const MenuItemList = memo(function MenuItemList({
               <span>{item.label}</span>
               {hasChildren ? (
                 <span className="text-zinc-500 text-[10px]">▶</span>
-              ) : item.shortcut ? (
-                <span className="text-zinc-600 text-[10px]">{item.shortcut}</span>
+              ) : item.command ? (
+                <span className="text-zinc-600 text-[10px]">{shortcutLabel(IMAGE_EDITOR_KEYMAP, item.command)}</span>
               ) : null}
             </button>
 
@@ -245,10 +249,7 @@ export const EditorMenuBar = memo(function EditorMenuBar({
     setCropOverlay,
     applyCanvasFilter,
     applyFilterPreset,
-    setSelection,
     setSelectionFeather,
-    layers,
-    activeLayerId,
   } = useImageEditorStore();
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -270,40 +271,18 @@ export const EditorMenuBar = memo(function EditorMenuBar({
 
   const closeMenu = useCallback(() => setOpenMenuId(null), []);
 
-  // Select All: create a full white mask covering entire canvas
-  const selectAll = useCallback(() => {
-    const activeLayer = layers.find(l => l.id === activeLayerId);
-    const w = activeLayer?.width ?? 1920;
-    const h = activeLayer?.height ?? 1080;
-    const c = document.createElement('canvas');
-    c.width = w;
-    c.height = h;
-    const ctx = c.getContext('2d');
-    if (!ctx) return;
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0, 0, w, h);
-    setSelection({
-      maskDataUrl: c.toDataURL(),
-      bounds: { x: 0, y: 0, width: w, height: h },
-      feather: 0,
-      isInverted: false,
-    });
-  }, [layers, activeLayerId, setSelection]);
-
   // ==================== Menu Definitions ====================
-
-  const mod = getModifierKey();
 
   const menus: MenuDef[] = [
     {
       id: 'file',
       label: 'File',
       items: [
-        { id: 'new', label: 'New', shortcut: `${mod}+N`, action: onNew },
-        { id: 'open', label: 'Open...', shortcut: `${mod}+O`, action: onOpen },
+        { id: 'new', label: 'New', command: 'newDocument', action: onNew },
+        { id: 'open', label: 'Open...', command: 'open', action: onOpen },
         { id: 'sep0', label: '', separator: true },
-        { id: 'save', label: 'Save', shortcut: `${mod}+S`, action: onSave, disabled: !isDirty || isProcessing },
-        { id: 'saveAs', label: 'Save As...', shortcut: `${mod}+Shift+S`, action: onSaveAs, disabled: isProcessing },
+        { id: 'save', label: 'Save', command: 'save', action: onSave, disabled: !isDirty || isProcessing },
+        { id: 'saveAs', label: 'Save As...', command: 'saveAs', action: onSaveAs, disabled: isProcessing },
         { id: 'sep1', label: '', separator: true },
         { id: 'download', label: 'Download Original', action: onDownloadOriginal },
         { id: 'copy', label: 'Copy to Clipboard', action: onCopyToClipboard },
@@ -311,21 +290,21 @@ export const EditorMenuBar = memo(function EditorMenuBar({
         { id: 'exportWebP', label: 'Export as WebP...', action: onExportWebP },
         { id: 'exportRgbTiff', label: 'Export as TIFF (RGB)...', action: onExportRgbTiff },
         { id: 'exportBmp', label: 'Export as BMP...', action: onExportBmp },
-        { id: 'exportAs', label: 'Export As...', shortcut: `${mod}+Alt+Shift+W`, action: () => setEditMode('export') },
+        { id: 'exportAs', label: 'Export As...', command: 'exportAs', action: () => setEditMode('export') },
         { id: 'importSvg', label: 'Import SVG...', action: () => setEditMode('importSvg') },
         { id: 'sep2', label: '', separator: true },
-        { id: 'closeTab', label: 'Close Tab', shortcut: `${mod}+W`, action: onCloseTab },
-        { id: 'backToGallery', label: 'Back to Gallery', shortcut: 'Esc', action: onBackToGallery },
+        { id: 'closeTab', label: 'Close Tab', command: 'closeTab', action: onCloseTab },
+        { id: 'backToGallery', label: 'Back to Gallery', command: 'escape', action: onBackToGallery },
       ],
     },
     {
       id: 'edit',
       label: 'Edit',
       items: [
-        { id: 'undo', label: 'Undo', shortcut: `${mod}+Z`, action: undo, disabled: !canUndo() },
-        { id: 'redo', label: 'Redo', shortcut: `${mod}+Shift+Z`, action: redo, disabled: !canRedo() },
+        { id: 'undo', label: 'Undo', command: 'undo', action: undo, disabled: !canUndo() },
+        { id: 'redo', label: 'Redo', command: 'redo', action: redo, disabled: !canRedo() },
         { id: 'sep1', label: '', separator: true },
-        { id: 'stampVisible', label: 'Stamp Visible', shortcut: `${mod}+Shift+Alt+E`, action: stampVisible },
+        { id: 'stampVisible', label: 'Stamp Visible', command: 'stampVisible', action: stampVisible },
         { id: 'sep2', label: '', separator: true },
         { id: 'fillLayer', label: 'New Fill Layer...', action: () => setEditMode('layers') },
         { id: 'sep3', label: '', separator: true },
@@ -344,8 +323,8 @@ export const EditorMenuBar = memo(function EditorMenuBar({
         { id: 'transform', label: 'Transform...', action: () => setEditMode('transform') },
         { id: 'crop', label: 'Crop', action: () => setEditMode('crop') },
         { id: 'sep2', label: '', separator: true },
-        { id: 'canvasSize', label: 'Canvas Size...', shortcut: `${mod}+Alt+C`, action: () => setEditMode('canvasSize') },
-        { id: 'imageSize', label: 'Image Size...', shortcut: `${mod}+Alt+I`, action: () => setEditMode('imageSize') },
+        { id: 'canvasSize', label: 'Canvas Size...', command: 'canvasSize', action: () => setEditMode('canvasSize') },
+        { id: 'imageSize', label: 'Image Size...', command: 'imageSize', action: () => setEditMode('imageSize') },
       ],
     },
     {
@@ -395,11 +374,11 @@ export const EditorMenuBar = memo(function EditorMenuBar({
       id: 'select',
       label: 'Select',
       items: [
-        { id: 'selectAll', label: 'All', shortcut: `${mod}+A`, action: selectAll },
+        { id: 'selectAll', label: 'All', command: 'selectAll', action: selectAllOnActiveLayer },
         { id: 'selection', label: 'Selection Tool', action: () => setEditMode('selection') },
         { id: 'sep1', label: '', separator: true },
-        { id: 'deselect', label: 'Deselect', shortcut: `${mod}+D`, action: clearSelection, disabled: !selection },
-        { id: 'invert', label: 'Invert Selection', shortcut: `${mod}+Shift+I`, action: invertSelection, disabled: !selection },
+        { id: 'deselect', label: 'Deselect', command: 'deselect', action: clearSelection, disabled: !selection },
+        { id: 'invert', label: 'Invert Selection', command: 'invertSelection', action: invertSelection, disabled: !selection },
         { id: 'sep2', label: '', separator: true },
         { id: 'grow', label: 'Grow', action: growSelectionByColor, disabled: !selection },
         { id: 'similar', label: 'Similar', action: selectSimilar, disabled: !selection },
@@ -413,7 +392,7 @@ export const EditorMenuBar = memo(function EditorMenuBar({
         { id: 'colorRange', label: 'Color Range...', action: () => setEditMode('selection') },
         { id: 'transformSelection', label: 'Transform Selection', action: () => setEditMode('freeTransform') , disabled: !selection },
         { id: 'sep5', label: '', separator: true },
-        { id: 'quickMask', label: `${quickMaskEnabled ? '✓ ' : ''}Quick Mask Mode`, shortcut: 'Q', action: toggleQuickMask },
+        { id: 'quickMask', label: `${quickMaskEnabled ? '✓ ' : ''}Quick Mask Mode`, command: 'quickMask', action: toggleQuickMask },
         { id: 'sep6', label: '', separator: true },
         { id: 'selectSky', label: 'Sky', action: () => setEditMode('selectSky') },
         { id: 'selectFocusArea', label: 'Focus Area...', action: () => setEditMode('selectFocusArea') },
@@ -433,7 +412,6 @@ export const EditorMenuBar = memo(function EditorMenuBar({
         {
           id: 'liquify',
           label: 'Liquify...',
-          shortcut: `${mod}+Shift+X`,
           action: () =>
             applyCanvasFilter(
               (d) =>
@@ -656,10 +634,10 @@ export const EditorMenuBar = memo(function EditorMenuBar({
       id: 'view',
       label: 'View',
       items: [
-        { id: 'zoomIn', label: 'Zoom In', shortcut: `${mod}++`, action: zoomIn },
-        { id: 'zoomOut', label: 'Zoom Out', shortcut: `${mod}+-`, action: zoomOut },
-        { id: 'zoomFit', label: 'Zoom to Fit', action: zoomToFit },
-        { id: 'zoom100', label: 'Zoom 100%', action: zoomTo100 },
+        { id: 'zoomIn', label: 'Zoom In', command: 'zoomIn', action: zoomIn },
+        { id: 'zoomOut', label: 'Zoom Out', command: 'zoomOut', action: zoomOut },
+        { id: 'zoomFit', label: 'Zoom to Fit', command: 'zoomFit', action: zoomToFit },
+        { id: 'zoom100', label: 'Zoom 100%', command: 'zoom100', action: zoomTo100 },
         { id: 'sep1', label: '', separator: true },
         { id: 'grid', label: `${showGrid ? '✓ ' : ''}Show Grid`, action: toggleGrid },
         { id: 'rulers', label: `${showRulers ? '✓ ' : ''}Show Rulers`, action: toggleRulers },
@@ -671,8 +649,8 @@ export const EditorMenuBar = memo(function EditorMenuBar({
         { id: 'cropOverlayGrid', label: 'Crop Overlay: Grid', action: () => setCropOverlay('grid') },
         { id: 'cropOverlayGolden', label: 'Crop Overlay: Golden Ratio', action: () => setCropOverlay('golden-ratio') },
         { id: 'sep2', label: '', separator: true },
-        { id: 'proofColors', label: `${colorProofing ? '✓ ' : ''}Proof Colors`, shortcut: `${mod}+Y`, action: toggleColorProofing },
-        { id: 'gamutWarning', label: `${gamutWarning ? '✓ ' : ''}Gamut Warning`, shortcut: `${mod}+Shift+Y`, action: toggleGamutWarning },
+        { id: 'proofColors', label: `${colorProofing ? '✓ ' : ''}Proof Colors`, command: 'proofColors', action: toggleColorProofing },
+        { id: 'gamutWarning', label: `${gamutWarning ? '✓ ' : ''}Gamut Warning`, command: 'gamutWarning', action: toggleGamutWarning },
         { id: 'sep3', label: '', separator: true },
         ...BUILTIN_PROFILES.filter(p => p.colorSpace === 'CMYK').map(p => ({
           id: `profile-${p.name}`,
@@ -685,9 +663,9 @@ export const EditorMenuBar = memo(function EditorMenuBar({
       id: 'window',
       label: 'Window',
       items: [
-        { id: 'layers', label: `${showLayersPanel ? '✓ ' : ''}Layers`, shortcut: 'F7', action: toggleLayersPanel },
+        { id: 'layers', label: `${showLayersPanel ? '✓ ' : ''}Layers`, command: 'toggleLayersPanel', action: toggleLayersPanel },
         { id: 'history', label: `${showHistoryPanel ? '✓ ' : ''}History`, action: toggleHistoryPanel },
-        { id: 'info', label: `${showImageInfoPanel ? '✓ ' : ''}Image Info`, shortcut: 'F8', action: toggleImageInfoPanel },
+        { id: 'info', label: `${showImageInfoPanel ? '✓ ' : ''}Image Info`, command: 'toggleImageInfoPanel', action: toggleImageInfoPanel },
       ],
     },
   ];
