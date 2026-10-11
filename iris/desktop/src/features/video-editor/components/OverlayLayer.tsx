@@ -13,6 +13,7 @@ import { ChevronUp, ChevronDown, Maximize2, RotateCcw } from 'lucide-react';
 import { useEditorStore, type VideoClip, type Transform } from '@/features/video-editor/stores/editor.store';
 import { useCachedAssetUrlById } from '@/shared/hooks/useCachedAssetUrl';
 import { useProxyAwareAssetId } from '@/features/video-editor/stores/editor/proxyResolve';
+import { isClipLocked } from '@/features/video-editor/stores/editor/trackLocks';
 
 interface OverlayLayerProps {
   clip: VideoClip;
@@ -121,7 +122,8 @@ export const OverlayLayer = memo(function OverlayLayer({
       // Persist measured dimensions once so reloads render at natural size.
       if (!wroteBackRef.current && (!clip.sourceWidth || !clip.sourceHeight)) {
         wroteBackRef.current = true;
-        updateClip(clip.id, { sourceWidth: w, sourceHeight: h } as Partial<VideoClip>);
+        // Measured, not edited: no history entry, a clean project stays clean.
+        updateClip(clip.id, { sourceWidth: w, sourceHeight: h } as Partial<VideoClip>, { history: 'background' });
       }
     },
     [clip.id, clip.sourceWidth, clip.sourceHeight, updateClip],
@@ -182,6 +184,7 @@ export const OverlayLayer = memo(function OverlayLayer({
     const drag = dragRef.current;
     if (!drag) return;
     movedRef.current = true;
+    // Intermediate positions: the single history entry is pushed on pointer up.
     const s = stageScaleRef.current || 1;
     const base = drag.startTransform;
     if (drag.mode === 'move') {
@@ -189,7 +192,7 @@ export const OverlayLayer = memo(function OverlayLayer({
       const dy = (e.clientY - drag.startPointerY) / s;
       updateClip(drag.clipId, {
         transform: { ...base, x: base.x + dx, y: base.y + dy },
-      } as Partial<VideoClip>);
+      } as Partial<VideoClip>, { history: 'none' });
     } else if (drag.mode === 'scale') {
       // Uniform scale anchored at the OPPOSITE corner: the diagonal from the
       // fixed anchor to the cursor sets the new size, then the centre is shifted
@@ -211,13 +214,13 @@ export const OverlayLayer = memo(function OverlayLayer({
       const newY = (centerY - drag.stageCenterY) / s;
       updateClip(drag.clipId, {
         transform: { ...base, scale: next, x: newX, y: newY },
-      } as Partial<VideoClip>);
+      } as Partial<VideoClip>, { history: 'none' });
     } else {
       const angle = Math.atan2(e.clientY - drag.centerY, e.clientX - drag.centerX);
       const deltaDeg = ((angle - drag.startAngle) * 180) / Math.PI;
       updateClip(drag.clipId, {
         transform: { ...base, rotation: Math.round(base.rotation + deltaDeg) },
-      } as Partial<VideoClip>);
+      } as Partial<VideoClip>, { history: 'none' });
     }
   }).current;
 
@@ -243,6 +246,8 @@ export const OverlayLayer = memo(function OverlayLayer({
       e.stopPropagation();
       onSelectRef.current();
       movedRef.current = false;
+      // Clips on a locked track select but do not move/scale/rotate.
+      if (isClipLocked(useEditorStore.getState().tracks, clipIdRef.current)) return;
       const rect = wrapperRef.current?.getBoundingClientRect();
       const centerX = rect ? rect.left + rect.width / 2 : e.clientX;
       const centerY = rect ? rect.top + rect.height / 2 : e.clientY;

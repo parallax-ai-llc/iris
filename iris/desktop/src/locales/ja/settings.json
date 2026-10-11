@@ -1,12 +1,23 @@
 {
   "title": "設定",
+  "tabsLabel": "設定セクション",
+  "appearance": {
+    "theme": "テーマ",
+    "themeDesc": "Iris の表示を選びます。",
+    "dark": "ダーク",
+    "light": "ライト",
+    "system": "システム",
+    "editorsNote": "画像・動画・ワークフローエディターは常にダークのままです。システムは OS の設定に従います。"
+  },
   "sections": {
     "account": "アカウント",
     "storage": "ストレージ",
     "notifications": "通知",
     "keyboard": "キーボードショートカット",
     "about": "このアプリについて",
-    "language": "言語"
+    "language": "言語",
+    "appearance": "外観",
+    "apiKeys": "ワークフロー API キー"
   },
   "account": {
     "notLoggedIn": "ログインしていません"
@@ -30,11 +41,13 @@
     "updatesDesc": "新しいバージョンが利用可能になったときに通知"
   },
   "keyboard": {
-    "newGeneration": "新規生成",
-    "saveDownload": "保存/ダウンロード",
+    "goToPage": "サイドバーのページへ移動",
+    "backForward": "ページを戻る / 進む",
     "openSettings": "設定を開く",
+    "toggleAssistant": "アシスタントを開く・閉じる",
     "closeModal": "モーダルを閉じる",
-    "navigateGallery": "ギャラリーを移動"
+    "previewItems": "プレビューで前・次の項目",
+    "editorNote": "エディターのショートカットは各メニューのコマンド横に表示されます。"
   },
   "about": {
     "irisDesktop": "Iris Desktop",
@@ -47,7 +60,9 @@
     "termsDesc": "利用条件",
     "checkUpdates": "アップデートを確認",
     "latestVersion": "最新バージョンをご利用中です",
-    "updateCheckFailed": "アップデートの確認に失敗しました"
+    "updateCheckFailed": "アップデートの確認に失敗しました",
+    "updateAvailable": "アップデート {{version}} があります",
+    "updateCheckBusy": "すでにアップデートを確認しています"
   },
   "footer": {
     "madeBy": "Parallax AIが心を込めて作りました",

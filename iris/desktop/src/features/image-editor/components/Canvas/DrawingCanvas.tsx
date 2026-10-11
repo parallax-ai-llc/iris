@@ -30,6 +30,8 @@ import {
   hexToRgb,
 } from '@/features/image-editor/canvas/canvasEngine';
 import { bucketFill } from '@/features/image-editor/canvas/floodFill';
+import { isPaintableLayer } from '@/features/image-editor/canvas/layerRegion';
+import { loadImageElement } from '@/features/image-editor/canvas/layerSurface';
 import { cn } from '@/shared/lib/utils';
 
 interface DrawingCanvasProps {
@@ -254,8 +256,12 @@ export function DrawingCanvas({
 
       const { r, g, b } = hexToRgb(brushSettings.color);
 
-      if (activeLayer && activeLayer.imageData) {
-        // Apply bucket fill to active layer only
+      if (activeLayer) {
+        // Groups, adjustment and fill layers have no pixels to fill.
+        if (!isPaintableLayer(activeLayer)) return;
+        // Fill samples the active layer only. An empty layer is a transparent
+        // document-size layer, so the fill covers its whole (empty) area
+        // instead of copying the composite.
         const w = mainCanvasRef.current.width;
         const h = mainCanvasRef.current.height;
 
@@ -266,13 +272,8 @@ export function DrawingCanvas({
         const layerCtx = layerCanvas.getContext('2d', { willReadFrequently: true });
         if (!layerCtx) return;
 
-        const img = await new Promise<HTMLImageElement>((resolve) => {
-          const i = new Image();
-          i.onload = () => resolve(i);
-          i.onerror = () => resolve(i);
-          i.src = activeLayer.imageData;
-        });
-        layerCtx.drawImage(img, activeLayer.x, activeLayer.y);
+        const img = await loadImageElement(activeLayer.imageData);
+        if (img) layerCtx.drawImage(img, activeLayer.x ?? 0, activeLayer.y ?? 0);
 
         // Snapshot before fill
         const beforeData = layerCtx.getImageData(0, 0, w, h);
@@ -302,7 +303,9 @@ export function DrawingCanvas({
         // Pass fill-only stroke to commitStroke (selection mask applied there)
         onCommitStroke(strokeCanvas);
       } else {
-        // No active layer fallback: fill on composited canvas
+        // No active layer: edits must target a layer
+        if (layers.length > 0) return;
+        // Legacy no-layer mode: fill on composited canvas
         bucketFill(mainCanvasRef.current, point.x, point.y, { r, g, b }, 32);
 
         const { canvas, ctx } = createOffscreenCanvas(imageWidth, imageHeight, true);

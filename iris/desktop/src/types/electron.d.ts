@@ -313,8 +313,8 @@ export interface ExportAPI {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   start: (request: any) => Promise<{ success: boolean; outputPath?: string; error?: string }>;
   cancel: () => Promise<{ cancelled: boolean }>;
-  onProgress: (callback: (data: ExportProgressData) => void) => void;
-  removeProgressListener: () => void;
+  /** Subscribes to export:progress; returns an unsubscribe for this listener only. */
+  onProgress: (callback: (data: ExportProgressData) => void) => () => void;
   onFFmpegSetupProgress: (callback: (data: FFmpegSetupProgress) => void) => void;
   removeFFmpegSetupListener: () => void;
 }

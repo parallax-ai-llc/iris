@@ -1,12 +1,23 @@
 {
   "title": "Ajustes",
+  "tabsLabel": "Secciones de ajustes",
+  "appearance": {
+    "theme": "Tema",
+    "themeDesc": "Elige cómo se ve Iris.",
+    "dark": "Oscuro",
+    "light": "Claro",
+    "system": "Sistema",
+    "editorsNote": "Los editores de imagen, vídeo y flujos siempre permanecen oscuros. Sistema sigue la configuración de tu sistema operativo."
+  },
   "sections": {
     "account": "Cuenta",
     "storage": "Almacenamiento",
     "notifications": "Notificaciones",
     "keyboard": "Atajos de teclado",
     "about": "Acerca de",
-    "language": "Idioma"
+    "language": "Idioma",
+    "appearance": "Apariencia",
+    "apiKeys": "Claves API de flujos"
   },
   "account": {
     "notLoggedIn": "No has iniciado sesión"
@@ -30,11 +41,13 @@
     "updatesDesc": "Notificar cuando haya una nueva versión disponible"
   },
   "keyboard": {
-    "newGeneration": "Nueva generación",
-    "saveDownload": "Guardar/Descargar",
+    "goToPage": "Ir a una página de la barra lateral",
+    "backForward": "Atrás / adelante entre páginas",
     "openSettings": "Abrir ajustes",
+    "toggleAssistant": "Abrir o cerrar el asistente",
     "closeModal": "Cerrar modal",
-    "navigateGallery": "Navegar por la galería"
+    "previewItems": "Elemento anterior / siguiente en la vista previa",
+    "editorNote": "Los atajos del editor aparecen junto a cada comando en sus menús."
   },
   "about": {
     "irisDesktop": "Iris Desktop",
@@ -47,7 +60,9 @@
     "termsDesc": "Términos y condiciones de uso",
     "checkUpdates": "Buscar actualizaciones",
     "latestVersion": "Estás usando la última versión",
-    "updateCheckFailed": "No se pudieron buscar actualizaciones"
+    "updateCheckFailed": "No se pudieron buscar actualizaciones",
+    "updateAvailable": "La actualización {{version}} está disponible",
+    "updateCheckBusy": "Ya se están buscando actualizaciones"
   },
   "footer": {
     "madeBy": "Hecho con cariño por Parallax AI",

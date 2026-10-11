@@ -35,6 +35,12 @@ export const VideoMotionControlModal = memo(function VideoMotionControlModal({
   const [keepOriginalSound, setKeepOriginalSound] = useState(false);
   const [referenceImage, setReferenceImage] = useState<File | null>(null);
   const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
+
+  // Release the preview object URL when it is replaced or the modal unmounts.
+  useEffect(() => {
+    if (!referenceImageUrl) return;
+    return () => URL.revokeObjectURL(referenceImageUrl);
+  }, [referenceImageUrl]);
   const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 

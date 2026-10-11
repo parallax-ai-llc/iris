@@ -2,22 +2,24 @@
  * FaceRestorePanel - AI face restoration settings
  */
 
-import { memo, useCallback, useState, useRef, useEffect } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { cn } from '@/shared/lib/utils';
 import { useImageEditorStore } from '@/features/image-editor/stores/imageEditor.store';
 import { Smile, Info } from 'lucide-react';
-import { faceRestoreImage, getAssetStatus } from '@/shared/api/image.api';
+import { faceRestoreImage } from '@/shared/api/image.api';
 import { toast } from '@/shared/lib/toast';
 import { formatTokenCost } from '@/shared/hooks/useTokenCost';
 import { useImageEditTokenCost } from '@/shared/hooks/useImageEditTokenCost';
 import { useAIOperation } from '@/features/image-editor/hooks/useAIOperation';
 import { MergeLayersDialog } from '@/features/image-editor/components/shared/MergeLayersDialog';
+import { runAIEditJob, addResultLayerOrOpen } from '@/features/image-editor/lib/aiEditJob';
+import { useMountedRef } from '@/features/image-editor/hooks/useMountedRef';
 import { Coins } from 'lucide-react';
 
 type RestoreModel = 'gfpgan' | 'codeformer';
 
 export const FaceRestorePanel = memo(function FaceRestorePanel() {
-  const { sourceAsset, isProcessing, setProcessing, setProcessingProgress, openEditor, addLayerFromUrl, layers } = useImageEditorStore();
+  const { sourceAsset, isProcessing, layers } = useImageEditorStore();
 
   const [model, setModel] = useState<RestoreModel>('codeformer');
   const [fidelity, setFidelity] = useState(0.5);
@@ -28,10 +30,7 @@ export const FaceRestorePanel = memo(function FaceRestorePanel() {
     faceRestoreModel: model,
   });
   const { prepareAssetForAI, mergeDialogProps } = useAIOperation();
-  const isMountedRef = useRef(true);
-  useEffect(() => {
-    return () => { isMountedRef.current = false; };
-  }, []);
+  const isMountedRef = useMountedRef();
 
   const handleRestore = useCallback(async () => {
     if (!sourceAsset?.id) {
@@ -44,62 +43,22 @@ export const FaceRestorePanel = memo(function FaceRestorePanel() {
     const assetId = await prepareAssetForAI();
     if (!assetId) return;
 
-    setProcessing(true, 'Restoring faces...');
-
     try {
-      // Start face restore process
-      const result = await faceRestoreImage(assetId, model, fidelity);
-      
-      if (!result) {
-        throw new Error('Failed to start face restoration');
-      }
-
-      // Poll for completion
-      let attempts = 0;
-      const maxAttempts = 60; // 2 minutes max
-      
-      while (attempts < maxAttempts) {
-        if (!isMountedRef.current) return;
-        const status = await getAssetStatus(result.id);
-
-        if (!status) {
-          throw new Error('Failed to get processing status');
-        }
-
-        if (status.status === 'READY' || status.status === 'COMPLETED') {
-          if (!isMountedRef.current) return;
-          setProcessing(false);
-          if (status.asset) {
-            if (addAsNewLayer && layers.length > 0) {
-              const imageUrl = status.asset.previewUrl || status.asset.publicUrl;
-              if (imageUrl) {
-                await addLayerFromUrl(imageUrl, 'Face Restored');
-                toast.success('Face restored - added as new layer');
-              }
-            } else {
-              openEditor(status.asset);
-            }
-          }
-          return;
-        }
-
-        if (status.status === 'FAILED' || status.status === 'ERROR') {
-          throw new Error(status.error || 'Face restoration failed');
-        }
-
-        if (!isMountedRef.current) return;
-        setProcessingProgress(Math.min(90, (attempts / maxAttempts) * 100));
-
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        attempts++;
-      }
-
-      throw new Error('Processing timeout');
+      // Bound to this tab: keeps running (and lands here) if the panel closes or the tab changes
+      await runAIEditJob({
+        message: 'Restoring faces...',
+        start: () => faceRestoreImage(assetId, model, fidelity),
+        apply: async (asset, store) => {
+          const placed = await addResultLayerOrOpen(asset, store, { addAsLayer: addAsNewLayer, layerName: 'Face Restored' });
+          if (placed === 'layer') toast.success('Face restored - added as new layer');
+        },
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Face restoration failed');
-      setProcessing(false);
+      const message = err instanceof Error ? err.message : 'Face restoration failed';
+      if (isMountedRef.current) setError(message);
+      else toast.error(`Face restore: ${message}`);
     }
-  }, [sourceAsset?.id, model, fidelity, setProcessing, setProcessingProgress, openEditor, addAsNewLayer, layers.length, addLayerFromUrl, prepareAssetForAI]);
+  }, [sourceAsset?.id, model, fidelity, addAsNewLayer, prepareAssetForAI, isMountedRef]);
 
   return (
     <div className="p-4 space-y-6">

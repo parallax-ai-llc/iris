@@ -7,15 +7,19 @@
  * in the image editor Ctrl+0 / Ctrl+1 zoom instead of navigating.
  */
 
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useUIStore } from '@/shared/stores/ui.store';
 import {
+  formatCombo,
+  getShortcutPlatform,
+  hasActiveShortcutLayer,
   registerShortcutLayer,
   useKeymapLayer,
   useShortcutLayer,
   type Keymap,
   type ShortcutBinding,
   type ShortcutHandler,
+  type ShortcutPlatform,
 } from '@/shared/lib/shortcuts';
 
 interface ShortcutHandlerSpec {
@@ -58,6 +62,94 @@ export const GLOBAL_NAV_TARGETS: Record<GlobalNavCommand, string> = {
   navStorage: 'storage',
   navSettings: 'settings',
 };
+
+export type PageHistoryCommand = 'navBack' | 'navForward';
+
+const PAGE_HISTORY_KEYMAP_OTHER = {
+  navBack: { keys: ['Alt+ArrowLeft'], description: 'Back to the previous page' },
+  navForward: { keys: ['Alt+ArrowRight'], description: 'Forward to the next page' },
+} as const satisfies Keymap<PageHistoryCommand>;
+
+const PAGE_HISTORY_KEYMAP_MAC = {
+  navBack: { keys: ['Mod+['], description: 'Back to the previous page' },
+  navForward: { keys: ['Mod+]'], description: 'Forward to the next page' },
+} as const satisfies Keymap<PageHistoryCommand>;
+
+/**
+ * Page history keys follow each platform's browser convention:
+ * Alt+← / Alt+→ on Windows and Linux, ⌘[ / ⌘] on macOS.
+ */
+export function getPageHistoryKeymap(
+  platform: ShortcutPlatform = getShortcutPlatform(),
+): Keymap<PageHistoryCommand> {
+  return platform === 'mac' ? PAGE_HISTORY_KEYMAP_MAC : PAGE_HISTORY_KEYMAP_OTHER;
+}
+
+/**
+ * Key caps for a shortcut list row: the shared modifiers, then both keys,
+ * e.g. ['Alt', '← / →'] or ['⌘', '[ / ]'].
+ */
+export function pageHistoryShortcutKeys(platform: ShortcutPlatform = getShortcutPlatform()): string[] {
+  const keymap = getPageHistoryKeymap(platform);
+  const back = formatCombo(keymap.navBack.keys[0], platform).split('+');
+  const forward = formatCombo(keymap.navForward.keys[0], platform).split('+');
+  return [...back.slice(0, -1), `${back[back.length - 1]} / ${forward[forward.length - 1]}`];
+}
+
+/** `MouseEvent.button` of the mouse back / forward side buttons. */
+export const MOUSE_BUTTON_BACK = 3;
+export const MOUSE_BUTTON_FORWARD = 4;
+
+/**
+ * Page history only moves between app-shell pages. While an editor layer is
+ * registered (image / video editor) the keys are declined, so the editor's own
+ * binding of the same combo (⌘[ / ⌘] reorder layers) and the editor itself win.
+ * Declining also leaves the key alone when there is nowhere to go.
+ */
+export function createPageHistoryHandlers(): Record<PageHistoryCommand, ShortcutHandler> {
+  return {
+    navBack: () => {
+      const ui = useUIStore.getState();
+      if (hasActiveShortcutLayer('editor') || !ui.canGoBack()) return false;
+      ui.goBack();
+    },
+    navForward: () => {
+      const ui = useUIStore.getState();
+      if (hasActiveShortcutLayer('editor') || !ui.canGoForward()) return false;
+      ui.goForward();
+    },
+  };
+}
+
+/** Mouse back / forward buttons; same rules as the keys. Returns true when handled. */
+export function handlePageHistoryMouseUp(e: MouseEvent): boolean {
+  if (e.button !== MOUSE_BUTTON_BACK && e.button !== MOUSE_BUTTON_FORWARD) return false;
+  if (hasActiveShortcutLayer('editor') || hasActiveShortcutLayer('modal', { blocking: true })) {
+    return false;
+  }
+  const ui = useUIStore.getState();
+  // Keep Chromium from treating the side button as its own history navigation.
+  e.preventDefault();
+  if (e.button === MOUSE_BUTTON_BACK) ui.goBack();
+  else ui.goForward();
+  return true;
+}
+
+const PAGE_HISTORY_HANDLERS = createPageHistoryHandlers();
+
+/**
+ * Back / forward between app-shell pages. Mounted by AppLayout only, so it is
+ * live exactly while the sidebar pages are on screen (never under the
+ * full-screen editors).
+ */
+export function usePageHistoryNavigation(): void {
+  useKeymapLayer('global', getPageHistoryKeymap(), PAGE_HISTORY_HANDLERS);
+
+  useEffect(() => {
+    window.addEventListener('mouseup', handlePageHistoryMouseUp);
+    return () => window.removeEventListener('mouseup', handlePageHistoryMouseUp);
+  }, []);
+}
 
 /** Legacy spec → dispatcher binding. `ctrl` means Ctrl on Windows, Cmd on macOS. */
 function toBinding(spec: Omit<ShortcutHandlerSpec, 'description'> & { description?: string }): ShortcutBinding {

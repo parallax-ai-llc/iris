@@ -192,7 +192,7 @@ export const SourceMonitorModal = memo(function SourceMonitorModal({
             linkedClipId: videoClip.id,
           });
           if (audioClip) {
-            useEditorStore.getState().updateClip(videoClip.id, { linkedClipId: audioClip.id });
+            useEditorStore.getState().updateClip(videoClip.id, { linkedClipId: audioClip.id }, { history: 'amend' });
           }
         }
       }

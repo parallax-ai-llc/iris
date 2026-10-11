@@ -196,6 +196,10 @@ export const commandChip = (page: Page): Locator =>
 export const toolChip = (page: Page): Locator =>
   page.locator(`button[title="${PROBE_TOOL}"]`);
 
+/** Enable/disable switch on an installed-extension card. */
+export const extensionSwitch = (page: Page, extensionId: string = PROBE_ID): Locator =>
+  page.locator(`[role="switch"][data-extension-id="${extensionId}"]`);
+
 /**
  * Navigate to the Extensions page (the run surface for installed extensions).
  *

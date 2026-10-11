@@ -310,6 +310,14 @@ export async function preparePage(page: Page, data?: SandboxData): Promise<Error
   await page.reload({ waitUntil: 'domcontentloaded', timeout: 60_000 });
   const errors = trackErrors(page);
   await page.waitForSelector('nav', { state: 'visible', timeout: 30_000 });
+  // The specs address the English UI. A run that died while the language spec had another language
+  // selected leaves it in the persisted store: put it back before doing anything else.
+  const saved = await page.evaluate(() => (window as any).electronAPI?.storage?.get?.('app:language') as Promise<string | null>);
+  if (saved && saved !== 'en') {
+    await page.evaluate(() => (window as any).electronAPI.storage.set('app:language', 'en'));
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: 60_000 });
+    await page.waitForSelector('nav', { state: 'visible', timeout: 30_000 });
+  }
   await waitForStores(page);
   // checkAuth() settles after first paint; pages gated on login render a prompt until then.
   await page.waitForFunction(
@@ -322,7 +330,35 @@ export async function preparePage(page: Page, data?: SandboxData): Promise<Error
   ).catch(() => {});
   // the assistant panel is persisted open/closed across launches: start every spec closed
   await page.evaluate(() => localStorage.setItem('iris.assistant.open', 'false'));
+  // Settings remembers its last tab: start every spec on the first tab.
+  await page.evaluate(() => localStorage.removeItem('iris.settings.tab'));
+  // A run that died while the theme spec had Light selected leaves it persisted: put Dark back.
+  const theme = await page.evaluate(() => (window as any).electronAPI?.storage?.get?.('app:theme') as Promise<string | null>);
+  if (theme && theme !== 'dark') {
+    await page.evaluate(async () => {
+      await (window as any).electronAPI.storage.set('app:theme', 'dark');
+      localStorage.setItem('iris.theme', 'dark');
+    });
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: 60_000 });
+    await page.waitForSelector('nav', { state: 'visible', timeout: 30_000 });
+    await waitForStores(page);
+  }
   return errors;
+}
+
+// ------------------------------------------------------------------ settings tabs
+
+/** A tab in the Settings tablist, by its visible label. */
+export const settingsTab = (page: Page, label: string) =>
+  page.locator('[role="tablist"] [role="tab"]', { hasText: label }).first();
+
+/** Select a Settings tab (Settings must already be open) and wait for its panel. */
+export async function openSettingsTab(page: Page, label: string): Promise<void> {
+  const tab = settingsTab(page, label);
+  await tab.click();
+  await expect(tab).toHaveAttribute('aria-selected', 'true');
+  const panelId = await tab.getAttribute('aria-controls');
+  if (panelId) await expect(page.locator(`#${panelId}`)).toBeVisible();
 }
 
 // ------------------------------------------------------------------ navigation
@@ -348,6 +384,9 @@ export async function goTo(page: Page, label: string): Promise<void> {
 }
 
 export const currentPageId = (page: Page) => readStore(page, 'ui', (s) => s.currentPage as string);
+
+/** Library page search field (client-side filter over the loaded items). */
+export const librarySearchInput = (page: Page) => page.locator('main input[type="search"]').first();
 
 export async function resetFocus(page: Page): Promise<void> {
   await blurActive(page);
@@ -424,6 +463,16 @@ export async function galleryNames(page: Page): Promise<string[]> {
 /** The (innermost) card element of a gallery item, found by its image alt. */
 export const galleryCard = (page: Page, name: string) =>
   page.locator('.dt-gallery div.group', { has: page.locator(`img[alt="${name}"]`) }).last();
+
+/**
+ * Card by position (DOM order = the active sort). Unlike galleryCard/galleryNames this does not
+ * depend on the img alt or the name caption: video cards swap their <img> for a <video> while the
+ * pointer is over them, and no caption is rendered in selection mode.
+ */
+export const galleryCardAt = (page: Page, index: number) =>
+  page.locator('.dt-gallery div.group.rounded-xl.overflow-hidden').nth(index);
+
+export const galleryCardCount = (page: Page) => page.locator('.dt-gallery div.group.rounded-xl.overflow-hidden').count();
 
 export const galleryCount = (page: Page) => page.locator('.dt-gallery p.truncate').count();
 

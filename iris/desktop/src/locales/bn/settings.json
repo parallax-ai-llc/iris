@@ -1,12 +1,23 @@
 {
   "title": "Settings",
+  "tabsLabel": "সেটিংসের বিভাগ",
+  "appearance": {
+    "theme": "থিম",
+    "themeDesc": "Iris দেখতে কেমন হবে তা বেছে নিন।",
+    "dark": "ডার্ক",
+    "light": "লাইট",
+    "system": "সিস্টেম",
+    "editorsNote": "ইমেজ, ভিডিও ও ওয়ার্কফ্লো এডিটর সবসময় ডার্ক থাকে। সিস্টেম আপনার অপারেটিং সিস্টেমের সেটিং অনুসরণ করে।"
+  },
   "sections": {
     "account": "Account",
     "storage": "Storage",
     "notifications": "Notifications",
     "keyboard": "Keyboard Shortcuts",
     "about": "About",
-    "language": "Language"
+    "language": "Language",
+    "appearance": "চেহারা",
+    "apiKeys": "ওয়ার্কফ্লো API কী"
   },
   "account": {
     "notLoggedIn": "Not logged in"
@@ -30,11 +41,13 @@
     "updatesDesc": "Notify when a new version is available"
   },
   "keyboard": {
-    "newGeneration": "New generation",
-    "saveDownload": "Save/Download",
+    "goToPage": "সাইডবারের পেজে যান",
+    "backForward": "পেজগুলোর মধ্যে পেছনে / সামনে যান",
     "openSettings": "Open settings",
+    "toggleAssistant": "সহকারী খুলুন বা বন্ধ করুন",
     "closeModal": "Close modal",
-    "navigateGallery": "Navigate gallery"
+    "previewItems": "প্রিভিউতে আগের / পরের আইটেম",
+    "editorNote": "এডিটরের শর্টকাট এডিটর মেনুতে প্রতিটি কমান্ডের পাশে দেখানো হয়।"
   },
   "about": {
     "irisDesktop": "Iris Desktop",
@@ -47,7 +60,9 @@
     "termsDesc": "Usage terms and conditions",
     "checkUpdates": "Check for Updates",
     "latestVersion": "You are on the latest version",
-    "updateCheckFailed": "Failed to check for updates"
+    "updateCheckFailed": "Failed to check for updates",
+    "updateAvailable": "আপডেট {{version}} পাওয়া যাচ্ছে",
+    "updateCheckBusy": "আপডেট আগে থেকেই খোঁজা হচ্ছে"
   },
   "footer": {
     "madeBy": "Made with care by Parallax AI",

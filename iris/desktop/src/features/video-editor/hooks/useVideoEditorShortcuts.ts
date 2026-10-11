@@ -83,17 +83,8 @@ export function createVideoEditorEditHandlers(
       if (s.selectedClip?.type !== 'compound') return false;
       s.enterCompoundClip(s.selectedClip.id);
     },
-    toggleMute: () => {
-      const s = store();
-      for (const clipId of s.selection.clipIds) {
-        for (const track of s.tracks) {
-          const clip = track.clips.find((c) => c.id === clipId);
-          if (clip && (clip.type === 'video' || clip.type === 'audio')) {
-            s.updateClip(clipId, { muted: !clip.muted });
-          }
-        }
-      }
-    },
+    // One history step; clips on locked tracks are skipped by the store.
+    toggleMute: () => store().toggleClipsMute(store().selection.clipIds),
     playPause: () => store().togglePlay(),
     shuttleReverse: () => {
       const s = store();

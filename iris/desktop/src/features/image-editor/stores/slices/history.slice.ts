@@ -20,6 +20,7 @@ import type { StoreApi } from 'zustand';
 import { generateId } from '@/shared/lib/utils/id';
 import { useActionsStore } from '../actions.store';
 import { shiftSavedIndexOnPush } from '../dirtyTracking';
+import { LAYER_PROPERTY_LABELS } from './layerProperties.slice';
 import type { HistoryState, ImageEditorActions, ImageEditorState } from '../imageEditor.store';
 
 type Full = ImageEditorState & ImageEditorActions;
@@ -62,6 +63,12 @@ const UNRECORDED_LABELS = new Set([
   'Adjustment Layer',
   'Fill Layer',
   'Text',
+  // Layer property changes (slices/layerProperties.slice.ts)
+  ...LAYER_PROPERTY_LABELS,
+  // Pixel operations without a playable step (slices/layerPixelOps.slice.ts)
+  'Warp',
+  'Fill Path',
+  'Stroke Path',
 ]);
 
 function recordAction(label: string) {

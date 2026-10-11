@@ -170,6 +170,10 @@
     "runError": "「{{command}}」の実行に失敗しました: {{error}}",
     "commands": "コマンド",
     "tools": "ツール",
-    "noRunnable": "この拡張機能はコマンドやツールを提供していません。"
+    "noRunnable": "この拡張機能はコマンドやツールを提供していません。",
+    "toggleLabel": "{{name}} を有効化",
+    "enable": "拡張機能を有効にする",
+    "disable": "拡張機能を無効にする",
+    "toggleError": "「{{name}}」を変更できませんでした: {{error}}"
   }
 }

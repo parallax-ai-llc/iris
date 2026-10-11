@@ -1,10 +1,14 @@
 /**
- * Dropdown - Reusable dropdown/select component
+ * Dropdown - Reusable dropdown/select component.
+ *
+ * Keyboard (while open): ArrowUp/Down (disabled options skipped), Home/End,
+ * Enter, Escape — the same contract as ModelSelector (useListboxNavigation).
  */
 
 import { memo, useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
+import { useListboxNavigation } from '@/shared/hooks/useListboxNavigation';
 
 export interface DropdownOption<T extends string = string> {
   value: T;
@@ -41,6 +45,7 @@ function DropdownInner<T extends string>({
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const listboxRef = useRef<HTMLDivElement>(null);
 
   // Close on click outside
   useEffect(() => {
@@ -56,22 +61,8 @@ function DropdownInner<T extends string>({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  // Close on escape
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setIsOpen(false);
-        buttonRef.current?.focus();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
-
-  const selectedOption = options.find((o) => o.value === value);
+  const selectedIndex = options.findIndex((o) => o.value === value);
+  const selectedOption = selectedIndex >= 0 ? options[selectedIndex] : undefined;
 
   const handleSelect = useCallback(
     (option: DropdownOption<T>) => {
@@ -81,6 +72,20 @@ function DropdownInner<T extends string>({
     },
     [onChange]
   );
+
+  const { activeIndex, setActiveIndex, listboxId, optionId } = useListboxNavigation({
+    isOpen,
+    count: options.length,
+    selectedIndex,
+    isDisabled: (index) => !!options[index]?.disabled,
+    onSelect: (index) => {
+      const option = options[index];
+      if (option) handleSelect(option);
+    },
+    onClose: () => setIsOpen(false),
+    listboxRef,
+    triggerRef: buttonRef,
+  });
 
   return (
     <div ref={containerRef} className={cn('relative', className)}>
@@ -96,6 +101,7 @@ function DropdownInner<T extends string>({
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
+        aria-controls={isOpen ? listboxId : undefined}
         className={cn(
           'flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm',
           'bg-zinc-800 border border-zinc-700',
@@ -119,23 +125,31 @@ function DropdownInner<T extends string>({
 
       {isOpen && (
         <div
+          ref={listboxRef}
+          id={listboxId}
           role="listbox"
+          tabIndex={-1}
+          aria-activedescendant={activeIndex >= 0 ? optionId(activeIndex) : undefined}
           className={cn(
-            'absolute z-50 mt-1 py-1 w-full min-w-[160px]',
+            'absolute z-50 mt-1 py-1 w-full min-w-[160px] focus:outline-none',
             'bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl',
             'animate-in fade-in zoom-in-95 duration-100',
             align === 'right' ? 'right-0' : 'left-0',
             menuClassName
           )}
         >
-          {options.map((option) => (
+          {options.map((option, index) => (
             <button
               key={option.value}
+              id={optionId(index)}
               type="button"
               role="option"
+              tabIndex={-1}
               aria-selected={value === option.value}
+              aria-disabled={option.disabled || undefined}
               disabled={option.disabled}
               onClick={() => handleSelect(option)}
+              onMouseEnter={() => !option.disabled && setActiveIndex(index)}
               className={cn(
                 'w-full px-3 py-2 text-left text-sm transition-colors',
                 'flex items-center gap-2',
@@ -143,7 +157,8 @@ function DropdownInner<T extends string>({
                   ? 'text-zinc-600 cursor-not-allowed'
                   : value === option.value
                   ? 'text-white bg-white/10'
-                  : 'text-zinc-300 hover:bg-zinc-700 hover:text-white'
+                  : 'text-zinc-300 hover:bg-zinc-700 hover:text-white',
+                index === activeIndex && !option.disabled && 'bg-zinc-700 text-white'
               )}
             >
               {option.icon}

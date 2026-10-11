@@ -21,6 +21,9 @@ import { getActiveStore } from './imageEditorRegistry';
 import { createHistorySlice } from './slices/history.slice';
 import { createLayerStructureSlice, type LayerHistoryOptions } from './slices/layerStructure.slice';
 import { createLayerCreateSlice } from './slices/layerCreate.slice';
+import { createLayerPropertiesSlice, type LayerDocumentProperties } from './slices/layerProperties.slice';
+import { createLayerPixelOpsSlice } from './slices/layerPixelOps.slice';
+import { createPendingAdjustmentsFlusher } from './slices/pendingAdjustments';
 import { INITIAL_DIRTY_STATE, type SavedTransform } from './dirtyTracking';
 
 // ==================== Types ====================
@@ -1105,7 +1108,10 @@ export interface ImageEditorActions {
   addLayer: (imageData: string, name?: string, options?: LayerHistoryOptions) => string;
   addLayerFromUrl: (imageUrl: string, name?: string) => Promise<string | null>;
   removeLayer: (layerId: string, options?: LayerHistoryOptions) => void;
+  /** Raw layer patch, no history (callers that push their own entry). */
   updateLayer: (layerId: string, updates: Partial<Layer>) => void;
+  /** Visibility / lock / opacity / fill opacity / blend change: one history entry (slider gestures coalesce). */
+  setLayerProperties: (layerId: string, patch: LayerDocumentProperties) => void;
   setActiveLayer: (layerId: string | null) => void;
   reorderLayers: (fromIndex: number, toIndex: number, options?: LayerHistoryOptions) => void;
   duplicateLayer: (layerId: string, options?: LayerHistoryOptions) => string | null;
@@ -1202,8 +1208,8 @@ export interface ImageEditorActions {
   setActivePath: (pathId: string | null) => void;
   updatePath: (pathId: string, updates: Partial<VectorPath>) => void;
   addPathPoint: (pathId: string, point: PathPoint) => void;
-  fillPath: (pathId: string) => void;
-  strokePath: (pathId: string) => void;
+  fillPath: (pathId: string) => Promise<void>;
+  strokePath: (pathId: string) => Promise<void>;
   loadPathAsSelection: (pathId: string) => void;
   setPenToolMode: (mode: 'create' | 'edit') => void;
   setActivePointIndex: (index: number | null) => void;
@@ -1218,12 +1224,13 @@ export interface ImageEditorActions {
   setColorProfile: (profileName: string) => void;
 
   // Selection modify (Phase 1)
-  expandSelectionBy: (amount: number) => void;
-  contractSelectionBy: (amount: number) => void;
-  smoothSelectionBy: (radius: number) => void;
-  borderSelectionBy: (width: number) => void;
-  growSelectionByColor: () => void;
-  selectSimilar: () => void;
+  // Select > Expand / Contract / Smooth / Border / Grow / Similar (lib/selectionModify.ts)
+  expandSelectionBy: (amount: number) => Promise<void>;
+  contractSelectionBy: (amount: number) => Promise<void>;
+  smoothSelectionBy: (radius: number) => Promise<void>;
+  borderSelectionBy: (width: number) => Promise<void>;
+  growSelectionByColor: () => Promise<void>;
+  selectSimilar: () => Promise<void>;
 
   // Layer operations (Phase 1)
   stampVisible: () => Promise<void>;
@@ -1586,6 +1593,7 @@ export function _createImageEditorSlice(
   get: GetState,
   _api: StoreApi<ImageEditorState & ImageEditorActions>,
 ): ImageEditorState & ImageEditorActions {
+  const flushPendingAdjustments = createPendingAdjustmentsFlusher(get, DEFAULT_ADJUSTMENTS);
   return {
     ...initialState,
 
@@ -1772,20 +1780,13 @@ export function _createImageEditorSlice(
     // ==================== Mode & Tools ====================
 
     setEditMode: (mode) => {
-      const { editMode, adjustments, activeFilterPreset, _adjustmentsApplyCallback } = get();
-
       // Auto-apply pending adjustments/filters when leaving adjust or filter mode
-      if (editMode === 'adjust' || editMode === 'filter') {
-        const hasModifiedAdjustments = Object.keys(DEFAULT_ADJUSTMENTS).some(
-          (key) => adjustments[key as keyof AdjustmentValues] !== DEFAULT_ADJUSTMENTS[key as keyof AdjustmentValues]
-        );
-        if ((hasModifiedAdjustments || activeFilterPreset !== 'none') && _adjustmentsApplyCallback) {
-          _adjustmentsApplyCallback();
-        }
-      }
+      // (re-entry safe: see slices/pendingAdjustments.ts)
+      const leaving = get().editMode;
+      if (leaving === 'adjust' || leaving === 'filter') flushPendingAdjustments();
 
       set({
-        previousMode: editMode,
+        previousMode: get().editMode,
         editMode: mode,
       });
     },
@@ -2009,22 +2010,7 @@ export function _createImageEditorSlice(
       set({ warpGrid: grid });
     },
 
-    applyWarp: async () => {
-      const { warpGrid, layers, activeLayerId, updateLayer } = get();
-      if (!warpGrid) return;
-
-      const activeLayer = layers.find(l => l.id === activeLayerId);
-      if (!activeLayer?.imageData) return;
-
-      const { applyWarpToCanvas } = await import('@/features/image-editor/canvas/canvasEngine');
-      const { dataUrlToCanvas } = await import('@/features/image-editor/canvas/canvasEngine');
-
-      const sourceCanvas = await dataUrlToCanvas(activeLayer.imageData);
-      const warpedCanvas = applyWarpToCanvas(sourceCanvas, warpGrid);
-
-      updateLayer(activeLayer.id, { imageData: warpedCanvas.toDataURL('image/png') });
-      set({ isWarpMode: false, warpGrid: null });
-    },
+    // applyWarp: slices/layerPixelOps.slice.ts
 
     // ==================== Selection ====================
 
@@ -2290,54 +2276,7 @@ export function _createImageEditorSlice(
       });
     },
 
-    contentAwareFill: async () => {
-      const { selection, layers, sourceAsset } = get();
-      if (!selection || !sourceAsset?.id) return;
-
-      const baseLayer = layers[0];
-      const canvasW = baseLayer?.width ?? 512;
-      const canvasH = baseLayer?.height ?? 512;
-
-      const { selectionToInpaintMask } = await import('@/features/image-editor/canvas/selectionEngine');
-      const { contentAwareFill: contentAwareFillApi } = await import('@/shared/api/image.api');
-
-      // Convert selection mask to inpaint mask format
-      const inpaintMask = selectionToInpaintMask(
-        selection.maskDataUrl,
-        canvasW,
-        canvasH,
-        selection.isInverted
-      );
-
-      // Call API
-      const result = await contentAwareFillApi(sourceAsset.id, inpaintMask);
-      const imageUrl = result?.previewUrl || result?.publicUrl;
-      if (imageUrl) {
-        // Load the result image and apply to the active layer
-        const activeLayer = layers.find(l => l.id === get().activeLayerId);
-        if (activeLayer) {
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-              ctx.drawImage(img, 0, 0);
-              const dataUrl = canvas.toDataURL('image/png');
-              set((state) => ({
-                layers: state.layers.map(l =>
-                  l.id === activeLayer.id ? { ...l, imageData: dataUrl } : l
-                ),
-                selection: null, // Clear selection after fill
-              }));
-            }
-          };
-          img.src = imageUrl;
-        }
-      }
-    },
+    // contentAwareFill: slices/layerPixelOps.slice.ts
 
     // ==================== Crop ====================
 
@@ -2370,6 +2309,8 @@ export function _createImageEditorSlice(
     ...createLayerStructureSlice(set, get),
     // Adjustment / fill / text layer creation (slices/layerCreate.slice.ts)
     ...createLayerCreateSlice(set, get, { defaultAdjustments: DEFAULT_ADJUSTMENTS }),
+    // Opacity / blend / visibility / lock with history (slices/layerProperties.slice.ts)
+    ...createLayerPropertiesSlice(set, get),
 
     updateLayer: (layerId, updates) => {
       set((state) => ({
@@ -2380,15 +2321,9 @@ export function _createImageEditorSlice(
     },
 
     setActiveLayer: (layerId) => {
-      const { adjustments, activeFilterPreset, _adjustmentsApplyCallback } = get();
-
       // Auto-apply pending adjustments/filters to the current layer before switching
-      const hasModifiedAdjustments = Object.keys(DEFAULT_ADJUSTMENTS).some(
-        (key) => adjustments[key as keyof AdjustmentValues] !== DEFAULT_ADJUSTMENTS[key as keyof AdjustmentValues]
-      );
-      if ((hasModifiedAdjustments || activeFilterPreset !== 'none') && _adjustmentsApplyCallback) {
-        _adjustmentsApplyCallback();
-      }
+      // (re-entry safe: see slices/pendingAdjustments.ts)
+      flushPendingAdjustments();
 
       set({
         activeLayerId: layerId,
@@ -2563,6 +2498,9 @@ export function _createImageEditorSlice(
 
     // ==================== History (slices/history.slice.ts) ====================
     ...createHistorySlice(set, get),
+
+    // Warp, fill/stroke path, content-aware fill (each records history)
+    ...createLayerPixelOpsSlice(set, get),
 
     // ==================== AI Processing ====================
 
@@ -2874,79 +2812,7 @@ export function _createImageEditorSlice(
       }));
     },
 
-    fillPath: (pathId) => {
-      const { paths, layers, activeLayerId, brushSettings } = get();
-      const path = paths.find((p) => p.id === pathId);
-      const layer = layers.find((l) => l.id === activeLayerId);
-      if (!path || !layer || path.points.length < 2) return;
-
-      // Rasterize path fill onto active layer
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d')!;
-        ctx.drawImage(img, 0, 0);
-
-        ctx.fillStyle = brushSettings.color;
-        ctx.beginPath();
-        path.points.forEach((pt, i) => {
-          if (i === 0) ctx.moveTo(pt.x, pt.y);
-          else {
-            const prev = path.points[i - 1];
-            if (prev.handleOut && pt.handleIn) {
-              ctx.bezierCurveTo(prev.handleOut.x, prev.handleOut.y, pt.handleIn.x, pt.handleIn.y, pt.x, pt.y);
-            } else {
-              ctx.lineTo(pt.x, pt.y);
-            }
-          }
-        });
-        if (path.closed) ctx.closePath();
-        ctx.fill();
-
-        get().updateLayer(activeLayerId!, { imageData: canvas.toDataURL('image/png') });
-      };
-      img.src = layer.imageData;
-    },
-
-    strokePath: (pathId) => {
-      const { paths, layers, activeLayerId, brushSettings } = get();
-      const path = paths.find((p) => p.id === pathId);
-      const layer = layers.find((l) => l.id === activeLayerId);
-      if (!path || !layer || path.points.length < 2) return;
-
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d')!;
-        ctx.drawImage(img, 0, 0);
-
-        ctx.strokeStyle = brushSettings.color;
-        ctx.lineWidth = brushSettings.size;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.beginPath();
-        path.points.forEach((pt, i) => {
-          if (i === 0) ctx.moveTo(pt.x, pt.y);
-          else {
-            const prev = path.points[i - 1];
-            if (prev.handleOut && pt.handleIn) {
-              ctx.bezierCurveTo(prev.handleOut.x, prev.handleOut.y, pt.handleIn.x, pt.handleIn.y, pt.x, pt.y);
-            } else {
-              ctx.lineTo(pt.x, pt.y);
-            }
-          }
-        });
-        if (path.closed) ctx.closePath();
-        ctx.stroke();
-
-        get().updateLayer(activeLayerId!, { imageData: canvas.toDataURL('image/png') });
-      };
-      img.src = layer.imageData;
-    },
+    // fillPath / strokePath: slices/layerPixelOps.slice.ts
 
     loadPathAsSelection: (pathId) => {
       const { paths, layers, selectionFeather } = get();
@@ -3090,43 +2956,36 @@ export function _createImageEditorSlice(
 
     // ==================== Selection Modify (Phase 1) ====================
 
-    expandSelectionBy: (_amount) => {
-      const state = get();
-      if (!state.selection?.maskDataUrl) return;
-      // Delegate to canvas component via callback pattern
-      // The actual mask manipulation happens in the canvas component
-      // which has access to the pixel data
-      // Placeholder: the selection is not changed yet, and selection is not document content.
+    // Implemented in lib/selectionModify.ts (mask morphology / colour on the
+    // effective selection; no history, the selection is not document content).
+    expandSelectionBy: async (amount) => {
+      const { modifySelectionMorphology } = await import('@/features/image-editor/lib/selectionModify');
+      await modifySelectionMorphology(get, set, 'expand', amount);
     },
 
-    contractSelectionBy: (_amount) => {
-      const state = get();
-      if (!state.selection?.maskDataUrl) return;
-      // Placeholder: the selection is not changed yet, and selection is not document content.
+    contractSelectionBy: async (amount) => {
+      const { modifySelectionMorphology } = await import('@/features/image-editor/lib/selectionModify');
+      await modifySelectionMorphology(get, set, 'contract', amount);
     },
 
-    smoothSelectionBy: (_radius) => {
-      const state = get();
-      if (!state.selection?.maskDataUrl) return;
-      // Placeholder: the selection is not changed yet, and selection is not document content.
+    smoothSelectionBy: async (radius) => {
+      const { modifySelectionMorphology } = await import('@/features/image-editor/lib/selectionModify');
+      await modifySelectionMorphology(get, set, 'smooth', radius);
     },
 
-    borderSelectionBy: (_width) => {
-      const state = get();
-      if (!state.selection?.maskDataUrl) return;
-      // Placeholder: the selection is not changed yet, and selection is not document content.
+    borderSelectionBy: async (width) => {
+      const { modifySelectionMorphology } = await import('@/features/image-editor/lib/selectionModify');
+      await modifySelectionMorphology(get, set, 'border', width);
     },
 
-    growSelectionByColor: () => {
-      const state = get();
-      if (!state.selection?.maskDataUrl) return;
-      // Placeholder: the selection is not changed yet, and selection is not document content.
+    growSelectionByColor: async () => {
+      const { modifySelectionByColor } = await import('@/features/image-editor/lib/selectionModify');
+      await modifySelectionByColor(get, set, 'grow');
     },
 
-    selectSimilar: () => {
-      const state = get();
-      if (!state.selection?.maskDataUrl) return;
-      // Placeholder: the selection is not changed yet, and selection is not document content.
+    selectSimilar: async () => {
+      const { modifySelectionByColor } = await import('@/features/image-editor/lib/selectionModify');
+      await modifySelectionByColor(get, set, 'similar');
     },
 
     // ==================== Canvas / Image Operations (Phase 1) ====================

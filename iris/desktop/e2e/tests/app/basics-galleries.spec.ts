@@ -5,6 +5,8 @@ import { makeTestImages, stubOpenDialog, waitDocReady } from '../../helpers/life
 import {
   assertClean,
   galleryCard,
+  galleryCardAt,
+  galleryCardCount,
   galleryCount,
   galleryNames,
   goTo,
@@ -118,12 +120,12 @@ for (const c of CASES) {
 
     test('selection mode: select cards, select all, cancel', async ({ page }) => {
       await selectBtn(page).click();
-      await galleryCard(page, c.newest[0]).click();
-      await galleryCard(page, c.newest[1]).click();
+      await galleryCardAt(page, 0).click();
+      await galleryCardAt(page, 1).click();
       await expect(page.locator('.dt-gallery button:has-text("Delete (2)")')).toBeVisible();
 
       // clicking a selected card again deselects it
-      await galleryCard(page, c.newest[1]).click();
+      await galleryCardAt(page, 1).click();
       await expect(page.locator('.dt-gallery button:has-text("Delete (1)")')).toBeVisible();
 
       await page.locator('.dt-gallery button:has-text("Select All")').click();
@@ -138,19 +140,19 @@ for (const c of CASES) {
 
     test('Esc closes the delete confirmation without deleting', async ({ page }) => {
       await selectBtn(page).click();
-      await galleryCard(page, c.newest[0]).click();
+      await galleryCardAt(page, 0).click();
       await page.locator('.dt-gallery button:has-text("Delete (1)")').click();
       await expect(page.locator(`text=${c.deleteDialog}`)).toBeVisible();
       await page.keyboard.press('Escape');
       await expect(page.locator(`text=${c.deleteDialog}`)).toBeHidden();
-      expect(await galleryCount(page)).toBe(c.newest.length);
+      expect(await galleryCardCount(page)).toBe(c.newest.length);
       expect((await sandboxState(page)).deleted).toEqual([]);
     });
 
     test('delete several selected assets (stand-in assets only)', async ({ page }) => {
       await selectBtn(page).click();
-      await galleryCard(page, c.newest[0]).click();
-      await galleryCard(page, c.newest[2]).click();
+      await galleryCardAt(page, 0).click();
+      await galleryCardAt(page, 2).click();
       await page.locator('.dt-gallery button:has-text("Delete (2)")').click();
       await expect(page.locator(`text=${c.deleteDialog}`)).toBeVisible();
       await page.locator('[class*="fixed"] button:text-is("Delete")').last().click();
@@ -165,7 +167,7 @@ for (const c of CASES) {
     });
 
     test('delete one asset with the card trash button', async ({ page }) => {
-      const card = galleryCard(page, c.newest[1]);
+      const card = galleryCardAt(page, 1);
       await card.hover();
       await card.locator('button[title="Delete"]').click();
       await expect(page.locator(`text=${c.deleteDialog}`)).toBeVisible();

@@ -8,6 +8,7 @@ import { useAuthStore } from '@/features/auth/stores/auth.store';
 import { useUIStore } from '@/shared/stores/ui.store';
 import { useKeyboardShortcuts } from '@/shared/hooks/useKeyboardShortcuts';
 import { useServerConnection } from '@/shared/hooks/useServerConnection';
+import { useAppTheme } from '@/app/theme/useAppTheme';
 import { HomePage } from '@/app/home/HomePage';
 import { ImagesPage } from '@/app/images/ImagesPage';
 import { VideosPage } from '@/app/videos/VideosPage';
@@ -53,6 +54,8 @@ function AppContent() {
 
   useKeyboardShortcuts();
   useServerConnection();
+  // Dark / light / system on the shell; editors always dark.
+  useAppTheme();
   // Ctrl/Cmd+/ opens or closes the app-wide assistant panel on every screen.
   useAssistantShortcut();
 

@@ -11,6 +11,7 @@ import ContentMarkdown from './ContentMarkdown';
 import IdeasTab from './IdeasTab';
 import { IrisLogo } from '@/shared/components/common/IrisLogo';
 import { cn } from '@/shared/lib/utils';
+import { useModalShortcutBlock } from '@/shared/lib/shortcuts';
 
 type TabType = 'announcements' | 'blogs' | 'ideas';
 
@@ -59,6 +60,9 @@ export const AnnouncementsModal = memo(function AnnouncementsModal({
   const [blogsLoading, setBlogsLoading] = useState(true);
   const [isAnimating, setIsAnimating] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
+
+  // Page / global shortcuts must not act underneath the open modal.
+  useModalShortcutBlock(isOpen);
 
   // Handle animation states
   useEffect(() => {

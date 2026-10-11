@@ -1,11 +1,18 @@
 /**
  * AudioPlayer - Hidden audio element for audio/music clip playback
- * Handles Web Audio API DSP chain (EQ, compressor, fade in/out)
+ * Handles Web Audio API DSP chain (EQ, compressor, fade in/out, gain dB, pan)
+ *
+ * Graph: source → gain (volume|volume keyframes × fade × gain dB) → EQ →
+ * compressor → StereoPanner → destination. The FFmpeg export applies the same
+ * values in the same order (electron/ipc/export-render/audio-mix.ts), with the
+ * StereoPanner matrix shared via lib/audioPan.ts.
  */
 
 import { memo, useRef, useEffect, useMemo } from 'react';
 import type { AudioClip, MusicClip } from '@/types/editor.types';
 import { useCachedAssetUrlById } from '@/shared/hooks/useCachedAssetUrl';
+import { interpolateKeyframes } from '@/shared/lib/utils/effectRenderer';
+import { clampPan, dbToLinear } from '@/features/video-editor/lib/audioPan';
 
 interface AudioPlayerProps {
   clip: AudioClip | MusicClip;
@@ -35,6 +42,7 @@ export const AudioPlayer = memo(function AudioPlayer({
   const eqMidRef = useRef<BiquadFilterNode | null>(null);
   const eqHighRef = useRef<BiquadFilterNode | null>(null);
   const compressorRef = useRef<DynamicsCompressorNode | null>(null);
+  const pannerRef = useRef<StereoPannerNode | null>(null);
 
   const { url: audioUrl } = useCachedAssetUrlById(
     clip.assetId,
@@ -51,7 +59,16 @@ export const AudioPlayer = memo(function AudioPlayer({
     return (clip as AudioClip).effects.filter((e) => e.enabled && e.type === 'audio-effect');
   }, [clip]);
 
-  const needsWebAudio = clip.fadeIn > 0 || clip.fadeOut > 0 || audioEffects.length > 0;
+  // Pan / gain / volume keyframes exist only on AudioClip (not MusicClip).
+  const pan = clampPan('pan' in clip ? clip.pan : undefined);
+  const gainLinear = dbToLinear('gain' in clip ? clip.gain : undefined);
+  const volumeKeyframes = useMemo(
+    () => ('keyframes' in clip ? (clip.keyframes ?? []).filter((k) => k.property === 'volume') : []),
+    [clip],
+  );
+
+  const needsWebAudio = clip.fadeIn > 0 || clip.fadeOut > 0 || audioEffects.length > 0 ||
+    pan !== 0 || gainLinear !== 1 || volumeKeyframes.length > 0;
 
   // Set up Web Audio context with DSP chain
   useEffect(() => {
@@ -84,15 +101,24 @@ export const AudioPlayer = memo(function AudioPlayer({
       // Create compressor
       compressorRef.current = ctx.createDynamicsCompressor();
 
-      // Chain: source → gain → eqLow → eqMid → eqHigh → compressor → destination
+      // Stereo pan (same matrix as the export's pan filter)
+      pannerRef.current = ctx.createStereoPanner();
+
+      // Chain: source → gain → eqLow → eqMid → eqHigh → compressor → panner → destination
       sourceNodeRef.current.connect(gainNodeRef.current);
       gainNodeRef.current.connect(eqLowRef.current);
       eqLowRef.current.connect(eqMidRef.current);
       eqMidRef.current.connect(eqHighRef.current);
       eqHighRef.current.connect(compressorRef.current);
-      compressorRef.current.connect(ctx.destination);
+      compressorRef.current.connect(pannerRef.current);
+      pannerRef.current.connect(ctx.destination);
     }
+    // No teardown here: a media element can be wired to a context only once,
+    // so the graph lives until unmount even if the DSP need goes away.
+  }, [needsWebAudio]);
 
+  // Close the AudioContext on unmount to release system audio resources
+  useEffect(() => {
     return () => {
       // Close AudioContext on unmount to release system audio resources
       if (audioCtxRef.current) {
@@ -104,9 +130,15 @@ export const AudioPlayer = memo(function AudioPlayer({
         eqMidRef.current = null;
         eqHighRef.current = null;
         compressorRef.current = null;
+        pannerRef.current = null;
       }
     };
-  }, [needsWebAudio]);
+  }, []);
+
+  // Apply stereo pan
+  useEffect(() => {
+    if (pannerRef.current) pannerRef.current.pan.value = pan;
+  }, [pan, needsWebAudio]);
 
   // Apply audio effect parameters
   useEffect(() => {
@@ -175,7 +207,9 @@ export const AudioPlayer = memo(function AudioPlayer({
     const clipOffset = currentTime - clip.startTime;
     const clipDuration = clip.endTime - clip.startTime;
     const clipMuted = 'muted' in clip ? clip.muted : false;
-    const baseVolume = clipMuted || isMuted ? 0 : volume * clip.volume * trackVolume;
+    // Volume keyframes replace the clip volume (same rule as the video clip).
+    const clipVolume = interpolateKeyframes(volumeKeyframes, 'volume', clipOffset) ?? clip.volume;
+    const baseVolume = clipMuted || isMuted ? 0 : volume * clipVolume * trackVolume * gainLinear;
 
     let gain = baseVolume;
     if (clip.fadeIn > 0 && clipOffset < clip.fadeIn) {
@@ -186,7 +220,7 @@ export const AudioPlayer = memo(function AudioPlayer({
     }
 
     gainNodeRef.current.gain.setTargetAtTime(gain, audioCtxRef.current.currentTime, 0.05);
-  }, [currentTime, isActive, clip, volume, isMuted, trackVolume]);
+  }, [currentTime, isActive, clip, volume, isMuted, trackVolume, volumeKeyframes, gainLinear]);
 
   // Play/pause the audio element only when the active/playing state flips.
   // Intentionally NOT dependent on `currentTime`: during natural playback the

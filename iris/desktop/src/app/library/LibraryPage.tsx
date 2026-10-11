@@ -2,12 +2,18 @@
  * LibraryPage — Public community library (Iris design)
  */
 
-import { memo, useCallback, useEffect, useState, useRef } from 'react';
-import { Library, RefreshCw, X, Play } from 'lucide-react';
+import { memo, useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useShortcutLayer } from '@/shared/lib/shortcuts';
+import { useUIStore } from '@/shared/stores/ui.store';
+import { useImageStore } from '@/features/images/stores/image.store';
+import { useVideoStore } from '@/features/videos/stores/video.store';
+import { Library, RefreshCw, X, Play, Search } from 'lucide-react';
 import {
   fetchPublicLibraryItems,
   type PublicLibraryItem,
 } from '@/shared/api/public-library.api';
+import { filterLibraryItems } from '@/features/library/lib/publicLibrarySearch';
 
 type FilterOption = 'ALL' | 'IMAGE' | 'VIDEO';
 
@@ -78,16 +84,22 @@ const LibraryItemCard = memo(function LibraryItemCard({ item, onClick }: Library
 interface DetailModalProps {
   item: PublicLibraryItem;
   onClose: () => void;
+  onPrev?: () => void;
+  onNext?: () => void;
+  onRemix: (item: PublicLibraryItem) => void;
 }
 
-const DetailModal = memo(function DetailModal({ item, onClose }: DetailModalProps) {
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
-  }, [onClose]);
+const DetailModal = memo(function DetailModal({ item, onClose, onPrev, onNext, onRemix }: DetailModalProps) {
+  // Modal layer: blocks page/global shortcuts underneath while it is open.
+  useShortcutLayer(
+    'modal',
+    [
+      { keys: 'Escape', run: onClose },
+      { keys: 'ArrowLeft', run: () => (onPrev ? onPrev() : false) },
+      { keys: 'ArrowRight', run: () => (onNext ? onNext() : false) },
+    ],
+    { blocking: true },
+  );
 
   return (
     <div className="dt-lightbox-backdrop" onClick={onClose}>
@@ -121,8 +133,7 @@ const DetailModal = memo(function DetailModal({ item, onClose }: DetailModalProp
             )}
           </div>
           <div className="flex items-center gap-2 mt-4">
-            <button className="btn btn-primary">Remix</button>
-            <button className="btn">Save</button>
+            <button className="btn btn-primary" onClick={() => onRemix(item)}>Remix</button>
           </div>
         </div>
       </div>
@@ -131,7 +142,9 @@ const DetailModal = memo(function DetailModal({ item, onClose }: DetailModalProp
 });
 
 export const LibraryPage = memo(function LibraryPage() {
+  const { t } = useTranslation('common');
   const [items, setItems] = useState<PublicLibraryItem[]>([]);
+  const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
@@ -139,6 +152,32 @@ export const LibraryPage = memo(function LibraryPage() {
   const [filterBy, setFilterBy] = useState<FilterOption>('ALL');
   const [selectedItem, setSelectedItem] = useState<PublicLibraryItem | null>(null);
   const loaderRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  // The list endpoint has no search parameter: filter what has been loaded.
+  const isSearching = query.trim().length > 0;
+  const visibleItems = useMemo(() => filterLibraryItems(items, query), [items, query]);
+  const selectedIndex = selectedItem ? visibleItems.findIndex((i) => i.id === selectedItem.id) : -1;
+  const clearSearch = useCallback(() => {
+    setQuery('');
+    searchRef.current?.focus();
+  }, []);
+  const setCurrentPage = useUIStore((s) => s.setCurrentPage);
+
+  // Remix: start a new generation from the shared item's prompt.
+  const handleRemix = useCallback(
+    (item: PublicLibraryItem) => {
+      const prompt = item.prompt ?? '';
+      if (item.assetType === 'VIDEO') {
+        useVideoStore.getState().setPrompt(prompt);
+        setCurrentPage('videos');
+      } else {
+        useImageStore.getState().setPrompt(prompt);
+        setCurrentPage('images');
+      }
+      setSelectedItem(null);
+    },
+    [setCurrentPage],
+  );
 
   const fetchItems = useCallback(
     async (nextPage: number, filter: FilterOption, append: boolean) => {
@@ -169,8 +208,10 @@ export const LibraryPage = memo(function LibraryPage() {
     fetchItems(1, filterBy, false);
   }, [filterBy, fetchItems]);
 
+  // Infinite scroll pauses while searching, so a narrow filter does not page
+  // through the whole library behind the user's back ("Load more" instead).
   useEffect(() => {
-    if (!loaderRef.current) return;
+    if (!loaderRef.current || isSearching) return;
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
@@ -181,7 +222,7 @@ export const LibraryPage = memo(function LibraryPage() {
     );
     observer.observe(loaderRef.current);
     return () => observer.disconnect();
-  }, [hasMore, isLoadingMore, page, filterBy, fetchItems]);
+  }, [hasMore, isLoadingMore, page, filterBy, fetchItems, isSearching]);
 
   const handleRefresh = useCallback(() => {
     fetchItems(1, filterBy, false);
@@ -223,10 +264,67 @@ export const LibraryPage = memo(function LibraryPage() {
             </button>
           ))}
         </div>
+        <div className="relative" style={{ width: 260 }}>
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5"
+            style={{ color: 'var(--text-4)' }}
+          />
+          <input
+            ref={searchRef}
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape' && query) {
+                e.preventDefault();
+                setQuery('');
+              }
+            }}
+            placeholder={t('librarySearch.placeholder')}
+            aria-label={t('librarySearch.label')}
+            className="iris-input [&::-webkit-search-cancel-button]:appearance-none"
+            style={{ paddingLeft: 32, paddingRight: 32, height: 32 }}
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={clearSearch}
+              aria-label={t('librarySearch.clear')}
+              title={t('librarySearch.clear')}
+              className="absolute right-2 top-1/2 -translate-y-1/2"
+              style={{ color: 'var(--text-4)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
         <span className="t-eyebrow" style={{ marginLeft: 'auto' }}>
-          {items.length} {items.length === 1 ? 'item' : 'items'}
+          {isSearching
+            ? t('librarySearch.countFiltered', { shown: visibleItems.length, total: items.length })
+            : `${items.length} ${items.length === 1 ? 'item' : 'items'}`}
         </span>
       </div>
+
+      {isSearching && !isLoading && (
+        <div
+          data-testid="library-search-scope"
+          className="flex items-center gap-3 mb-4"
+          style={{ fontSize: 12, color: 'var(--text-3)', marginTop: -12 }}
+        >
+          <span>{t('librarySearch.scope', { count: items.length })}</span>
+          {hasMore && (
+            <button
+              type="button"
+              className="btn"
+              onClick={() => fetchItems(page + 1, filterBy, true)}
+              disabled={isLoadingMore}
+            >
+              {isLoadingMore && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+              {t('librarySearch.loadMore')}
+            </button>
+          )}
+        </div>
+      )}
 
       {isLoading ? (
         <div
@@ -240,6 +338,20 @@ export const LibraryPage = memo(function LibraryPage() {
               style={{ aspectRatio: '1', borderRadius: 16 }}
             />
           ))}
+        </div>
+      ) : isSearching && visibleItems.length === 0 && items.length > 0 ? (
+        <div
+          data-testid="library-search-empty"
+          className="iris-card flex flex-col items-center justify-center text-center"
+          style={{ padding: 48 }}
+        >
+          <Search className="w-10 h-10 mb-3" style={{ color: 'var(--text-4)' }} />
+          <p style={{ fontSize: 13.5, color: 'var(--text-2)', marginBottom: 12 }}>
+            {t('librarySearch.noResults', { query: query.trim() })}
+          </p>
+          <button type="button" className="btn" onClick={clearSearch}>
+            {t('librarySearch.clear')}
+          </button>
         </div>
       ) : items.length === 0 ? (
         <div
@@ -255,7 +367,7 @@ export const LibraryPage = memo(function LibraryPage() {
             className="grid"
             style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10 }}
           >
-            {items.map((item) => (
+            {visibleItems.map((item) => (
               <LibraryItemCard key={item.id} item={item} onClick={setSelectedItem} />
             ))}
           </div>
@@ -275,7 +387,17 @@ export const LibraryPage = memo(function LibraryPage() {
       )}
 
       {selectedItem && (
-        <DetailModal item={selectedItem} onClose={() => setSelectedItem(null)} />
+        <DetailModal
+          item={selectedItem}
+          onClose={() => setSelectedItem(null)}
+          onPrev={selectedIndex > 0 ? () => setSelectedItem(visibleItems[selectedIndex - 1]) : undefined}
+          onNext={
+            selectedIndex >= 0 && selectedIndex < visibleItems.length - 1
+              ? () => setSelectedItem(visibleItems[selectedIndex + 1])
+              : undefined
+          }
+          onRemix={handleRemix}
+        />
       )}
     </div>
   );

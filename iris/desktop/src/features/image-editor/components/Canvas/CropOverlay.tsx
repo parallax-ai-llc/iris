@@ -1,11 +1,17 @@
 /**
  * CropOverlay - Draggable crop region overlay for image editor
- * Displays on top of the canvas when in crop mode
+ * Displays on top of the canvas when in crop mode.
+ *
+ * Like the other canvas overlays, pointer positions go through
+ * `screenToImage(..., rotation, flip)`, and the crop box is drawn inside a
+ * frame with the canvas transform (pan, zoom, rotation, flip), so the box
+ * stays on the image pixels it will crop when the view is rotated or flipped.
  */
 
 import { memo, useCallback, useState, useEffect } from 'react';
 import { useImageEditorStore, CropData } from '@/features/image-editor/stores/imageEditor.store';
 import { rectFromDrag } from '@/features/image-editor/lib/cropGeometry';
+import { screenToImage as screenToImageCoords } from '@/features/image-editor/canvas/canvasEngine';
 
 interface CropOverlayProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
@@ -25,7 +31,7 @@ export const CropOverlay = memo(function CropOverlay({
   zoom,
   panOffset,
 }: CropOverlayProps) {
-  const { cropData, cropAspectRatio, setCropData } = useImageEditorStore();
+  const { cropData, cropAspectRatio, setCropData, rotation, flipHorizontal, flipVertical } = useImageEditorStore();
 
   // Local state for dragging
   const [isDragging, setIsDragging] = useState(false);
@@ -45,56 +51,41 @@ export const CropOverlay = memo(function CropOverlay({
     return w / h;
   }, [cropAspectRatio]);
 
-  // Convert screen coordinates to image coordinates
+  // Convert screen (client) coordinates to image coordinates (zoom, pan, rotation, flip)
   const screenToImage = useCallback(
     (screenX: number, screenY: number): { x: number; y: number } => {
       if (!containerRef.current) return { x: 0, y: 0 };
-
       const rect = containerRef.current.getBoundingClientRect();
-      const centerX = rect.width / 2;
-      const centerY = rect.height / 2;
-
-      // Calculate image position (centered with pan offset)
-      const imageScreenX = centerX + panOffset.x - (imageDimensions.width * scale) / 2;
-      const imageScreenY = centerY + panOffset.y - (imageDimensions.height * scale) / 2;
-
-      // Convert to image coordinates
-      const x = (screenX - rect.left - imageScreenX) / scale;
-      const y = (screenY - rect.top - imageScreenY) / scale;
-
-      return { x, y };
-    },
-    [containerRef, panOffset, imageDimensions, scale]
-  );
-
-  // Check if mouse is inside crop area
-  const isInsideCrop = useCallback(
-    (e: React.MouseEvent): boolean => {
-      if (!cropData || !containerRef.current) return false;
-
-      const rect = containerRef.current.getBoundingClientRect();
-      const centerX = rect.width / 2;
-      const centerY = rect.height / 2;
-
-      const imageScreenX = centerX + panOffset.x - (imageDimensions.width * scale) / 2;
-      const imageScreenY = centerY + panOffset.y - (imageDimensions.height * scale) / 2;
-
-      const cropScreenX = imageScreenX + cropData.x * scale;
-      const cropScreenY = imageScreenY + cropData.y * scale;
-      const cropScreenW = cropData.width * scale;
-      const cropScreenH = cropData.height * scale;
-
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-
-      return (
-        mouseX >= cropScreenX &&
-        mouseX <= cropScreenX + cropScreenW &&
-        mouseY >= cropScreenY &&
-        mouseY <= cropScreenY + cropScreenH
+      return screenToImageCoords(
+        screenX - rect.left,
+        screenY - rect.top,
+        imageDimensions.width,
+        imageDimensions.height,
+        rect.width,
+        rect.height,
+        zoom,
+        panOffset,
+        rotation,
+        flipHorizontal,
+        flipVertical,
       );
     },
-    [cropData, containerRef, panOffset, imageDimensions, scale]
+    [containerRef, panOffset, imageDimensions, zoom, rotation, flipHorizontal, flipVertical]
+  );
+
+  // Check if the pointer is inside the crop area (image coordinates)
+  const isInsideCrop = useCallback(
+    (e: React.MouseEvent): boolean => {
+      if (!cropData) return false;
+      const p = screenToImage(e.clientX, e.clientY);
+      return (
+        p.x >= cropData.x &&
+        p.x <= cropData.x + cropData.width &&
+        p.y >= cropData.y &&
+        p.y <= cropData.y + cropData.height
+      );
+    },
+    [cropData, screenToImage]
   );
 
   // Initialize crop data on first drag
@@ -153,8 +144,11 @@ export const CropOverlay = memo(function CropOverlay({
         return;
       }
 
-      const deltaX = (e.clientX - dragStart.x) / scale;
-      const deltaY = (e.clientY - dragStart.y) / scale;
+      // Delta in image space (rotation / flip aware)
+      const start = screenToImage(dragStart.x, dragStart.y);
+      const now = screenToImage(e.clientX, e.clientY);
+      const deltaX = now.x - start.x;
+      const deltaY = now.y - start.y;
       const aspectRatio = getAspectRatio();
 
       if (isDragging) {
@@ -226,7 +220,6 @@ export const CropOverlay = memo(function CropOverlay({
     [
       initialCrop,
       dragStart,
-      scale,
       isDragging,
       isResizing,
       resizeHandle,
@@ -259,26 +252,27 @@ export const CropOverlay = memo(function CropOverlay({
     }
   }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
 
-  // Calculate crop overlay position in screen coordinates
-  const getCropScreenRect = useCallback(() => {
-    if (!cropData || !containerRef.current) return null;
-
+  // The image frame on screen: same transform as the canvas (EditorCanvas)
+  const getImageFrameStyle = (): React.CSSProperties | null => {
+    if (!containerRef.current) return null;
     const rect = containerRef.current.getBoundingClientRect();
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-
-    const imageScreenX = centerX + panOffset.x - (imageDimensions.width * scale) / 2;
-    const imageScreenY = centerY + panOffset.y - (imageDimensions.height * scale) / 2;
-
+    const width = imageDimensions.width * scale;
+    const height = imageDimensions.height * scale;
     return {
-      left: imageScreenX + cropData.x * scale,
-      top: imageScreenY + cropData.y * scale,
-      width: cropData.width * scale,
-      height: cropData.height * scale,
+      left: rect.width / 2 + panOffset.x - width / 2,
+      top: rect.height / 2 + panOffset.y - height / 2,
+      width,
+      height,
+      transform: `rotate(${rotation}deg) scaleX(${flipHorizontal ? -1 : 1}) scaleY(${flipVertical ? -1 : 1})`,
+      transformOrigin: 'center center',
     };
-  }, [cropData, containerRef, panOffset, imageDimensions, scale]);
+  };
 
-  const cropRect = getCropScreenRect();
+  // Crop box inside the frame (image coordinates x zoom)
+  const cropRect = cropData
+    ? { left: cropData.x * scale, top: cropData.y * scale, width: cropData.width * scale, height: cropData.height * scale }
+    : null;
+  const frameStyle = cropRect ? getImageFrameStyle() : null;
 
   // Render resize handles
   const renderHandles = () => {
@@ -331,74 +325,31 @@ export const CropOverlay = memo(function CropOverlay({
       style={{ cursor: isDragging ? 'move' : isResizing ? 'crosshair' : 'crosshair' }}
       onMouseDown={handleMouseDown}
     >
-      {/* Dark overlay mask */}
-      {cropRect && cropRect.width > 0 && cropRect.height > 0 && (
-        <>
-          {/* Top */}
+      {cropRect && frameStyle && cropRect.width > 0 && cropRect.height > 0 && (
+        <div className="absolute pointer-events-none" style={frameStyle} data-testid="crop-frame">
+          {/* Crop region; its huge shadow darkens everything outside it */}
           <div
-            className="absolute bg-black/50"
+            className="absolute border-2 border-white pointer-events-auto"
             style={{
-              left: 0,
-              top: 0,
-              right: 0,
-              height: cropRect.top,
-            }}
-          />
-          {/* Bottom */}
-          <div
-            className="absolute bg-black/50"
-            style={{
-              left: 0,
-              top: cropRect.top + cropRect.height,
-              right: 0,
-              bottom: 0,
-            }}
-          />
-          {/* Left */}
-          <div
-            className="absolute bg-black/50"
-            style={{
-              left: 0,
+              left: cropRect.left,
               top: cropRect.top,
-              width: cropRect.left,
+              width: cropRect.width,
               height: cropRect.height,
+              cursor: 'move',
+              boxShadow: '0 0 0 100000px rgba(0, 0, 0, 0.5)',
             }}
-          />
-          {/* Right */}
-          <div
-            className="absolute bg-black/50"
-            style={{
-              left: cropRect.left + cropRect.width,
-              top: cropRect.top,
-              right: 0,
-              height: cropRect.height,
-            }}
-          />
-        </>
-      )}
+          >
+            {/* Grid lines (rule of thirds) */}
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute left-1/3 top-0 bottom-0 w-px bg-white/30" />
+              <div className="absolute left-2/3 top-0 bottom-0 w-px bg-white/30" />
+              <div className="absolute top-1/3 left-0 right-0 h-px bg-white/30" />
+              <div className="absolute top-2/3 left-0 right-0 h-px bg-white/30" />
+            </div>
 
-      {/* Crop region */}
-      {cropRect && cropRect.width > 0 && cropRect.height > 0 && (
-        <div
-          className="absolute border-2 border-white shadow-lg"
-          style={{
-            left: cropRect.left,
-            top: cropRect.top,
-            width: cropRect.width,
-            height: cropRect.height,
-            cursor: 'move',
-          }}
-        >
-          {/* Grid lines (rule of thirds) */}
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute left-1/3 top-0 bottom-0 w-px bg-white/30" />
-            <div className="absolute left-2/3 top-0 bottom-0 w-px bg-white/30" />
-            <div className="absolute top-1/3 left-0 right-0 h-px bg-white/30" />
-            <div className="absolute top-2/3 left-0 right-0 h-px bg-white/30" />
+            {/* Resize handles */}
+            {renderHandles()}
           </div>
-
-          {/* Resize handles */}
-          {renderHandles()}
         </div>
       )}
     </div>

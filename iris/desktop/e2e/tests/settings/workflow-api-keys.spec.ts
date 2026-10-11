@@ -33,7 +33,8 @@ test.describe('Settings — Workflow API Keys (BYOK)', () => {
       timeout: 15_000,
     });
 
-    // Scroll the BYOK section into view (it's below the account section).
+    // Settings is tabbed: open the BYOK tab (the last tab used is remembered).
+    await page.locator('[role="tab"]', { hasText: 'Workflow API Keys' }).first().click();
     const section = page.locator('h2:has-text("Workflow API Keys")');
     await section.scrollIntoViewIfNeeded().catch(() => {});
     assertStep(

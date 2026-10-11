@@ -9,6 +9,7 @@ import {
   openFromMenu,
   openCloudLike,
   stubSaveDialog,
+  stubSaveDialogCancel,
   activeDoc,
   tabsSnapshot,
   tabCount,
@@ -160,6 +161,70 @@ test.describe('Image editor: edits and dirty state', () => {
 
     const asked = await warned(page, () => closeViaX(page, A.name));
     expect.soft(asked, 'saved document closes silently').toBe(false);
+  });
+
+  // 4b --------------------------------------------------------------------
+  /** Close an edited tab with "Save and Close", then press Save in the Save Project dialog. */
+  async function saveAndCloseVia(page: import('playwright').Page, name: string, choose?: () => Promise<void>) {
+    await closeViaX(page, name);
+    expect(await unsavedDialogVisible(page), 'edited tab asks before closing').toBe(true);
+    await page.getByRole('button', { name: 'Save and Close' }).click();
+    await page.locator('text=Save Project').first().waitFor({ state: 'visible', timeout: 5_000 });
+    if (choose) await choose();
+    await page.getByRole('button', { name: 'Save', exact: true }).last().click();
+  }
+
+  test('4b. Save and Close: a cancelled save dialog keeps the tab and its edit', async ({ page, electronApp }) => {
+    await stubSaveDialogCancel(electronApp);
+    await openCloudLike(page, 'cloud-4b', GREEN);
+    await brushStroke(page);
+    const before = await activeDoc(page);
+    expect(before.isDirty).toBe(true);
+
+    await saveAndCloseVia(page, 'cloud-4b'); // PSD + Local (defaults) -> native dialog answers Cancel
+    await page.waitForTimeout(1_500);
+
+    expect(await tabCount(page), 'nothing was saved, so the tab must stay open').toBe(1);
+    const after = await activeDoc(page);
+    expect(after.isDirty).toBe(true);
+    expect(after.historyLength).toBe(before.historyLength);
+
+    // the dropped "close" must not fire on a later, successful save either
+    const out = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'iris-e2e-save-')), 'later.psd');
+    await stubSaveDialog(electronApp, out);
+    await blurActive(page);
+    await page.keyboard.press('Control+s');
+    await page.getByRole('button', { name: 'Save', exact: true }).last().click();
+    await expect.poll(() => fs.existsSync(out), { timeout: 15_000 }).toBe(true);
+    await page.waitForTimeout(500);
+    expect(await tabCount(page), 'a plain save never closes the tab').toBe(1);
+  });
+
+  test('4c. Save and Close: cancelling the cloud overwrite confirmation keeps the tab', async ({ page }) => {
+    await openCloudLike(page, 'cloud-4c', BLUE);
+    await brushStroke(page);
+
+    await saveAndCloseVia(page, 'cloud-4c', async () => {
+      await page.locator('button', { has: page.locator('span:text-is("Image")') }).first().click();
+      await page.locator('button', { has: page.locator('span:text-is("Cloud")') }).first().click();
+    });
+    await page.locator('text=Overwrite Original?').waitFor({ state: 'visible', timeout: 5_000 });
+    await page.getByRole('button', { name: 'Cancel', exact: true }).last().click();
+    await page.waitForTimeout(800);
+
+    expect(await tabCount(page), 'overwrite cancelled: the tab stays').toBe(1);
+    expect((await activeDoc(page)).isDirty).toBe(true);
+  });
+
+  test('4d. Save and Close: a successful save closes the tab (positive control)', async ({ page, electronApp }) => {
+    const out = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'iris-e2e-save-')), 'closed.psd');
+    await stubSaveDialog(electronApp, out);
+    await openCloudLike(page, 'cloud-4d', RED);
+    await brushStroke(page);
+
+    await saveAndCloseVia(page, 'cloud-4d');
+    await expect.poll(() => fs.existsSync(out), { timeout: 15_000 }).toBe(true);
+    await expect.poll(() => tabCount(page), { timeout: 5_000 }).toBe(0);
   });
 
   // 5 ---------------------------------------------------------------------

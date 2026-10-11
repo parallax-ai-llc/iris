@@ -2,26 +2,25 @@
  * UpscalePanel - AI upscaling settings
  */
 
-import { memo, useCallback, useState, useRef, useEffect } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { cn } from '@/shared/lib/utils';
 import { useImageEditorStore } from '@/features/image-editor/stores/imageEditor.store';
 import { Info } from 'lucide-react';
-import { upscaleImage, getAssetStatus } from '@/shared/api/image.api';
+import { upscaleImage } from '@/shared/api/image.api';
 import { toast } from '@/shared/lib/toast';
 import { formatTokenCost } from '@/shared/hooks/useTokenCost';
 import { useImageEditTokenCost } from '@/shared/hooks/useImageEditTokenCost';
 import { useAIOperation } from '@/features/image-editor/hooks/useAIOperation';
 import { MergeLayersDialog } from '@/features/image-editor/components/shared/MergeLayersDialog';
+import { runAIEditJob, addResultLayerOrOpen } from '@/features/image-editor/lib/aiEditJob';
+import { useMountedRef } from '@/features/image-editor/hooks/useMountedRef';
 import { Coins } from 'lucide-react';
 
 export const UpscalePanel = memo(function UpscalePanel() {
-  const { sourceAsset, upscaleSettings, setUpscaleSettings, isProcessing, setProcessing, setProcessingProgress, openEditor, addLayerFromUrl, layers } = useImageEditorStore();
+  const { sourceAsset, upscaleSettings, setUpscaleSettings, isProcessing, layers } = useImageEditorStore();
   const [error, setError] = useState<string | null>(null);
   const [addAsNewLayer, setAddAsNewLayer] = useState(true);
-  const isMountedRef = useRef(true);
-  useEffect(() => {
-    return () => { isMountedRef.current = false; };
-  }, []);
+  const isMountedRef = useMountedRef();
   // 2x → Recraft crisp, 4x → Recraft creative (image.api upscaleImage); priced by that model.
   const { cost: tokenCost, isLoading: costLoading } = useImageEditTokenCost('upscale', {
     upscaleType: upscaleSettings.scale === 4 ? 'creative' : 'crisp',
@@ -39,67 +38,24 @@ export const UpscalePanel = memo(function UpscalePanel() {
     const assetId = await prepareAssetForAI();
     if (!assetId) return;
 
-    setProcessing(true, `Upscaling image ${upscaleSettings.scale}×...`);
+    const scale = upscaleSettings.scale;
 
     try {
-      // Start upscale process
-      const result = await upscaleImage(assetId, upscaleSettings.scale);
-      
-      if (!result) {
-        throw new Error('Failed to start upscaling');
-      }
-
-      // Poll for completion
-      let attempts = 0;
-      const maxAttempts = 60; // 2 minutes max
-      
-      while (attempts < maxAttempts) {
-        if (!isMountedRef.current) return;
-        const status = await getAssetStatus(result.id);
-
-        if (!status) {
-          throw new Error('Failed to get processing status');
-        }
-
-        if (status.status === 'READY' || status.status === 'COMPLETED') {
-          // Success
-          if (!isMountedRef.current) return;
-          setProcessing(false);
-          if (status.asset) {
-            if (addAsNewLayer && layers.length > 0) {
-              // Add as new layer (Photoshop-style)
-              const imageUrl = status.asset.previewUrl || status.asset.publicUrl;
-              if (imageUrl) {
-                await addLayerFromUrl(imageUrl, `Upscaled ${upscaleSettings.scale}×`);
-                toast.success(`Upscaled ${upscaleSettings.scale}× - added as new layer`);
-              }
-            } else {
-              // Replace entire editor with new asset
-              openEditor(status.asset);
-            }
-          }
-          return;
-        }
-
-        if (status.status === 'FAILED' || status.status === 'ERROR') {
-          throw new Error(status.error || 'Upscaling failed');
-        }
-
-        // Update progress
-        if (!isMountedRef.current) return;
-        setProcessingProgress(Math.min(90, (attempts / maxAttempts) * 100));
-
-        // Wait before next poll
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        attempts++;
-      }
-
-      throw new Error('Processing timeout');
+      // Bound to this tab: keeps running (and lands here) if the panel closes or the tab changes
+      await runAIEditJob({
+        message: `Upscaling image ${scale}×...`,
+        start: () => upscaleImage(assetId, scale),
+        apply: async (asset, store) => {
+          const placed = await addResultLayerOrOpen(asset, store, { addAsLayer: addAsNewLayer, layerName: `Upscaled ${scale}×` });
+          if (placed === 'layer') toast.success(`Upscaled ${scale}× - added as new layer`);
+        },
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upscaling failed');
-      setProcessing(false);
+      const message = err instanceof Error ? err.message : 'Upscaling failed';
+      if (isMountedRef.current) setError(message);
+      else toast.error(`Upscale: ${message}`);
     }
-  }, [sourceAsset?.id, upscaleSettings.scale, setProcessing, setProcessingProgress, openEditor, addAsNewLayer, layers.length, addLayerFromUrl, prepareAssetForAI]);
+  }, [sourceAsset?.id, upscaleSettings.scale, addAsNewLayer, prepareAssetForAI, isMountedRef]);
 
   return (
     <div className="p-4 space-y-6">

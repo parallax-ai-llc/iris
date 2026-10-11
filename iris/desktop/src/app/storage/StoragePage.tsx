@@ -337,11 +337,25 @@ const FileItem = memo(function FileItem({
     );
   }
 
+  // A div with button semantics: the row contains its own Delete <button>, and a
+  // <button> inside a <button> is invalid HTML (React logs it, browsers re-parent it).
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       className="dt-file-row"
       onDoubleClick={handleDoubleClick}
       onClick={handleCheckboxClick}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleDoubleClick();
+        } else if (e.key === ' ') {
+          e.preventDefault();
+          onToggleSelect(file.path);
+        }
+      }}
       style={
         isSelected
           ? { background: 'var(--iris-grad-soft)' }
@@ -376,7 +390,7 @@ const FileItem = memo(function FileItem({
           <Trash2 className="w-3.5 h-3.5" />
         </button>
       </div>
-    </button>
+    </div>
   );
 });
 

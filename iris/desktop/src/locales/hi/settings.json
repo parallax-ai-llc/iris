@@ -1,12 +1,23 @@
 {
   "title": "सेटिंग्स",
+  "tabsLabel": "सेटिंग्स अनुभाग",
+  "appearance": {
+    "theme": "थीम",
+    "themeDesc": "चुनें कि Iris कैसा दिखे।",
+    "dark": "डार्क",
+    "light": "लाइट",
+    "system": "सिस्टम",
+    "editorsNote": "इमेज, वीडियो और वर्कफ़्लो एडिटर हमेशा डार्क रहते हैं। सिस्टम आपके ऑपरेटिंग सिस्टम की सेटिंग का पालन करता है।"
+  },
   "sections": {
     "account": "खाता",
     "storage": "स्टोरेज",
     "notifications": "सूचनाएं",
     "keyboard": "कीबोर्ड शॉर्टकट",
     "about": "के बारे में",
-    "language": "भाषा"
+    "language": "भाषा",
+    "appearance": "रूप",
+    "apiKeys": "वर्कफ़्लो API कुंजियाँ"
   },
   "account": {
     "notLoggedIn": "लॉग इन नहीं किया है"
@@ -30,11 +41,13 @@
     "updatesDesc": "जब कोई नया संस्करण उपलब्ध हो तो सूचित करें"
   },
   "keyboard": {
-    "newGeneration": "नया जनरेशन",
-    "saveDownload": "सहेजें/डाउनलोड करें",
+    "goToPage": "साइडबार पेज पर जाएँ",
+    "backForward": "पेजों के बीच पीछे / आगे जाएँ",
     "openSettings": "सेटिंग्स खोलें",
+    "toggleAssistant": "असिस्टेंट खोलें या बंद करें",
     "closeModal": "मोडल बंद करें",
-    "navigateGallery": "गैलरी नेविगेट करें"
+    "previewItems": "प्रीव्यू में पिछला / अगला आइटम",
+    "editorNote": "एडिटर के शॉर्टकट एडिटर मेनू में हर कमांड के बगल में दिखते हैं।"
   },
   "about": {
     "irisDesktop": "Iris Desktop",
@@ -47,7 +60,9 @@
     "termsDesc": "उपयोग की शर्तें और नियम",
     "checkUpdates": "अपडेट देखें",
     "latestVersion": "आप नवीनतम संस्करण पर हैं",
-    "updateCheckFailed": "अपडेट जांचने में विफल"
+    "updateCheckFailed": "अपडेट जांचने में विफल",
+    "updateAvailable": "अपडेट {{version}} उपलब्ध है",
+    "updateCheckBusy": "अपडेट की जाँच पहले से चल रही है"
   },
   "footer": {
     "madeBy": "Parallax AI द्वारा देखभाल के साथ बनाया गया",

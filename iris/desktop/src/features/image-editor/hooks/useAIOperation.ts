@@ -1,12 +1,14 @@
 /**
  * useAIOperation - Shared hook for AI panel operations.
- * Handles layer merging confirmation and flattened asset upload when multiple layers exist.
+ * Decides which asset an AI tool sends (lib/aiSource.ts):
+ *  - several layers: asks to merge (MergeLayersDialog), then uploads the composite
+ *  - one layer, unchanged since opening: the original asset
+ *  - one layer, edited (or a local file / PSD): uploads the current composite
  */
 
 import { useState, useCallback, useRef } from 'react';
 import { useImageEditorStore } from '@/features/image-editor/stores/imageEditor.store';
-import { uploadImage } from '@/shared/api/image.api';
-import { flattenLayersToBlob } from '@/features/image-editor/canvas/layerCompositor';
+import { resolveAIInputAssetId, uploadDocumentComposite } from '@/features/image-editor/lib/aiSource';
 import { toast } from '@/shared/lib/toast';
 import type { MergeLayersDialogProps } from '@/features/image-editor/components/shared/MergeLayersDialog';
 
@@ -25,36 +27,13 @@ export function useAIOperation() {
 
     setIsFlatteningInProgress(true);
     try {
-      const { layers, sourceAsset, canvasWidth: storeW, canvasHeight: storeH } =
-        useImageEditorStore.getState();
-
-      // Use stored canvas dimensions; fall back to layer bounds if unavailable
-      const canvasWidth = storeW > 0 ? storeW : Math.max(...layers.map((l) => l.x + l.width), 1);
-      const canvasHeight = storeH > 0 ? storeH : Math.max(...layers.map((l) => l.y + l.height), 1);
-
-      // Composite all visible layers into a single image
-      const blob = await flattenLayersToBlob(layers, canvasWidth, canvasHeight);
-      const file = new File(
-        [blob],
-        `merged-layers-${Date.now()}.png`,
-        { type: 'image/png' },
-      );
-
-      // Upload the merged image as a temporary asset
-      const storagePath = sourceAsset?.storagePath || 'images';
-      const uploaded = await uploadImage(file, {
-        storagePath,
-        name: 'merged-layers',
-      });
-
-      if (!uploaded?.id) {
-        throw new Error('Failed to upload merged image');
-      }
+      // Composite all visible layers (current document size) and upload it
+      const assetId = await uploadDocumentComposite(useImageEditorStore.getState(), 'merged-layers');
 
       setIsMergeDialogOpen(false);
       pendingRef.current = null;
       toast.success('Layers merged — starting AI processing...');
-      resolve(uploaded.id);
+      resolve(assetId);
     } catch {
       // On error, resolve with null so the caller can handle it
       toast.error('Failed to merge layers');
@@ -79,16 +58,23 @@ export function useAIOperation() {
    * If layers.length >= 2, shows confirmation dialog and flattens + uploads.
    * Returns null if user cancels or an error occurs.
    */
-  const prepareAssetForAI = useCallback((): Promise<string | null> => {
-    const { sourceAsset, layers } = useImageEditorStore.getState();
+  const prepareAssetForAI = useCallback(async (): Promise<string | null> => {
+    const state = useImageEditorStore.getState();
+    const { sourceAsset, layers } = state;
 
     if (!sourceAsset?.id) {
-      return Promise.resolve(null);
+      return null;
     }
 
-    // Single layer or no layers → use the source asset directly
+    // Single layer or no layers → the original asset while unchanged,
+    // otherwise the current document (uploaded)
     if (layers.length < 2) {
-      return Promise.resolve(sourceAsset.id);
+      try {
+        return await resolveAIInputAssetId(state);
+      } catch {
+        toast.error('Failed to upload the current image');
+        return null;
+      }
     }
 
     // Multiple layers → show merge confirmation dialog

@@ -78,19 +78,23 @@ export async function executeActionStep(step: ActionStep): Promise<void> {
       }
       break;
 
-    case 'layer:merge-down':
-      await store.flattenLayers();
+    case 'layer:merge-down': {
+      // Merge Down, not Flatten: recorded steps carry no layer id, so like the
+      // menu command it merges the active layer into the one below.
+      const layerId = typeof p.layerId === 'string' ? p.layerId : store.activeLayerId;
+      if (layerId) await store.mergeLayerDown(layerId);
       break;
+    }
 
     case 'layer:set-opacity':
       if (typeof p.layerId === 'string' && typeof p.opacity === 'number') {
-        store.updateLayer(p.layerId, { opacity: p.opacity });
+        store.setLayerProperties(p.layerId, { opacity: p.opacity });
       }
       break;
 
     case 'layer:set-blend-mode':
       if (typeof p.layerId === 'string' && typeof p.blendMode === 'string') {
-        store.updateLayer(p.layerId, { blendMode: p.blendMode as Parameters<typeof store.updateLayer>[1]['blendMode'] });
+        store.setLayerProperties(p.layerId, { blendMode: p.blendMode as Parameters<typeof store.updateLayer>[1]['blendMode'] });
       }
       break;
 
@@ -98,7 +102,7 @@ export async function executeActionStep(step: ActionStep): Promise<void> {
       if (typeof p.layerId === 'string') {
         const layer = store.layers.find(l => l.id === p.layerId);
         if (layer) {
-          store.updateLayer(p.layerId as string, { visible: !layer.visible });
+          store.setLayerProperties(p.layerId as string, { visible: !layer.visible });
         }
       }
       break;

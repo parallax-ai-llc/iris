@@ -1,12 +1,23 @@
 {
   "title": "Paramètres",
+  "tabsLabel": "Sections des paramètres",
+  "appearance": {
+    "theme": "Thème",
+    "themeDesc": "Choisissez l'apparence d'Iris.",
+    "dark": "Sombre",
+    "light": "Clair",
+    "system": "Système",
+    "editorsNote": "Les éditeurs d'image, de vidéo et de workflow restent toujours sombres. Système suit le réglage de votre système d'exploitation."
+  },
   "sections": {
     "account": "Compte",
     "storage": "Stockage",
     "notifications": "Notifications",
     "keyboard": "Raccourcis clavier",
     "about": "À propos",
-    "language": "Langue"
+    "language": "Langue",
+    "appearance": "Apparence",
+    "apiKeys": "Clés API des workflows"
   },
   "account": {
     "notLoggedIn": "Non connecté"
@@ -30,11 +41,13 @@
     "updatesDesc": "Notifier lorsqu'une nouvelle version est disponible"
   },
   "keyboard": {
-    "newGeneration": "Nouvelle génération",
-    "saveDownload": "Enregistrer/Télécharger",
+    "goToPage": "Aller à une page de la barre latérale",
+    "backForward": "Page précédente / suivante",
     "openSettings": "Ouvrir les paramètres",
+    "toggleAssistant": "Ouvrir ou fermer l'assistant",
     "closeModal": "Fermer la fenêtre",
-    "navigateGallery": "Naviguer dans la galerie"
+    "previewItems": "Élément précédent / suivant dans l'aperçu",
+    "editorNote": "Les raccourcis de l'éditeur sont affichés à côté de chaque commande dans ses menus."
   },
   "about": {
     "irisDesktop": "Iris Desktop",
@@ -47,7 +60,9 @@
     "termsDesc": "Conditions et modalités d'utilisation",
     "checkUpdates": "Rechercher des mises à jour",
     "latestVersion": "Vous utilisez la dernière version",
-    "updateCheckFailed": "Échec de la recherche de mises à jour"
+    "updateCheckFailed": "Échec de la recherche de mises à jour",
+    "updateAvailable": "La mise à jour {{version}} est disponible",
+    "updateCheckBusy": "Une recherche de mise à jour est déjà en cours"
   },
   "footer": {
     "madeBy": "Conçu avec soin par Parallax AI",

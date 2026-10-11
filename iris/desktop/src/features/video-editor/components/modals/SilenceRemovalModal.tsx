@@ -7,7 +7,7 @@
  * Step 3: Review detected silent segments → Remove silence
  */
 
-import { memo, useState, useCallback, useEffect, useMemo } from 'react';
+import { memo, useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   X,
   Volume2,
@@ -227,13 +227,21 @@ export const SilenceRemovalModal = memo(function SilenceRemovalModal({
     };
   }, [isProcessing, setClientProcessing]);
 
+  // Unsubscribe for this modal's own export:progress listener (the channel is
+  // shared with the Export modal — never remove other consumers' listeners).
+  const exportProgressOffRef = useRef<(() => void) | null>(null);
+  const stopExportProgress = useCallback(() => {
+    exportProgressOffRef.current?.();
+    exportProgressOffRef.current = null;
+  }, []);
+
   // Clean up progress listeners on unmount
   useEffect(() => {
     return () => {
       window.electronAPI?.silenceRemoval?.removeProgressListener();
-      window.electronAPI?.videoExport?.removeProgressListener();
+      stopExportProgress();
     };
-  }, []);
+  }, [stopExportProgress]);
 
   // Reset state when modal closes
   useEffect(() => {
@@ -294,13 +302,12 @@ export const SilenceRemovalModal = memo(function SilenceRemovalModal({
       });
 
       // Set up progress listener (export shares the same progress shape)
-      window.electronAPI.videoExport.onProgress((data) => {
+      stopExportProgress();
+      exportProgressOffRef.current = window.electronAPI.videoExport.onProgress((data) => {
         setMergeProgress(data.progress);
       });
 
-      const result = await window.electronAPI.videoExport.start(request);
-
-      window.electronAPI.videoExport.removeProgressListener();
+      const result = await window.electronAPI.videoExport.start(request).finally(stopExportProgress);
 
       if (!result.success || !result.outputPath) {
         setDetectError(
@@ -321,7 +328,7 @@ export const SilenceRemovalModal = memo(function SilenceRemovalModal({
     } finally {
       setIsMerging(false);
     }
-  }, [t]);
+  }, [t, stopExportProgress]);
 
   // ==================== Detect Logic ====================
 
@@ -471,7 +478,7 @@ export const SilenceRemovalModal = memo(function SilenceRemovalModal({
     window.electronAPI?.silenceRemoval?.removeProgressListener();
     // The flatten step runs through the export renderer.
     window.electronAPI?.videoExport?.cancel();
-    window.electronAPI?.videoExport?.removeProgressListener();
+    stopExportProgress();
 
     // Clean up the flattened temp file if any (prerender.cleanup is a generic unlink).
     if (mergedFilePath) {
@@ -482,7 +489,7 @@ export const SilenceRemovalModal = memo(function SilenceRemovalModal({
     setIsRemoving(false);
     setIsMerging(false);
     onClose();
-  }, [mergedFilePath, onClose]);
+  }, [mergedFilePath, onClose, stopExportProgress]);
 
   const handleBack = useCallback(() => {
     if (step === 'review') {

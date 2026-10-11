@@ -122,7 +122,9 @@
     "bugReportError": "Failed to submit bug report",
     "bugReportRateLimit": "Too many reports. Please try again later.",
     "bugReportThankYou": "Thank you for your report! We will review it shortly.",
-    "workWithAgent": "Work with Agent"
+    "workWithAgent": "Work with Agent",
+    "back": "వెనుకకు",
+    "forward": "ముందుకు"
   },
   "editor": {
     "localFileWarning": {
@@ -249,5 +251,14 @@
     "defaults": {
       "projectName": "పేరులేని ప్రాజెక్ట్"
     }
+  },
+  "librarySearch": {
+    "label": "లైబ్రరీలో వెతకండి",
+    "placeholder": "ప్రాంప్ట్‌లు, మోడల్‌లు వెతకండి",
+    "clear": "శోధన తొలగించండి",
+    "scope": "ఇప్పటివరకు లోడ్ అయిన {{count}} అంశాల్లో వెతుకుతోంది",
+    "loadMore": "మరిన్ని అంశాలు లోడ్ చేయండి",
+    "noResults": "లోడ్ అయిన ఏ అంశమూ “{{query}}”కు సరిపోలలేదు",
+    "countFiltered": "{{total}}లో {{shown}} అంశాలు"
   }
 }

@@ -1,12 +1,23 @@
 {
   "title": "Settings",
+  "tabsLabel": "Settings sections",
+  "appearance": {
+    "theme": "Theme",
+    "themeDesc": "Choose how Iris looks.",
+    "dark": "Dark",
+    "light": "Light",
+    "system": "System",
+    "editorsNote": "The image, video and workflow editors always stay dark. System follows your operating system setting."
+  },
   "sections": {
     "account": "Account",
     "storage": "Storage",
     "notifications": "Notifications",
     "keyboard": "Keyboard Shortcuts",
     "about": "About",
-    "language": "Language"
+    "language": "Language",
+    "appearance": "Appearance",
+    "apiKeys": "Workflow API Keys"
   },
   "account": {
     "notLoggedIn": "Not logged in"
@@ -30,11 +41,13 @@
     "updatesDesc": "Notify when a new version is available"
   },
   "keyboard": {
-    "newGeneration": "New generation",
-    "saveDownload": "Save/Download",
+    "goToPage": "Go to sidebar page",
+    "backForward": "Back / forward between pages",
     "openSettings": "Open settings",
+    "toggleAssistant": "Open or close the assistant",
     "closeModal": "Close modal",
-    "navigateGallery": "Navigate gallery"
+    "previewItems": "Previous / next item in the preview",
+    "editorNote": "Editor shortcuts are shown next to each command in the editor menus."
   },
   "about": {
     "irisDesktop": "Iris Desktop",
@@ -47,7 +60,9 @@
     "termsDesc": "Usage terms and conditions",
     "checkUpdates": "Check for Updates",
     "latestVersion": "You are on the latest version",
-    "updateCheckFailed": "Failed to check for updates"
+    "updateCheckFailed": "Failed to check for updates",
+    "updateAvailable": "Update {{version}} is available",
+    "updateCheckBusy": "An update check is already running"
   },
   "footer": {
     "madeBy": "Made with care by Parallax AI",

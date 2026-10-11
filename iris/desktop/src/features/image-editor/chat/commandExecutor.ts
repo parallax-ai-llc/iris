@@ -277,12 +277,12 @@ export async function executeCommand(
     }
 
     case 'setLayerVisibility': {
-      state.updateLayer(command.layerId, { visible: command.visible });
+      state.setLayerProperties(command.layerId, { visible: command.visible });
       break;
     }
 
     case 'setLayerOpacity': {
-      state.updateLayer(command.layerId, { opacity: command.opacity });
+      state.setLayerProperties(command.layerId, { opacity: command.opacity });
       break;
     }
 
@@ -386,14 +386,14 @@ export async function executeCommand(
       if (!BLEND_MODES.includes(command.blendMode)) {
         throw new Error(`Unknown blend mode: ${command.blendMode}`);
       }
-      state.updateLayer(targetId, { blendMode: command.blendMode });
+      state.setLayerProperties(targetId, { blendMode: command.blendMode });
       break;
     }
 
     case 'setLayerLock': {
       const targetId = command.layerId || state.activeLayerId;
       if (!targetId) throw new Error('No layer selected to lock');
-      state.updateLayer(targetId, { locked: command.locked });
+      state.setLayerProperties(targetId, { locked: command.locked });
       break;
     }
 

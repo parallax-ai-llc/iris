@@ -127,6 +127,24 @@ export function dispatchShortcut(e: KeyboardEvent): boolean {
   return false;
 }
 
+/**
+ * True when an enabled layer of `scope` is registered (optionally only
+ * blocking ones). Lets non-keyboard input (mouse back / forward buttons)
+ * respect the same scopes as the keys: e.g. stay inert under an open editor
+ * or modal.
+ */
+export function hasActiveShortcutLayer(
+  scope: ShortcutScope,
+  options: { blocking?: boolean } = {},
+): boolean {
+  return layers.some(
+    (l) =>
+      l.scope === scope &&
+      (!options.blocking || l.blocking) &&
+      (!l.enabled || l.enabled()),
+  );
+}
+
 const onWindowKeyDown = (e: KeyboardEvent) => {
   dispatchShortcut(e);
 };

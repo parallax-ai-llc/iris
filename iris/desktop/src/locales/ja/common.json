@@ -151,7 +151,9 @@
     "bugReportError": "バグレポートの送信に失敗しました",
     "bugReportRateLimit": "バグレポートの送信回数が多すぎます。しばらくしてから再度お試しください。",
     "bugReportThankYou": "レポートをお送りいただきありがとうございます！早急に確認いたします。",
-    "workWithAgent": "Work with Agent"
+    "workWithAgent": "Work with Agent",
+    "back": "戻る",
+    "forward": "進む"
   },
   "editor": {
     "localFileWarning": {
@@ -255,5 +257,14 @@
     "defaults": {
       "projectName": "無題のプロジェクト"
     }
+  },
+  "librarySearch": {
+    "label": "ライブラリを検索",
+    "placeholder": "プロンプトとモデルを検索",
+    "clear": "検索をクリア",
+    "scope": "これまでに読み込んだ {{count}} 件から検索しています",
+    "loadMore": "さらに読み込む",
+    "noResults": "読み込んだ項目に「{{query}}」に一致するものはありません",
+    "countFiltered": "{{total}} 件中 {{shown}} 件"
   }
 }

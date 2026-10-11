@@ -37,7 +37,6 @@ import {
   Crop,
   Hand,
   Search,
-  Ruler,
   RotateCw,
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
@@ -96,7 +95,7 @@ const TOOL_GROUPS: ToolGroup[] = [
       { id: 'quickSelect', label: 'Quick Selection', icon: <Brush className={ICON_SIZE} />, action: { type: 'selectionTool', tool: 'quickSelect' } },
     ],
   },
-  // --- Crop & Measure ---
+  // --- Sampling ---
   {
     groupId: 'eyedropper',
     shortcut: 'I',
@@ -104,7 +103,6 @@ const TOOL_GROUPS: ToolGroup[] = [
       { id: 'eyedropper', label: 'Eyedropper', icon: <Pipette className={ICON_SIZE} />, action: { type: 'drawTool', tool: 'eyedropper' } },
       { id: 'color-sampler', label: 'Color Sampler', icon: <Eye className={ICON_SIZE} />, action: { type: 'drawTool', tool: 'color-sampler' } },
       { id: 'count-tool', label: 'Count Tool', icon: <Hash className={ICON_SIZE} />, action: { type: 'drawTool', tool: 'count-tool' } },
-      { id: 'measure', label: 'Measure', icon: <Ruler className={ICON_SIZE} />, action: { type: 'editMode', mode: 'measure' } },
     ],
   },
   // --- Retouching ---

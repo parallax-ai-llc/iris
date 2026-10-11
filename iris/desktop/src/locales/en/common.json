@@ -151,7 +151,9 @@
     "bugReportError": "Failed to submit bug report",
     "bugReportRateLimit": "Too many reports. Please try again later.",
     "bugReportThankYou": "Thank you for your report! We will review it shortly.",
-    "workWithAgent": "Work with Agent"
+    "workWithAgent": "Work with Agent",
+    "back": "Back",
+    "forward": "Forward"
   },
   "editor": {
     "localFileWarning": {
@@ -255,5 +257,14 @@
     "defaults": {
       "projectName": "Untitled project"
     }
+  },
+  "librarySearch": {
+    "label": "Search library",
+    "placeholder": "Search prompts and models",
+    "clear": "Clear search",
+    "scope": "Searching the {{count}} items loaded so far",
+    "loadMore": "Load more items",
+    "noResults": "No loaded items match “{{query}}”",
+    "countFiltered": "{{shown}} of {{total}} items"
   }
 }

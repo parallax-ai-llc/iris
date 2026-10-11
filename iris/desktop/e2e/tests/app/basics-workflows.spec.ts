@@ -101,7 +101,12 @@ async function connect(page: Page, fromNode: string, fromPort: string, toNode: s
 async function buildTwoNodes(page: Page): Promise<{ trigger: string; transform: string }> {
   await openNewWorkflow(page);
   await addNode(page, 'Manual Trigger', { x: 120, y: 160 });
-  await addNode(page, 'Transform', { x: 520, y: 160 });
+  // The canvas auto-fits to the first node (zoom 2 in the 1400x900 window); a second node dropped
+  // at that zoom lands on top of the first one and hides the handles. Zoom out like a user would.
+  const zoomOut = page.locator('button:has(svg.lucide-zoom-out)').first();
+  for (let i = 0; i < 6; i++) await zoomOut.click();
+  await page.waitForTimeout(400);
+  await addNode(page, 'Transform', { x: 560, y: 300 });
   const ids = await nodeIds(page);
   expect(ids).toHaveLength(2);
   return { trigger: ids[0], transform: ids[1] };
@@ -172,12 +177,24 @@ test.describe('7. Workflows', () => {
     expect(id).toBeTruthy();
     const save = page.locator('button:has(span:text-is("Save"))').first();
     await expect(save).toBeEnabled(); // dirty
+    const unsavedDot = page.locator('.iris-editor-host [title="Unsaved changes"]');
+    await expect(unsavedDot, 'dirty marker before saving').toHaveCount(1);
     await save.click();
-    await expect(save, 'Save is disabled again once persisted').toBeDisabled({ timeout: 15_000 });
+    // Save is disabled for the whole save (spinner) as well as after it, so "disabled" alone is not
+    // the completion signal. The editor clears the unsaved marker only after PATCH + PUT nodes +
+    // PUT edges have all resolved.
+    await expect(unsavedDot, 'unsaved marker clears once persisted').toHaveCount(0, { timeout: 15_000 });
+    await expect(save).toBeDisabled();
 
+    // Persisted by the local engine: readable right away, no polling. Connections are stored as
+    // node inputs (source node + port), not as a separate edge list.
     const saved = await getWorkflow(page, id);
     expect(saved?.nodes.map((n) => n.type).sort()).toEqual(['TRIGGER_MANUAL', 'UTIL_TRANSFORM']);
-    expect(saved?.edges).toHaveLength(1);
+    const target = saved!.nodes.find((n) => n.type === 'UTIL_TRANSFORM') as unknown as {
+      config: { inputs: Record<string, { source: string; nodeId: string; outputName: string }> };
+    };
+    expect(target.config.inputs.input).toMatchObject({ source: 'node', outputName: 'text' });
+    expect(target.config.inputs.input.nodeId).toBe(saved!.nodes.find((n) => n.type === 'TRIGGER_MANUAL')!.nodeId);
 
     // back to the list: the card shows the persisted node count
     await page.locator('button[title="Back to Workflows"]').click();
@@ -206,7 +223,11 @@ test.describe('7. Workflows', () => {
     await expect(page.locator('.iris-editor-host')).toBeVisible({ timeout: 30_000 });
     await expect(nodes(page)).toHaveCount(2, { timeout: 15_000 });
 
-    await page.locator('button:has(span:text-is("Run"))').first().click();
+    // Run stays disabled until the graph has been validated (product rule), so validate first
+    await page.locator('button:has-text("Validate")').first().click();
+    const run = page.locator('button:has(span:text-is("Run"))').first();
+    await expect(run, 'a valid graph unlocks Run').toBeEnabled({ timeout: 20_000 });
+    await run.click();
     // the Manual Trigger asks for its text input
     const input = page.locator('textarea').last();
     await expect(input).toBeVisible({ timeout: 15_000 });
@@ -230,8 +251,9 @@ test.describe('7. Workflows', () => {
       )
       .toBe('COMPLETED');
 
-    // ...and the result is visible on the canvas
-    await expect(page.getByText('HELLO E2E').first(), 'Transform output shown on its node').toBeVisible({ timeout: 15_000 });
+    // ...and the result is reachable from the node's Output (eye) button
+    await page.locator('.react-flow__node[data-id="x1"] button:has-text("Output")').first().click();
+    await expect(page.getByText('HELLO E2E').first(), 'Transform output shown after opening it').toBeVisible({ timeout: 15_000 });
   });
 
   test('deleting a workflow from the list removes it (native confirm accepted)', async ({ page }) => {

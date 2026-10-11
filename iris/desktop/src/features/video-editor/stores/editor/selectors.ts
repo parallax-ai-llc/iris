@@ -53,7 +53,7 @@ export const selectTimelineActions = (s: S) => ({
   selectClipsInRange: s.selectClipsInRange,
   updateDrag: s.updateDrag,
   endDrag: s.endDrag,
-  moveClipToTrack: s.moveClipToTrack,
+  cancelDrag: s.cancelDrag,
   addMarker: s.addMarker,
   removeMarker: s.removeMarker,
   updateMarker: s.updateMarker,

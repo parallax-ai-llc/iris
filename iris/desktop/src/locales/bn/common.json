@@ -122,7 +122,9 @@
     "bugReportError": "Failed to submit bug report",
     "bugReportRateLimit": "Too many reports. Please try again later.",
     "bugReportThankYou": "Thank you for your report! We will review it shortly.",
-    "workWithAgent": "Work with Agent"
+    "workWithAgent": "Work with Agent",
+    "back": "পেছনে",
+    "forward": "সামনে"
   },
   "editor": {
     "localFileWarning": {
@@ -249,5 +251,14 @@
     "defaults": {
       "projectName": "শিরোনামহীন প্রজেক্ট"
     }
+  },
+  "librarySearch": {
+    "label": "লাইব্রেরিতে খুঁজুন",
+    "placeholder": "প্রম্পট ও মডেল খুঁজুন",
+    "clear": "খোঁজা মুছুন",
+    "scope": "এ পর্যন্ত লোড হওয়া {{count}}টি আইটেমে খোঁজা হচ্ছে",
+    "loadMore": "আরও আইটেম লোড করুন",
+    "noResults": "লোড হওয়া কোনো আইটেম “{{query}}”-এর সাথে মেলেনি",
+    "countFiltered": "{{total}}টির মধ্যে {{shown}}টি আইটেম"
   }
 }

@@ -1,12 +1,23 @@
 {
   "title": "Pengaturan",
+  "tabsLabel": "Bagian pengaturan",
+  "appearance": {
+    "theme": "Tema",
+    "themeDesc": "Pilih tampilan Iris.",
+    "dark": "Gelap",
+    "light": "Terang",
+    "system": "Sistem",
+    "editorsNote": "Editor gambar, video, dan alur kerja selalu tetap gelap. Sistem mengikuti pengaturan sistem operasi Anda."
+  },
   "sections": {
     "account": "Akun",
     "storage": "Penyimpanan",
     "notifications": "Notifikasi",
     "keyboard": "Pintasan Keyboard",
     "about": "Tentang",
-    "language": "Bahasa"
+    "language": "Bahasa",
+    "appearance": "Tampilan",
+    "apiKeys": "Kunci API Alur Kerja"
   },
   "account": {
     "notLoggedIn": "Belum masuk"
@@ -30,11 +41,13 @@
     "updatesDesc": "Beri tahu ketika versi baru tersedia"
   },
   "keyboard": {
-    "newGeneration": "Pembuatan baru",
-    "saveDownload": "Simpan/Unduh",
+    "goToPage": "Buka halaman di bilah samping",
+    "backForward": "Mundur / maju antarhalaman",
     "openSettings": "Buka pengaturan",
+    "toggleAssistant": "Buka atau tutup asisten",
     "closeModal": "Tutup modal",
-    "navigateGallery": "Jelajahi galeri"
+    "previewItems": "Item sebelumnya / berikutnya di pratinjau",
+    "editorNote": "Pintasan editor ditampilkan di samping setiap perintah pada menu editor."
   },
   "about": {
     "irisDesktop": "Iris Desktop",
@@ -47,7 +60,9 @@
     "termsDesc": "Syarat dan ketentuan penggunaan",
     "checkUpdates": "Periksa Pembaruan",
     "latestVersion": "Anda menggunakan versi terbaru",
-    "updateCheckFailed": "Gagal memeriksa pembaruan"
+    "updateCheckFailed": "Gagal memeriksa pembaruan",
+    "updateAvailable": "Pembaruan {{version}} tersedia",
+    "updateCheckBusy": "Pemeriksaan pembaruan sedang berjalan"
   },
   "footer": {
     "madeBy": "Dibuat dengan penuh perhatian oleh Parallax AI",

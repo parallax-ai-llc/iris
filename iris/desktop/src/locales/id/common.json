@@ -122,7 +122,9 @@
     "bugReportError": "Gagal mengirim laporan bug",
     "bugReportRateLimit": "Terlalu banyak laporan. Coba lagi nanti.",
     "bugReportThankYou": "Terima kasih atas laporan Anda! Kami akan segera meninjaunya.",
-    "workWithAgent": "Work with Agent"
+    "workWithAgent": "Work with Agent",
+    "back": "Kembali",
+    "forward": "Maju"
   },
   "editor": {
     "localFileWarning": {
@@ -249,5 +251,14 @@
     "defaults": {
       "projectName": "Proyek tanpa judul"
     }
+  },
+  "librarySearch": {
+    "label": "Cari di pustaka",
+    "placeholder": "Cari prompt dan model",
+    "clear": "Hapus pencarian",
+    "scope": "Mencari di {{count}} item yang sudah dimuat",
+    "loadMore": "Muat item lainnya",
+    "noResults": "Tidak ada item yang dimuat yang cocok dengan “{{query}}”",
+    "countFiltered": "{{shown}} dari {{total}} item"
   }
 }

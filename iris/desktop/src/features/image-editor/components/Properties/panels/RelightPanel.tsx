@@ -7,7 +7,7 @@
  * added as one undoable layer (applyAIResultLayer).
  */
 
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Coins, Info, Lightbulb, LogIn } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
@@ -20,14 +20,13 @@ import {
   AssetEditError,
   EditWaitAbortedError,
   relightImage,
-  waitForEditResult,
 } from '@/shared/api/image.api';
 import { useAuthStore } from '@/features/auth/stores/auth.store';
 import { useImageEditorStore } from '@/features/image-editor/stores/imageEditor.store';
-import { getActiveStore } from '@/features/image-editor/stores/imageEditorRegistry';
 import { useAIOperation } from '@/features/image-editor/hooks/useAIOperation';
 import { MergeLayersDialog } from '@/features/image-editor/components/shared/MergeLayersDialog';
 import { applyAIResultLayer } from '@/features/image-editor/lib/aiResultLayer';
+import { runAIEditJob } from '@/features/image-editor/lib/aiEditJob';
 import {
   buildRelightPrompt,
   PRESET_PROMPTS,
@@ -49,7 +48,6 @@ export const RelightPanel = memo(function RelightPanel() {
   const processingProgress = useImageEditorStore((s) => s.processingProgress);
   const layers = useImageEditorStore((s) => s.layers);
   const hasSelection = useImageEditorStore((s) => !!s.selection?.maskDataUrl);
-  const openEditor = useImageEditorStore((s) => s.openEditor);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const openLogin = useUIStore((s) => s.openLogin);
 
@@ -67,8 +65,9 @@ export const RelightPanel = memo(function RelightPanel() {
   const { prepareAssetForAI, mergeDialogProps } = useAIOperation();
   const abortRef = useRef<AbortController | null>(null);
 
-  // Closing the panel stops waiting (the server job itself keeps running).
-  useEffect(() => () => abortRef.current?.abort(), []);
+  // Closing the panel or switching tabs does NOT stop the job: it was paid
+  // for, so it keeps waiting and lands in the tab that started it
+  // (runAIEditJob). Only "Stop waiting" aborts.
 
   const canRun = isAuthenticated && !IS_SELF_HOST && !!sourceAsset?.id && !isProcessing;
   const isCustom = customPrompt.trim().length > 0;
@@ -81,41 +80,38 @@ export const RelightPanel = memo(function RelightPanel() {
     const assetId = await prepareAssetForAI();
     if (!assetId) return;
 
-    // Bind to the tab that started the job, even if the user switches tabs.
-    const store = getActiveStore();
-    const editor = () => store.getState();
     const controller = new AbortController();
     abortRef.current = controller;
     setIsWaiting(true);
     const prompt = buildRelightPrompt({ preset, direction, color, custom: customPrompt });
 
-    editor().setProcessing(true, t('relight.processing'));
-    editor().setProcessingProgress(0);
     try {
-      const job = await relightImage(assetId, { prompt });
-      const asset = await waitForEditResult(job.id, {
+      // Bound to the tab that started the job, even if the user switches tabs or closes the panel.
+      await runAIEditJob({
+        message: t('relight.processing'),
         signal: controller.signal,
-        onProgress: (p) => editor().setProcessingProgress(p),
+        start: () => relightImage(assetId, { prompt }),
+        apply: async (asset, store) => {
+          if (usesLayer && store.getState().layers.length > 0) {
+            const url = asset.previewUrl || asset.publicUrl;
+            if (!url) throw new AssetEditError(t('relight.errors.applyFailed'));
+            store.getState().setProcessingProgress(95);
+            try {
+              await applyAIResultLayer(store, url, {
+                name: t('relight.layerName'),
+                historyLabel: 'Relight',
+                opacity: intensity,
+                maskToSelection: onlySelection,
+              });
+            } catch {
+              throw new AssetEditError(t('relight.errors.applyFailed'));
+            }
+            toast.success(t('relight.successToast'));
+          } else {
+            store.getState().openEditor(asset);
+          }
+        },
       });
-
-      if (usesLayer && editor().layers.length > 0) {
-        const url = asset.previewUrl || asset.publicUrl;
-        if (!url) throw new AssetEditError(t('relight.errors.applyFailed'));
-        editor().setProcessingProgress(95);
-        try {
-          await applyAIResultLayer(store, url, {
-            name: t('relight.layerName'),
-            historyLabel: 'Relight',
-            opacity: intensity,
-            maskToSelection: onlySelection,
-          });
-        } catch {
-          throw new AssetEditError(t('relight.errors.applyFailed'));
-        }
-        toast.success(t('relight.successToast'));
-      } else {
-        openEditor(asset);
-      }
     } catch (err) {
       if (err instanceof EditWaitAbortedError) {
         toast.success(t('relight.stoppedToast'));
@@ -135,9 +131,8 @@ export const RelightPanel = memo(function RelightPanel() {
     } finally {
       if (abortRef.current === controller) abortRef.current = null;
       setIsWaiting(false);
-      editor().setProcessing(false);
     }
-  }, [canRun, prepareAssetForAI, preset, direction, color, customPrompt, t, usesLayer, intensity, onlySelection, openEditor]);
+  }, [canRun, prepareAssetForAI, preset, direction, color, customPrompt, t, usesLayer, intensity, onlySelection]);
 
   const handleStopWaiting = useCallback(() => {
     abortRef.current?.abort();

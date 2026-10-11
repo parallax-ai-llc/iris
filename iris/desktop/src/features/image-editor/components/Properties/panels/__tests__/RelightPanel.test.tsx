@@ -149,4 +149,27 @@ describe('RelightPanel', () => {
     expect(applyAIResultLayer).not.toHaveBeenCalled();
     rejectWait(new Error('unused'));
   });
+
+  it('closing the panel mid-job keeps waiting and applies the result to the starting tab', async () => {
+    let resolveWait: (asset: unknown) => void = () => {};
+    let signal: AbortSignal | undefined;
+    (waitForEditResult as Mock).mockImplementation(
+      (_id: string, opts: { signal: AbortSignal }) =>
+        new Promise((resolve) => {
+          signal = opts.signal;
+          resolveWait = resolve;
+        }),
+    );
+    const { unmount } = render(<RelightPanel />);
+    fireEvent.click(runButton());
+    await waitFor(() => expect(waitForEditResult).toHaveBeenCalled());
+
+    unmount();
+    expect(signal?.aborted).toBe(false);
+    resolveWait(resultAsset);
+
+    await waitFor(() => expect(store.getState().isProcessing).toBe(false));
+    expect(applyAIResultLayer).toHaveBeenCalled();
+    expect((applyAIResultLayer as Mock).mock.calls[0][0]).toBe(store);
+  });
 });

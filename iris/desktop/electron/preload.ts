@@ -162,11 +162,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ensureFFmpeg: () => ipcRenderer.invoke('export:ensureFFmpeg'),
     start: (request: any) => ipcRenderer.invoke('export:start', request),
     cancel: () => ipcRenderer.invoke('export:cancel'),
+    // Returns an unsubscribe for THIS listener only. The channel is shared by
+    // the Export modal and Silence Removal, so never removeAllListeners here.
     onProgress: (callback: (data: any) => void) => {
-      ipcRenderer.on('export:progress', (_, data) => callback(data));
-    },
-    removeProgressListener: () => {
-      ipcRenderer.removeAllListeners('export:progress');
+      const listener = (_: unknown, data: any) => callback(data);
+      ipcRenderer.on('export:progress', listener);
+      return () => { ipcRenderer.removeListener('export:progress', listener); };
     },
     onFFmpegSetupProgress: (callback: (data: { status: string; progress?: number; message?: string; error?: string }) => void) => {
       ipcRenderer.on('export:ffmpegSetupProgress', (_, data) => callback(data));
@@ -469,8 +470,8 @@ export interface ElectronAPI {
     ensureFFmpeg: () => Promise<{ available: boolean; path: string; version?: string; needsUpgrade?: boolean; downloaded?: boolean; source?: 'bundled' | 'downloaded' | 'system'; error?: string }>;
     start: (request: any) => Promise<{ success: boolean; outputPath?: string; error?: string }>;
     cancel: () => Promise<{ cancelled: boolean }>;
-    onProgress: (callback: (data: { status: string; progress: number; message: string; error?: string; outputPath?: string }) => void) => void;
-    removeProgressListener: () => void;
+    /** Returns an unsubscribe for this listener only. */
+    onProgress: (callback: (data: { status: string; progress: number; message: string; error?: string; outputPath?: string }) => void) => () => void;
     onFFmpegSetupProgress: (callback: (data: { status: 'checking' | 'downloading' | 'ready' | 'failed'; progress?: number; message?: string; error?: string }) => void) => void;
     removeFFmpegSetupListener: () => void;
   };

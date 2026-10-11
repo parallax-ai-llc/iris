@@ -170,6 +170,10 @@
     "runError": "Failed to run \"{{command}}\": {{error}}",
     "commands": "Commands",
     "tools": "Tools",
-    "noRunnable": "This extension contributes no commands or tools."
+    "noRunnable": "This extension contributes no commands or tools.",
+    "toggleLabel": "{{name}} enabled",
+    "enable": "Enable extension",
+    "disable": "Disable extension",
+    "toggleError": "Could not change \"{{name}}\": {{error}}"
   }
 }

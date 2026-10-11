@@ -12,6 +12,7 @@ export {
   dispatchShortcut,
   registerShortcutLayer,
   ensureShortcutDispatcher,
+  hasActiveShortcutLayer,
   isTextInputTarget,
   resetShortcutDispatcherForTests,
   SCOPE_RANK,

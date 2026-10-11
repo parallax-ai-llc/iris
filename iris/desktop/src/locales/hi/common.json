@@ -122,7 +122,9 @@
     "bugReportError": "बग रिपोर्ट सबमिट करने में विफल",
     "bugReportRateLimit": "बहुत अधिक रिपोर्ट। कृपया बाद में पुनः प्रयास करें।",
     "bugReportThankYou": "आपकी रिपोर्ट के लिए धन्यवाद! हम जल्द ही इसकी समीक्षा करेंगे।",
-    "workWithAgent": "Work with Agent"
+    "workWithAgent": "Work with Agent",
+    "back": "पीछे",
+    "forward": "आगे"
   },
   "editor": {
     "localFileWarning": {
@@ -249,5 +251,14 @@
     "defaults": {
       "projectName": "बिना नाम का प्रोजेक्ट"
     }
+  },
+  "librarySearch": {
+    "label": "लाइब्रेरी में खोजें",
+    "placeholder": "प्रॉम्प्ट और मॉडल खोजें",
+    "clear": "खोज साफ़ करें",
+    "scope": "अब तक लोड हुए {{count}} आइटम में खोज रहे हैं",
+    "loadMore": "और आइटम लोड करें",
+    "noResults": "लोड किए गए किसी आइटम में “{{query}}” नहीं मिला",
+    "countFiltered": "{{total}} में से {{shown}} आइटम"
   }
 }

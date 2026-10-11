@@ -2,7 +2,7 @@
  * VideoCard - Display video thumbnail with hover preview
  */
 
-import { memo, useRef, useState, useCallback } from 'react';
+import { memo, useState, useCallback } from 'react';
 import {
   Play,
   Download,
@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { useCachedAssetUrl } from '@/shared/hooks/useCachedAssetUrl';
+import { useHoverVideoPreview } from '@/shared/hooks/useHoverVideoPreview';
 import type { IrisAsset } from '@/shared/api/types';
 
 interface VideoCardProps {
@@ -45,9 +46,7 @@ export const VideoCard = memo(function VideoCard({
   isSelected,
   onToggleSelection,
 }: VideoCardProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovering, setIsHovering] = useState(false);
-  const [hasError, setHasError] = useState(false);
   const [thumbnailError, setThumbnailError] = useState(false);
 
   const isProcessing = video.processingStatus === 'PROCESSING' || video.processingStatus === 'PENDING';
@@ -66,6 +65,13 @@ export const VideoCard = memo(function VideoCard({
   const thumbnailUrl = cachedThumbnailUrl || video.thumbnailUrl || video.previewUrl;
   const videoUrl = cachedVideoUrl || video.previewUrl || video.publicUrl;
 
+  // Thumbnail stays until the preview can paint a frame; a failed or slow
+  // preview never blanks the card.
+  const { videoRef, showVideo, hasError, videoHandlers } = useHoverVideoPreview(
+    !isProcessing && !isFailed ? videoUrl : null,
+    isHovering
+  );
+
   // Format duration
   const formatDuration = (seconds?: number): string => {
     if (!seconds) return '';
@@ -76,23 +82,8 @@ export const VideoCard = memo(function VideoCard({
 
   const duration = (video.metadata?.duration as number) || (video.metadata?.settings as Record<string, unknown>)?.duration as number;
 
-  const handleMouseEnter = useCallback(() => {
-    setIsHovering(true);
-    if (videoRef.current && videoUrl && !isProcessing && !isFailed) {
-      videoRef.current.currentTime = 0;
-      videoRef.current.play().catch(() => {
-        // Ignore play errors (e.g., autoplay policy)
-      });
-    }
-  }, [videoUrl, isProcessing, isFailed]);
-
-  const handleMouseLeave = useCallback(() => {
-    setIsHovering(false);
-    if (videoRef.current) {
-      videoRef.current.pause();
-      videoRef.current.currentTime = 0;
-    }
-  }, []);
+  const handleMouseEnter = useCallback(() => setIsHovering(true), []);
+  const handleMouseLeave = useCallback(() => setIsHovering(false), []);
 
   const handleClick = (e: React.MouseEvent) => {
     // In selection mode, toggle selection
@@ -179,7 +170,7 @@ export const VideoCard = memo(function VideoCard({
       ) : (
         <>
           {/* Thumbnail image */}
-          {thumbnailUrl && !isHovering && !thumbnailError && (
+          {thumbnailUrl && !showVideo && !thumbnailError && (
             <img
               src={thumbnailUrl}
               alt={video.name}
@@ -194,19 +185,20 @@ export const VideoCard = memo(function VideoCard({
             <video
               ref={videoRef}
               src={videoUrl}
+              data-testid="video-card-preview"
               className={cn(
-                'w-full h-full object-cover',
-                !isHovering && 'hidden'
+                'absolute inset-0 w-full h-full object-cover',
+                !showVideo && 'opacity-0 pointer-events-none'
               )}
               muted
               loop
               playsInline
-              onError={() => setHasError(true)}
+              {...videoHandlers}
             />
           )}
 
-          {/* Fallback if no thumbnail or video, or thumbnail failed to load */}
-          {((!thumbnailUrl || thumbnailError) && !videoUrl) || (thumbnailError && !isHovering) ? (
+          {/* Fallback while the preview isn't showing and there's no usable thumbnail */}
+          {!showVideo && (!thumbnailUrl || thumbnailError) ? (
             <div className="w-full h-full flex items-center justify-center">
               <Film className="w-12 h-12 text-zinc-600" />
             </div>

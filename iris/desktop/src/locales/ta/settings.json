@@ -1,12 +1,23 @@
 {
   "title": "Settings",
+  "tabsLabel": "அமைப்புப் பிரிவுகள்",
+  "appearance": {
+    "theme": "தீம்",
+    "themeDesc": "Iris எப்படித் தோன்ற வேண்டும் என்பதைத் தேர்ந்தெடுக்கவும்.",
+    "dark": "இருள்",
+    "light": "ஒளி",
+    "system": "கணினி",
+    "editorsNote": "படம், வீடியோ மற்றும் பணிப்பாய்வு எடிட்டர்கள் எப்போதும் இருளாகவே இருக்கும். கணினி விருப்பம் உங்கள் இயக்க முறைமை அமைப்பைப் பின்பற்றும்."
+  },
   "sections": {
     "account": "Account",
     "storage": "Storage",
     "notifications": "Notifications",
     "keyboard": "Keyboard Shortcuts",
     "about": "About",
-    "language": "Language"
+    "language": "Language",
+    "appearance": "தோற்றம்",
+    "apiKeys": "பணிப்பாய்வு API விசைகள்"
   },
   "account": {
     "notLoggedIn": "Not logged in"
@@ -30,11 +41,13 @@
     "updatesDesc": "Notify when a new version is available"
   },
   "keyboard": {
-    "newGeneration": "New generation",
-    "saveDownload": "Save/Download",
+    "goToPage": "பக்கப்பட்டியின் பக்கத்துக்குச் செல்",
+    "backForward": "பக்கங்களுக்கு இடையே பின் / முன் செல்",
     "openSettings": "Open settings",
+    "toggleAssistant": "உதவியாளரைத் திற அல்லது மூடு",
     "closeModal": "Close modal",
-    "navigateGallery": "Navigate gallery"
+    "previewItems": "முன்னோட்டத்தில் முந்தைய / அடுத்த உருப்படி",
+    "editorNote": "எடிட்டர் குறுக்குவழிகள் எடிட்டர் மெனுக்களில் ஒவ்வொரு கட்டளைக்கும் அருகில் காட்டப்படும்."
   },
   "about": {
     "irisDesktop": "Iris Desktop",
@@ -47,7 +60,9 @@
     "termsDesc": "Usage terms and conditions",
     "checkUpdates": "Check for Updates",
     "latestVersion": "You are on the latest version",
-    "updateCheckFailed": "Failed to check for updates"
+    "updateCheckFailed": "Failed to check for updates",
+    "updateAvailable": "{{version}} புதுப்பிப்பு கிடைக்கிறது",
+    "updateCheckBusy": "புதுப்பிப்புச் சரிபார்ப்பு ஏற்கெனவே நடக்கிறது"
   },
   "footer": {
     "madeBy": "Made with care by Parallax AI",

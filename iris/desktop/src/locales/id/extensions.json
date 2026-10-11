@@ -170,6 +170,10 @@
     "runError": "Gagal menjalankan \"{{command}}\": {{error}}",
     "commands": "Perintah",
     "tools": "Alat",
-    "noRunnable": "Ekstensi ini tidak menyediakan perintah atau alat."
+    "noRunnable": "Ekstensi ini tidak menyediakan perintah atau alat.",
+    "toggleLabel": "{{name}} aktif",
+    "enable": "Aktifkan ekstensi",
+    "disable": "Nonaktifkan ekstensi",
+    "toggleError": "Tidak dapat mengubah \"{{name}}\": {{error}}"
   }
 }

@@ -1,6 +1,10 @@
 /**
  * EditorMenuBar - Photoshop-style menu bar
  * File, Edit, Image, Select, Filter, View, Window
+ *
+ * Only entries that actually do something belong here: an item that switches
+ * to an edit mode nothing renders is removed, not left as a dead click
+ * (components/tabs/__tests__/EditorMenuBar.modes.test.ts enforces it).
  */
 
 import { memo, useState, useRef, useEffect, useCallback } from 'react';
@@ -14,6 +18,9 @@ import { BUILTIN_PROFILES } from '@/features/image-editor/canvas/colorProfile';
 import * as F from '@/features/image-editor/canvas/filters';
 
 // ==================== Types ====================
+
+/** Pixels for Select > Expand / Contract / Smooth / Border (no amount dialog). */
+const SELECTION_MODIFY_PX = 2;
 
 interface MenuItem {
   id: string;
@@ -293,7 +300,6 @@ export const EditorMenuBar = memo(function EditorMenuBar({
         { id: 'exportRgbTiff', label: 'Export as TIFF (RGB)...', action: onExportRgbTiff },
         { id: 'exportBmp', label: 'Export as BMP...', action: onExportBmp },
         { id: 'exportAs', label: 'Export As...', command: 'exportAs', action: () => setEditMode('export') },
-        { id: 'importSvg', label: 'Import SVG...', action: () => setEditMode('importSvg') },
         { id: 'sep2', label: '', separator: true },
         { id: 'closeTab', label: 'Close Tab', command: 'closeTab', action: onCloseTab },
         { id: 'backToGallery', label: 'Back to Gallery', command: 'escape', action: onBackToGallery },
@@ -308,10 +314,6 @@ export const EditorMenuBar = memo(function EditorMenuBar({
         { id: 'sep1', label: '', separator: true },
         { id: 'stampVisible', label: 'Stamp Visible', command: 'stampVisible', action: stampVisible },
         { id: 'sep2', label: '', separator: true },
-        { id: 'fillLayer', label: 'New Fill Layer...', action: () => setEditMode('layers') },
-        { id: 'sep3', label: '', separator: true },
-        { id: 'measureTool', label: 'Measure Tool', action: () => setEditMode('measure') },
-        { id: 'sep4', label: '', separator: true },
         { id: 'reset', label: 'Reset All Changes', action: onResetChanges },
       ],
     },
@@ -341,12 +343,6 @@ export const EditorMenuBar = memo(function EditorMenuBar({
         { id: 'sep1', label: '', separator: true },
         { id: 'inpaint', label: 'Inpaint', action: () => setEditMode('inpaint'), disabled: isProcessing },
         { id: 'outpaint', label: 'Outpaint', action: () => setEditMode('outpaint'), disabled: isProcessing },
-        { id: 'sep2', label: '', separator: true },
-        { id: 'smartPortrait', label: 'Smart Portrait', action: () => setEditMode('smartPortrait'), disabled: isProcessing },
-        { id: 'superZoom', label: 'Super Zoom', action: () => setEditMode('superZoom'), disabled: isProcessing },
-        { id: 'makeupTransfer', label: 'Makeup Transfer', action: () => setEditMode('makeupTransfer'), disabled: isProcessing },
-        { id: 'photoRestoration', label: 'Photo Restoration', action: () => setEditMode('photoRestoration'), disabled: isProcessing },
-        { id: 'landscapeMixer', label: 'Landscape Mixer', action: () => setEditMode('landscapeMixer'), disabled: isProcessing },
       ],
     },
     {
@@ -383,27 +379,19 @@ export const EditorMenuBar = memo(function EditorMenuBar({
         { id: 'deselect', label: 'Deselect', command: 'deselect', action: clearSelection, disabled: !selection },
         { id: 'invert', label: 'Invert Selection', command: 'invertSelection', action: invertSelection, disabled: !selection },
         { id: 'sep2', label: '', separator: true },
-        { id: 'grow', label: 'Grow', action: growSelectionByColor, disabled: !selection },
-        { id: 'similar', label: 'Similar', action: selectSimilar, disabled: !selection },
+        // Grow / Similar use the Selection tolerance; the modify amounts are fixed (no dialog)
+        { id: 'grow', label: 'Grow', action: () => void growSelectionByColor(), disabled: !selection },
+        { id: 'similar', label: 'Similar', action: () => void selectSimilar(), disabled: !selection },
         { id: 'sep3', label: '', separator: true },
-        { id: 'expand', label: 'Expand...', action: () => expandSelectionBy(2), disabled: !selection },
-        { id: 'contract', label: 'Contract...', action: () => contractSelectionBy(2), disabled: !selection },
-        { id: 'smooth', label: 'Smooth...', action: () => smoothSelectionBy(2), disabled: !selection },
-        { id: 'border', label: 'Border...', action: () => borderSelectionBy(2), disabled: !selection },
+        { id: 'expand', label: `Expand (${SELECTION_MODIFY_PX} px)`, action: () => void expandSelectionBy(SELECTION_MODIFY_PX), disabled: !selection },
+        { id: 'contract', label: `Contract (${SELECTION_MODIFY_PX} px)`, action: () => void contractSelectionBy(SELECTION_MODIFY_PX), disabled: !selection },
+        { id: 'smooth', label: `Smooth (${SELECTION_MODIFY_PX} px)`, action: () => void smoothSelectionBy(SELECTION_MODIFY_PX), disabled: !selection },
+        { id: 'border', label: `Border (${SELECTION_MODIFY_PX} px)`, action: () => void borderSelectionBy(SELECTION_MODIFY_PX), disabled: !selection },
         { id: 'feather', label: 'Feather...', action: () => setSelectionFeather(2), disabled: !selection },
         { id: 'sep4', label: '', separator: true },
         { id: 'colorRange', label: 'Color Range...', action: () => setEditMode('selection') },
-        { id: 'transformSelection', label: 'Transform Selection', action: () => setEditMode('freeTransform') , disabled: !selection },
         { id: 'sep5', label: '', separator: true },
         { id: 'quickMask', label: `${quickMaskEnabled ? '✓ ' : ''}Quick Mask Mode`, command: 'quickMask', action: toggleQuickMask },
-        { id: 'sep6', label: '', separator: true },
-        { id: 'selectSky', label: 'Sky', action: () => setEditMode('selectSky') },
-        { id: 'selectFocusArea', label: 'Focus Area...', action: () => setEditMode('selectFocusArea') },
-        { id: 'sep7', label: '', separator: true },
-        // — Phase 15: Single Row/Column Marquee + Reselect —
-        { id: 'singleRowMarquee', label: 'Single Row Marquee', action: () => setEditMode('singleRowMarquee') },
-        { id: 'singleColumnMarquee', label: 'Single Column Marquee', action: () => setEditMode('singleColumnMarquee') },
-        { id: 'reselect', label: 'Reselect', action: () => setEditMode('reselect') },
       ],
     },
     {

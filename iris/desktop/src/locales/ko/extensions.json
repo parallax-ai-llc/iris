@@ -170,6 +170,10 @@
     "runError": "\"{{command}}\" 실행에 실패했습니다: {{error}}",
     "commands": "커맨드",
     "tools": "툴",
-    "noRunnable": "이 확장은 커맨드나 툴을 제공하지 않습니다."
+    "noRunnable": "이 확장은 커맨드나 툴을 제공하지 않습니다.",
+    "toggleLabel": "{{name}} 사용",
+    "enable": "확장 사용",
+    "disable": "확장 사용 중지",
+    "toggleError": "\"{{name}}\" 상태를 바꾸지 못했습니다: {{error}}"
   }
 }

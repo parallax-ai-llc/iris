@@ -3,7 +3,7 @@
  * Supports selection, preview, and context menu actions
  */
 
-import { memo, useState, useRef, useCallback } from 'react';
+import { memo, useState, useCallback } from 'react';
 import {
   ImageIcon,
   Video,
@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { cn, formatFileSize } from '@/shared/lib/utils';
 import { useCachedAssetUrl } from '@/shared/hooks/useCachedAssetUrl';
+import { useHoverVideoPreview } from '@/shared/hooks/useHoverVideoPreview';
 import type { IrisAsset } from '@/shared/api/types';
 
 // ==================== Types ====================
@@ -48,7 +49,6 @@ const GridAssetCard = memo(function GridAssetCard({
 }: Omit<AssetCardProps, 'viewMode'>) {
   const [showMenu, setShowMenu] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   const isVideo = asset.assetType === 'VIDEO';
   
@@ -65,21 +65,15 @@ const GridAssetCard = memo(function GridAssetCard({
   const thumbnailUrl = cachedThumbnailUrl;
   const previewUrl = cachedPreviewUrl || asset.previewUrl || asset.publicUrl;
 
-  // Handle video hover preview
-  const handleMouseEnter = useCallback(() => {
-    setIsHovering(true);
-    if (isVideo && videoRef.current) {
-      videoRef.current.play().catch(() => {});
-    }
-  }, [isVideo]);
+  // Hover preview: thumbnail stays until the video can paint a frame, and
+  // stays for good if the preview fails to load.
+  const { videoRef, showVideo, videoHandlers } = useHoverVideoPreview(
+    isVideo ? previewUrl : null,
+    isVideo && isHovering
+  );
 
-  const handleMouseLeave = useCallback(() => {
-    setIsHovering(false);
-    if (isVideo && videoRef.current) {
-      videoRef.current.pause();
-      videoRef.current.currentTime = 0;
-    }
-  }, [isVideo]);
+  const handleMouseEnter = useCallback(() => setIsHovering(true), []);
+  const handleMouseLeave = useCallback(() => setIsHovering(false), []);
 
   const handleSelectClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -108,12 +102,17 @@ const GridAssetCard = memo(function GridAssetCard({
         ) : isVideo && previewUrl ? (
           <>
             {/* Video thumbnail */}
-            {thumbnailUrl && !isHovering && (
+            {thumbnailUrl && !showVideo && (
               <img
                 src={thumbnailUrl}
                 alt={asset.name}
                 className="absolute inset-0 w-full h-full object-cover"
               />
+            )}
+            {!thumbnailUrl && !showVideo && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Video className="w-12 h-12 text-zinc-600" />
+              </div>
             )}
             {/* Video preview on hover */}
             <video
@@ -122,10 +121,12 @@ const GridAssetCard = memo(function GridAssetCard({
               muted
               loop
               playsInline
+              data-testid="asset-card-preview"
               className={cn(
                 'absolute inset-0 w-full h-full object-cover',
-                !isHovering && 'opacity-0'
+                !showVideo && 'opacity-0 pointer-events-none'
               )}
+              {...videoHandlers}
             />
             {/* Play icon overlay */}
             {!isHovering && (

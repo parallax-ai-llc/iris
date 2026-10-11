@@ -19,6 +19,11 @@
  * label the manifest already provided — otherwise chips degrade to raw ids like
  * `publisher.ext.command`.
  *
+ * Each card has an enable/disable switch (IPC `extensions:enable` /
+ * `extensions:disable`). The main process persists the flag in registry.json,
+ * so it survives a restart; a disabled extension keeps its card but its chips
+ * are inert.
+ *
  * Renders nothing when no extension is installed locally, so the marketplace
  * page is unchanged for users without extensions.
  */
@@ -55,6 +60,7 @@ export function InstalledExtensionsSection() {
   const { t } = useTranslation('extensions');
   const [installed, setInstalled] = useState<ExtensionRuntimeInfoData[]>([]);
   const [runningId, setRunningId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const registeredCommands = useExtensionRuntimeStore((s) => s.registeredCommands);
   const registeredTools = useExtensionRuntimeStore((s) => s.registeredTools);
   // Status changes arrive over IPC and land here — used to re-read the
@@ -145,6 +151,34 @@ export function InstalledExtensionsSection() {
     [runningId, t]
   );
 
+  const toggle = useCallback(
+    async (info: ExtensionRuntimeInfoData, name: string) => {
+      const api = window.electronAPI?.extensions;
+      if (!api || togglingId) return;
+      const turnOff = info.status !== 'disabled';
+
+      setTogglingId(info.id);
+      try {
+        const result = turnOff ? await api.disable(info.id) : await api.enable(info.id);
+        if (!result?.success) {
+          toast.error(t('installed.toggleError', { name, error: 'unknown' }));
+        }
+        const infos = (await api.getInstalled()) as ExtensionRuntimeInfoData[];
+        setInstalled(infos);
+      } catch (err) {
+        toast.error(
+          t('installed.toggleError', {
+            name,
+            error: err instanceof Error ? err.message : String(err),
+          })
+        );
+      } finally {
+        setTogglingId(null);
+      }
+    },
+    [togglingId, t]
+  );
+
   if (installed.length === 0) return null;
 
   return (
@@ -212,6 +246,33 @@ export function InstalledExtensionsSection() {
                 >
                   {info.status}
                 </span>
+                {(() => {
+                  const enabled = info.status !== 'disabled';
+                  return (
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={enabled}
+                      aria-label={t('installed.toggleLabel', { name: label })}
+                      title={enabled ? t('installed.disable') : t('installed.enable')}
+                      data-extension-id={info.id}
+                      disabled={togglingId !== null}
+                      onClick={() => void toggle(info, label)}
+                      className={cn(
+                        'relative inline-flex h-4 w-7 flex-shrink-0 items-center rounded-full transition-colors',
+                        'disabled:opacity-50 disabled:cursor-not-allowed',
+                        enabled ? 'bg-emerald-500' : 'bg-zinc-600'
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'inline-block h-3 w-3 rounded-full bg-white transition-transform',
+                          enabled ? 'translate-x-3.5' : 'translate-x-0.5'
+                        )}
+                      />
+                    </button>
+                  );
+                })()}
               </div>
 
               {commands.length === 0 && tools.length === 0 ? (

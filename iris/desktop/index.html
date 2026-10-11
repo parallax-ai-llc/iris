@@ -4,14 +4,38 @@
     <meta charset="UTF-8" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="color-scheme" content="dark light" />
     <title>Iris Desktop</title>
     <style>
       /* Prevent flash of unstyled content */
       html {
         background-color: #09090b;
       }
+      html[data-theme="light"] {
+        background-color: #f8f9fa;
+      }
     </style>
+    <script>
+      // First paint in the saved theme, before React mounts. The preference is
+      // mirrored to localStorage "iris.theme" by src/shared/lib/theme.ts (the
+      // source of truth is electron-store, read later by useAppTheme).
+      (function () {
+        var pref = 'dark';
+        try {
+          pref = localStorage.getItem('iris.theme') || 'dark';
+        } catch (e) {}
+        var light = pref === 'light';
+        if (pref === 'system') {
+          try {
+            light = !window.matchMedia('(prefers-color-scheme: dark)').matches;
+          } catch (e) {}
+        }
+        var root = document.documentElement;
+        root.setAttribute('data-theme', light ? 'light' : 'dark');
+        root.style.colorScheme = light ? 'light' : 'dark';
+        if (light) root.classList.remove('dark');
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

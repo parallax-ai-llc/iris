@@ -183,7 +183,7 @@ describe('Compound Clips', () => {
       expect(compound.innerTracks[0].clips).toHaveLength(2);
     });
 
-    it('handles clips from multiple tracks', () => {
+    it('groups clips from tracks of different types into one compound per type', () => {
       const audioClip = makeAudioClip({ id: 'clip-audio', trackId: 'track-a1', startTime: 2, endTime: 8 });
       const videoTrack = makeTrack('video', [clipA, clipB]);
       const audioTrack = makeTrack('audio', [audioClip], 'track-a1');
@@ -194,13 +194,20 @@ describe('Compound Clips', () => {
       useEditorStore.getState().createCompoundClip();
 
       const tracks = useEditorStore.getState().tracks;
-      const compound = tracks[0].clips.find((c) => c.type === 'compound') as CompoundClip;
+      const videoCompound = tracks[0].clips.find((c) => c.type === 'compound') as CompoundClip;
+      const audioCompound = tracks[1].clips.find((c) => c.type === 'compound') as CompoundClip;
 
-      expect(compound).toBeDefined();
-      expect(compound.innerClips).toHaveLength(2);
-      expect(compound.innerTracks).toHaveLength(2);
-      expect(compound.startTime).toBe(0);
-      expect(compound.endTime).toBe(8);
+      // A video clip never lands on the audio track (or the reverse).
+      expect(videoCompound.innerClips.map((c) => c.id)).toEqual(['clip-a']);
+      expect(videoCompound.startTime).toBe(0);
+      expect(videoCompound.endTime).toBe(5);
+      expect(audioCompound.innerClips.map((c) => c.id)).toEqual(['clip-audio']);
+      expect(audioCompound.startTime).toBe(2);
+      expect(audioCompound.endTime).toBe(8);
+      // The two compounds are linked like the clips they hold.
+      expect(videoCompound.linkedClipId).toBe(audioCompound.id);
+      expect(audioCompound.linkedClipId).toBe(videoCompound.id);
+      expect(useEditorStore.getState().selection.clipIds).toHaveLength(2);
     });
   });
 

@@ -121,6 +121,8 @@ export interface AudioClip extends BaseClip {
   muted: boolean;
   fadeIn: number;  // seconds
   fadeOut: number; // seconds
+  /** Playback speed, set together with the linked video clip (rate stretch / speed). Default 1. */
+  speed?: number;
   pan?: number;     // stereo pan: -1 (Left) ~ 0 (Center) ~ 1 (Right)
   gain?: number;    // audio gain in dB: -∞ ~ +12, default 0
   waveformData?: number[];
@@ -229,6 +231,10 @@ export interface DragState {
   linkedOriginalClip?: Clip; // original state of linked clip at drag start
   adjacentClipId?: string; // for roll edit: the neighboring clip
   adjacentOriginalClip?: Clip; // original state of adjacent clip
+  /** Tracks at drag start (set by the store's startDrag); every update is computed from it. */
+  originalTracks?: Track[];
+  /** Clips a move drag carries (dragged, linked, other selected + their linked; no locked clips). */
+  moveGroupIds?: string[];
 }
 
 export interface Selection {
@@ -814,7 +820,23 @@ export interface EditorActions {
   addClip: (trackId: string, clip: DistributiveOmit<Clip, 'id' | 'trackId'> & { id?: string; trackId?: string }) => Clip;
   addAdjustmentLayer: (trackId: string, startTime: number, duration: number) => AdjustmentClip;
   removeClip: (clipId: string) => void;
-  updateClip: (clipId: string, updates: Partial<Clip>) => void;
+  /**
+   * Edit clip fields. Clips on locked tracks are not changed. `history`:
+   * 'auto' (default) records one coalesced history entry per burst of edits
+   * (stores/editor/editHistory.ts), 'amend' folds the change into the current
+   * entry (follow-up of an action that already recorded one, e.g. linking a
+   * just-added pair), 'background' applies a non-user update to every history
+   * snapshot (documentLifecycle.applyBackgroundClipPatch), 'none' records nothing.
+   * A `speed` change re-times the clip and its linked clip (no overlap with the next clip).
+   */
+  updateClip: (clipId: string, updates: Partial<Clip>, opts?: { history?: 'auto' | 'amend' | 'background' | 'none' }) => void;
+  /** Inspector speed: same as updateClip({ speed }). */
+  setClipSpeed: (clipId: string, speed: number) => void;
+  /** Inspector Start/End: trims the edge like a drag (speed-aware, linked clip follows). */
+  setClipEdge: (clipId: string, edge: 'start' | 'end', time: number) => void;
+  /** Toggle mute on the given video/audio clips as one history step (locked clips skipped). */
+  toggleClipsMute: (clipIds: string[]) => void;
+  /** Move to another same-type track (both unlocked, no overlap); records history. */
   moveClipToTrack: (clipId: string, targetTrackId: string) => void;
   /**
    * Move a visual clip up/down in z-order by swapping its video track with the
@@ -843,7 +865,9 @@ export interface EditorActions {
   // Drag
   startDrag: (dragState: DragState) => void;
   updateDrag: (currentX: number, currentTime: number) => void;
-  endDrag: () => void;
+  /** Finish a drag. Only a 'move' drag uses `targetTrackId` (the track under the cursor). */
+  endDrag: (targetTrackId?: string | null) => void;
+  /** Restore the drag-start snapshot (dragged, linked and other selected clips). */
   cancelDrag: () => void;
   setDragHoverTrackId: (trackId: string | null) => void;
 
@@ -963,8 +987,10 @@ export interface EditorActions {
   pasteKeyframes: (clipId: string) => void;
 
   // Insert / Overwrite Edit
-  insertEdit: (trackId: string, clip: DistributiveOmit<Clip, 'id' | 'trackId'>, time: number) => Clip;
-  overwriteEdit: (trackId: string, clip: DistributiveOmit<Clip, 'id' | 'trackId'>, time: number) => Clip;
+  /** null when the track is locked. */
+  insertEdit: (trackId: string, clip: DistributiveOmit<Clip, 'id' | 'trackId'>, time: number) => Clip | null;
+  /** null when the track is locked. */
+  overwriteEdit: (trackId: string, clip: DistributiveOmit<Clip, 'id' | 'trackId'>, time: number) => Clip | null;
 
   // Paste Attributes
   copyAttributes: (clipId: string) => void;

@@ -170,6 +170,10 @@
     "runError": "Falha ao executar \"{{command}}\": {{error}}",
     "commands": "Comandos",
     "tools": "Ferramentas",
-    "noRunnable": "Esta extensão não fornece comandos nem ferramentas."
+    "noRunnable": "Esta extensão não fornece comandos nem ferramentas.",
+    "toggleLabel": "{{name}} ativada",
+    "enable": "Ativar extensão",
+    "disable": "Desativar extensão",
+    "toggleError": "Não foi possível alterar \"{{name}}\": {{error}}"
   }
 }

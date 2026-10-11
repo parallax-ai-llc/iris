@@ -227,9 +227,11 @@ export const TimelineClip = memo(function TimelineClip({
       e.preventDefault();
       e.stopPropagation();
       selectClip(clip.id);
+      // A locked track's clips cannot be split, duplicated, (un)linked or deleted.
+      if (trackLocked) return;
       setContextMenu({ x: e.clientX, y: e.clientY });
     },
-    [clip.id, selectClip]
+    [clip.id, selectClip, trackLocked]
   );
 
   // Close context menu on outside click
@@ -799,7 +801,7 @@ export const TimelineClip = memo(function TimelineClip({
       />
 
       {/* Context menu */}
-      {contextMenu && (
+      {contextMenu && !trackLocked && (
         <div
           className="fixed z-50 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl py-1 min-w-[160px]"
           style={{ left: contextMenu.x, top: contextMenu.y }}

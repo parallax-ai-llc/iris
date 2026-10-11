@@ -27,6 +27,11 @@ import { PreviewZoomControls } from './PreviewZoomControls';
 import { usePreviewZoom, ZOOM_MIN, ZOOM_MAX } from '@/features/video-editor/hooks/usePreviewZoom';
 import { useVideoProjectStore } from '@/features/video-editor/stores/videoProject.store';
 import { interpolateKeyframes } from '@/shared/lib/utils/effectRenderer';
+import { flattenCompoundClips, editableClipId } from '@/features/video-editor/lib/flattenCompoundClips';
+import {
+  isTrackAudible,
+  isEmbeddedAudioHandledExternally,
+} from '@/features/video-editor/lib/trackAudio';
 import {
   buildColorCorrectionSvgFilter,
   buildColorCorrectionCssFilter,
@@ -47,8 +52,11 @@ export const EditorPreview = memo(function EditorPreview({
   // Store state (batched via useShallow — 11 subscriptions → 2)
   const {
     currentTime, isPlaying, playbackRate,
-    volume, isMuted, tracks, selectedClip,
+    volume, isMuted, tracks: editorTracks, selectedClip,
   } = useEditorStore(useShallow(selectPreviewState));
+  // Compound / nested clips render as their contents — the export renders the
+  // same flattened tracks (lib/buildExportRequest.ts).
+  const tracks = useMemo(() => flattenCompoundClips(editorTracks), [editorTracks]);
 
   const { selectClip } = useEditorStore(useShallow(selectPreviewActions));
 
@@ -321,13 +329,10 @@ export const EditorPreview = memo(function EditorPreview({
 
   // Get all audio + music clips with track-level volume (we'll render AudioPlayer for each)
   const audioClipsWithTrackInfo = useMemo(() => {
-    const hasSolo = tracks.some((t) => t.solo && (t.type === 'audio' || t.type === 'music' || t.type === 'video'));
-    const audioTracks = tracks.filter((t) => {
-      if (t.type !== 'audio' && t.type !== 'music') return false;
-      if (t.muted) return false;
-      if (hasSolo && !t.solo) return false;
-      return true;
-    });
+    // Mute/solo rules shared with the export (lib/trackAudio.ts).
+    const audioTracks = tracks.filter(
+      (t) => (t.type === 'audio' || t.type === 'music') && isTrackAudible(t, tracks),
+    );
     const result: { clip: AudioClip | MusicClip; trackVolume: number }[] = [];
     for (const track of audioTracks) {
       for (const clip of track.clips) {
@@ -441,9 +446,7 @@ export const EditorPreview = memo(function EditorPreview({
       tracks.find((t) => t.id === activeVideoClip?.trackId) ??
       tracks.find((t) => t.type === 'video');
     if (!videoTrack) return 1;
-    const hasSolo = tracks.some((t) => t.solo && (t.type === 'audio' || t.type === 'music' || t.type === 'video'));
-    if (hasSolo && !videoTrack.solo) return 0;
-    if (videoTrack.muted) return 0;
+    if (!isTrackAudible(videoTrack, tracks)) return 0;
     return videoTrack.volume;
   }, [tracks, activeVideoClip?.trackId]);
 
@@ -452,12 +455,7 @@ export const EditorPreview = memo(function EditorPreview({
   // to prevent double audio.
   const audioHandledExternally = useMemo(() => {
     if (!activeVideoClip) return false;
-    const assetId = activeVideoClip.assetId;
-    return tracks.some(
-      (t) =>
-        (t.type === 'audio' || t.type === 'music') &&
-        t.clips.some((c) => 'assetId' in c && c.assetId === assetId)
-    );
+    return isEmbeddedAudioHandledExternally(activeVideoClip.assetId, tracks);
   }, [activeVideoClip, tracks]);
 
   // When multicam is enabled with audio-follow, the multicam monitor unmutes
@@ -579,7 +577,7 @@ export const EditorPreview = memo(function EditorPreview({
   // Handle subtitle selection
   const handleSubtitleSelect = useCallback(
     (clipId: string) => {
-      selectClip(clipId);
+      selectClip(editableClipId(clipId));
     },
     [selectClip]
   );
@@ -979,7 +977,7 @@ export const EditorPreview = memo(function EditorPreview({
               projectWidth={projectWidth}
               projectHeight={projectHeight}
               isSelected={selectedClip?.id === clip.id}
-              onSelect={() => selectClip(clip.id)}
+              onSelect={() => selectClip(editableClipId(clip.id))}
             />
           ) : null,
         )}

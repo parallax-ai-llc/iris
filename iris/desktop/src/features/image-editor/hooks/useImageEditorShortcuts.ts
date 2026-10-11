@@ -134,7 +134,6 @@ export function createImageEditorPageHandlers(
     paste: () => {
       void ctx().onPaste();
     },
-    freeTransform: () => getState().setEditMode('freeTransform'),
     stampVisible: () => getState().stampVisible(),
     canvasSize: () => getState().setEditMode('canvasSize'),
     imageSize: () => getState().setEditMode('imageSize'),

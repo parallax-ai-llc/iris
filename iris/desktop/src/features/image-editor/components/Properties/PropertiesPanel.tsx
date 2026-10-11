@@ -17,14 +17,13 @@ import { TextPanel } from './panels/TextPanel';
 import { LayersPanel } from './panels/LayersPanel';
 import { UpscalePanel } from './panels/UpscalePanel';
 import { BgRemovePanel } from './panels/BgRemovePanel';
-import { InpaintPanel } from './panels/InpaintPanel';
 import { OutpaintPanel } from './panels/OutpaintPanel';
 import { FaceRestorePanel } from './panels/FaceRestorePanel';
 import { ColorizePanel } from './panels/ColorizePanel';
 import { DefaultPanel } from './panels/DefaultPanel';
 
 // AI edit modes that should show back button
-const AI_MODES: EditMode[] = ['upscale', 'bgRemove', 'inpaint', 'outpaint', 'faceRestore', 'colorize'];
+const AI_MODES: EditMode[] = ['upscale', 'bgRemove', 'outpaint', 'faceRestore', 'colorize'];
 
 export const PropertiesPanel = memo(function PropertiesPanel() {
   const { editMode, sourceAsset, setEditMode } = useImageEditorStore();
@@ -58,8 +57,6 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
         return <UpscalePanel />;
       case 'bgRemove':
         return <BgRemovePanel />;
-      case 'inpaint':
-        return <InpaintPanel />;
       case 'outpaint':
         return <OutpaintPanel />;
       case 'faceRestore':
@@ -84,7 +81,6 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
       case 'layers': return 'Layers';
       case 'upscale': return 'AI Upscale';
       case 'bgRemove': return 'Remove Background';
-      case 'inpaint': return 'AI Inpaint';
       case 'outpaint': return 'AI Outpaint';
       case 'faceRestore': return 'Face Restore';
       case 'colorize': return 'Colorize';

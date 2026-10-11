@@ -13,6 +13,9 @@ import type {
   Track, VideoClip, AudioClip, MusicClip, SubtitleClip, AdjustmentClip,
 } from '@/types/editor.types';
 import { renderSubtitleClipToPng } from '@/features/video-editor/lib/renderSubtitlePng';
+import type { ClipEffect, Keyframe } from '@/types/videoProject.types';
+import { flattenCompoundClips } from './flattenCompoundClips';
+import { isEmbeddedAudioHandledExternally } from './trackAudio';
 
 export interface BuildExportRequestParams {
   tracks: Track[];
@@ -70,15 +73,48 @@ async function buildAssetUrlMap(tracks: Track[]): Promise<Map<string, string>> {
   return urlMap;
 }
 
+/** Effect fields the export renderer reads (video, audio and adjustment clips). */
+function exportEffects(effects: ClipEffect[] | undefined) {
+  return (effects ?? []).map((e) => ({
+    type: e.type,
+    enabled: e.enabled,
+    filterType: e.filterType,
+    filterIntensity: e.filterIntensity,
+    filterParams: e.filterParams,
+    transitionType: e.transitionType,
+    transitionPosition: e.transitionPosition,
+    transitionDuration: e.transitionDuration,
+    audioEffectType: e.audioEffectType,
+    audioParams: e.audioParams,
+  }));
+}
+
+/**
+ * Keyframes re-based to the exported clip's start: keyframe times are relative
+ * to the clip start, so trimming `leftTrim` seconds off the head shifts them.
+ */
+function exportKeyframes(keyframes: Keyframe[] | undefined, leftTrim: number) {
+  if (!keyframes || keyframes.length === 0) return undefined;
+  return keyframes.map((k) => ({
+    time: k.time - leftTrim,
+    property: k.property,
+    value: k.value,
+    easing: k.easing,
+    bezierPoints: k.bezierPoints,
+  }));
+}
+
 export async function buildExportRequest(
   params: BuildExportRequestParams,
 ): Promise<Record<string, unknown>> {
   const {
-    tracks, duration, width, height, frameRate, format, quality,
+    tracks: editorTracks, duration, width, height, frameRate, format, quality,
     codec, proResProfile, includeSubtitles, subtitleFormat, outputPath,
     authToken, range,
   } = params;
 
+  // Compound / nested clips render as their contents (same as the preview).
+  const tracks = flattenCompoundClips(editorTracks);
   const urlMap = await buildAssetUrlMap(tracks);
 
   // Range trim — when a marked range is given, trim clips to [start, end] and
@@ -88,10 +124,16 @@ export async function buildExportRequest(
   const rangeEnd = rangeActive ? range!.end : duration;
   const exportDuration = rangeActive ? rangeEnd - rangeStart : duration;
 
-  const exportTracks = tracks.filter((track) => track.visible !== false).map((track) => ({
+  // Hidden tracks are dropped — except audio/music, which the preview keeps
+  // playing regardless of the eye toggle. Mute/solo travel with the request and
+  // are applied by the renderer with the shared lib/trackAudio.ts rules.
+  const isRendered = (track: Track) =>
+    track.visible !== false || track.type === 'audio' || track.type === 'music';
+  const exportTracks = tracks.filter(isRendered).map((track) => ({
     id: track.id,
     type: track.type,
     muted: track.muted,
+    solo: track.solo,
     volume: track.volume,
     clips: track.clips
       .filter((clip) => !rangeActive || (clip.endTime > rangeStart && clip.startTime < rangeEnd))
@@ -131,20 +173,13 @@ export async function buildExportRequest(
             // Audio extracted to a paired audio clip (now possibly deleted) →
             // suppress the video's embedded audio in the render too.
             muted: vc.muted || vc.audioExtracted === true,
+            // Same asset on an audio/music track → only that copy is heard
+            // (preview rule, lib/trackAudio.ts).
+            audioHandledExternally: isEmbeddedAudioHandledExternally(vc.assetId, tracks),
             speed: vc.speed,
             transform: vc.transform,
-            effects: vc.effects.map((e) => ({
-              type: e.type,
-              enabled: e.enabled,
-              filterType: e.filterType,
-              filterIntensity: e.filterIntensity,
-              filterParams: e.filterParams,
-              transitionType: e.transitionType,
-              transitionPosition: e.transitionPosition,
-              transitionDuration: e.transitionDuration,
-              audioEffectType: e.audioEffectType,
-              audioParams: e.audioParams,
-            })),
+            effects: exportEffects(vc.effects),
+            keyframes: exportKeyframes(vc.keyframes, leftTrim),
           };
         }
 
@@ -159,6 +194,8 @@ export async function buildExportRequest(
             fadeOut: ac.fadeOut,
             pan: ac.pan,
             gain: ac.gain,
+            effects: exportEffects(ac.effects),
+            keyframes: exportKeyframes(ac.keyframes, leftTrim),
           };
         }
 
@@ -186,18 +223,7 @@ export async function buildExportRequest(
           const adjClip = clip as AdjustmentClip;
           return {
             ...base,
-            effects: (adjClip.effects ?? []).map((e) => ({
-              type: e.type,
-              enabled: e.enabled,
-              filterType: e.filterType,
-              filterIntensity: e.filterIntensity,
-              filterParams: e.filterParams,
-              transitionType: e.transitionType,
-              transitionPosition: e.transitionPosition,
-              transitionDuration: e.transitionDuration,
-              audioEffectType: e.audioEffectType,
-              audioParams: e.audioParams,
-            })),
+            effects: exportEffects(adjClip.effects),
           };
         }
 

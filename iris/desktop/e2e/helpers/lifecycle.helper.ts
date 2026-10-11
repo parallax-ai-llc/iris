@@ -288,6 +288,13 @@ export async function stubSaveDialog(electronApp: ElectronApplication, filePath:
   }, filePath);
 }
 
+/** Make the native "save file" dialog answer Cancel (nothing is written). */
+export async function stubSaveDialogCancel(electronApp: ElectronApplication): Promise<void> {
+  await electronApp.evaluate(({ dialog }) => {
+    (dialog as unknown as { showSaveDialog: unknown }).showSaveDialog = async () => ({ canceled: true, filePath: undefined });
+  });
+}
+
 /**
  * Open a "cloud-like" asset (any id that does not start with `local-`) straight
  * through editorTabs.openTab - the same call a gallery card click makes. This

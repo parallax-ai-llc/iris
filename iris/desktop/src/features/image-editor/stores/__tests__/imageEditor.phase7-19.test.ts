@@ -1239,86 +1239,41 @@ describe('Color Profile / CMYK Preview', () => {
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe('Selection Modify actions', () => {
+  // Pixel behaviour is covered in lib/__tests__/selectionModify.test.ts; here:
+  // the store actions exist, keep a selection and never dirty the document.
   beforeEach(() => {
     resetStore();
   });
 
-  it('expandSelectionBy does not dirty the document (placeholder; selection is not document content) and preserves selection', () => {
-    const originalSel = setTestSelection();
-    const boundsBefore = { ...originalSel.bounds };
+  it.each([
+    ['expandSelectionBy', () => useImageEditorStore.getState().expandSelectionBy(5)],
+    ['smoothSelectionBy', () => useImageEditorStore.getState().smoothSelectionBy(2)],
+    ['borderSelectionBy', () => useImageEditorStore.getState().borderSelectionBy(3)],
+    ['growSelectionByColor', () => useImageEditorStore.getState().growSelectionByColor()],
+    ['selectSimilar', () => useImageEditorStore.getState().selectSimilar()],
+  ])('%s keeps a selection and does not dirty the document (selection is not document content)', async (_name, run) => {
+    setTestSelection();
     useImageEditorStore.setState({ isDirty: false });
-    useImageEditorStore.getState().expandSelectionBy(5);
+    await run();
     const state = useImageEditorStore.getState();
     expect(state.isDirty).toBe(false);
-    // Selection should still exist after expand operation
     expect(state.selection).not.toBeNull();
     expect(state.selection!.maskDataUrl).toBeTruthy();
-    // NOTE: The store action delegates actual mask pixel manipulation to the canvas
-    // component. At the store level we can only verify the selection is preserved
-    // and dirty flag is set. The bounds remain unchanged because the store stub
-    // does not perform pixel-level expansion — that happens in the canvas layer.
-    expect(state.selection!.bounds).toEqual(boundsBefore);
   });
 
-  it('expandSelectionBy does nothing without selection', () => {
+  it('contractSelectionBy does not dirty the document (it may clear a selection it shrinks away)', async () => {
+    setTestSelection();
     useImageEditorStore.setState({ isDirty: false });
-    useImageEditorStore.getState().expandSelectionBy(5);
+    await useImageEditorStore.getState().contractSelectionBy(3);
+    expect(useImageEditorStore.getState().isDirty).toBe(false);
+  });
+
+  it('expandSelectionBy does nothing without selection', async () => {
+    useImageEditorStore.setState({ isDirty: false });
+    await useImageEditorStore.getState().expandSelectionBy(5);
     const state = useImageEditorStore.getState();
     expect(state.isDirty).toBe(false);
     expect(state.selection).toBeNull();
-  });
-
-  it('contractSelectionBy does not dirty the document (placeholder; selection is not document content) and preserves selection', () => {
-    const originalSel = setTestSelection();
-    const boundsBefore = { ...originalSel.bounds };
-    useImageEditorStore.setState({ isDirty: false });
-    useImageEditorStore.getState().contractSelectionBy(3);
-    const state = useImageEditorStore.getState();
-    expect(state.isDirty).toBe(false);
-    expect(state.selection).not.toBeNull();
-    expect(state.selection!.maskDataUrl).toBeTruthy();
-    // Store stub: bounds unchanged; canvas component handles pixel contraction
-    expect(state.selection!.bounds).toEqual(boundsBefore);
-  });
-
-  it('smoothSelectionBy does not dirty the document (placeholder; selection is not document content) and preserves selection', () => {
-    setTestSelection();
-    useImageEditorStore.setState({ isDirty: false });
-    useImageEditorStore.getState().smoothSelectionBy(2);
-    const state = useImageEditorStore.getState();
-    expect(state.isDirty).toBe(false);
-    expect(state.selection).not.toBeNull();
-    expect(state.selection!.maskDataUrl).toBeTruthy();
-  });
-
-  it('borderSelectionBy does not dirty the document (placeholder; selection is not document content) and preserves selection', () => {
-    setTestSelection();
-    useImageEditorStore.setState({ isDirty: false });
-    useImageEditorStore.getState().borderSelectionBy(3);
-    const state = useImageEditorStore.getState();
-    expect(state.isDirty).toBe(false);
-    expect(state.selection).not.toBeNull();
-    expect(state.selection!.bounds).toBeDefined();
-  });
-
-  it('growSelectionByColor does not dirty the document (placeholder; selection is not document content) and preserves selection', () => {
-    setTestSelection();
-    useImageEditorStore.setState({ isDirty: false });
-    useImageEditorStore.getState().growSelectionByColor();
-    const state = useImageEditorStore.getState();
-    expect(state.isDirty).toBe(false);
-    expect(state.selection).not.toBeNull();
-    expect(state.selection!.maskDataUrl).toBeTruthy();
-  });
-
-  it('selectSimilar does not dirty the document (placeholder; selection is not document content) and preserves selection', () => {
-    setTestSelection();
-    useImageEditorStore.setState({ isDirty: false });
-    useImageEditorStore.getState().selectSimilar();
-    const state = useImageEditorStore.getState();
-    expect(state.isDirty).toBe(false);
-    expect(state.selection).not.toBeNull();
-    expect(state.selection!.maskDataUrl).toBeTruthy();
   });
 });
 

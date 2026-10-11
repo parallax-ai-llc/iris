@@ -151,7 +151,9 @@
     "bugReportError": "버그 리포트 제출에 실패했습니다",
     "bugReportRateLimit": "너무 많은 버그 리포트를 보냈습니다. 잠시 후 다시 시도해주세요.",
     "bugReportThankYou": "리포트를 보내주셔서 감사합니다! 빠르게 확인하겠습니다.",
-    "workWithAgent": "Work with Agent"
+    "workWithAgent": "Work with Agent",
+    "back": "뒤로",
+    "forward": "앞으로"
   },
   "editor": {
     "localFileWarning": {
@@ -255,5 +257,14 @@
     "defaults": {
       "projectName": "제목 없는 프로젝트"
     }
+  },
+  "librarySearch": {
+    "label": "라이브러리 검색",
+    "placeholder": "프롬프트·모델 검색",
+    "clear": "검색 지우기",
+    "scope": "지금까지 불러온 {{count}}개 항목에서 검색합니다",
+    "loadMore": "항목 더 불러오기",
+    "noResults": "불러온 항목 중 “{{query}}”와 일치하는 항목이 없습니다",
+    "countFiltered": "{{total}}개 중 {{shown}}개"
   }
 }

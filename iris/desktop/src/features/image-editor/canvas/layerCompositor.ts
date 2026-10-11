@@ -2,6 +2,17 @@
  * Layer Compositor
  * Pure layer compositing utility that flattens multiple layers into a single canvas.
  * Extracts the compositing logic from EditorCanvas.renderAllLayers() without UI concerns.
+ *
+ * This is the document renderer for everything that leaves the screen: save,
+ * export, clipboard, the PSD composite preview, merge/flatten and the AI tools.
+ * It follows the PSD exporter's rules (exportPsd.ts):
+ *  - layer masks are luminance masks (white = visible, black = hidden), drawn
+ *    in document coordinates; an empty mask reveals all, a disabled one is ignored
+ *  - a hidden group hides every descendant, and a group's opacity applies to its
+ *    descendants (pass-through)
+ *  - every layer and mask image is fully loaded before anything is drawn
+ * Display-only state (channel view, proof colors, gamut warning, the live
+ * adjustment preview) is never applied here.
  */
 
 import type { Layer } from '@/features/image-editor/stores/imageEditor.store';
@@ -14,7 +25,7 @@ import { applyClippingMask } from './layerEffects';
 /**
  * Load a base64 data URL as an HTMLImageElement.
  */
-function loadImage(dataUrl: string): Promise<HTMLImageElement | null> {
+function loadImage(dataUrl: string | undefined): Promise<HTMLImageElement | null> {
   if (!dataUrl) return Promise.resolve(null);
   return new Promise<HTMLImageElement | null>((resolve) => {
     const img = new Image();
@@ -24,13 +35,72 @@ function loadImage(dataUrl: string): Promise<HTMLImageElement | null> {
   });
 }
 
+function hasActiveMask(layer: Layer): boolean {
+  return !!(layer.mask?.enabled && layer.mask.data);
+}
+
 /**
- * Render a single raster layer to a temp canvas.
+ * The layers that actually render, with group state folded in:
+ *  - group layers are dropped (they hold no pixels of their own)
+ *  - a layer under a hidden group (at any depth) becomes hidden
+ *  - group opacity multiplies into each descendant's opacity
+ * Order is preserved and the input layers are not mutated.
+ */
+export function resolveRenderableLayers(layers: Layer[]): Layer[] {
+  const byId = new Map(layers.map((l) => [l.id, l]));
+  const out: Layer[] = [];
+  for (const layer of layers) {
+    if (layer.type === 'group') continue;
+    let visible = layer.visible;
+    let opacity = layer.opacity;
+    const seen = new Set<string>([layer.id]);
+    let parentId = layer.parentId;
+    while (parentId && !seen.has(parentId)) {
+      seen.add(parentId);
+      const parent = byId.get(parentId);
+      if (!parent) break;
+      if (!parent.visible) visible = false;
+      opacity = (opacity * parent.opacity) / 100;
+      parentId = parent.parentId;
+    }
+    out.push(visible === layer.visible && opacity === layer.opacity ? layer : { ...layer, visible, opacity });
+  }
+  return out;
+}
+
+/**
+ * Multiply `target`'s alpha by the mask's luminance (and the mask's own alpha).
+ * Both images must have the same size. White keeps a pixel, black removes it.
+ */
+export function applyLuminanceMask(target: ImageData, mask: ImageData): void {
+  const t = target.data;
+  const m = mask.data;
+  const n = Math.min(t.length, m.length);
+  for (let p = 0; p < n; p += 4) {
+    const lum = 0.299 * m[p] + 0.587 * m[p + 1] + 0.114 * m[p + 2];
+    t[p + 3] = t[p + 3] * (lum / 255) * (m[p + 3] / 255);
+  }
+}
+
+/** Apply a loaded mask image (document coordinates) to `canvas` in place. */
+function maskCanvasInPlace(canvas: HTMLCanvasElement, maskImg: HTMLImageElement, width: number, height: number): void {
+  const { ctx: maskCtx } = createOffscreenCanvas(width, height);
+  maskCtx.drawImage(maskImg, 0, 0);
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return;
+  const target = ctx.getImageData(0, 0, width, height);
+  applyLuminanceMask(target, maskCtx.getImageData(0, 0, width, height));
+  ctx.putImageData(target, 0, 0);
+}
+
+/**
+ * Render a single raster layer (with its mask) to a temp canvas.
  * Returns null for adjustment layers or layers with no image data.
  */
 function renderLayerToCanvas(
   layer: Layer,
   img: HTMLImageElement | null,
+  maskImg: HTMLImageElement | null,
   canvasWidth: number,
   canvasHeight: number,
 ): HTMLCanvasElement | null {
@@ -39,25 +109,33 @@ function renderLayerToCanvas(
 
   const { canvas: tempCanvas, ctx: tempCtx } = createOffscreenCanvas(canvasWidth, canvasHeight);
   tempCtx.drawImage(img, layer.x, layer.y);
+  if (maskImg && hasActiveMask(layer)) maskCanvasInPlace(tempCanvas, maskImg, canvasWidth, canvasHeight);
   return tempCanvas;
 }
 
 /**
- * Composite all visible layers into a single canvas.
- * Replicates the compositing pipeline from EditorCanvas.renderAllLayers
- * without UI-specific concerns (no active layer filter preview, no channel view).
+ * Composite all visible layers into a single canvas of the document size.
+ * Same pipeline as EditorCanvas.renderAllLayers (adjustment layers, clipping,
+ * blend modes, opacity) plus layer masks and group visibility/opacity, without
+ * any display-only state (no live filter preview, channel view, proof colors
+ * or gamut warning).
  */
 export async function compositeLayers(
-  layers: Layer[],
+  inputLayers: Layer[],
   canvasWidth: number,
   canvasHeight: number,
 ): Promise<HTMLCanvasElement> {
   const { canvas, ctx } = createOffscreenCanvas(canvasWidth, canvasHeight);
 
+  const layers = resolveRenderableLayers(inputLayers);
   if (layers.length === 0) return canvas;
 
-  // Load all layer images
-  const images = await Promise.all(layers.map((layer) => loadImage(layer.imageData)));
+  // Load every layer and mask image BEFORE drawing anything (a mask drawn
+  // before it decodes would silently vanish from the result).
+  const [images, maskImages] = await Promise.all([
+    Promise.all(layers.map((layer) => (layer.visible ? loadImage(layer.imageData) : Promise.resolve(null)))),
+    Promise.all(layers.map((layer) => (layer.visible && hasActiveMask(layer) ? loadImage(layer.mask!.data) : Promise.resolve(null)))),
+  ]);
 
   // Draw each visible layer from bottom to top
   let i = 0;
@@ -83,7 +161,8 @@ export async function compositeLayers(
       } as AdjustmentValues);
 
       const adjOpacity = layer.opacity / 100;
-      const hasMask = layer.mask?.enabled && layer.mask?.data;
+      const maskImg = maskImages[i];
+      const hasMask = !!maskImg;
       const needsBlend = adjOpacity < 1 || layer.blendMode !== 'normal' || hasMask;
 
       if (!needsBlend) {
@@ -94,14 +173,10 @@ export async function compositeLayers(
         ctx.drawImage(beforeCanvas.canvas, 0, 0);
 
         if (hasMask) {
+          // The adjusted pixels, kept only where the (luminance) mask is white
           const { canvas: maskCanvas, ctx: maskCtx } = createOffscreenCanvas(canvasWidth, canvasHeight);
           maskCtx.drawImage(afterCanvas, 0, 0);
-
-          const maskImg = new Image();
-          maskImg.src = layer.mask!.data;
-          maskCtx.globalCompositeOperation = 'destination-in';
-          maskCtx.drawImage(maskImg, 0, 0);
-          maskCtx.globalCompositeOperation = 'source-over';
+          maskCanvasInPlace(maskCanvas, maskImg, canvasWidth, canvasHeight);
 
           ctx.clearRect(0, 0, canvasWidth, canvasHeight);
           ctx.drawImage(beforeCanvas.canvas, 0, 0);
@@ -159,11 +234,11 @@ export async function compositeLayers(
     }
 
     if (clippingLayers.length > 0) {
-      const baseCanvas = renderLayerToCanvas(layer, images[i], canvasWidth, canvasHeight);
+      const baseCanvas = renderLayerToCanvas(layer, images[i], maskImages[i], canvasWidth, canvasHeight);
       if (baseCanvas) {
         let groupCanvas = baseCanvas;
         for (const clip of clippingLayers) {
-          const clipLayerCanvas = renderLayerToCanvas(clip.layer, images[clip.index], canvasWidth, canvasHeight);
+          const clipLayerCanvas = renderLayerToCanvas(clip.layer, images[clip.index], maskImages[clip.index], canvasWidth, canvasHeight);
           if (clipLayerCanvas) {
             if (clip.layer.opacity < 100) {
               const { canvas: opacityCanvas, ctx: opacityCtx } = createOffscreenCanvas(canvasWidth, canvasHeight);
@@ -195,12 +270,9 @@ export async function compositeLayers(
       i = j;
     } else {
       // --- Regular layer ---
-      const img = images[i];
-      if (img) {
+      const layerTmp = renderLayerToCanvas(layer, images[i], maskImages[i], canvasWidth, canvasHeight);
+      if (layerTmp) {
         if (isCustomBlendMode(layer.blendMode)) {
-          const { canvas: layerTmp, ctx: layerTmpCtx } = createOffscreenCanvas(canvasWidth, canvasHeight);
-          layerTmpCtx.drawImage(img, layer.x, layer.y);
-
           const currentData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
           const currentCanvas = createOffscreenCanvas(canvasWidth, canvasHeight);
           currentCanvas.ctx.putImageData(currentData, 0, 0);
@@ -210,7 +282,7 @@ export async function compositeLayers(
         } else {
           ctx.globalAlpha = layer.opacity / 100;
           ctx.globalCompositeOperation = layer.blendMode === 'normal' ? 'source-over' : layer.blendMode as GlobalCompositeOperation;
-          ctx.drawImage(img, layer.x, layer.y);
+          ctx.drawImage(layerTmp, 0, 0);
           ctx.globalAlpha = 1;
           ctx.globalCompositeOperation = 'source-over';
         }

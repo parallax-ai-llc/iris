@@ -1,12 +1,23 @@
 {
   "title": "Settings",
+  "tabsLabel": "సెట్టింగ్‌ల విభాగాలు",
+  "appearance": {
+    "theme": "థీమ్",
+    "themeDesc": "Iris ఎలా కనిపించాలో ఎంచుకోండి.",
+    "dark": "డార్క్",
+    "light": "లైట్",
+    "system": "సిస్టమ్",
+    "editorsNote": "ఇమేజ్, వీడియో మరియు వర్క్‌ఫ్లో ఎడిటర్లు ఎప్పుడూ డార్క్‌గానే ఉంటాయి. సిస్టమ్ మీ ఆపరేటింగ్ సిస్టమ్ సెట్టింగ్‌ను అనుసరిస్తుంది."
+  },
   "sections": {
     "account": "Account",
     "storage": "Storage",
     "notifications": "Notifications",
     "keyboard": "Keyboard Shortcuts",
     "about": "About",
-    "language": "Language"
+    "language": "Language",
+    "appearance": "రూపం",
+    "apiKeys": "వర్క్‌ఫ్లో API కీలు"
   },
   "account": {
     "notLoggedIn": "Not logged in"
@@ -30,11 +41,13 @@
     "updatesDesc": "Notify when a new version is available"
   },
   "keyboard": {
-    "newGeneration": "New generation",
-    "saveDownload": "Save/Download",
+    "goToPage": "సైడ్‌బార్ పేజీకి వెళ్ళండి",
+    "backForward": "పేజీల మధ్య వెనుకకు / ముందుకు వెళ్ళండి",
     "openSettings": "Open settings",
+    "toggleAssistant": "అసిస్టెంట్‌ను తెరవండి లేదా మూసివేయండి",
     "closeModal": "Close modal",
-    "navigateGallery": "Navigate gallery"
+    "previewItems": "ప్రివ్యూలో మునుపటి / తదుపరి అంశం",
+    "editorNote": "ఎడిటర్ షార్ట్‌కట్‌లు ఎడిటర్ మెనూల్లో ప్రతి కమాండ్ పక్కన చూపబడతాయి."
   },
   "about": {
     "irisDesktop": "Iris Desktop",
@@ -47,7 +60,9 @@
     "termsDesc": "Usage terms and conditions",
     "checkUpdates": "Check for Updates",
     "latestVersion": "You are on the latest version",
-    "updateCheckFailed": "Failed to check for updates"
+    "updateCheckFailed": "Failed to check for updates",
+    "updateAvailable": "అప్‌డేట్ {{version}} అందుబాటులో ఉంది",
+    "updateCheckBusy": "అప్‌డేట్ తనిఖీ ఇప్పటికే జరుగుతోంది"
   },
   "footer": {
     "madeBy": "Made with care by Parallax AI",

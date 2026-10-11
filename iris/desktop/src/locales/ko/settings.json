@@ -1,12 +1,23 @@
 {
   "title": "설정",
+  "tabsLabel": "설정 항목",
+  "appearance": {
+    "theme": "테마",
+    "themeDesc": "Iris 화면의 밝기를 고릅니다.",
+    "dark": "다크",
+    "light": "라이트",
+    "system": "시스템",
+    "editorsNote": "이미지·비디오·워크플로 편집기는 항상 다크로 유지됩니다. 시스템은 운영체제 설정을 따릅니다."
+  },
   "sections": {
     "account": "계정",
     "storage": "저장소",
     "notifications": "알림",
     "keyboard": "키보드 단축키",
     "about": "정보",
-    "language": "언어"
+    "language": "언어",
+    "appearance": "화면 모드",
+    "apiKeys": "워크플로 API 키"
   },
   "account": {
     "notLoggedIn": "로그인하지 않음"
@@ -30,11 +41,13 @@
     "updatesDesc": "새 버전이 출시되면 알림"
   },
   "keyboard": {
-    "newGeneration": "새 생성",
-    "saveDownload": "저장/다운로드",
+    "goToPage": "사이드바 페이지로 이동",
+    "backForward": "페이지 뒤로 / 앞으로",
     "openSettings": "설정 열기",
+    "toggleAssistant": "어시스턴트 열기·닫기",
     "closeModal": "모달 닫기",
-    "navigateGallery": "갤러리 탐색"
+    "previewItems": "미리보기에서 이전·다음 항목",
+    "editorNote": "편집기 단축키는 편집기 메뉴의 각 명령 옆에 표시됩니다."
   },
   "about": {
     "irisDesktop": "Iris Desktop",
@@ -47,7 +60,9 @@
     "termsDesc": "이용 조건",
     "checkUpdates": "업데이트 확인",
     "latestVersion": "최신 버전을 사용 중입니다",
-    "updateCheckFailed": "업데이트 확인에 실패했습니다"
+    "updateCheckFailed": "업데이트 확인에 실패했습니다",
+    "updateAvailable": "{{version}} 업데이트가 있습니다",
+    "updateCheckBusy": "이미 업데이트를 확인하는 중입니다"
   },
   "footer": {
     "madeBy": "Parallax AI가 정성스럽게 만들었습니다",

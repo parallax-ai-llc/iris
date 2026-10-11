@@ -21,7 +21,11 @@
     "ffmpegUpgradeMessage": "Some transition effects require FFmpeg 4.3 or higher. Please upgrade to the latest version.",
     "ffmpegPreparing": "Preparing video encoder...",
     "ffmpegDownloading": "Downloading video encoder...",
-    "ffmpegSetupFailed": "Couldn't set up the video encoder"
+    "ffmpegSetupFailed": "Couldn't set up the video encoder",
+    "fidelityTitle": "काही संपादने निर्यात केलेल्या फाइलमध्ये दिसणार नाहीत",
+    "fidelitySpeedKeyframes": "स्पीड कीफ्रेम किंवा टाइम रीमॅपिंग असलेल्या {{count}} क्लिप मूळ वेगाने निर्यात होतील",
+    "fidelityBlurKeyframes": "ब्लर कीफ्रेम असलेल्या {{count}} क्लिप अ‍ॅनिमेटेड ब्लरशिवाय निर्यात होतील",
+    "fidelitySubtitleAnimation": "{{count}} अ‍ॅनिमेटेड उपशीर्षके स्थिर मजकूर म्हणून निर्यात होतील"
   },
   "lumetri": {
     "colorMatchAnalyzing": "Color Match: AI analyzing..."

@@ -174,6 +174,7 @@ export const LayersSection = memo(function LayersSection() {
     addLayer,
     removeLayer,
     updateLayer,
+    setLayerProperties,
     duplicateLayer,
     reorderLayers,
     flattenLayers,
@@ -214,13 +215,13 @@ export const LayersSection = memo(function LayersSection() {
 
   const handleToggleVisibility = useCallback((layerId: string) => {
     const layer = layers.find((l) => l.id === layerId);
-    if (layer) updateLayer(layerId, { visible: !layer.visible });
-  }, [layers, updateLayer]);
+    if (layer) setLayerProperties(layerId, { visible: !layer.visible });
+  }, [layers, setLayerProperties]);
 
   const handleToggleLock = useCallback((layerId: string) => {
     const layer = layers.find((l) => l.id === layerId);
-    if (layer) updateLayer(layerId, { locked: !layer.locked });
-  }, [layers, updateLayer]);
+    if (layer) setLayerProperties(layerId, { locked: !layer.locked });
+  }, [layers, setLayerProperties]);
 
   // Drag and drop handlers
   const handleDragStart = useCallback((index: number) => {
@@ -298,7 +299,7 @@ export const LayersSection = memo(function LayersSection() {
           value={activeLayer?.blendMode ?? 'normal'}
           disabled={!activeLayer}
           onChange={(e) =>
-            activeLayer && updateLayer(activeLayer.id, { blendMode: e.target.value as Layer['blendMode'] })
+            activeLayer && setLayerProperties(activeLayer.id, { blendMode: e.target.value as Layer['blendMode'] })
           }
           title="Blend Mode"
           aria-label="Blend Mode"
@@ -319,7 +320,8 @@ export const LayersSection = memo(function LayersSection() {
             disabled={!activeLayer}
             value={activeLayer?.opacity ?? 100}
             onChange={(e) =>
-              activeLayer && updateLayer(activeLayer.id, { opacity: Number(e.target.value) })
+              // One history entry per slider drag (setLayerProperties coalesces the gesture)
+              activeLayer && setLayerProperties(activeLayer.id, { opacity: Number(e.target.value) })
             }
             aria-label="Opacity"
             className="flex-1 min-w-0 h-1 bg-zinc-700 rounded-lg appearance-none cursor-pointer disabled:opacity-50

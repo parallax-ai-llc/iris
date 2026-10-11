@@ -29,6 +29,7 @@ import {
   Italic,
   Layers,
   Watch,
+  Lock,
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import {
@@ -44,6 +45,7 @@ import {
   type SubtitleAnimation,
   hasEffects,
 } from '@/features/video-editor/stores/editor.store';
+import { isClipLocked } from '@/features/video-editor/stores/editor/trackLocks';
 import { formatSMPTE } from '@/shared/api/subtitle.api';
 import { PropertyRow } from './KeyframeEditor';
 import { KEYFRAME_PROPERTIES } from './keyframeProperties';
@@ -1431,55 +1433,21 @@ const TimingProperties = memo(function TimingProperties({
   clip: Clip;
 }) {
   const frameRate = useEditorStore((s) => s.frameRate);
-  const updateClip = useEditorStore((s) => s.updateClip);
-  const pushHistory = useEditorStore((s) => s.pushHistory);
+  const setClipEdge = useEditorStore((s) => s.setClipEdge);
 
-  const isImage = clip.type === 'video' && clip.mediaType === 'image';
   const MIN_DUR = 0.05;
 
-  // Apply the same update to the paired (linked) clip, matching drag-trim.
-  const applyToLinked = useCallback(
-    (updates: Partial<Clip>) => {
-      if (clip.linkedClipId) updateClip(clip.linkedClipId, updates);
-    },
-    [clip.linkedClipId, updateClip],
-  );
-
+  // Committing a value trims the edge exactly like dragging the handle: the
+  // source moves by (timeline delta x speed), the linked clip follows and the
+  // store records one history entry (stores/editor/clipTiming.ts).
   const commitStart = useCallback(
-    (value: number) => {
-      let newStart = Math.max(0, Math.min(clip.endTime - MIN_DUR, value));
-      let newSourceStart = clip.sourceStartTime + (newStart - clip.startTime);
-      // Non-image clips can't trim past the source in-point (0).
-      if (newSourceStart < 0) {
-        if (!isImage) {
-          newStart = Math.max(0, clip.startTime - clip.sourceStartTime);
-        }
-        newSourceStart = 0;
-      }
-      const updates = { startTime: newStart, sourceStartTime: newSourceStart };
-      updateClip(clip.id, updates);
-      applyToLinked(updates);
-      pushHistory('Edit Timing');
-    },
-    [clip, isImage, updateClip, applyToLinked, pushHistory],
+    (value: number) => setClipEdge(clip.id, 'start', value),
+    [clip.id, setClipEdge],
   );
 
   const commitEnd = useCallback(
-    (value: number) => {
-      let newEnd = Math.max(clip.startTime + MIN_DUR, value);
-      let newSourceEnd = clip.sourceEndTime + (newEnd - clip.endTime);
-      const maxDuration = clip.sourceDuration ?? 0;
-      // Images stretch without limit; other media cap at the source length.
-      if (!isImage && maxDuration > 0 && newSourceEnd > maxDuration) {
-        newSourceEnd = maxDuration;
-        newEnd = clip.endTime + (maxDuration - clip.sourceEndTime);
-      }
-      const updates = { endTime: newEnd, sourceEndTime: newSourceEnd };
-      updateClip(clip.id, updates);
-      applyToLinked(updates);
-      pushHistory('Edit Timing');
-    },
-    [clip, isImage, updateClip, applyToLinked, pushHistory],
+    (value: number) => setClipEdge(clip.id, 'end', value),
+    [clip.id, setClipEdge],
   );
 
   const commitDuration = useCallback(
@@ -1646,6 +1614,10 @@ export const EditorInspector = memo(function EditorInspector({
   const updateClipEffect = useEditorStore((s) => s.updateClipEffect);
   const toggleClipEffect = useEditorStore((s) => s.toggleClipEffect);
 
+  // Clips on a locked track are read-only here as well (the store refuses the
+  // edits; the panel shows them disabled).
+  const clipLocked = useEditorStore((s) => isClipLocked(s.tracks, s.selectedClip?.id));
+
   const multiSelectCount = Array.isArray(selection.clipIds) ? selection.clipIds.length : 0;
   const isMultiSelect = multiSelectCount > 1;
 
@@ -1673,6 +1645,7 @@ export const EditorInspector = memo(function EditorInspector({
   }, [selectedClip, currentTime, splitClip]);
 
   const canSplit =
+    !clipLocked &&
     selectedClip &&
     currentTime > selectedClip.startTime &&
     currentTime < selectedClip.endTime;
@@ -1782,8 +1755,19 @@ export const EditorInspector = memo(function EditorInspector({
         </div>
       )}
 
+      {clipLocked && (
+        <div className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] text-amber-300 bg-amber-500/10 border-b border-zinc-700">
+          <Lock className="w-3 h-3" />
+          Track is locked
+        </div>
+      )}
+
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
+        <fieldset
+          disabled={clipLocked}
+          className={cn('m-0 min-w-0 border-0 p-0', clipLocked && 'pointer-events-none opacity-60')}
+        >
         {inspectorTab !== 'effects' ? (
           <>
             {/* Timing (all clips) */}
@@ -1922,14 +1906,19 @@ export const EditorInspector = memo(function EditorInspector({
             })()}
           </div>
         )}
+        </fieldset>
       </div>
 
       {/* Action buttons */}
       <div className="p-3 border-t border-zinc-700 bg-zinc-800/50">
         <div className="flex items-center gap-2">
           <button
-            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-xs bg-zinc-700 text-zinc-300 hover:text-white transition-colors"
+            className={cn(
+              'flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-xs transition-colors',
+              clipLocked ? 'bg-zinc-800 text-zinc-600 cursor-not-allowed' : 'bg-zinc-700 text-zinc-300 hover:text-white'
+            )}
             onClick={handleDuplicate}
+            disabled={clipLocked}
             title="Duplicate clip"
           >
             <Copy className="w-3 h-3" />
@@ -1952,8 +1941,12 @@ export const EditorInspector = memo(function EditorInspector({
           </button>
 
           <button
-            className="flex items-center justify-center p-1.5 rounded text-zinc-400 hover:text-red-400 hover:bg-red-600/10 transition-colors"
+            className={cn(
+              'flex items-center justify-center p-1.5 rounded transition-colors',
+              clipLocked ? 'text-zinc-600 cursor-not-allowed' : 'text-zinc-400 hover:text-red-400 hover:bg-red-600/10'
+            )}
             onClick={handleDelete}
+            disabled={clipLocked}
             title="Delete clip"
           >
             <Trash2 className="w-4 h-4" />

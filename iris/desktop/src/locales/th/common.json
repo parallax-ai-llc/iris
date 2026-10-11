@@ -122,7 +122,9 @@
     "bugReportError": "ส่งรายงานข้อบกพร่องไม่สำเร็จ",
     "bugReportRateLimit": "ส่งรายงานมากเกินไป กรุณาลองอีกครั้งในภายหลัง",
     "bugReportThankYou": "ขอบคุณสำหรับรายงานของคุณ! เราจะตรวจสอบในเร็วๆ นี้",
-    "workWithAgent": "Work with Agent"
+    "workWithAgent": "Work with Agent",
+    "back": "ย้อนกลับ",
+    "forward": "ไปข้างหน้า"
   },
   "editor": {
     "localFileWarning": {
@@ -249,5 +251,14 @@
     "defaults": {
       "projectName": "โปรเจกต์ไม่มีชื่อ"
     }
+  },
+  "librarySearch": {
+    "label": "ค้นหาในคลัง",
+    "placeholder": "ค้นหาพรอมต์และโมเดล",
+    "clear": "ล้างการค้นหา",
+    "scope": "กำลังค้นหาใน {{count}} รายการที่โหลดแล้ว",
+    "loadMore": "โหลดรายการเพิ่ม",
+    "noResults": "ไม่มีรายการที่โหลดแล้วตรงกับ “{{query}}”",
+    "countFiltered": "{{shown}} จาก {{total}} รายการ"
   }
 }

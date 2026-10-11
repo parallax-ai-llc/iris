@@ -22,6 +22,9 @@ test.describe('Logout Flow', () => {
     await page.locator('button:has(svg.lucide-settings)').click();
     await expect(page.locator('h1:has-text("Settings")')).toBeVisible({ timeout: 10_000 });
 
+    // Settings 는 탭으로 나뉘어 있고 마지막 탭을 기억한다: Account 탭을 연다
+    await page.locator('[role="tab"]', { hasText: 'Account' }).first().click();
+
     // Settings Account 섹션의 Logout 버튼 클릭
     const logoutClick = await safeClick(
       page,

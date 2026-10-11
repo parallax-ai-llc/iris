@@ -9,7 +9,7 @@
  * 5. On completion, option to open file or folder
  */
 
-import { memo, useState, useCallback, useEffect, useMemo } from 'react';
+import { memo, useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   X,
@@ -25,6 +25,7 @@ import { cn } from '@/shared/lib/utils';
 import { useEditorStore } from '@/features/video-editor/stores/editor.store';
 import { useVideoProjectStore } from '@/features/video-editor/stores/videoProject.store';
 import { buildExportRequest } from '@/features/video-editor/lib/buildExportRequest';
+import { ExportFidelityNotice } from './ExportFidelityNotice';
 
 export interface ExportOptions {
   format: 'mp4' | 'webm' | 'mov' | 'gif';
@@ -379,11 +380,17 @@ export const ExportModal = memo(function ExportModal({
     };
   }, [isOpen, projectWidth, projectHeight, defaultFrameRate]);
 
-  // Listen for export progress
+  // True only while THIS modal's export is running. The export:progress channel
+  // is shared (Silence Removal flattens the timeline through the same renderer),
+  // so events from other consumers must not flip this modal's phase.
+  const exportActiveRef = useRef(false);
+
+  // Listen for export progress (own listener only — never removeAllListeners)
   useEffect(() => {
     if (!window.electronAPI?.videoExport) return;
 
-    window.electronAPI.videoExport.onProgress((data: RenderProgress) => {
+    const off = window.electronAPI.videoExport.onProgress((data: RenderProgress) => {
+      if (!exportActiveRef.current) return;
       setProgress(data);
       if (data.status === 'completed') {
         setPhase('completed');
@@ -396,7 +403,7 @@ export const ExportModal = memo(function ExportModal({
     });
 
     return () => {
-      window.electronAPI.videoExport.removeProgressListener();
+      off();
     };
   }, []);
 
@@ -454,8 +461,34 @@ export const ExportModal = memo(function ExportModal({
         range: rangeActive ? { start: inPoint as number, end: outPoint as number } : null,
       });
 
-      await window.electronAPI.videoExport.start(request);
+      exportActiveRef.current = true;
+      const result = await window.electronAPI.videoExport.start(request);
+      exportActiveRef.current = false;
+      // The invoke result is authoritative: progress events can be missed, but
+      // the phase (and the window-close guard tied to it) must always end.
+      if (result?.success) {
+        setPhase('completed');
+        setOutputPath(result.outputPath || savePath);
+        setProgress((prev) => ({
+          ...prev ?? { message: '' },
+          status: 'completed',
+          progress: 100,
+          outputPath: result.outputPath || savePath,
+        }));
+      } else if (result?.error === 'cancelled') {
+        setPhase('options');
+        setProgress(null);
+      } else {
+        setPhase('failed');
+        setProgress((prev) => ({
+          ...prev ?? { message: '' },
+          status: 'failed',
+          progress: 0,
+          error: result?.error || 'Export failed',
+        }));
+      }
     } catch (err) {
+      exportActiveRef.current = false;
       setPhase('failed');
       setProgress((prev) => ({
         ...prev ?? { status: 'failed', progress: 0, message: '' },
@@ -588,6 +621,11 @@ export const ExportModal = memo(function ExportModal({
                   <p className="text-sm text-red-300">{exportError}</p>
                 </div>
               )}
+
+              <ExportFidelityNotice
+                tracks={tracks}
+                burnsSubtitles={includeSubtitles && subtitleFormat === 'burned'}
+              />
 
               {/* Platform Presets */}
               <div>

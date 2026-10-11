@@ -30,10 +30,20 @@ interface FullScreenLayoutProps {
  *
  * The body goes through `ShellBody`, which puts the app-wide assistant panel
  * on the left; `children` fill the rest as a column.
+ *
+ * Editors are dark whatever the app theme is (Photoshop-style canvas):
+ * `data-theme="dark"` re-points every colour token under this root back to
+ * the dark values (see styles/theme.css). `useAppTheme` also keeps <html>
+ * dark while an editor is open so portals (menus, dialogs) match.
  */
 export function FullScreenLayout({ titleBar, children, className, style }: FullScreenLayoutProps) {
   return (
-    <div className={cn('h-screen flex flex-col overflow-hidden', className)} style={style}>
+    <div
+      data-theme="dark"
+      data-editor-shell=""
+      className={cn('h-screen flex flex-col overflow-hidden', className)}
+      style={style}
+    >
       {titleBar}
       <ShellBody className="ext-dock-inset flex-1 flex min-h-0 overflow-hidden">
         <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">{children}</div>

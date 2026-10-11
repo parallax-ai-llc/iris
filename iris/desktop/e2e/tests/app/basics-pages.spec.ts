@@ -7,6 +7,7 @@ import {
   currentPageId,
   deleteWorkflowsCreatedSince,
   goTo,
+  librarySearchInput,
   listWorkflowIds,
   navButton,
   preparePage,
@@ -21,8 +22,7 @@ import {
  *
  * Every test is independent (own app launch) and runs against deterministic stand-in cloud data
  * (see helpers/pages.helper.ts). Cloud writes are refused and reported by afterEach; so are
- * renderer console errors. Features that do not exist are probed and recorded as a
- * `not-implemented` annotation instead of failing.
+ * renderer console errors.
  */
 
 let errors: ErrorLog;
@@ -33,9 +33,6 @@ test.beforeEach(async ({ page }) => {
 test.afterEach(async ({ page }) => {
   await assertClean(page, errors);
 });
-
-const notImplemented = (what: string) =>
-  test.info().annotations.push({ type: 'not-implemented', description: what });
 
 // ===================================================================== 1. sidebar
 
@@ -79,21 +76,60 @@ test.describe('1. Sidebar', () => {
   });
 
   test('back / forward navigation', async ({ page }) => {
+    // three sidebar moves: Images -> Videos -> Library
     await goTo(page, 'Images');
     await goTo(page, 'Videos');
-    const hasButton = await page
-      .locator('button[title*="Back" i], button[aria-label*="Back" i], button[title*="Forward" i]')
-      .count();
+    await goTo(page, 'Library');
+    await expect.poll(() => currentPageId(page)).toBe('library');
+
+    // keyboard: Alt+Left twice, then Alt+Right
     await resetFocus(page);
     await page.keyboard.press('Alt+ArrowLeft');
-    await page.waitForTimeout(400);
-    const after = await currentPageId(page);
-    if (hasButton === 0 && after === 'videos') {
-      notImplemented('page history (back/forward buttons or Alt+Left/Right): the shell keeps a single currentPage');
-      return;
+    await expect.poll(() => currentPageId(page), { timeout: 5_000 }).toBe('videos');
+    await page.keyboard.press('Alt+ArrowLeft');
+    await expect.poll(() => currentPageId(page), { timeout: 5_000 }).toBe('images');
+    await page.keyboard.press('Alt+ArrowRight');
+    await expect.poll(() => currentPageId(page), { timeout: 5_000 }).toBe('videos');
+
+    // title bar buttons, tooltips show the shortcut
+    const back = page.getByTestId('titlebar-back');
+    const forward = page.getByTestId('titlebar-forward');
+    await expect(back).toHaveAttribute('title', /Alt\+←/);
+    await expect(forward).toHaveAttribute('title', /Alt\+→/);
+    await forward.click();
+    await expect.poll(() => currentPageId(page)).toBe('library');
+    await expect(forward).toBeDisabled();
+    await back.click();
+    await expect.poll(() => currentPageId(page)).toBe('videos');
+    await expect(forward).toBeEnabled();
+
+    // mouse side buttons (real Chromium input via CDP: button 3 = back, 4 = forward)
+    const cdp = await page.context().newCDPSession(page);
+    const side = async (button: 'back' | 'forward') => {
+      for (const type of ['mousePressed', 'mouseReleased'] as const) {
+        await cdp.send('Input.dispatchMouseEvent', { type, x: 400, y: 300, button, clickCount: 1 });
+      }
+    };
+    await side('back');
+    await expect.poll(() => currentPageId(page), { timeout: 5_000 }).toBe('images');
+    await side('forward');
+    await expect.poll(() => currentPageId(page), { timeout: 5_000 }).toBe('videos');
+
+    // a new move after going back clears forward
+    await back.click();
+    await expect.poll(() => currentPageId(page)).toBe('images');
+    await goTo(page, 'Home');
+    await expect(forward).toBeDisabled();
+
+    // typing in a text field keeps Alt+Left for the field
+    await goTo(page, 'Library');
+    const search = librarySearchInput(page);
+    if ((await search.count()) > 0) {
+      await search.click();
+      await page.keyboard.press('Alt+ArrowLeft');
+      await page.waitForTimeout(300);
+      expect(await currentPageId(page)).toBe('library');
     }
-    // if a history feature exists it must go back to Images
-    expect(after).toBe('images');
   });
 });
 
@@ -345,35 +381,55 @@ test.describe('10. Library', () => {
     await expect(lightbox, 'ArrowLeft shows the previous item').toContainText('library item one', { timeout: 2_000 });
   });
 
-  test('search box', async ({ page }) => {
-    const search = page.locator('main input[type="text"], main input[type="search"], main input[placeholder*="Search" i]');
-    if ((await search.count()) === 0) {
-      notImplemented('Library search: the page only has Refresh and the All/Images/Videos filter');
-      return;
-    }
-    await search.first().fill('two');
-    expect(await page.locator('.dt-libcard').count()).toBe(1);
+  test('search filters the loaded items by prompt and model; empty state and clear', async ({ page }) => {
+    const search = librarySearchInput(page);
+    await expect(search).toBeVisible();
+
+    // typing is not intercepted by the shortcut dispatcher (no navigation, text kept)
+    await search.click();
+    await page.keyboard.type('two');
+    for (const combo of ['Control+3', 'Control+,']) await page.keyboard.press(combo);
+    expect(await currentPageId(page)).toBe('library');
+    await expect(search).toHaveValue('two');
+
+    await expect(page.locator('.dt-libcard')).toHaveCount(1);
+    await expect(page.locator('.dt-libcard').first()).toContainText('library item two');
+    await expect(page.locator('main .t-eyebrow')).toHaveText(/1 of 3/);
+    // the server has no search parameter: the page says it only searched what was loaded
+    await expect(page.getByTestId('library-search-scope')).toContainText('3');
+
+    // model ids are searched too (every stand-in item uses "e2e-model")
+    await search.fill('E2E-MODEL item');
+    await expect(page.locator('.dt-libcard')).toHaveCount(3);
+
+    await search.fill('no such prompt');
+    await expect(page.locator('.dt-libcard')).toHaveCount(0);
+    const empty = page.getByTestId('library-search-empty');
+    await expect(empty).toBeVisible();
+    await empty.getByRole('button', { name: 'Clear search' }).click();
+    await expect(search).toHaveValue('');
+    await expect(page.locator('.dt-libcard')).toHaveCount(3);
+
+    // the clear (x) button inside the field
+    await search.fill('one');
+    await expect(page.locator('.dt-libcard')).toHaveCount(1);
+    await page.locator('main').getByRole('button', { name: 'Clear search' }).first().click();
+    await expect(search).toHaveValue('');
+    await expect(page.locator('.dt-libcard')).toHaveCount(3);
   });
 
-  test('preview actions "Remix" and "Save" do something', async ({ page }) => {
+  test('preview "Remix" starts a generation from the item prompt; no dead buttons', async ({ page }) => {
     await page.locator('.dt-libcard').first().click();
     const lightbox = page.locator('.dt-lightbox');
-    const toastsBefore = await page.locator('[role="status"], [role="alert"]').count();
-    const bodyBefore = await page.locator('body').innerHTML();
-    for (const name of ['Remix', 'Save']) {
-      await lightbox.getByRole('button', { name, exact: true }).click();
-      await page.waitForTimeout(600);
+    // every action in the preview must do something (Save had no handler and was removed)
+    await expect(lightbox.getByRole('button', { name: 'Save', exact: true })).toHaveCount(0);
+    const prompt = ((await lightbox.locator('.dt-lightbox-meta p').first().textContent()) ?? '').trim();
+    await lightbox.getByRole('button', { name: 'Remix', exact: true }).click();
+    await expect.poll(() => readStore(page, 'ui', (s) => s.currentPage as string)).toMatch(/^(images|videos)$/);
+    await expect(lightbox).toHaveCount(0);
+    if (prompt) {
+      await expect(page.locator('.dt-sidepanel textarea').first()).toHaveValue(prompt);
     }
-    const sandbox = await sandboxState(page);
-    const changed =
-      (await page.locator('[role="status"], [role="alert"]').count()) !== toastsBefore ||
-      (await readStore(page, 'ui', (s) => s.currentPage as string)) !== 'library' ||
-      (await page.locator('body').innerHTML()) !== bodyBefore ||
-      sandbox.blocked.length > 0;
-    if (!changed) {
-      notImplemented('Library preview "Remix" / "Save" buttons have no handler (placeholder)');
-    }
-    // a Save would be a cloud write: if it tried, afterEach reports it
   });
 });
 

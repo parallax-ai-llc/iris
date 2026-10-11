@@ -17,10 +17,10 @@ import { TextOverlay } from './TextOverlay';
 import { MaskCanvas } from './MaskCanvas';
 import { WarpOverlay } from './WarpOverlay';
 import { PathOverlay } from './PathOverlay';
-import { applyAdjustmentsToCanvas, applyTransformsToCanvas, blendWithSelectionMask, maskStrokeCanvas, screenToImage, isCustomBlendMode, applyCustomBlendMode, createOffscreenCanvas, type AdjustmentValues, type TransformValues } from '@/features/image-editor/canvas/canvasEngine';
-import { applyClippingMask } from '@/features/image-editor/canvas/layerEffects';
-import { applyFilterToCanvas } from '@/features/image-editor/canvas/filters';
-import { canvasToMask, invertSelection, featherSelection } from '@/features/image-editor/canvas/selectionEngine';
+import { applyTransformsToCanvas, screenToImage, type TransformValues } from '@/features/image-editor/canvas/canvasEngine';
+import { compositeScreenLayers } from '@/features/image-editor/canvas/screenCompositor';
+import { useLayerPixelEdits } from './useLayerPixelEdits';
+import { moveDragHistoryLabel, type MoveDragStart } from '@/features/image-editor/lib/moveLayerHistory';
 import { applyCmykPreview, generateGamutWarningOverlay } from '@/features/image-editor/canvas/colorProfile';
 import { calculateHistogram, getCanvasImageData } from '@/features/image-editor/canvas/histogram';
 import { calculateSnap } from '@/features/image-editor/canvas/snapEngine';
@@ -54,10 +54,6 @@ export const EditorCanvas = memo(forwardRef<EditorCanvasHandle>(function EditorC
     pushHistory,
     registerCropApplyCallback,
     adjustments,
-    activeFilterPreset,
-    resetAdjustments,
-    registerAdjustmentsApplyCallback,
-    registerFilterApplyCallback,
     setRotation,
     setFlipHorizontal,
     setFlipVertical,
@@ -83,39 +79,6 @@ export const EditorCanvas = memo(forwardRef<EditorCanvasHandle>(function EditorC
     canvasWidth: storeCanvasWidth,
     canvasHeight: storeCanvasHeight,
   } = useImageEditorStore();
-
-  // Load selection mask as Uint8ClampedArray (with feather/invert applied)
-  const loadSelectionMask = useCallback(async (
-    width: number, height: number
-  ): Promise<Uint8ClampedArray | null> => {
-    const { selection, selectionFeather } = useImageEditorStore.getState();
-    if (!selection?.maskDataUrl) return null;
-
-    const img = await new Promise<HTMLImageElement>((resolve) => {
-      const i = new Image();
-      i.onload = () => resolve(i);
-      i.onerror = () => resolve(i);
-      i.src = selection.maskDataUrl;
-    });
-
-    const maskCanvas = document.createElement('canvas');
-    maskCanvas.width = width;
-    maskCanvas.height = height;
-    const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
-    if (!maskCtx) return null;
-    maskCtx.drawImage(img, 0, 0, width, height);
-
-    let mask = canvasToMask(maskCanvas);
-
-    if (selection.isInverted) {
-      mask = invertSelection(mask);
-    }
-    if (selectionFeather > 0) {
-      mask = featherSelection(mask, width, height, selectionFeather);
-    }
-
-    return mask;
-  }, []);
 
   // Canvas refs
   const containerRef = useRef<HTMLDivElement>(null);
@@ -146,6 +109,8 @@ export const EditorCanvas = memo(forwardRef<EditorCanvasHandle>(function EditorC
   const isMovingLayerRef = useRef(false);
   const moveLayerIdRef = useRef<string | null>(null);
   const moveOffsetRef = useRef({ x: 0, y: 0 });
+  // Layer position when the drag started: a click without movement records nothing
+  const moveStartRef = useRef<MoveDragStart>({ x: 0, y: 0, duplicated: false });
 
   // Layer image cache to avoid re-parsing base64 every render
   const layerImageCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
@@ -153,7 +118,8 @@ export const EditorCanvas = memo(forwardRef<EditorCanvasHandle>(function EditorC
 
   // Clean up stale cache entries when layers change
   useEffect(() => {
-    const currentImageDatas = new Set(layers.map(l => l.imageData).filter(Boolean));
+    // Layer pixels and layer masks share the decoded-image cache
+    const currentImageDatas = new Set(layers.flatMap(l => [l.imageData, l.mask?.data ?? '']).filter(Boolean));
     const cache = layerImageCacheRef.current;
     for (const key of cache.keys()) {
       if (!currentImageDatas.has(key)) {
@@ -338,193 +304,9 @@ export const EditorCanvas = memo(forwardRef<EditorCanvasHandle>(function EditorC
     };
   }, [applyClientCrop, registerCropApplyCallback]);
 
-  // Apply adjustments to canvas (layer-based if active layer exists)
-  const applyAdjustmentsHandler = useCallback(async () => {
-    if (!canvasRef.current) return;
-    const historyLabel = activeFilterPreset !== 'none' ? 'Filter' : 'Adjustments';
-
-    // Resolve a raster target layer: prefer active layer, otherwise auto-select
-    // the first raster layer (one with imageData).
-    let targetLayerId = activeLayerId;
-    let targetLayer = targetLayerId ? layers.find(l => l.id === targetLayerId) : null;
-    if (!targetLayer || !targetLayer.imageData) {
-      const firstRaster = layers.find(l => !!l.imageData);
-      if (firstRaster) {
-        targetLayerId = firstRaster.id;
-        targetLayer = firstRaster;
-        setActiveLayer(firstRaster.id);
-      }
-    }
-
-    // If there's a resolved target layer, apply adjustments to that layer only
-    if (targetLayerId && targetLayer && targetLayer.imageData) {
-      {
-        const activeLayer = targetLayer;
-        // Load the layer's image into a temp canvas at its own dimensions
-        const img = await new Promise<HTMLImageElement>((resolve) => {
-          const i = new Image();
-          i.onload = () => resolve(i);
-          i.onerror = () => resolve(i);
-          i.src = activeLayer.imageData;
-        });
-
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = img.naturalWidth || canvasRef.current.width;
-        tempCanvas.height = img.naturalHeight || canvasRef.current.height;
-        const tempCtx = tempCanvas.getContext('2d');
-        if (!tempCtx) return;
-
-        tempCtx.drawImage(img, 0, 0);
-
-        // Apply adjustments to the layer's canvas only
-        let result = applyAdjustmentsToCanvas(tempCanvas, adjustments as AdjustmentValues);
-
-        // If there's an active selection, blend adjusted with original using mask
-        const selMask = await loadSelectionMask(tempCanvas.width, tempCanvas.height);
-        if (selMask) {
-          result = blendWithSelectionMask(tempCanvas, result, selMask);
-        }
-
-        // Update layer's imageData
-        updateLayer(targetLayerId, { imageData: result.toDataURL() });
-
-        // Defer history push until after updateLayer has composited via renderAllLayers
-        requestAnimationFrame(() => {
-          if (canvasRef.current) {
-            pushHistory(historyLabel, canvasRef.current.toDataURL());
-          }
-        });
-        resetAdjustments();
-        return;
-      }
-    }
-
-    // No raster layer available: silently no-op when layers exist
-    if (layers.length > 0) {
-      resetAdjustments();
-      return;
-    }
-
-    // Legacy no-layer mode: apply to whole canvas
-    const result = applyAdjustmentsToCanvas(
-      canvasRef.current,
-      adjustments as AdjustmentValues
-    );
-
-    const ctx = canvasRef.current.getContext('2d');
-    if (ctx) {
-      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-      ctx.drawImage(result, 0, 0);
-    }
-
-    pushHistory(historyLabel, canvasRef.current.toDataURL());
-    resetAdjustments();
-  }, [adjustments, activeFilterPreset, pushHistory, resetAdjustments, activeLayerId, layers, updateLayer, setActiveLayer, loadSelectionMask]);
-
-  // Register adjustments apply callback with store
-  useEffect(() => {
-    registerAdjustmentsApplyCallback(applyAdjustmentsHandler);
-    return () => {
-      registerAdjustmentsApplyCallback(null);
-    };
-  }, [applyAdjustmentsHandler, registerAdjustmentsApplyCallback]);
-
-  // Apply filter to canvas (layer-based if active layer exists)
-  const applyFilterHandler = useCallback(async (filterFn: (imageData: ImageData) => ImageData, label: string) => {
-    if (!canvasRef.current) return;
-
-    // Resolve a raster target layer: prefer active layer, otherwise auto-select
-    // the first raster layer (one with imageData).
-    let targetLayerId = activeLayerId;
-    let targetLayer = targetLayerId ? layers.find(l => l.id === targetLayerId) : null;
-    if (!targetLayer || !targetLayer.imageData) {
-      const firstRaster = layers.find(l => !!l.imageData);
-      if (firstRaster) {
-        targetLayerId = firstRaster.id;
-        targetLayer = firstRaster;
-        setActiveLayer(firstRaster.id);
-      }
-    }
-
-    // No raster layer exists: create a blank transparent raster layer sized to the
-    // canvas so that generator/render filters (Clouds, Fibers, Flame, Tree, etc.)
-    // have a surface to write onto. This also lets any other filter run on a
-    // fresh layer instead of silently no-oping.
-    if (!targetLayer || !targetLayer.imageData) {
-      const { canvasWidth, canvasHeight } = useImageEditorStore.getState();
-      const w = canvasWidth || canvasRef.current.width;
-      const h = canvasHeight || canvasRef.current.height;
-      if (w > 0 && h > 0) {
-        const blank = document.createElement('canvas');
-        blank.width = w;
-        blank.height = h;
-        // Transparent by default; that's fine — render filters overwrite pixels.
-        // The filter pushes its own history entry once it has run.
-        const newId = addLayer(blank.toDataURL(), label, { history: false });
-        targetLayerId = newId;
-        targetLayer = { id: newId, imageData: blank.toDataURL() } as typeof targetLayer;
-        setActiveLayer(newId);
-      }
-    }
-
-    if (targetLayerId && targetLayer && targetLayer.imageData) {
-      {
-        const activeLayer = targetLayer;
-        const img = await new Promise<HTMLImageElement>((resolve) => {
-          const i = new Image();
-          i.onload = () => resolve(i);
-          i.onerror = () => resolve(i);
-          i.src = activeLayer.imageData;
-        });
-
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = img.naturalWidth || canvasRef.current.width;
-        tempCanvas.height = img.naturalHeight || canvasRef.current.height;
-        const tempCtx = tempCanvas.getContext('2d');
-        if (!tempCtx) return;
-
-        tempCtx.drawImage(img, 0, 0);
-
-        // Apply filter to the layer's canvas
-        let result = applyFilterToCanvas(tempCanvas, filterFn);
-
-        // If there's an active selection, blend filtered with original using mask
-        const selMask = await loadSelectionMask(tempCanvas.width, tempCanvas.height);
-        if (selMask) {
-          result = blendWithSelectionMask(tempCanvas, result, selMask);
-        }
-
-        updateLayer(targetLayerId, { imageData: result.toDataURL() });
-        requestAnimationFrame(() => {
-          if (canvasRef.current) {
-            pushHistory(label, canvasRef.current.toDataURL());
-          }
-        });
-        return;
-      }
-    }
-
-    // No raster layer available: silently no-op when layers exist
-    if (layers.length > 0) return;
-
-    // Legacy no-layer mode: apply to whole canvas
-    const result = applyFilterToCanvas(canvasRef.current, filterFn);
-    const ctx = canvasRef.current.getContext('2d');
-    if (ctx) {
-      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-      ctx.drawImage(result, 0, 0);
-    }
-
-    pushHistory(label, canvasRef.current.toDataURL());
-  }, [pushHistory, activeLayerId, layers, updateLayer, setActiveLayer, addLayer, loadSelectionMask]);
-
-  // Register filter apply callback with store
-  useEffect(() => {
-    registerFilterApplyCallback(applyFilterHandler);
-    return () => {
-      registerFilterApplyCallback(null);
-    };
-  }, [applyFilterHandler, registerFilterApplyCallback]);
+  // Adjustments / filters / stroke commits on the active layer
+  // (useLayerPixelEdits.ts: empty-layer, offset, selection and queue rules)
+  const { commitStroke, commitShape } = useLayerPixelEdits(canvasRef);
 
   // Apply transforms to canvas (bake rotation/flip into pixels) - layer-based if active layer exists
   const applyTransformsHandler = useCallback(async () => {
@@ -792,7 +574,21 @@ export const EditorCanvas = memo(forwardRef<EditorCanvasHandle>(function EditorC
     return filters.length > 0 ? filters.join(' ') : 'none';
   }, [adjustments.brightness, adjustments.exposure, adjustments.contrast, adjustments.saturation, adjustments.hue]);
 
-  // Re-render all layers to canvas (Photoshop-style compositing)
+  // Re-render all layers to canvas (Photoshop-style compositing, canvas/screenCompositor.ts)
+  const loadCachedImage = useCallback((src: string): Promise<HTMLImageElement | null> => {
+    const cached = layerImageCacheRef.current.get(src);
+    if (cached) return Promise.resolve(cached);
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        layerImageCacheRef.current.set(src, img);
+        resolve(img);
+      };
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+  }, []);
+
   const renderAllLayers = useCallback(async () => {
     if (!canvasRef.current) return;
 
@@ -800,292 +596,12 @@ export const EditorCanvas = memo(forwardRef<EditorCanvasHandle>(function EditorC
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // If no layers, clear canvas
-    if (layers.length === 0) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      return;
-    }
-
-    // Load all layer images FIRST (before clearing to prevent blink)
-    const images = await Promise.all(
-      layers.map(layer => {
-        if (!layer.imageData) return Promise.resolve(null);
-
-        // Reuse cached image if available
-        const cached = layerImageCacheRef.current.get(layer.imageData);
-        if (cached) return Promise.resolve(cached);
-
-        return new Promise<HTMLImageElement | null>((resolve) => {
-          const img = new Image();
-          img.onload = () => {
-            layerImageCacheRef.current.set(layer.imageData, img);
-            resolve(img);
-          };
-          img.onerror = () => resolve(null);
-          img.src = layer.imageData;
-        });
-      })
-    );
-
-    // NOW clear and draw all at once (no blink)
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // NOTE: We do NOT draw the original imageRef here anymore.
-    // The Background layer (created on image load) already contains the image data.
-    // This is the proper Photoshop-style behavior where all content is in layers.
-
-    // Draw each visible layer from bottom to top
-    // Apply filter preview ONLY to the active layer
-    // Supports Photoshop-style clipping mask groups
-
-    // Helper: render a single layer to a temp canvas
-    const renderLayerToCanvas = (layer: typeof layers[0], index: number): HTMLCanvasElement | null => {
-      if (layer.type === 'adjustment' && layer.adjustmentValues) {
-        // Adjustment layers modify what's below them - handled separately
-        return null;
-      }
-      const img = images[index];
-      if (!img) return null;
-
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = canvas.width;
-      tempCanvas.height = canvas.height;
-      const tempCtx = tempCanvas.getContext('2d');
-      if (!tempCtx) return null;
-
-      // Apply CSS filter preview only to the active layer
-      if (layer.id === activeLayerId && activeLayerFilterString !== 'none') {
-        tempCtx.filter = activeLayerFilterString;
-      }
-      tempCtx.drawImage(img, layer.x, layer.y);
-      if (layer.id === activeLayerId && activeLayerFilterString !== 'none') {
-        tempCtx.filter = 'none';
-      }
-      return tempCanvas;
-    };
-
-    // Pre-scan: identify clipping groups (base + consecutive clippingMask=true layers)
-    // A clipping group starts with a non-clipping layer (base) followed by one or more clippingMask layers
-    let i = 0;
-    while (i < layers.length) {
-      const layer = layers[i];
-
-      if (!layer.visible) {
-        i++;
-        continue;
-      }
-
-      // Adjustment layers: apply their adjustments to the composited canvas so far
-      // Supports opacity, blendMode, and mask for non-destructive editing
-      if (layer.type === 'adjustment' && layer.adjustmentValues) {
-        // Capture "before" state
-        const beforeImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const beforeCanvas = document.createElement('canvas');
-        beforeCanvas.width = canvas.width;
-        beforeCanvas.height = canvas.height;
-        const beforeCtx = beforeCanvas.getContext('2d');
-        if (beforeCtx) {
-          beforeCtx.putImageData(beforeImageData, 0, 0);
-
-          // Create "after" state with adjustments applied
-          const afterCanvas = applyAdjustmentsToCanvas(beforeCanvas, {
-            exposure: 0, brightness: 0, contrast: 0, highlights: 0, shadows: 0,
-            gamma: 1, temperature: 0, tint: 0, saturation: 0, vibrance: 0, hue: 0,
-            clarity: 0, levels: null, curves: null,
-            ...layer.adjustmentValues,
-          } as AdjustmentValues);
-
-          const adjOpacity = layer.opacity / 100;
-          const hasMask = layer.mask?.enabled && layer.mask?.data;
-          const needsBlend = adjOpacity < 1 || layer.blendMode !== 'normal' || hasMask;
-
-          if (!needsBlend) {
-            // Full opacity, normal blend, no mask → direct replace
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(afterCanvas, 0, 0);
-          } else {
-            // Non-destructive blend: mix before/after per pixel based on opacity, blend mode, and mask
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Start with "before" as base
-            ctx.drawImage(beforeCanvas, 0, 0);
-
-            // Create a diff canvas: shows only the adjustment effect (after - before via blend)
-            // We achieve this by drawing "after" on top with the adjustment layer's blend mode and opacity
-            // For normal blend: this interpolates between before and after based on opacity
-            if (hasMask) {
-              // With mask: create masked adjustment effect
-              const maskCanvas = document.createElement('canvas');
-              maskCanvas.width = canvas.width;
-              maskCanvas.height = canvas.height;
-              const maskCtx = maskCanvas.getContext('2d');
-              if (maskCtx) {
-                // Draw the adjusted result
-                maskCtx.drawImage(afterCanvas, 0, 0);
-                // Apply mask: use destination-in to keep only masked areas
-                const maskImg = await new Promise<HTMLImageElement>((resolve) => {
-                  const mi = new Image();
-                  mi.onload = () => resolve(mi);
-                  mi.onerror = () => resolve(mi);
-                  mi.src = layer.mask!.data;
-                });
-                maskCtx.globalCompositeOperation = 'destination-in';
-                maskCtx.drawImage(maskImg, 0, 0);
-                maskCtx.globalCompositeOperation = 'source-over';
-
-                // Also need unmasked "before" for areas outside the mask
-                // Draw before canvas, then overlay masked adjusted areas
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(beforeCanvas, 0, 0);
-
-                // Blend masked adjustment on top
-                if (isCustomBlendMode(layer.blendMode)) {
-                  const currentData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                  const { canvas: curCanvas, ctx: curCtx } = createOffscreenCanvas(canvas.width, canvas.height);
-                  curCtx.putImageData(currentData, 0, 0);
-                  const blended = applyCustomBlendMode(curCanvas, maskCanvas, layer.blendMode, adjOpacity * 100);
-                  ctx.clearRect(0, 0, canvas.width, canvas.height);
-                  ctx.drawImage(blended, 0, 0);
-                } else {
-                  ctx.globalAlpha = adjOpacity;
-                  ctx.globalCompositeOperation = layer.blendMode === 'normal' ? 'source-over' : layer.blendMode as GlobalCompositeOperation;
-                  ctx.drawImage(maskCanvas, 0, 0);
-                  ctx.globalAlpha = 1;
-                }
-                ctx.globalCompositeOperation = 'source-over';
-              }
-            } else {
-              // No mask: blend after on top of before with opacity and blend mode
-              // For normal blend mode, we need to show the difference only
-              // Clear and redraw: before as base, then overlay the "effect difference"
-              ctx.clearRect(0, 0, canvas.width, canvas.height);
-              ctx.drawImage(beforeCanvas, 0, 0);
-
-              // Create effect-only canvas (difference between after and before)
-              const effectCanvas = document.createElement('canvas');
-              effectCanvas.width = canvas.width;
-              effectCanvas.height = canvas.height;
-              const effectCtx = effectCanvas.getContext('2d');
-              if (effectCtx) {
-                // For normal blend: pixel-level interpolation between before and after
-                const beforeData = beforeCtx.getImageData(0, 0, canvas.width, canvas.height);
-                const afterCtx2 = afterCanvas.getContext('2d');
-                if (afterCtx2) {
-                  const afterData = afterCtx2.getImageData(0, 0, canvas.width, canvas.height);
-                  const resultData = effectCtx.createImageData(canvas.width, canvas.height);
-
-                  for (let p = 0; p < beforeData.data.length; p += 4) {
-                    // Interpolate between before and after based on opacity
-                    resultData.data[p] = beforeData.data[p] + (afterData.data[p] - beforeData.data[p]) * adjOpacity;
-                    resultData.data[p + 1] = beforeData.data[p + 1] + (afterData.data[p + 1] - beforeData.data[p + 1]) * adjOpacity;
-                    resultData.data[p + 2] = beforeData.data[p + 2] + (afterData.data[p + 2] - beforeData.data[p + 2]) * adjOpacity;
-                    resultData.data[p + 3] = afterData.data[p + 3]; // preserve alpha
-                  }
-
-                  ctx.clearRect(0, 0, canvas.width, canvas.height);
-                  ctx.putImageData(resultData, 0, 0);
-                }
-              }
-            }
-          }
-        }
-        i++;
-        continue;
-      }
-
-      // Check if next layers form a clipping group with this layer as base
-      const clippingLayers: { layer: typeof layers[0]; index: number }[] = [];
-      let j = i + 1;
-      while (j < layers.length && layers[j].clippingMask) {
-        if (layers[j].visible) {
-          clippingLayers.push({ layer: layers[j], index: j });
-        }
-        j++;
-      }
-
-      if (clippingLayers.length > 0) {
-        // This is a clipping group: base layer + clipping layers
-        const baseCanvas = renderLayerToCanvas(layer, i);
-        if (baseCanvas) {
-          // Apply each clipping layer using source-atop compositing
-          let groupCanvas = baseCanvas;
-          for (const clip of clippingLayers) {
-            const clipLayerCanvas = renderLayerToCanvas(clip.layer, clip.index);
-            if (clipLayerCanvas) {
-              // Apply opacity to clipping layer before clipping
-              if (clip.layer.opacity < 100) {
-                const opacityCanvas = document.createElement('canvas');
-                opacityCanvas.width = canvas.width;
-                opacityCanvas.height = canvas.height;
-                const opacityCtx = opacityCanvas.getContext('2d');
-                if (opacityCtx) {
-                  opacityCtx.globalAlpha = clip.layer.opacity / 100;
-                  opacityCtx.drawImage(clipLayerCanvas, 0, 0);
-                  groupCanvas = applyClippingMask(opacityCanvas, groupCanvas);
-                }
-              } else {
-                groupCanvas = applyClippingMask(clipLayerCanvas, groupCanvas);
-              }
-            }
-          }
-
-          // Draw the composited clipping group to main canvas with base layer's blend mode & opacity
-          if (isCustomBlendMode(layer.blendMode)) {
-            const currentData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const { canvas: currentCanvas, ctx: currentCtx } = createOffscreenCanvas(canvas.width, canvas.height);
-            currentCtx.putImageData(currentData, 0, 0);
-            const blended = applyCustomBlendMode(currentCanvas, groupCanvas, layer.blendMode, layer.opacity);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(blended, 0, 0);
-          } else {
-            ctx.globalAlpha = layer.opacity / 100;
-            ctx.globalCompositeOperation = layer.blendMode === 'normal' ? 'source-over' : layer.blendMode as GlobalCompositeOperation;
-            ctx.drawImage(groupCanvas, 0, 0);
-            ctx.globalAlpha = 1;
-            ctx.globalCompositeOperation = 'source-over';
-          }
-        }
-        i = j; // Skip past the clipping group
-      } else {
-        // Regular layer (no clipping group)
-        const img = images[i];
-        if (img) {
-          if (isCustomBlendMode(layer.blendMode)) {
-            // Render layer to temp canvas first
-            const { canvas: layerTmp, ctx: layerTmpCtx } = createOffscreenCanvas(canvas.width, canvas.height);
-            if (layer.id === activeLayerId && activeLayerFilterString !== 'none') {
-              layerTmpCtx.filter = activeLayerFilterString;
-            }
-            layerTmpCtx.drawImage(img, layer.x, layer.y);
-            layerTmpCtx.filter = 'none';
-
-            const currentData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const { canvas: currentCanvas, ctx: currentCtx } = createOffscreenCanvas(canvas.width, canvas.height);
-            currentCtx.putImageData(currentData, 0, 0);
-            const blended = applyCustomBlendMode(currentCanvas, layerTmp, layer.blendMode, layer.opacity);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(blended, 0, 0);
-          } else {
-            ctx.globalAlpha = layer.opacity / 100;
-            ctx.globalCompositeOperation = layer.blendMode === 'normal' ? 'source-over' : layer.blendMode as GlobalCompositeOperation;
-
-            if (layer.id === activeLayerId && activeLayerFilterString !== 'none') {
-              ctx.filter = activeLayerFilterString;
-            }
-
-            ctx.drawImage(img, layer.x, layer.y);
-
-            if (layer.id === activeLayerId && activeLayerFilterString !== 'none') {
-              ctx.filter = 'none';
-            }
-
-            ctx.globalAlpha = 1;
-            ctx.globalCompositeOperation = 'source-over';
-          }
-        }
-        i++;
-      }
-    }
+    await compositeScreenLayers(canvas, layers, {
+      activeLayerId,
+      activeLayerFilter: activeLayerFilterString,
+      loadImage: loadCachedImage,
+    });
+    if (layers.length === 0) return;
 
     // Apply channel visibility filtering (Photoshop-style channel view)
     // This is non-destructive: renderAllLayers always composites from source layer data,
@@ -1142,7 +658,7 @@ export const EditorCanvas = memo(forwardRef<EditorCanvasHandle>(function EditorC
         ctx.drawImage(tmpCanvas, 0, 0);
       }
     }
-  }, [layers, activeLayerId, activeLayerFilterString, activeChannelId, channelVisibility, colorProofing, gamutWarning]);
+  }, [layers, activeLayerId, activeLayerFilterString, activeChannelId, channelVisibility, colorProofing, gamutWarning, loadCachedImage]);
 
   // Lets the image-load effect (declared above) repaint the layers
   useEffect(() => {
@@ -1189,128 +705,6 @@ export const EditorCanvas = memo(forwardRef<EditorCanvasHandle>(function EditorC
       img.src = targetState.imageData;
     }
   }, [historyIndex, history, updateHistogram]);
-
-  // Helper to merge stroke with layer asynchronously
-  const mergeStrokeWithLayer = useCallback(async (
-    strokeCanvas: HTMLCanvasElement,
-    layer: typeof layers[0],
-    historyLabel: string
-  ): Promise<void> => {
-    if (!canvasRef.current) return;
-
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // IMMEDIATELY draw to main canvas for visual feedback (prevents blink)
-    const { brushSettings, activeTool } = useImageEditorStore.getState();
-    const isEraser = activeTool === 'eraser' || activeTool === 'background-eraser' || activeTool === 'magic-eraser';
-    if (isEraser) {
-      ctx.globalCompositeOperation = 'destination-out';
-    }
-    ctx.globalAlpha = isEraser && activeTool !== 'eraser' ? 1 : brushSettings.opacity / 100;
-    ctx.drawImage(strokeCanvas, 0, 0);
-    ctx.globalAlpha = 1;
-    ctx.globalCompositeOperation = 'source-over';
-
-    // Create a new canvas to merge the stroke with the layer
-    const layerCanvas = document.createElement('canvas');
-    layerCanvas.width = canvas.width;
-    layerCanvas.height = canvas.height;
-    const layerCtx = layerCanvas.getContext('2d');
-    if (!layerCtx) return;
-
-    if (layer.imageData) {
-      // Load existing layer image
-      const img = await new Promise<HTMLImageElement>((resolve) => {
-        const i = new Image();
-        i.onload = () => resolve(i);
-        i.onerror = () => resolve(i);
-        i.src = layer.imageData;
-      });
-      layerCtx.drawImage(img, layer.x, layer.y);
-    }
-
-    // Mask the stroke to selection if active
-    const selMask = await loadSelectionMask(canvas.width, canvas.height);
-    const maskedStroke = selMask ? maskStrokeCanvas(strokeCanvas, selMask) : strokeCanvas;
-
-    // Draw the new stroke on top with brush opacity (eraser uses destination-out)
-    if (isEraser) {
-      layerCtx.globalCompositeOperation = 'destination-out';
-    }
-    layerCtx.globalAlpha = isEraser && activeTool !== 'eraser' ? 1 : brushSettings.opacity / 100;
-    layerCtx.drawImage(maskedStroke, 0, 0);
-    layerCtx.globalAlpha = 1;
-    layerCtx.globalCompositeOperation = 'source-over';
-
-    // Update the layer's imageData
-    const newImageData = layerCanvas.toDataURL();
-    updateLayer(layer.id, {
-      imageData: newImageData,
-      width: layerCanvas.width,
-      height: layerCanvas.height,
-    });
-
-    // Push to history
-    pushHistory(historyLabel, canvas.toDataURL());
-  }, [updateLayer, pushHistory, loadSelectionMask]);
-
-  // Commit drawing stroke to active layer or main canvas
-  const commitStroke = useCallback((strokeCanvas: HTMLCanvasElement) => {
-    if (!canvasRef.current) return;
-
-    const ctx = canvasRef.current.getContext('2d');
-    if (!ctx) return;
-
-    // If there's an active layer, update that layer's imageData
-    if (activeLayerId) {
-      const activeLayer = layers.find(l => l.id === activeLayerId);
-      if (activeLayer) {
-        mergeStrokeWithLayer(strokeCanvas, activeLayer, 'Brush Stroke');
-        return;
-      }
-    }
-
-    // No active layer: skip if layers exist (edits must target a layer)
-    if (layers.length > 0) return;
-
-    // Legacy no-layer mode: draw directly to main canvas
-    const { brushSettings, activeTool } = useImageEditorStore.getState();
-    const isEraser = activeTool === 'eraser' || activeTool === 'background-eraser' || activeTool === 'magic-eraser';
-    if (isEraser) {
-      ctx.globalCompositeOperation = 'destination-out';
-    }
-    ctx.globalAlpha = isEraser && activeTool !== 'eraser' ? 1 : brushSettings.opacity / 100;
-    ctx.drawImage(strokeCanvas, 0, 0);
-    ctx.globalAlpha = 1;
-    ctx.globalCompositeOperation = 'source-over';
-    pushHistory('Brush Stroke', canvasRef.current.toDataURL());
-  }, [pushHistory, activeLayerId, layers, mergeStrokeWithLayer]);
-
-  // Commit shape to active layer or main canvas
-  const commitShape = useCallback((shapeCanvas: HTMLCanvasElement) => {
-    if (!canvasRef.current) return;
-
-    const ctx = canvasRef.current.getContext('2d');
-    if (!ctx) return;
-
-    // If there's an active layer, update that layer's imageData
-    if (activeLayerId) {
-      const activeLayer = layers.find(l => l.id === activeLayerId);
-      if (activeLayer) {
-        mergeStrokeWithLayer(shapeCanvas, activeLayer, 'Shape');
-        return;
-      }
-    }
-
-    // No active layer: skip if layers exist (edits must target a layer)
-    if (layers.length > 0) return;
-
-    // Legacy no-layer mode: draw directly to main canvas
-    ctx.drawImage(shapeCanvas, 0, 0);
-    pushHistory('Shape', canvasRef.current.toDataURL());
-  }, [pushHistory, activeLayerId, layers, mergeStrokeWithLayer]);
 
   // Commit text to a new layer
   const commitText = useCallback((textCanvas: HTMLCanvasElement, x: number, y: number) => {
@@ -1525,6 +919,7 @@ export const EditorCanvas = memo(forwardRef<EditorCanvasHandle>(function EditorC
           x: point.x - (targetLayer.x ?? 0),
           y: point.y - (targetLayer.y ?? 0),
         };
+        moveStartRef.current = { x: targetLayer.x ?? 0, y: targetLayer.y ?? 0, duplicated: targetId !== hitLayer.id };
         isMovingLayerRef.current = true;
       }
       e.preventDefault();
@@ -1570,13 +965,19 @@ export const EditorCanvas = memo(forwardRef<EditorCanvasHandle>(function EditorC
 
     const handleWindowMouseUp = () => {
       if (isMovingLayerRef.current && moveLayerIdRef.current) {
-        // Wait for renderAllLayers to finish, then push history
-        requestAnimationFrame(() => {
-          if (canvasRef.current) {
-            const { pushHistory } = useImageEditorStore.getState();
-            pushHistory('Move Layer', canvasRef.current.toDataURL());
-          }
-        });
+        const movedId = moveLayerIdRef.current;
+        const end = useImageEditorStore.getState().layers.find(l => l.id === movedId);
+        const label = moveDragHistoryLabel(moveStartRef.current, end);
+        // Only an actual move (or an Alt+duplicate) is an edit.
+        if (label) {
+          // Wait for renderAllLayers to finish, then push history
+          requestAnimationFrame(() => {
+            if (canvasRef.current) {
+              const { pushHistory } = useImageEditorStore.getState();
+              pushHistory(label, canvasRef.current.toDataURL());
+            }
+          });
+        }
       }
       isMovingLayerRef.current = false;
       moveLayerIdRef.current = null;

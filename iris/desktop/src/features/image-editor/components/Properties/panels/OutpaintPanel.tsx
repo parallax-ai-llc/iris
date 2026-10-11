@@ -2,13 +2,16 @@
  * OutpaintPanel - AI outpainting (image expansion) settings
  */
 
-import { memo, useCallback, useState, useRef, useEffect } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { cn } from '@/shared/lib/utils';
 import { useImageEditorStore } from '@/features/image-editor/stores/imageEditor.store';
 import { ImagePlus, Info, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
-import { outpaintImage, getAssetStatus } from '@/shared/api/image.api';
+import { outpaintImage } from '@/shared/api/image.api';
+import { toast } from '@/shared/lib/toast';
 import { useAIOperation } from '@/features/image-editor/hooks/useAIOperation';
 import { MergeLayersDialog } from '@/features/image-editor/components/shared/MergeLayersDialog';
+import { runAIEditJob } from '@/features/image-editor/lib/aiEditJob';
+import { useMountedRef } from '@/features/image-editor/hooks/useMountedRef';
 
 type ExpandDirection = 'top' | 'bottom' | 'left' | 'right' | 'all';
 
@@ -18,19 +21,13 @@ export const OutpaintPanel = memo(function OutpaintPanel() {
     prompt,
     setPrompt,
     isProcessing,
-    setProcessing,
-    setProcessingProgress,
-    openEditor,
   } = useImageEditorStore();
 
   const [expandDirection, setExpandDirection] = useState<ExpandDirection>('all');
   const [expandAmount, setExpandAmount] = useState(256);
   const [error, setError] = useState<string | null>(null);
   const { prepareAssetForAI, mergeDialogProps } = useAIOperation();
-  const isMountedRef = useRef(true);
-  useEffect(() => {
-    return () => { isMountedRef.current = false; };
-  }, []);
+  const isMountedRef = useMountedRef();
 
   const handleOutpaint = useCallback(async () => {
     if (!sourceAsset?.id) {
@@ -43,59 +40,19 @@ export const OutpaintPanel = memo(function OutpaintPanel() {
     const assetId = await prepareAssetForAI();
     if (!assetId) return;
 
-    setProcessing(true, 'Expanding image...');
-
     try {
-      // Start outpaint process
-      const result = await outpaintImage(
-        assetId,
-        expandDirection,
-        expandAmount,
-        prompt || undefined
-      );
-
-      if (!result) {
-        throw new Error('Failed to start outpainting');
-      }
-
-      // Poll for completion
-      let attempts = 0;
-      const maxAttempts = 60; // 2 minutes max
-
-      while (attempts < maxAttempts) {
-        if (!isMountedRef.current) return;
-        const status = await getAssetStatus(result.id);
-
-        if (!status) {
-          throw new Error('Failed to get processing status');
-        }
-
-        if (status.status === 'READY' || status.status === 'COMPLETED') {
-          if (!isMountedRef.current) return;
-          setProcessing(false);
-          if (status.asset) {
-            openEditor(status.asset);
-          }
-          return;
-        }
-
-        if (status.status === 'FAILED' || status.status === 'ERROR') {
-          throw new Error(status.error || 'Outpainting failed');
-        }
-
-        if (!isMountedRef.current) return;
-        setProcessingProgress(Math.min(90, (attempts / maxAttempts) * 100));
-
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        attempts++;
-      }
-
-      throw new Error('Processing timeout');
+      // Bound to this tab: keeps running (and lands here) if the panel closes or the tab changes
+      await runAIEditJob({
+        message: 'Expanding image...',
+        start: () => outpaintImage(assetId, expandDirection, expandAmount, prompt || undefined),
+        apply: (asset, store) => store.getState().openEditor(asset),
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Outpainting failed');
-      setProcessing(false);
+      const message = err instanceof Error ? err.message : 'Outpainting failed';
+      if (isMountedRef.current) setError(message);
+      else toast.error(`Outpaint: ${message}`);
     }
-  }, [sourceAsset?.id, expandDirection, expandAmount, prompt, setProcessing, setProcessingProgress, openEditor, prepareAssetForAI]);
+  }, [sourceAsset?.id, expandDirection, expandAmount, prompt, prepareAssetForAI, isMountedRef]);
 
   return (
     <div className="p-4 space-y-6">

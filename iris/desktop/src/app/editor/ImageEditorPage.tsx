@@ -26,13 +26,12 @@ import { FilterGalleryModal } from '@/features/image-editor/components/modals/Fi
 import { InpaintModal } from '@/features/image-editor/components/modals/InpaintModal';
 import { CanvasSizeModal } from '@/features/image-editor/components/modals/CanvasSizeModal';
 import { ImageSizeModal } from '@/features/image-editor/components/modals/ImageSizeModal';
-import { ExportAsModal, ExportAsSettings } from '@/features/image-editor/components/modals/ExportAsModal';
+import { ExportAsModal } from '@/features/image-editor/components/modals/ExportAsModal';
 import { TitleBar } from '@/app/layout/TitleBar';
 import { FullScreenLayout } from '@/app/layout/FullScreenLayout';
 import { CloseTabConfirmDialog } from '@/features/image-editor/components/tabs/CloseTabConfirmDialog';
 import { PresetCreatorModal } from '@/features/tools/components/PresetCreatorModal';
-import { downloadCmykTiff } from '@/features/image-editor/canvas/cmykExport';
-import { exportAsWebP, exportAsRgbTiff, exportAsBmp, downloadBlob, downloadBytes } from '@/features/image-editor/canvas/formatExport';
+import { downloadBlob } from '@/features/image-editor/canvas/formatExport';
 import { useUIStore } from '@/shared/stores/ui.store';
 import { downloadAsset, invalidateAssetCache } from '@/shared/api/asset.api';
 import { uploadImage, replaceAssetFile } from '@/shared/api/image.api';
@@ -43,6 +42,9 @@ import { jsPDF } from 'jspdf';
 import { useImageEditorLayerShortcuts } from '@/features/image-editor/hooks/useImageEditorLayerShortcuts';
 import { useImageEditorShortcuts } from '@/features/image-editor/hooks/useImageEditorShortcuts';
 import { textLayersForExport } from '@/features/image-editor/lib/textLayerEdit';
+import { renderDocumentForOutput } from '@/features/image-editor/lib/documentComposite';
+import { createAfterSaveSlot } from '@/features/image-editor/lib/afterSave';
+import { useImageEditorExports } from '@/features/image-editor/hooks/useImageEditorExports';
 
 /**
  * Outer wrapper — provides the active tab's store via React context so that
@@ -71,9 +73,6 @@ export const ImageEditorPage = memo(function ImageEditorPage() {
 const ImageEditorPageInner = memo(function ImageEditorPageInner() {
   const {
     sourceAsset,
-    rotation,
-    flipHorizontal,
-    flipVertical,
     resetAllTransforms,
     setProcessing,
     clearDirty,
@@ -120,8 +119,9 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
   const [clipboardImageSize, setClipboardImageSize] = useState<{ width: number; height: number } | null>(null);
   // Preset creator modal state (opened from EditorMenuBar Presets menu)
   const [presetMode, setPresetMode] = useState<string | null>(null);
-  // Callback to run after save completes (used by "Save and Close")
-  const onAfterSaveRef = useRef<(() => void) | null>(null);
+  // Action to run after a SUCCESSFUL save ("Save and Close"); a cancelled or
+  // failed save drops it so the tab stays open (lib/afterSave.ts)
+  const afterSaveRef = useRef(createAfterSaveSlot());
   // Store the save name and destination chosen in SaveFormatModal for use by handleSaveConfirmed
   const pendingSaveNameRef = useRef<string>('');
   const pendingSaveDestRef = useRef<'local' | 'cloud'>('cloud');
@@ -164,16 +164,19 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
         if (imageTypes.length > 0) {
           const blob = await item.getType(imageTypes[0]);
           const img = new Image();
+          const objectUrl = URL.createObjectURL(blob);
           img.onload = () => {
+            URL.revokeObjectURL(objectUrl);
             detectedSize = { width: img.naturalWidth, height: img.naturalHeight };
             setClipboardImageSize(detectedSize);
             setShowNewProjectModal(true);
           };
           img.onerror = () => {
+            URL.revokeObjectURL(objectUrl);
             setClipboardImageSize(null);
             setShowNewProjectModal(true);
           };
-          img.src = URL.createObjectURL(blob);
+          img.src = objectUrl;
           return; // Exit early, we'll set the modal in the onload callback
         }
       }
@@ -308,40 +311,29 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
     }
   }, [processOpenedFile]);
 
-  // Create final canvas with all transforms applied
-  const createFinalCanvas = useCallback((): HTMLCanvasElement | null => {
-    const canvas = canvasRef.current?.getCanvas();
-    if (!canvas) return null;
+  // The document as written to files / clipboard: re-composited from the layers
+  // (no Gamut Warning, Proof Colors or channel view) with rotation/flip baked in
+  const createFinalCanvas = useCallback(async (): Promise<HTMLCanvasElement | null> => {
+    return renderDocumentForOutput(useImageEditorStore.getState(), canvasRef.current?.getCanvas() ?? null);
+  }, []);
 
-    const hasTransforms = rotation !== 0 || flipHorizontal || flipVertical;
+  // PSD: the layers are stored unrotated, so the composite preview and the PSD
+  // size are the unrotated document too (rotation/flip are view transforms)
+  const createPsdComposite = useCallback(async (): Promise<HTMLCanvasElement | null> => {
+    const state = useImageEditorStore.getState();
+    return renderDocumentForOutput(
+      { ...state, rotation: 0, flipHorizontal: false, flipVertical: false },
+      canvasRef.current?.getCanvas() ?? null,
+    );
+  }, []);
 
-    if (!hasTransforms) {
-      return canvas;
-    }
-
-    // Create a new canvas with transforms baked in
-    const finalCanvas = document.createElement('canvas');
-    const ctx = finalCanvas.getContext('2d');
-    if (!ctx) return null;
-
-    // Calculate dimensions for rotated canvas
-    const radians = (rotation * Math.PI) / 180;
-    const sin = Math.abs(Math.sin(radians));
-    const cos = Math.abs(Math.cos(radians));
-    const newWidth = Math.round(canvas.width * cos + canvas.height * sin);
-    const newHeight = Math.round(canvas.width * sin + canvas.height * cos);
-
-    finalCanvas.width = newWidth;
-    finalCanvas.height = newHeight;
-
-    // Apply transforms
-    ctx.translate(newWidth / 2, newHeight / 2);
-    ctx.rotate(radians);
-    ctx.scale(flipHorizontal ? -1 : 1, flipVertical ? -1 : 1);
-    ctx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
-
-    return finalCanvas;
-  }, [rotation, flipHorizontal, flipVertical]);
+  const { handleCopyToClipboard, handleExportCmykTiff, handleExportWebP, handleExportRgbTiff, handleExportBmp, handleExportAs } =
+    useImageEditorExports({
+      renderOutput: createFinalCanvas,
+      sourceAsset,
+      setProcessing,
+      onExportAsDone: () => setEditMode('none'),
+    });
 
   // Handle save click - show format choice modal
   const handleSaveClick = useCallback(() => {
@@ -352,11 +344,15 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
   // Handle save as PSD
   const handleSavePsd = useCallback(async (destination: SaveDestination, name: string) => {
     setShowSaveFormatModal(false);
-    if (!sourceAsset) return;
+    if (!sourceAsset) {
+      afterSaveRef.current.settle(false);
+      return;
+    }
 
     setProcessing(true, 'Exporting PSD...');
+    let saved = false;
     try {
-      const compositeCanvas = createFinalCanvas();
+      const compositeCanvas = await createPsdComposite();
       const cw = compositeCanvas?.width ?? 1920;
       const ch = compositeCanvas?.height ?? 1080;
       const blob = await exportAsPsd(layers, cw, ch, compositeCanvas, textLayersForExport(layers, textLayers));
@@ -372,12 +368,14 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
             const arrayBuffer = await blob.arrayBuffer();
             await window.electronAPI.files.writeFile(savePath, arrayBuffer);
             clearDirty();
+            saved = true;
             const savedName = savePath.split(/[/\\]/).pop() || fileName;
             toast.success(`Saved: ${savedName}`);
           }
         } else {
           downloadBlob(blob, fileName);
           clearDirty();
+          saved = true;
           toast.success(`Downloaded: ${fileName}`);
         }
       } else {
@@ -386,6 +384,7 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
         const result = await uploadImage(file);
         if (result) {
           clearDirty();
+          saved = true;
           toast.success('PSD uploaded to library');
         } else {
           throw new Error('Upload failed');
@@ -396,25 +395,23 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
       toast.error('Failed to save PSD');
     } finally {
       setProcessing(false);
-      if (onAfterSaveRef.current) {
-        onAfterSaveRef.current();
-        onAfterSaveRef.current = null;
-      }
+      // "Save and Close" closes the tab only when the file was written
+      afterSaveRef.current.settle(saved);
     }
-  }, [sourceAsset, layers, createFinalCanvas, setProcessing, clearDirty, textLayers]);
+  }, [sourceAsset, layers, createPsdComposite, setProcessing, clearDirty, textLayers]);
 
   // Handle local image save with file dialog
   const handleSaveImageLocal = useCallback(async (name: string) => {
-    if (!sourceAsset) return;
-
-    const canvas = createFinalCanvas();
-    if (!canvas) {
-      toast.error('Failed to get canvas data');
+    if (!sourceAsset) {
+      afterSaveRef.current.settle(false);
       return;
     }
 
     setProcessing(true, 'Saving...');
+    let saved = false;
     try {
+      const canvas = await createFinalCanvas();
+      if (!canvas) throw new Error('Failed to get canvas data');
       const blob = await new Promise<Blob | null>((resolve) => {
         canvas.toBlob((b) => resolve(b), 'image/png', 1);
       });
@@ -431,12 +428,14 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
           const arrayBuffer = await blob.arrayBuffer();
           await window.electronAPI.files.writeFile(savePath, arrayBuffer);
           clearDirty();
+          saved = true;
           const fileName = savePath.split(/[/\\]/).pop() || saveName;
           toast.success(`Saved: ${fileName}`);
         }
       } else {
         downloadBlob(blob, saveName);
         clearDirty();
+        saved = true;
         toast.success(`Downloaded: ${saveName}`);
       }
     } catch (error) {
@@ -444,10 +443,8 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
       toast.error('Failed to save image');
     } finally {
       setProcessing(false);
-      if (onAfterSaveRef.current) {
-        onAfterSaveRef.current();
-        onAfterSaveRef.current = null;
-      }
+      // "Save and Close" closes the tab only when the file was written
+      afterSaveRef.current.settle(saved);
     }
   }, [sourceAsset, createFinalCanvas, setProcessing, clearDirty]);
 
@@ -468,17 +465,16 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
   // Handle confirmed save - replace existing asset file
   const handleSaveConfirmed = useCallback(async () => {
     setShowSaveConfirmModal(false);
-    if (!sourceAsset) return;
-
-    const canvas = createFinalCanvas();
-    if (!canvas) {
-      toast.error('Failed to get canvas data');
+    if (!sourceAsset) {
+      afterSaveRef.current.settle(false);
       return;
     }
 
     setProcessing(true, 'Saving...');
-
+    let saved = false;
     try {
+      const canvas = await createFinalCanvas();
+      if (!canvas) throw new Error('Failed to get canvas data');
       const blob = await new Promise<Blob | null>((resolve) => {
         canvas.toBlob((b) => resolve(b), 'image/png', 1);
       });
@@ -494,6 +490,7 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
       if (result) {
         await invalidateAssetCache(sourceAsset.id);
         clearDirty();
+        saved = true;
         toast.success('Image saved successfully');
       } else {
         throw new Error('Save failed');
@@ -503,12 +500,16 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
       toast.error('Failed to save image');
     } finally {
       setProcessing(false);
-      if (onAfterSaveRef.current) {
-        onAfterSaveRef.current();
-        onAfterSaveRef.current = null;
-      }
+      // "Save and Close" closes the tab only when the upload succeeded
+      afterSaveRef.current.settle(saved);
     }
   }, [sourceAsset, createFinalCanvas, setProcessing, clearDirty]);
+
+  // Overwrite confirmation dismissed: nothing was saved, keep the tab
+  const handleSaveConfirmCancelled = useCallback(() => {
+    setShowSaveConfirmModal(false);
+    afterSaveRef.current.clear();
+  }, []);
 
   // Handle save as
   const handleSaveAs = useCallback(async (
@@ -529,7 +530,7 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
     if (format === 'psd') {
       setProcessing(true, destination === 'cloud' ? 'Uploading PSD...' : 'Exporting PSD...');
       try {
-        const compositeCanvas = createFinalCanvas();
+        const compositeCanvas = await createPsdComposite();
         const cw = compositeCanvas?.width ?? 1920;
         const ch = compositeCanvas?.height ?? 1080;
         const blob = await exportAsPsd(layers, cw, ch, compositeCanvas, textLayersForExport(layers, textLayers));
@@ -566,13 +567,13 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
       return;
     }
 
-    const canvas = createFinalCanvas();
+    setProcessing(true, destination === 'cloud' ? 'Uploading...' : 'Exporting...');
+    const canvas = await createFinalCanvas();
     if (!canvas) {
+      setProcessing(false);
       toast.error('Failed to get canvas data');
       return;
     }
-
-    setProcessing(true, destination === 'cloud' ? 'Uploading...' : 'Exporting...');
 
     try {
       let blob: Blob | null = null;
@@ -652,7 +653,7 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
     } finally {
       setProcessing(false);
     }
-  }, [sourceAsset, layers, createFinalCanvas, setProcessing, textLayers]);
+  }, [sourceAsset, layers, createFinalCanvas, createPsdComposite, setProcessing, textLayers]);
 
   // Handle download original
   const handleDownloadOriginal = useCallback(async () => {
@@ -674,229 +675,6 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
     }
   }, [sourceAsset, setProcessing]);
 
-  // Handle copy to clipboard
-  const handleCopyToClipboard = useCallback(async () => {
-    const canvas = createFinalCanvas();
-    if (!canvas) {
-      toast.error('Failed to get canvas data');
-      return;
-    }
-
-    try {
-      const blob = await new Promise<Blob | null>((resolve) => {
-        canvas.toBlob((b) => resolve(b), 'image/png', 1);
-      });
-
-      if (blob) {
-        await navigator.clipboard.write([
-          new ClipboardItem({ 'image/png': blob }),
-        ]);
-        toast.success('Copied to clipboard');
-      }
-    } catch (error) {
-      console.error('Copy error:', error);
-      toast.error('Failed to copy to clipboard');
-    }
-  }, [createFinalCanvas]);
-
-  // Export CMYK TIFF
-  const handleExportCmykTiff = useCallback(() => {
-    const canvas = createFinalCanvas();
-    if (!canvas) {
-      toast.error('Failed to get canvas data');
-      return;
-    }
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const filename = sourceAsset?.name?.replace(/\.[^.]+$/, '') || 'export';
-    downloadCmykTiff(imageData, `${filename}-cmyk.tif`, 300);
-    toast.success('CMYK TIFF exported');
-  }, [createFinalCanvas, sourceAsset]);
-
-  // Export WebP
-  const handleExportWebP = useCallback(async () => {
-    const canvas = createFinalCanvas();
-    if (!canvas) {
-      toast.error('Failed to get canvas data');
-      return;
-    }
-    const filename = sourceAsset?.name?.replace(/\.[^.]+$/, '') || 'export';
-    try {
-      const blob = await exportAsWebP(canvas, 0.9);
-      if (window.electronAPI?.files) {
-        const savePath = await window.electronAPI.files.saveFile({
-          defaultPath: `${filename}.webp`,
-          filters: [{ name: 'WebP Image', extensions: ['webp'] }],
-        });
-        if (savePath) {
-          const arrayBuffer = await blob.arrayBuffer();
-          await window.electronAPI.files.writeFile(savePath, arrayBuffer);
-          toast.success('WebP exported');
-        }
-      } else {
-        downloadBlob(blob, `${filename}.webp`);
-        toast.success('WebP exported');
-      }
-    } catch (error) {
-      console.error('WebP export error:', error);
-      toast.error('Failed to export WebP');
-    }
-  }, [createFinalCanvas, sourceAsset]);
-
-  // Export RGB TIFF
-  const handleExportRgbTiff = useCallback(() => {
-    const canvas = createFinalCanvas();
-    if (!canvas) {
-      toast.error('Failed to get canvas data');
-      return;
-    }
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const filename = sourceAsset?.name?.replace(/\.[^.]+$/, '') || 'export';
-    const tiffBytes = exportAsRgbTiff(imageData, 72);
-    if (window.electronAPI?.files) {
-      (async () => {
-        const savePath = await window.electronAPI!.files!.saveFile({
-          defaultPath: `${filename}-rgb.tif`,
-          filters: [{ name: 'TIFF Image', extensions: ['tif', 'tiff'] }],
-        });
-        if (savePath) {
-          await window.electronAPI!.files!.writeFile(savePath, tiffBytes.buffer as ArrayBuffer);
-          toast.success('RGB TIFF exported');
-        }
-      })();
-    } else {
-      downloadBytes(tiffBytes, `${filename}-rgb.tif`, 'image/tiff');
-      toast.success('RGB TIFF exported');
-    }
-  }, [createFinalCanvas, sourceAsset]);
-
-  // Export BMP
-  const handleExportBmp = useCallback(() => {
-    const canvas = createFinalCanvas();
-    if (!canvas) {
-      toast.error('Failed to get canvas data');
-      return;
-    }
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const filename = sourceAsset?.name?.replace(/\.[^.]+$/, '') || 'export';
-    const bmpBytes = exportAsBmp(imageData);
-    if (window.electronAPI?.files) {
-      (async () => {
-        const savePath = await window.electronAPI!.files!.saveFile({
-          defaultPath: `${filename}.bmp`,
-          filters: [{ name: 'Bitmap Image', extensions: ['bmp'] }],
-        });
-        if (savePath) {
-          await window.electronAPI!.files!.writeFile(savePath, bmpBytes.buffer as ArrayBuffer);
-          toast.success('BMP exported');
-        }
-      })();
-    } else {
-      downloadBytes(bmpBytes, `${filename}.bmp`, 'image/bmp');
-      toast.success('BMP exported');
-    }
-  }, [createFinalCanvas, sourceAsset]);
-
-  // Handle "Export As..." with format/quality/scale options
-  const handleExportAs = useCallback(async (settings: ExportAsSettings) => {
-    const canvas = createFinalCanvas();
-    if (!canvas) {
-      toast.error('Failed to get canvas data');
-      return;
-    }
-
-    // Apply scale into an off-screen canvas if needed
-    let outCanvas: HTMLCanvasElement = canvas;
-    if (settings.scale !== 1) {
-      const w = Math.max(1, Math.round(canvas.width * settings.scale));
-      const h = Math.max(1, Math.round(canvas.height * settings.scale));
-      const tmp = document.createElement('canvas');
-      tmp.width = w;
-      tmp.height = h;
-      const tctx = tmp.getContext('2d');
-      if (!tctx) {
-        toast.error('Failed to scale canvas');
-        return;
-      }
-      tctx.imageSmoothingEnabled = true;
-      tctx.imageSmoothingQuality = 'high';
-      tctx.drawImage(canvas, 0, 0, w, h);
-      outCanvas = tmp;
-    }
-
-    const ext = settings.format === 'jpeg' ? 'jpg' : settings.format;
-    const outputFileName = `${settings.fileName}.${ext}`;
-
-    setProcessing(true, 'Exporting...');
-    try {
-      let bytes: ArrayBuffer | null = null;
-      let mimeType = `image/${settings.format}`;
-
-      if (settings.format === 'pdf') {
-        const orientation = outCanvas.width > outCanvas.height ? 'landscape' : 'portrait';
-        const pdf = new jsPDF({ orientation, unit: 'px', format: [outCanvas.width, outCanvas.height] });
-        const imgData = outCanvas.toDataURL('image/png', 1.0);
-        pdf.addImage(imgData, 'PNG', 0, 0, outCanvas.width, outCanvas.height);
-        bytes = pdf.output('arraybuffer');
-        mimeType = 'application/pdf';
-      } else if (settings.format === 'tiff') {
-        const ctx = outCanvas.getContext('2d');
-        if (!ctx) throw new Error('No 2d context');
-        const imgData = ctx.getImageData(0, 0, outCanvas.width, outCanvas.height);
-        const tiffBytes = exportAsRgbTiff(imgData, 72);
-        bytes = tiffBytes.buffer.slice(tiffBytes.byteOffset, tiffBytes.byteOffset + tiffBytes.byteLength) as ArrayBuffer;
-        mimeType = 'image/tiff';
-      } else if (settings.format === 'bmp') {
-        const ctx = outCanvas.getContext('2d');
-        if (!ctx) throw new Error('No 2d context');
-        const imgData = ctx.getImageData(0, 0, outCanvas.width, outCanvas.height);
-        const bmpBytes = exportAsBmp(imgData);
-        bytes = bmpBytes.buffer.slice(bmpBytes.byteOffset, bmpBytes.byteOffset + bmpBytes.byteLength) as ArrayBuffer;
-        mimeType = 'image/bmp';
-      } else if (settings.format === 'webp') {
-        const blob = await exportAsWebP(outCanvas, settings.quality);
-        bytes = await blob.arrayBuffer();
-        mimeType = 'image/webp';
-      } else {
-        const blob = await new Promise<Blob | null>((resolve) => {
-          outCanvas.toBlob((b) => resolve(b), mimeType, settings.quality);
-        });
-        if (!blob) throw new Error('Failed to encode image');
-        bytes = await blob.arrayBuffer();
-      }
-
-      if (!bytes) throw new Error('Failed to create file');
-
-      if (window.electronAPI?.files) {
-        const savePath = await window.electronAPI.files.saveFile({
-          defaultPath: outputFileName,
-          filters: [
-            { name: settings.format.toUpperCase(), extensions: [ext] },
-          ],
-        });
-        if (savePath) {
-          await window.electronAPI.files.writeFile(savePath, bytes);
-          const savedName = savePath.split(/[/\\]/).pop() || outputFileName;
-          toast.success(`Exported: ${savedName}`);
-        }
-      } else {
-        const blob = new Blob([bytes], { type: mimeType });
-        downloadBlob(blob, outputFileName);
-        toast.success(`Exported: ${outputFileName}`);
-      }
-    } catch (error) {
-      console.error('Export error:', error);
-      toast.error('Failed to export image');
-    } finally {
-      setProcessing(false);
-      setEditMode('none');
-    }
-  }, [createFinalCanvas, setProcessing, setEditMode]);
 
   // Handle reset all changes
   const handleResetChanges = useCallback(() => {
@@ -920,9 +698,9 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
 
   // "Save and Close" from the close dialog: open the save flow, close after it
   const handleSaveAndClose = useCallback((tabId: string) => {
-    onAfterSaveRef.current = () => {
+    afterSaveRef.current.set(() => {
       closeTab(tabId);
-    };
+    });
     setShowSaveFormatModal(true);
   }, [closeTab]);
 
@@ -1089,7 +867,7 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
 
       <SaveFormatModal
         isOpen={showSaveFormatModal}
-        onClose={() => { setShowSaveFormatModal(false); onAfterSaveRef.current = null; }}
+        onClose={() => { setShowSaveFormatModal(false); afterSaveRef.current.clear(); }}
         onSaveImage={handleSaveImageChoice}
         onSavePsd={handleSavePsd}
         defaultName={sourceAsset?.name?.replace(/\.[^/.]+$/, '') || 'Untitled Project'}
@@ -1126,7 +904,7 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-            onClick={() => setShowSaveConfirmModal(false)}
+            onClick={handleSaveConfirmCancelled}
           />
           <div className="relative bg-zinc-900 rounded-xl shadow-2xl border border-zinc-700 w-full max-w-sm mx-4 p-6">
             <h2 className="text-base font-semibold text-white mb-2">Overwrite Original?</h2>
@@ -1136,7 +914,7 @@ const ImageEditorPageInner = memo(function ImageEditorPageInner() {
             </p>
             <div className="flex items-center justify-end gap-3">
               <button
-                onClick={() => setShowSaveConfirmModal(false)}
+                onClick={handleSaveConfirmCancelled}
                 className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
               >
                 Cancel

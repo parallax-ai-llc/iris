@@ -54,6 +54,12 @@ import {
   savePointAfterClearHistory,
   timelineContentKey,
 } from './editor/documentLifecycle';
+import { isClipLocked, isTrackLocked, lockedClipIds } from './editor/trackLocks';
+import { findClip, isImageClip, pruneDanglingLinks, replaceClips, splitClipPieces, trimClipEnd, trimClipStart, withClipSpeed } from './editor/clipTiming';
+import { beginDragState, computeDrag, dragHistoryLabel, moveClipAcrossTracks, resolveMoveDrop, timingChanged } from './editor/dragEdit';
+import { scheduleHistoryCommit, takePendingHistory } from './editor/editHistory';
+import { collectClipboard, overwriteRange, pasteClipboard, rippleDeleteClips } from './editor/clipboard';
+import { buildCompoundClips } from './editor/compound';
 
 // ==================== Helper Functions ====================
 
@@ -278,67 +284,34 @@ function snapToGrid(time: number, gridSize: number, enabled: boolean): number {
   return Math.round(time / gridSize) * gridSize;
 }
 
-/**
- * Snap time to nearby clip edges, playhead, markers, and grid.
- * Returns the snapped time and which edge was snapped to (for visual indicator).
- */
-const SNAP_THRESHOLD_PX = 8; // pixels within which snapping occurs
+type StoreGet = () => EditorState & EditorActions;
 
-function snapToEdges(
-  time: number,
-  tracks: Track[],
-  excludeClipId: string,
-  excludeLinkedClipId: string | null | undefined,
-  currentTime: number,
-  markers: Marker[],
-  pixelsPerSecond: number,
-  gridSize: number,
-  snapToGridEnabled: boolean,
-): { snappedTime: number; snapTarget: number | null } {
-  // Edge/playhead/marker snapping is ALWAYS active regardless of the snap-to-grid toggle.
-  // The snapToGridEnabled flag only controls whether the time-grid is also considered.
-  const threshold = SNAP_THRESHOLD_PX / pixelsPerSecond;
-  let bestSnap = time;
-  let bestDist = threshold;
-  let snapTarget: number | null = null;
+/** Schedule one coalesced history entry for a streamed edit (stores/editor/editHistory.ts). */
+function recordEdit(get: StoreGet, label: string): void {
+  scheduleHistoryCommit(label, (l) => get().pushHistory(l), () => get().dragState !== null);
+}
 
-  // Collect all snap points: clip edges + playhead + markers
-  const snapPoints: number[] = [currentTime]; // playhead
-  for (const marker of markers) {
-    snapPoints.push(marker.time);
-  }
-  for (const track of tracks) {
-    for (const clip of track.clips) {
-      // Exclude the dragged clip AND its linked counterpart — snapping to your own
-      // paired audio/video clip is rarely useful and causes confusing near-self snaps.
-      if (clip.id === excludeClipId) continue;
-      if (excludeLinkedClipId && clip.id === excludeLinkedClipId) continue;
-      snapPoints.push(clip.startTime, clip.endTime);
-    }
-  }
+/** Commit a pending coalesced entry now (before undo/redo/jumps and save points). */
+function settlePendingHistory(get: StoreGet): void {
+  const label = takePendingHistory();
+  if (label !== null) get().pushHistory(label);
+}
 
-  for (const pt of snapPoints) {
-    const dist = Math.abs(time - pt);
-    if (dist < bestDist) {
-      bestDist = dist;
-      bestSnap = pt;
-      snapTarget = pt;
-    }
-  }
+/** Selection/selectedClip/duration that match a set of tracks (after undo/redo/jumps). */
+function viewStateForTracks(s: EditorState, tracks: Track[]): Pick<EditorState, 'selection' | 'selectedClip' | 'duration'> {
+  const ids = new Set(tracks.flatMap((t) => t.clips.map((c) => c.id)));
+  const selectedClip = s.selectedClip ? findClipById(tracks, s.selectedClip.id)?.clip ?? null : null;
+  return {
+    selection: { ...s.selection, clipIds: s.selection.clipIds.filter((id) => ids.has(id)) },
+    selectedClip,
+    duration: Math.max(calculateMaxEndTime(tracks), 1),
+  };
+}
 
-  // Grid is a fallback: a clip edge / playhead / marker within the threshold
-  // always wins, otherwise a nearby grid line pulls the clip off the edge and
-  // leaves a gap.
-  if (snapTarget === null && snapToGridEnabled && gridSize > 0) {
-    const gridSnap = Math.round(time / gridSize) * gridSize;
-    const gridDist = Math.abs(time - gridSnap);
-    if (gridDist < bestDist) {
-      bestSnap = gridSnap;
-      snapTarget = null; // grid doesn't show indicator
-    }
-  }
-
-  return { snappedTime: bestSnap, snapTarget };
+/** Re-read the selected clip object from new tracks. */
+function refreshSelected(selectedClip: Clip | null, tracks: Track[]): Clip | null {
+  if (!selectedClip) return null;
+  return findClipById(tracks, selectedClip.id)?.clip ?? null;
 }
 
 // ==================== Store ====================
@@ -603,6 +576,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
     },
 
     closeEditor: () => {
+      takePendingHistory();
       set({
         isEditorOpen: false,
         clientProcessingInProgress: false,
@@ -632,6 +606,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
     },
 
     loadFromTimelineData: (timelineData, duration) => {
+      takePendingHistory();
       const tracks = convertTimelineDataToEditorTracks(timelineData);
       const restoredMarkers = (timelineData.markers ?? []).map((m) => ({ ...m })) as Marker[];
       const { project } = get();
@@ -704,12 +679,16 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         updatedAt: new Date().toISOString(),
       };
 
+      takePendingHistory();
       set({
         project,
         tracks,
         duration,
         history: [project],
         historyIndex: 0,
+        historyLabels: ['Open Project'],
+        selection: { clipIds: [], trackIds: [] },
+        selectedClip: null,
         // A freshly initialised project is the opened (clean) state.
         savePoint: { entry: project, content: timelineContentKey(tracks, []) },
         // Reset project-scoped state when starting a fresh project
@@ -730,8 +709,24 @@ export const useEditorStore = create<EditorState & EditorActions>()(
           const audioFileName = `audio_${asset.id.replace(/[^a-zA-Z0-9]/g, '_')}.m4a`;
           const audioOutputPath = `${audioDir}/${audioFileName}`;
 
+          const projectId = project.id;
           window.electronAPI.audioExtract.separate(videoPath, audioOutputPath).then((result) => {
             if (result.success && result.outputPath) {
+              // The result may arrive after the user closed or switched projects:
+              // apply it only to the same project whose placeholder audio clip
+              // still plays this asset (the clip id 'clip-audio-main' is shared
+              // by every opened video).
+              const s = get();
+              const placeholder = findClipById(s.tracks, 'clip-audio-main')?.clip;
+              if (
+                !s.isEditorOpen ||
+                s.project?.id !== projectId ||
+                !placeholder ||
+                !('assetId' in placeholder) ||
+                placeholder.assetId !== asset.id
+              ) {
+                return;
+              }
               // Update audio clip to use separated audio file. This is not a user
               // edit: it is applied to every history snapshot and keeps a clean
               // project clean (documentLifecycle.applyBackgroundClipPatch).
@@ -1040,9 +1035,12 @@ export const useEditorStore = create<EditorState & EditorActions>()(
     removeClip: (clipId) => {
       const { tracks, selection, selectedClip } = get();
 
-      // Find linked clip to remove together
+      // A clip on a locked track is never removed; a linked clip on a locked
+      // track stays too (only its now-dangling link is cleared).
       const found = findClipById(tracks, clipId);
-      const linkedId = found?.clip.linkedClipId;
+      if (!found || found.track.locked) return;
+      const linkedFound = findClip(tracks, found.clip.linkedClipId);
+      const linkedId = linkedFound && !linkedFound.track.locked ? linkedFound.clip.id : undefined;
 
       // Collect source assetIds of any audio/music clips being removed so that a
       // surviving video clip from the same source stops playing its embedded
@@ -1061,7 +1059,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         }
       }
 
-      const newTracks = tracks.map((t) => ({
+      const newTracks = pruneDanglingLinks(tracks.map((t) => ({
         ...t,
         clips: t.clips
           .filter((c) => c.id !== clipId && c.id !== linkedId)
@@ -1070,51 +1068,27 @@ export const useEditorStore = create<EditorState & EditorActions>()(
               ? { ...c, audioExtracted: true }
               : c
           ),
-      }));
+      })));
 
       set({
         tracks: newTracks,
         duration: Math.max(calculateMaxEndTime(newTracks), 0),
         selection: {
           ...selection,
-          clipIds: selection.clipIds.filter((id) => id !== clipId),
+          clipIds: selection.clipIds.filter((id) => id !== clipId && id !== linkedId),
         },
-        selectedClip: selectedClip?.id === clipId ? null : selectedClip,
+        selectedClip: refreshSelected(selectedClip, newTracks),
       });
       get().pushHistory('Remove Clip');
     },
 
     moveClipToTrack: (clipId, targetTrackId) => {
+      // Same track type, neither track locked, no overlap at the target.
       const { tracks } = get();
-      const found = findClipById(tracks, clipId);
-      if (!found) return;
-      const { clip, track: sourceTrack } = found;
-      if (sourceTrack.id === targetTrackId) return;
-
-      const targetTrack = tracks.find((t) => t.id === targetTrackId);
-      if (!targetTrack) return;
-
-      // Only allow moving between same-type tracks
-      if (targetTrack.type !== sourceTrack.type) return;
-
-      // Reject move if target track has any clip overlapping the dropped position
-      const hasOverlap = targetTrack.clips.some(
-        (c) => clip.startTime < c.endTime && clip.endTime > c.startTime
-      );
-      if (hasOverlap) return;
-
-      const movedClip = { ...clip, trackId: targetTrackId };
-      const newTracks = tracks.map((t) => {
-        if (t.id === sourceTrack.id) {
-          return { ...t, clips: t.clips.filter((c) => c.id !== clipId) };
-        }
-        if (t.id === targetTrackId) {
-          return { ...t, clips: [...t.clips, movedClip] };
-        }
-        return t;
-      });
-
-      set({ tracks: newTracks });
+      const newTracks = moveClipAcrossTracks(tracks, clipId, targetTrackId);
+      if (newTracks === tracks) return;
+      set({ tracks: newTracks, selectedClip: refreshSelected(get().selectedClip, newTracks) });
+      get().pushHistory('Move Clip to Track');
     },
 
     moveClipZOrder: (clipId, direction) => {
@@ -1149,47 +1123,116 @@ export const useEditorStore = create<EditorState & EditorActions>()(
       get().pushHistory(direction === 'up' ? 'Bring Forward' : 'Send Backward');
     },
 
-    updateClip: (clipId, updates) => {
+    updateClip: (clipId, updates, opts) => {
+      const history = opts?.history ?? 'auto';
+
+      // Background updates (measured image size, ...) are not user edits.
+      if (history === 'background') {
+        set(applyBackgroundClipPatch(get(), clipId, updates as Record<string, unknown>));
+        set({ selectedClip: refreshSelected(get().selectedClip, get().tracks) });
+        return;
+      }
+
       const { tracks, selectedClip } = get();
+      // Clips on locked tracks are read-only.
+      if (isClipLocked(tracks, clipId)) return;
 
-      let newSelectedClip = selectedClip;
+      const { speed: speedUpdate, ...rest } = updates as Partial<VideoClip>;
+      const hasSpeed = 'speed' in updates && typeof speedUpdate === 'number';
 
-      const newTracks = tracks.map((t) => ({
-        ...t,
-        clips: t.clips.map((c) => {
-          if (c.id === clipId) {
-            const updatedClip = { ...c, ...updates } as Clip;
-            // When speed changes on a video clip, recalculate endTime
-            const speedUpdate = (updates as Partial<VideoClip>).speed;
-            if ('speed' in updates && typeof speedUpdate === 'number' && c.type === 'video') {
-              const speed = speedUpdate;
-              if (speed > 0) {
-                const sourceDuration = c.sourceEndTime - c.sourceStartTime;
-                updatedClip.endTime = c.startTime + sourceDuration / speed;
-              }
-              // speed === 0 (freeze frame): keep current endTime as-is
-            }
-            // Update selected clip reference if needed
-            if (selectedClip?.id === clipId) {
-              newSelectedClip = updatedClip;
-            }
-            return updatedClip;
-          }
-          return c;
-        }),
-      }));
+      let newTracks = tracks.map((t) =>
+        t.clips.some((c) => c.id === clipId)
+          ? { ...t, clips: t.clips.map((c) => (c.id === clipId ? ({ ...c, ...(hasSpeed ? rest : updates) } as Clip) : c)) }
+          : t,
+      );
+      // A speed change re-times the clip and its linked clip together and never
+      // grows over the next clip (stores/editor/clipTiming.withClipSpeed).
+      if (hasSpeed) {
+        const found = findClipById(newTracks, clipId);
+        if (found && (found.clip.type === 'video' || found.clip.type === 'audio')) {
+          newTracks = withClipSpeed(newTracks, clipId, speedUpdate as number, lockedClipIds(newTracks));
+        } else {
+          newTracks = replaceClips(newTracks, new Map(found ? [[clipId, { ...found.clip, speed: speedUpdate } as Clip]] : []));
+        }
+      }
 
       set({
         tracks: newTracks,
         duration: Math.max(calculateMaxEndTime(newTracks), 1),
-        selectedClip: newSelectedClip,
+        selectedClip: selectedClip ? refreshSelected(selectedClip, newTracks) : selectedClip,
       });
+
+      if (history === 'amend') {
+        const { history: entries, historyIndex, project } = get();
+        const current = entries[historyIndex];
+        if (current) {
+          const amended = { ...current, tracks: structuredClone(newTracks) };
+          const nextHistory = [...entries];
+          nextHistory[historyIndex] = amended;
+          set({ history: nextHistory, project: project === current ? amended : project });
+        }
+      } else if (history === 'auto') {
+        recordEdit(get, 'Edit Clip');
+      }
+    },
+
+    setClipSpeed: (clipId, speed) => {
+      get().updateClip(clipId, { speed } as Partial<Clip>);
+    },
+
+    setClipEdge: (clipId, edge, time) => {
+      // Inspector Start/End: the same trim as dragging the edge (speed-aware,
+      // linked clip follows, the more restrictive clamp wins).
+      const { tracks } = get();
+      const found = findClipById(tracks, clipId);
+      if (!found || found.track.locked) return;
+      const linkedFound = findClip(tracks, found.clip.linkedClipId);
+      const linked = linkedFound && !linkedFound.track.locked ? linkedFound.clip : null;
+      const trim = (c: Clip, t: number) =>
+        edge === 'start'
+          ? trimClipStart(c, Math.max(0, Math.min(t, c.endTime - 0.05)), { freeSource: isImageClip(c) })
+          : trimClipEnd(c, Math.max(t, c.startTime + 0.05), { freeSource: isImageClip(c) });
+      const at = (c: Clip) => (edge === 'start' ? c.startTime : c.endTime);
+      let primary = trim(found.clip, time);
+      const replacements = new Map<string, Clip>([[clipId, primary]]);
+      if (linked) {
+        let l = trim(linked, at(primary));
+        if (Math.abs(at(l) - at(primary)) > 1e-6) {
+          primary = trim(found.clip, at(l));
+          l = trim(linked, at(primary));
+          replacements.set(clipId, primary);
+        }
+        replacements.set(linked.id, l);
+      }
+      if (at(primary) === at(found.clip) && (!linked || at(replacements.get(linked.id)!) === at(linked))) return;
+      const newTracks = replaceClips(tracks, replacements);
+      set({
+        tracks: newTracks,
+        duration: Math.max(calculateMaxEndTime(newTracks), 1),
+        selectedClip: refreshSelected(get().selectedClip, newTracks),
+      });
+      get().pushHistory('Edit Timing');
+    },
+
+    toggleClipsMute: (clipIds) => {
+      const { tracks } = get();
+      const replacements = new Map<string, Clip>();
+      for (const id of clipIds) {
+        const found = findClipById(tracks, id);
+        if (!found || found.track.locked) continue;
+        const c = found.clip;
+        if (c.type === 'video' || c.type === 'audio') replacements.set(id, { ...c, muted: !c.muted } as Clip);
+      }
+      if (replacements.size === 0) return;
+      const newTracks = replaceClips(tracks, replacements);
+      set({ tracks: newTracks, selectedClip: refreshSelected(get().selectedClip, newTracks) });
+      get().pushHistory('Toggle Mute');
     },
 
     moveClip: (clipId, newTrackId, newStartTime) => {
       const { tracks, snapToGrid: snap, gridSize, duration: currentDuration } = get();
       const found = findClipById(tracks, clipId);
-      if (!found) return;
+      if (!found || found.track.locked || isTrackLocked(tracks, newTrackId)) return;
 
       const { clip } = found;
       const clipDuration = clip.endTime - clip.startTime;
@@ -1221,122 +1264,43 @@ export const useEditorStore = create<EditorState & EditorActions>()(
     },
 
     splitClip: (clipId, splitTime) => {
-      let { tracks } = get();
+      const { tracks, selectedClip } = get();
       const found = findClipById(tracks, clipId);
-      if (!found) return;
+      if (!found || found.track.locked) return;
 
-      const { clip, track } = found;
-
-      // Can't split outside clip bounds
-      if (splitTime <= clip.startTime || splitTime >= clip.endTime) return;
-
-      const relativeTime = splitTime - clip.startTime;
-      const sourceRelativeTime = clip.sourceStartTime + relativeTime;
-
-      const firstId = clip.id;
+      // Speed-aware source split; transitions stay on their edge; keyframes are
+      // re-based per piece (stores/editor/clipTiming.splitClipPieces).
       const secondId = `clip-${generateId()}`;
+      const pieces = splitClipPieces(found.clip, splitTime, secondId);
+      if (!pieces) return;
+      const [firstClip, secondClip] = pieces;
 
-      // Also split linked clip if exists
-      let linkedFirstId: string | undefined;
-      let linkedSecondId: string | undefined;
-      if (clip.linkedClipId) {
-        const linkedFound = findClipById(tracks, clip.linkedClipId);
-        if (linkedFound && splitTime > linkedFound.clip.startTime && splitTime < linkedFound.clip.endTime) {
-          linkedFirstId = linkedFound.clip.id;
-          linkedSecondId = `clip-${generateId()}`;
-          const linkedRelTime = splitTime - linkedFound.clip.startTime;
-          const linkedSourceRelTime = linkedFound.clip.sourceStartTime + linkedRelTime;
-
-          const cloneLinkedShared = (c: Clip) => ({
-            ...(hasEffects(c)
-              ? {
-                  effects: c.effects.map((e) => ({
-                    ...e,
-                    filterParams: e.filterParams
-                      ? JSON.parse(JSON.stringify(e.filterParams))
-                      : e.filterParams,
-                  })),
-                  keyframes: c.keyframes.map((k) => ({ ...k })),
-                }
-              : {}),
-            ...('transform' in c && (c as VideoClip).transform
-              ? { transform: { ...(c as VideoClip).transform } }
-              : {}),
-          });
-          const linkedFirst: Clip = {
-            ...linkedFound.clip,
-            linkedClipId: firstId,
-            endTime: splitTime,
-            sourceEndTime: linkedSourceRelTime,
-            ...cloneLinkedShared(linkedFound.clip),
-          } as Clip;
-          const linkedSecond: Clip = {
-            ...linkedFound.clip,
-            id: linkedSecondId,
-            linkedClipId: secondId,
-            name: `${linkedFound.clip.name} (2)`,
-            startTime: splitTime,
-            sourceStartTime: linkedSourceRelTime,
-            ...cloneLinkedShared(linkedFound.clip),
-          } as Clip;
-
-          tracks = tracks.map((t) => {
-            if (t.id !== linkedFound.track.id) return t;
-            const newClips = t.clips.filter((c) => c.id !== linkedFound.clip.id);
-            return { ...t, clips: [...newClips, linkedFirst, linkedSecond] };
-          });
-        }
+      // Split the linked clip too (unless it is on a locked track); the second
+      // pieces link to each other.
+      const replacements = new Map<string, Clip>();
+      const additions = new Map<string, Clip>();
+      const linkedFound = findClip(tracks, found.clip.linkedClipId);
+      const linkedPieces = linkedFound && !linkedFound.track.locked
+        ? splitClipPieces(linkedFound.clip, splitTime, `clip-${generateId()}`)
+        : null;
+      if (linkedFound && linkedPieces) {
+        const [lFirst, lSecond] = linkedPieces;
+        replacements.set(clipId, { ...firstClip, linkedClipId: lFirst.id } as Clip);
+        additions.set(found.track.id, { ...secondClip, linkedClipId: lSecond.id } as Clip);
+        replacements.set(lFirst.id, { ...lFirst, linkedClipId: firstClip.id } as Clip);
+        additions.set(linkedFound.track.id, { ...lSecond, linkedClipId: secondClip.id } as Clip);
+      } else {
+        replacements.set(clipId, firstClip);
+        additions.set(found.track.id, { ...secondClip, linkedClipId: undefined } as Clip);
       }
 
-      // Deep-clone mutable per-clip state so the two halves are fully independent.
-      // Without this, both halves share the same `effects` (and nested filterParams)
-      // array reference — editing color/effects on one half visibly affects the other.
-      const cloneSharedState = (c: Clip) => ({
-        ...(hasEffects(c)
-          ? {
-              effects: c.effects.map((e) => ({
-                ...e,
-                filterParams: e.filterParams
-                  ? JSON.parse(JSON.stringify(e.filterParams))
-                  : e.filterParams,
-              })),
-              keyframes: c.keyframes.map((k) => ({ ...k })),
-            }
-          : {}),
-        ...('transform' in c && (c as VideoClip).transform
-          ? { transform: { ...(c as VideoClip).transform } }
-          : {}),
-      });
+      const newTracks = replaceClips(tracks, replacements).map((t) =>
+        additions.has(t.id) ? { ...t, clips: [...t.clips, additions.get(t.id)!] } : t,
+      );
 
-      // Create two clips from the split
-      const firstClip: Clip = {
-        ...clip,
-        endTime: splitTime,
-        sourceEndTime: sourceRelativeTime,
-        linkedClipId: linkedFirstId ?? clip.linkedClipId,
-        ...cloneSharedState(clip),
-      } as Clip;
-
-      const secondClip: Clip = {
-        ...clip,
-        id: secondId,
-        name: `${clip.name} (2)`,
-        startTime: splitTime,
-        sourceStartTime: sourceRelativeTime,
-        linkedClipId: linkedSecondId ?? undefined,
-        ...cloneSharedState(clip),
-      } as Clip;
-
-      const newTracks = tracks.map((t) => {
-        if (t.id !== track.id) return t;
-        const newClips = t.clips.filter((c) => c.id !== clipId);
-        return { ...t, clips: [...newClips, firstClip, secondClip] };
-      });
-
-      const { selectedClip } = get();
       set({
         tracks: newTracks,
-        selectedClip: selectedClip?.id === clipId ? firstClip : selectedClip,
+        selectedClip: refreshSelected(selectedClip, newTracks),
       });
       get().pushHistory('Split Clip');
     },
@@ -1344,7 +1308,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
     duplicateClip: (clipId) => {
       const { tracks } = get();
       const found = findClipById(tracks, clipId);
-      if (!found) return null;
+      if (!found || found.track.locked) return null;
 
       const { clip, track } = found;
       const duration = clip.endTime - clip.startTime;
@@ -1358,6 +1322,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         name: `${clip.name} (copy)`,
         startTime: clip.endTime,
         endTime: clip.endTime + duration,
+        linkedClipId: undefined,
         ...(hasEffects(clip)
           ? {
               effects: clip.effects.map((e) => ({
@@ -1556,25 +1521,15 @@ export const useEditorStore = create<EditorState & EditorActions>()(
       const { tracks, selection } = get();
       if (selection.clipIds.length === 0) return;
 
-      const deletable = tracks.some(
-        (t) => !t.locked && t.clips.some((c) => selection.clipIds.includes(c.id)),
-      );
-      if (!deletable) return;
-
-      const newTracks = tracks.map((track) => {
-        // Locked tracks keep their clips and their gaps.
-        if (track.locked) return track;
-        // Find deleted clips on this track
-        const deletedClips = track.clips.filter((c) => selection.clipIds.includes(c.id));
-        if (deletedClips.length === 0) return track;
-
-        // Remove selected clips and close gaps
-        const remaining = track.clips.filter((c) => !selection.clipIds.includes(c.id));
-        return { ...track, clips: closeGapsInClips(remaining) };
-      });
+      // Removes the selected clips and their linked clips, then closes only the
+      // deleted ranges (stores/editor/clipboard.rippleDeleteClips). Locked
+      // tracks keep their clips and gaps.
+      const newTracks = rippleDeleteClips(tracks, selection.clipIds);
+      if (!newTracks) return;
 
       set({
         tracks: newTracks,
+        duration: Math.max(calculateMaxEndTime(newTracks), 1),
         selection: { clipIds: [], trackIds: [] },
         selectedClip: null,
       });
@@ -1589,6 +1544,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
       const OFFSET = 0.5; // seconds offset for duplicated clips
 
       const newTracks = tracks.map((track) => {
+        if (track.locked) return track;
         const clipsToAdd: Clip[] = [];
         for (const clip of track.clips) {
           if (selection.clipIds.includes(clip.id)) {
@@ -1622,6 +1578,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         if (clipsToAdd.length === 0) return track;
         return { ...track, clips: [...track.clips, ...clipsToAdd] };
       });
+      if (newClipIds.length === 0) return;
 
       const firstNewClip = newClipIds[0] ? findClipById(newTracks, newClipIds[0])?.clip || null : null;
       set({
@@ -1637,7 +1594,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
       const { tracks, selection, selectedClip } = get();
       if (selection.clipIds.length === 0) return;
 
-      const newTracks = tracks.map((track) => ({
+      const newTracks = tracks.map((track) => track.locked ? track : ({
         ...track,
         clips: track.clips.map((clip) => {
           if (!selection.clipIds.includes(clip.id)) return clip;
@@ -1647,399 +1604,94 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         }),
       }));
 
-      let newSelectedClip = selectedClip;
-      if (selectedClip && selection.clipIds.includes(selectedClip.id)) {
-        newSelectedClip = findClipById(newTracks, selectedClip.id)?.clip || null;
-      }
-
       set({
         tracks: newTracks,
         duration: Math.max(calculateMaxEndTime(newTracks), 1),
-        selectedClip: newSelectedClip,
+        selectedClip: refreshSelected(selectedClip, newTracks),
       });
       get().pushHistory('Move Clips');
     },
 
     // ==================== Drag Actions ====================
+    // All drag math lives in stores/editor/dragEdit.ts: every update is computed
+    // from the drag-start snapshot, so cancel is a restore and nothing accumulates.
 
-    startDrag: (dragState) => set({ dragState }),
-
-    updateDrag: (_currentX, currentTime) => {
-      const { dragState, tracks, snapToGrid: snap, gridSize, markers, pixelsPerSecond, currentTime: playhead } = get();
-      if (!dragState) return;
-
-      const found = findClipById(tracks, dragState.clipId);
-      if (!found) return;
-
-      const { originalClip } = dragState;
-      const clipDuration = originalClip.endTime - originalClip.startTime;
-
-      // Image clips have no intrinsic source duration — they can be stretched to
-      // any length. Exempt them from the source-duration trim clamp so the user
-      // can drag the end handle to extend an image indefinitely.
-      const isImageClip =
-        originalClip.type === 'video' && (originalClip as VideoClip).mediaType === 'image';
-
-      // Helper: snap using clip edges, playhead, markers, and grid.
-      // Also excludes the dragged clip's linked counterpart to avoid self-snapping.
-      const linkedClipId = originalClip.linkedClipId ?? null;
-      const doSnap = (time: number, excludeId: string) =>
-        snapToEdges(time, tracks, excludeId, linkedClipId, playhead, markers, pixelsPerSecond, gridSize, snap);
-
-      // Helper: apply same updates to linked clip
-      const applyToLinked = (updates: Partial<Clip>) => {
-        if (originalClip.linkedClipId) {
-          get().updateClip(originalClip.linkedClipId, updates);
-        }
-      };
-
-      if (dragState.operation === 'move') {
-        // Keep the grab offset: the point of the clip under the cursor at
-        // mousedown (dragState.startTime) stays under the cursor, so a small
-        // mouse move is a small clip move instead of a jump to the cursor.
-        const grabOffset = Math.min(
-          Math.max(0, dragState.startTime - originalClip.startTime),
-          clipDuration,
-        );
-        const rawStart = currentTime - grabOffset;
-
-        // Only apply snap if user has moved clip more than a minimal threshold
-        // This prevents the clip from jumping to a snap point immediately on click
-        const moveDistance = Math.abs(rawStart - originalClip.startTime);
-        const MIN_MOVE_THRESHOLD = 0.05; // seconds — must move at least this much before snap engages
-        const { snappedTime, snapTarget } = moveDistance > MIN_MOVE_THRESHOLD
-          ? doSnap(rawStart, dragState.clipId)
-          : { snappedTime: rawStart, snapTarget: null };
-        const newStartTime = Math.max(0, snappedTime);
-        const newEndTime = newStartTime + clipDuration;
-        const delta = newStartTime - originalClip.startTime;
-
-        set({ snapTarget });
-        const moveUpdates = { startTime: newStartTime, endTime: newEndTime };
-        get().updateClip(dragState.clipId, moveUpdates);
-
-        // Apply delta to linked clip using its original position (not current — avoids drift)
-        if (originalClip.linkedClipId && dragState.linkedOriginalClip) {
-          const lo = dragState.linkedOriginalClip;
-          const linkedDuration = lo.endTime - lo.startTime;
-          const linkedStart = Math.max(0, lo.startTime + delta);
-          get().updateClip(originalClip.linkedClipId, {
-            startTime: linkedStart,
-            endTime: linkedStart + linkedDuration,
-          });
-        } else {
-          applyToLinked(moveUpdates);
-        }
-
-        // Move all other selected clips by the same delta
-        const { selection } = get();
-        if (selection.clipIds.length > 1) {
-          for (const selId of selection.clipIds) {
-            if (selId === dragState.clipId || selId === originalClip.linkedClipId) continue;
-            const selFound = findClipById(tracks, selId);
-            if (selFound) {
-              const s = selFound.clip;
-              const sStart = Math.max(0, s.startTime + delta);
-              get().updateClip(selId, { startTime: sStart, endTime: sStart + (s.endTime - s.startTime) });
-            }
-          }
-        }
-
-        // Keep duration in sync with actual clip positions during drag
-        const latestTracks = get().tracks;
-        set({ duration: Math.max(calculateMaxEndTime(latestTracks), 1) });
-        return;
-      } else if (dragState.operation === 'trim-start') {
-        const { snappedTime, snapTarget: rawSnapTarget } = doSnap(currentTime, dragState.clipId);
-        let newStartTime = snappedTime;
-        const clampedStartTime = Math.max(0, Math.min(originalClip.endTime - 0.1, newStartTime));
-        newStartTime = clampedStartTime;
-        // Only show the snap guide if the clamped position still matches the snap target —
-        // if clamping overrode the snap, the guide would render at the wrong position.
-        const snapTarget = rawSnapTarget !== null && Math.abs(clampedStartTime - rawSnapTarget) < 0.001
-          ? rawSnapTarget
-          : null;
-        set({ snapTarget });
-
-        // Clamp: sourceStartTime cannot go below 0
-        let newSourceStart = originalClip.sourceStartTime + (newStartTime - originalClip.startTime);
-        if (newSourceStart < 0) {
-          newSourceStart = 0;
-          newStartTime = originalClip.startTime - originalClip.sourceStartTime;
-        }
-
-        const trimStartUpdates = { startTime: newStartTime, sourceStartTime: newSourceStart };
-        get().updateClip(dragState.clipId, trimStartUpdates);
-        applyToLinked(trimStartUpdates);
-      } else if (dragState.operation === 'trim-end') {
-        const { snappedTime: snappedEnd, snapTarget: rawSnapTargetEnd } = doSnap(currentTime, dragState.clipId);
-        let newEndTime = snappedEnd;
-        const clampedEndTime = Math.max(originalClip.startTime + 0.1, newEndTime);
-        newEndTime = clampedEndTime;
-        // Only show the snap guide if the clamped position still matches the snap target.
-        const snapTargetEnd = rawSnapTargetEnd !== null && Math.abs(clampedEndTime - rawSnapTargetEnd) < 0.001
-          ? rawSnapTargetEnd
-          : null;
-        set({ snapTarget: snapTargetEnd });
-
-        // Clamp: sourceEndTime cannot exceed sourceDuration (images are exempt —
-        // they have no source media length and may be stretched without limit).
-        let newSourceEnd = originalClip.sourceEndTime + (newEndTime - originalClip.endTime);
-        const maxDuration = originalClip.sourceDuration ?? 0;
-        if (!isImageClip && maxDuration > 0 && newSourceEnd > maxDuration) {
-          newSourceEnd = maxDuration;
-          newEndTime = originalClip.endTime + (maxDuration - originalClip.sourceEndTime);
-        }
-
-        const trimEndUpdates = { endTime: newEndTime, sourceEndTime: newSourceEnd };
-        get().updateClip(dragState.clipId, trimEndUpdates);
-        applyToLinked(trimEndUpdates);
-      } else if (dragState.operation === 'roll-end' && dragState.adjacentClipId && dragState.adjacentOriginalClip) {
-        // Roll edit: drag the end of this clip and start of the adjacent clip together
-        let newBoundary = currentTime;
-        // Clamp between start of this clip + 0.1 and end of adjacent clip - 0.1
-        const adjOriginal = dragState.adjacentOriginalClip;
-        newBoundary = Math.max(originalClip.startTime + 0.1, Math.min(adjOriginal.endTime - 0.1, newBoundary));
-
-        // Update this clip's end
-        const endDelta = newBoundary - originalClip.endTime;
-        let newSourceEnd = originalClip.sourceEndTime + endDelta;
-        const maxDur = originalClip.sourceDuration ?? 0;
-        if (!isImageClip && maxDur > 0 && newSourceEnd > maxDur) {
-          newSourceEnd = maxDur;
-          newBoundary = originalClip.endTime + (maxDur - originalClip.sourceEndTime);
-        }
-        get().updateClip(dragState.clipId, { endTime: newBoundary, sourceEndTime: newSourceEnd });
-
-        // Update adjacent clip's start
-        const startDelta = newBoundary - adjOriginal.startTime;
-        let newAdjSourceStart = adjOriginal.sourceStartTime + startDelta;
-        if (newAdjSourceStart < 0) newAdjSourceStart = 0;
-        get().updateClip(dragState.adjacentClipId, { startTime: newBoundary, sourceStartTime: newAdjSourceStart });
-      } else if (dragState.operation === 'roll-start' && dragState.adjacentClipId && dragState.adjacentOriginalClip) {
-        // Roll edit: drag the start of this clip and end of the adjacent clip together
-        let newBoundary = currentTime;
-        const adjOriginal = dragState.adjacentOriginalClip;
-        newBoundary = Math.max(adjOriginal.startTime + 0.1, Math.min(originalClip.endTime - 0.1, newBoundary));
-
-        // Update this clip's start
-        const startDelta = newBoundary - originalClip.startTime;
-        let newSourceStart = originalClip.sourceStartTime + startDelta;
-        if (newSourceStart < 0) newSourceStart = 0;
-        get().updateClip(dragState.clipId, { startTime: newBoundary, sourceStartTime: newSourceStart });
-
-        // Update adjacent clip's end
-        const endDelta = newBoundary - adjOriginal.endTime;
-        let newAdjSourceEnd = adjOriginal.sourceEndTime + endDelta;
-        const adjMaxDur = adjOriginal.sourceDuration ?? 0;
-        if (adjMaxDur > 0 && newAdjSourceEnd > adjMaxDur) newAdjSourceEnd = adjMaxDur;
-        get().updateClip(dragState.adjacentClipId, { endTime: newBoundary, sourceEndTime: newAdjSourceEnd });
-      } else if (dragState.operation === 'slip') {
-        // Slip edit: shift source in/out while keeping timeline position fixed
-        const timeDelta = currentTime - dragState.startTime;
-        let newSourceStart = originalClip.sourceStartTime + timeDelta;
-        let newSourceEnd = originalClip.sourceEndTime + timeDelta;
-
-        // Clamp source range
-        if (newSourceStart < 0) {
-          newSourceEnd -= newSourceStart;
-          newSourceStart = 0;
-        }
-        const maxDuration = originalClip.sourceDuration ?? 0;
-        if (maxDuration > 0 && newSourceEnd > maxDuration) {
-          newSourceStart -= (newSourceEnd - maxDuration);
-          newSourceEnd = maxDuration;
-        }
-
-        get().updateClip(dragState.clipId, { sourceStartTime: newSourceStart, sourceEndTime: newSourceEnd });
-      } else if (dragState.operation === 'slide') {
-        // Slide edit: the selected clip stays in place; adjacent clips absorb the delta by
-        // changing their in/out points (the clip's timeline position is fixed).
-        const timeDelta = currentTime - dragState.startTime;
-        if (dragState.adjacentClipId && dragState.adjacentOriginalClip) {
-          // Single adjacent clip provided — treat it as the clip to the right (post-clip).
-          // Shrink/grow the preceding clip's out-point and the post-clip's in-point.
-          const postOriginal = dragState.adjacentOriginalClip;
-
-          // Adjust the preceding (adjacent) clip's out point by -timeDelta
-          const prevNewSourceEnd = postOriginal.sourceEndTime - timeDelta;
-          const prevNewEnd = Math.max(postOriginal.startTime + 0.1, postOriginal.endTime - timeDelta);
-          get().updateClip(dragState.adjacentClipId, {
-            endTime: prevNewEnd,
-            sourceEndTime: Math.max(postOriginal.sourceStartTime + 0.1, prevNewSourceEnd),
-          });
-        } else {
-          // No adjacent clip info — fall back to adjusting only the neighbouring clips
-          // found on the same track by scanning the current tracks state.
-          const { tracks: currentTracks } = get();
-          const trackWithClip = currentTracks.find((t) => t.clips.some((c) => c.id === dragState.clipId));
-          if (trackWithClip) {
-            const sorted = [...trackWithClip.clips].sort((a, b) => a.startTime - b.startTime);
-            const idx = sorted.findIndex((c) => c.id === dragState.clipId);
-
-            // Adjust the preceding clip's out-point
-            if (idx > 0) {
-              const prevClip = sorted[idx - 1];
-              const prevNewEnd = Math.max(prevClip.startTime + 0.1, prevClip.endTime + timeDelta);
-              const prevSourceDelta = prevNewEnd - prevClip.endTime;
-              let prevNewSourceEnd = prevClip.sourceEndTime + prevSourceDelta;
-              const prevMaxDur = prevClip.sourceDuration ?? 0;
-              if (prevMaxDur > 0 && prevNewSourceEnd > prevMaxDur) prevNewSourceEnd = prevMaxDur;
-              get().updateClip(prevClip.id, { endTime: prevNewEnd, sourceEndTime: prevNewSourceEnd });
-            }
-
-            // Adjust the following clip's in-point
-            if (idx < sorted.length - 1) {
-              const nextClip = sorted[idx + 1];
-              const nextNewStart = Math.max(0, Math.min(nextClip.endTime - 0.1, nextClip.startTime + timeDelta));
-              const nextSourceDelta = nextNewStart - nextClip.startTime;
-              let nextNewSourceStart = nextClip.sourceStartTime + nextSourceDelta;
-              if (nextNewSourceStart < 0) nextNewSourceStart = 0;
-              get().updateClip(nextClip.id, { startTime: nextNewStart, sourceStartTime: nextNewSourceStart });
-            }
-          }
-        }
-      } else if (dragState.operation === 'rate-stretch') {
-        // Rate stretch: change speed by dragging end edge (only for video clips)
-        const newEndTime = Math.max(originalClip.startTime + 0.1, currentTime);
-        const newDuration = newEndTime - originalClip.startTime;
-        const sourceDuration = originalClip.sourceEndTime - originalClip.sourceStartTime;
-        const newSpeed = Math.max(0.1, Math.min(8, sourceDuration / newDuration));
-        get().updateClip(dragState.clipId, { endTime: newEndTime, speed: newSpeed } as Partial<Clip>);
-      }
-
-      // Keep duration in sync during trim/other operations
-      {
-        const latestTracks = get().tracks;
-        set({ duration: Math.max(calculateMaxEndTime(latestTracks), 1) });
-      }
+    startDrag: (dragState) => {
+      // A pending coalesced edit belongs before the drag in the history.
+      settlePendingHistory(get);
+      const { tracks, selection } = get();
+      if (isTrackLocked(tracks, dragState.trackId) || isClipLocked(tracks, dragState.clipId)) return;
+      set({ dragState: beginDragState(dragState, tracks, selection.clipIds) });
     },
 
-    endDrag: () => {
+    updateDrag: (_currentX, currentTime) => {
+      const { dragState, tracks, snapToGrid: snap, gridSize, markers, pixelsPerSecond, currentTime: playhead, selectedClip } = get();
+      if (!dragState) return;
+      if (!findClipById(dragState.originalTracks ?? tracks, dragState.clipId)) return;
+
+      const result = computeDrag(dragState, tracks, currentTime, {
+        playhead,
+        markers,
+        pixelsPerSecond,
+        gridSize,
+        snapToGrid: snap,
+      });
+      set({
+        tracks: result.tracks,
+        snapTarget: result.snapTarget,
+        duration: Math.max(calculateMaxEndTime(result.tracks), 1),
+        selectedClip: refreshSelected(selectedClip, result.tracks),
+      });
+    },
+
+    endDrag: (targetTrackId) => {
       set({ snapTarget: null });
-      const { dragState, tracks } = get();
+      const { dragState } = get();
       if (!dragState) { set({ dragState: null, dragHoverTrackId: null }); return; }
+      const original = dragState.originalTracks ?? get().tracks;
 
+      let tracks = get().tracks;
       if (dragState.operation === 'move') {
-        const found = findClipById(tracks, dragState.clipId);
-        if (found) {
-          const { clip } = found;
-
-          // If the clip didn't actually move (just a click), don't run ripple or push history
-          const moved = Math.abs(clip.startTime - dragState.originalClip.startTime) > 0.001;
-          if (!moved) {
-            set({ dragState: null, dragHoverTrackId: null });
-            return;
-          }
-
-          // Resolve overlaps: for each track, push overlapping clips to the right
-          // Only push clips that actually overlap with the moved clip (or its linked pair)
-          const movedClipIds = new Set([dragState.clipId]);
-          if (clip.linkedClipId) movedClipIds.add(clip.linkedClipId);
-
-          const newTracks = tracks.map((track) => {
-            // Find the moved clip in this track (if any)
-            const movedInTrack = track.clips.find((c) => movedClipIds.has(c.id));
-            if (!movedInTrack) return track;
-
-            const others = track.clips.filter((c) => !movedClipIds.has(c.id));
-            const sorted = sortClipsByStartTime(others);
-
-            // Decide per-other whether the moved clip should ripple it aside
-            // or simply snap itself adjacent. Rule: ripple only if the moved
-            // clip has encroached past the midpoint of the neighbour — small
-            // overlaps just snap the moved clip to the neighbour's edge so
-            // the timeline doesn't rearrange itself for tiny drags.
-            const movedDuration = movedInTrack.endTime - movedInTrack.startTime;
-            let finalMovedStart = movedInTrack.startTime;
-            let finalMovedEnd = movedInTrack.endTime;
-            const willRipple = new Set<string>();
-
-            for (const other of sorted) {
-              const os = other.startTime;
-              const oe = other.endTime;
-              const overlap = Math.min(finalMovedEnd, oe) - Math.max(finalMovedStart, os);
-              if (overlap <= 0) continue;
-
-              const otherHalf = (oe - os) / 2;
-              if (overlap >= otherHalf) {
-                willRipple.add(other.id);
-              } else {
-                // Snap moved clip away from this neighbour (no ripple).
-                const movedCenter = (finalMovedStart + finalMovedEnd) / 2;
-                const otherCenter = (os + oe) / 2;
-                if (movedCenter < otherCenter) {
-                  finalMovedEnd = os;
-                  finalMovedStart = finalMovedEnd - movedDuration;
-                } else {
-                  finalMovedStart = oe;
-                  finalMovedEnd = finalMovedStart + movedDuration;
-                }
-                if (finalMovedStart < 0) {
-                  finalMovedStart = 0;
-                  finalMovedEnd = movedDuration;
-                }
-              }
-            }
-
-            const adjustedMoved: Clip = {
-              ...movedInTrack,
-              startTime: finalMovedStart,
-              endTime: finalMovedEnd,
-            };
-
-            // Build resolved list: only ripple clips that passed the midpoint
-            // check; everything else stays put (cascade still applies so a
-            // rippled clip can push later ones).
-            const resolved: Clip[] = [];
-            for (const other of sorted) {
-              const otherDuration = other.endTime - other.startTime;
-              let start = other.startTime;
-
-              const overlapsWithMoved =
-                start < adjustedMoved.endTime && (start + otherDuration) > adjustedMoved.startTime;
-              if (overlapsWithMoved && willRipple.has(other.id)) {
-                start = adjustedMoved.endTime;
-              }
-
-              // Cascade against previously resolved clip
-              if (resolved.length > 0) {
-                const prev = resolved[resolved.length - 1];
-                if (start < prev.endTime) {
-                  start = prev.endTime;
-                }
-              }
-
-              resolved.push({ ...other, startTime: start, endTime: start + otherDuration });
-            }
-
-            return { ...track, clips: [adjustedMoved, ...resolved] };
-          });
-
-          set({ tracks: newTracks, duration: calculateMaxEndTime(newTracks), dragState: null, dragHoverTrackId: null });
-          get().pushHistory('Move Clip');
-          return;
+        // Only a move drag may change tracks (a trim/slip/roll released over
+        // another track stays where it is).
+        if (targetTrackId && targetTrackId !== dragState.trackId) {
+          tracks = moveClipAcrossTracks(tracks, dragState.clipId, targetTrackId);
+        }
+        if (timingChanged(original, tracks)) {
+          tracks = resolveMoveDrop(tracks, dragState.clipId, dragState.moveGroupIds ?? []);
         }
       }
 
-      // For non-move operations, just recalculate duration
-      set({ duration: calculateMaxEndTime(tracks), dragState: null, dragHoverTrackId: null });
-      get().pushHistory('Trim Clip');
+      // A click on a clip or handle without movement is not an edit.
+      if (!timingChanged(original, tracks)) {
+        set({ dragState: null, dragHoverTrackId: null });
+        return;
+      }
+
+      set({
+        tracks,
+        duration: Math.max(calculateMaxEndTime(tracks), 1),
+        dragState: null,
+        dragHoverTrackId: null,
+        selectedClip: refreshSelected(get().selectedClip, tracks),
+      });
+      get().pushHistory(dragHistoryLabel(dragState.operation));
     },
 
     cancelDrag: () => {
-      const { dragState, tracks } = get();
+      const { dragState, selectedClip } = get();
       if (!dragState) return;
-
-      // Restore original clip
-      const newTracks = tracks.map((t) => ({
-        ...t,
-        clips: t.clips.map((c) =>
-          c.id === dragState.clipId ? dragState.originalClip : c
-        ),
-      }));
-
-      set({ tracks: newTracks, dragState: null, dragHoverTrackId: null });
+      // Restore the drag-start snapshot: the dragged clip, its linked clip, the
+      // other selected clips and any neighbour a roll/slide touched.
+      const tracks = dragState.originalTracks ?? get().tracks;
+      set({
+        tracks,
+        duration: Math.max(calculateMaxEndTime(tracks), 1),
+        dragState: null,
+        dragHoverTrackId: null,
+        snapTarget: null,
+        selectedClip: refreshSelected(selectedClip, tracks),
+      });
     },
 
     // ==================== Subtitle Actions ====================
@@ -2136,61 +1788,62 @@ export const useEditorStore = create<EditorState & EditorActions>()(
     // ==================== History Actions ====================
 
     undo: () => {
-      const { history, historyIndex } = get();
+      settlePendingHistory(get);
+      const { historyIndex } = get();
       if (historyIndex <= 0) return;
-
-      const newIndex = historyIndex - 1;
-      const previousProject = history[newIndex];
-
-      set({
-        historyIndex: newIndex,
-        project: previousProject,
-        tracks: previousProject.tracks,
-      });
+      get().jumpToHistory(historyIndex - 1);
     },
 
     redo: () => {
+      settlePendingHistory(get);
       const { history, historyIndex } = get();
       if (historyIndex >= history.length - 1) return;
-
-      const newIndex = historyIndex + 1;
-      const nextProject = history[newIndex];
-
-      set({
-        historyIndex: newIndex,
-        project: nextProject,
-        tracks: nextProject.tracks,
-      });
+      get().jumpToHistory(historyIndex + 1);
     },
 
     jumpToHistory: (index) => {
+      settlePendingHistory(get);
       const { history } = get();
       if (index < 0 || index >= history.length) return;
 
+      // Restoring an entry also restores what depends on the tracks: clips that
+      // no longer exist leave the selection, the selected clip object and the
+      // duration follow the restored tracks.
       const targetProject = history[index];
       set({
         historyIndex: index,
         project: targetProject,
         tracks: targetProject.tracks,
+        dragState: null,
+        ...viewStateForTracks(get(), targetProject.tracks),
       });
     },
 
     clearHistory: () => {
+      takePendingHistory();
       const savePoint = savePointAfterClearHistory(get());
       set({ history: [], historyIndex: -1, historyLabels: [], savePoint });
     },
 
     // ==================== Document Lifecycle ====================
 
-    captureSavePoint: () => createSavePoint(get()),
+    captureSavePoint: () => {
+      // A pending coalesced edit is part of what gets saved: commit it first so
+      // its entry does not land after the save point and turn the project dirty.
+      settlePendingHistory(get);
+      return createSavePoint(get());
+    },
 
     markSaved: (point) => {
+      if (!point) settlePendingHistory(get);
       set({ savePoint: point ?? createSavePoint(get()) });
     },
 
     hasUnsavedChanges: () => hasUnsavedEditorChanges(get()),
 
     pushHistory: (label = 'Edit') => {
+      // The snapshot below already contains any pending coalesced edit.
+      takePendingHistory();
       const { project, tracks, history, historyIndex, historyLabels } = get();
 
       // Create a fallback project if none exists (e.g. when editing via store API directly)
@@ -2231,6 +1884,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
 
     addClipEffect: (clipId, effect) => {
       const { tracks, selectedClip } = get();
+      if (isClipLocked(tracks, clipId)) return;
       const newTracks = tracks.map((t) => ({
         ...t,
         clips: t.clips.map((c) => {
@@ -2244,10 +1898,12 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         ? { ...selectedClip, effects: [...selectedClip.effects, effect] }
         : selectedClip;
       set({ tracks: newTracks, selectedClip: newSelected });
+      recordEdit(get, 'Add Effect');
     },
 
     removeClipEffect: (clipId, effectId) => {
       const { tracks, selectedClip } = get();
+      if (isClipLocked(tracks, clipId)) return;
       const newTracks = tracks.map((t) => ({
         ...t,
         clips: t.clips.map((c) => {
@@ -2261,10 +1917,12 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         ? { ...selectedClip, effects: selectedClip.effects.filter((e) => e.id !== effectId) }
         : selectedClip;
       set({ tracks: newTracks, selectedClip: newSelected });
+      recordEdit(get, 'Remove Effect');
     },
 
     updateClipEffect: (clipId, effectId, params) => {
       const { tracks, selectedClip } = get();
+      if (isClipLocked(tracks, clipId)) return;
       const updateEffectsArr = (effects: ClipEffect[]) =>
         effects.map((e) => e.id === effectId ? { ...e, ...params } : e);
       const newTracks = tracks.map((t) => ({
@@ -2280,10 +1938,12 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         ? { ...selectedClip, effects: updateEffectsArr(selectedClip.effects) }
         : selectedClip;
       set({ tracks: newTracks, selectedClip: newSelected });
+      recordEdit(get, 'Edit Effect');
     },
 
     toggleClipEffect: (clipId, effectId) => {
       const { tracks, selectedClip } = get();
+      if (isClipLocked(tracks, clipId)) return;
       const toggleEffectsArr = (effects: ClipEffect[]) =>
         effects.map((e) => e.id === effectId ? { ...e, enabled: !e.enabled } : e);
       const newTracks = tracks.map((t) => ({
@@ -2299,12 +1959,14 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         ? { ...selectedClip, effects: toggleEffectsArr(selectedClip.effects) }
         : selectedClip;
       set({ tracks: newTracks, selectedClip: newSelected });
+      recordEdit(get, 'Toggle Effect');
     },
 
     // ==================== Keyframe Actions ====================
 
     addClipKeyframe: (clipId, keyframe) => {
       const { tracks, selectedClip } = get();
+      if (isClipLocked(tracks, clipId)) return;
       const updateKfs = (clip: Clip): Clip => {
         if (clip.id !== clipId || !hasEffects(clip)) return clip;
         return { ...clip, keyframes: [...clip.keyframes, keyframe] };
@@ -2320,6 +1982,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
 
     updateClipKeyframe: (clipId, keyframeIndex, updates) => {
       const { tracks, selectedClip } = get();
+      if (isClipLocked(tracks, clipId)) return;
       const updateKfs = (clip: Clip): Clip => {
         if (clip.id !== clipId || !hasEffects(clip)) return clip;
         const kfs = [...clip.keyframes];
@@ -2339,6 +2002,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
 
     removeClipKeyframe: (clipId, keyframeIndex) => {
       const { tracks, selectedClip } = get();
+      if (isClipLocked(tracks, clipId)) return;
       const updateKfs = (clip: Clip): Clip => {
         if (clip.id !== clipId || !hasEffects(clip)) return clip;
         return { ...clip, keyframes: clip.keyframes.filter((_, i) => i !== keyframeIndex) };
@@ -2463,7 +2127,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
       if (targetIds.size === 0) return;
       set({
         tracks: tracks.map((track) =>
-          targetIds.has(track.id)
+          targetIds.has(track.id) && !track.locked
             ? { ...track, clips: closeGapsInClips(track.clips) }
             : track
         ),
@@ -2473,6 +2137,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
 
     removeGapAtTime: (trackId, time) => {
       const { tracks } = get();
+      if (isTrackLocked(tracks, trackId)) return;
       set({
         tracks: tracks.map((track) => {
           if (track.id !== trackId) return track;
@@ -2514,144 +2179,28 @@ export const useEditorStore = create<EditorState & EditorActions>()(
     // ==================== Compound Clips ====================
 
     createCompoundClip: () => {
+      // Grouped per track type, locked clips left out (stores/editor/compound.ts).
       const { tracks, selection } = get();
-      if (selection.clipIds.length < 2) return;
-
-      const collected: { clip: Clip; track: Track }[] = [];
-      for (const track of tracks) {
-        for (const clip of track.clips) {
-          if (selection.clipIds.includes(clip.id)) {
-            collected.push({ clip, track });
-          }
-        }
-      }
-      if (collected.length < 2) return;
-
-      const earliestStart = Math.min(...collected.map((c) => c.clip.startTime));
-      const latestEnd = Math.max(...collected.map((c) => c.clip.endTime));
-      const firstTrack = collected[0].track;
-
-      const innerClips = collected.map((c) => ({
-        ...c.clip,
-        startTime: c.clip.startTime - earliestStart,
-        endTime: c.clip.endTime - earliestStart,
-      }));
-
-      const innerTrackIds = [...new Set(collected.map((c) => c.track.id))];
-      const innerTracks = innerTrackIds.map((tid) => {
-        const t = tracks.find((tr) => tr.id === tid)!;
-        return { ...t, clips: innerClips.filter((ic) => ic.trackId === tid) };
-      });
-
-      const firstVideoClip = collected.find((c) => c.clip.type === 'video');
-      const thumbnailUrl = firstVideoClip?.clip.type === 'video' ? (firstVideoClip.clip as VideoClip).thumbnailUrl : undefined;
-
-      const compoundClip: CompoundClip = {
-        id: generateId(),
-        trackId: firstTrack.id,
-        type: 'compound',
-        startTime: earliestStart,
-        endTime: latestEnd,
-        sourceStartTime: 0,
-        sourceEndTime: latestEnd - earliestStart,
-        name: `Compound (${collected.length} clips)`,
-        innerClips,
-        innerTracks,
-        thumbnailUrl,
-      };
-
-      const removedIds = new Set(selection.clipIds);
-      const newTracks = tracks.map((t) => {
-        const filteredClips = t.clips.filter((c) => !removedIds.has(c.id));
-        if (t.id === firstTrack.id) {
-          return { ...t, clips: [...filteredClips, compoundClip] };
-        }
-        return { ...t, clips: filteredClips };
-      });
-
+      const result = buildCompoundClips(tracks, selection.clipIds, { mode: 'compound', newId: generateId });
+      if (!result) return;
       set({
-        tracks: newTracks,
-        selection: { clipIds: [compoundClip.id], trackIds: [] },
-        selectedClip: compoundClip,
+        tracks: result.tracks,
+        selection: { clipIds: result.compounds.map((c) => c.id), trackIds: [] },
+        selectedClip: result.compounds[0] ?? null,
       });
       get().pushHistory('Create Compound Clip');
     },
 
     nestClips: () => {
-      // Nest selected clips into a single compound clip placed on the first selected clip's
-      // track at the earliest start time.  Unlike createCompoundClip, at least one clip is
-      // sufficient (nesting a single clip is allowed as a container for future edits).
+      // Like createCompoundClip, but a single clip may be nested and each
+      // compound goes on the track of its earliest clip.
       const { tracks, selection } = get();
-      if (selection.clipIds.length === 0) return;
-
-      const collected: { clip: Clip; track: Track }[] = [];
-      for (const track of tracks) {
-        for (const clip of track.clips) {
-          if (selection.clipIds.includes(clip.id)) {
-            collected.push({ clip, track });
-          }
-        }
-      }
-      if (collected.length === 0) return;
-
-      // Sort collected by ascending startTime so the "first" clip is the earliest
-      collected.sort((a, b) => a.clip.startTime - b.clip.startTime);
-
-      const earliestStart = Math.min(...collected.map((c) => c.clip.startTime));
-      const latestEnd = Math.max(...collected.map((c) => c.clip.endTime));
-
-      // The compound clip is placed on the track that owns the earliest clip
-      const targetTrack = collected[0].track;
-
-      // Inner clips have their startTime/endTime offset relative to the compound clip's origin
-      const innerClips = collected.map((c) => ({
-        ...c.clip,
-        startTime: c.clip.startTime - earliestStart,
-        endTime: c.clip.endTime - earliestStart,
-      }));
-
-      // Build inner tracks preserving track metadata but with only the nested clips
-      const innerTrackIds = [...new Set(collected.map((c) => c.track.id))];
-      const innerTracks = innerTrackIds.map((tid) => {
-        const t = tracks.find((tr) => tr.id === tid)!;
-        return { ...t, clips: innerClips.filter((ic) => ic.trackId === tid) };
-      });
-
-      const firstVideoClip = collected.find((c) => c.clip.type === 'video');
-      const thumbnailUrl =
-        firstVideoClip?.clip.type === 'video'
-          ? (firstVideoClip.clip as VideoClip).thumbnailUrl
-          : undefined;
-
-      const nestedClip: CompoundClip = {
-        id: `clip-${generateId()}`,
-        trackId: targetTrack.id,
-        type: 'compound',
-        startTime: earliestStart,
-        endTime: latestEnd,
-        sourceStartTime: 0,
-        sourceEndTime: latestEnd - earliestStart,
-        name: `Nested (${collected.length} clip${collected.length === 1 ? '' : 's'})`,
-        innerClips,
-        innerTracks,
-        thumbnailUrl,
-      };
-
-      const removedIds = new Set(selection.clipIds);
-
-      // Replace all selected clips with the single nested compound clip on the target track
-      const newTracks = tracks.map((t) => {
-        const filteredClips = t.clips.filter((c) => !removedIds.has(c.id));
-        if (t.id === targetTrack.id) {
-          return { ...t, clips: [...filteredClips, nestedClip] };
-        }
-        return { ...t, clips: filteredClips };
-      });
-
+      const result = buildCompoundClips(tracks, selection.clipIds, { mode: 'nest', newId: () => `clip-${generateId()}` });
+      if (!result) return;
       set({
-        tracks: newTracks,
-        selection: { clipIds: [nestedClip.id], trackIds: [] },
-        selectedClip: nestedClip,
+        tracks: result.tracks,
+        selection: { clipIds: result.compounds.map((c) => c.id), trackIds: [] },
+        selectedClip: result.compounds[0] ?? null,
       });
       get().pushHistory('Nest Clips');
     },
@@ -3235,6 +2784,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
 
     insertEdit: (trackId, clipData, time) => {
       const { tracks, duration: currentDuration } = get();
+      if (isTrackLocked(tracks, trackId)) return null;
       const newClip = {
         ...clipData,
         id: `clip-${generateId()}`,
@@ -3271,6 +2821,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
 
     overwriteEdit: (trackId, clipData, time) => {
       const { tracks, duration: currentDuration } = get();
+      if (isTrackLocked(tracks, trackId)) return null;
       const newClip = {
         ...clipData,
         id: `clip-${generateId()}`,
@@ -3286,48 +2837,10 @@ export const useEditorStore = create<EditorState & EditorActions>()(
 
       const overwriteEnd = time + clipDuration;
 
+      // Speed-aware trim/split of what lies under the new clip.
       const newTracks = tracks.map((t) => {
         if (t.id !== trackId) return t;
-
-        const updatedClips: Clip[] = [];
-
-        for (const c of t.clips) {
-          if (c.startTime >= time && c.endTime <= overwriteEnd) {
-            continue;
-          }
-          if (c.startTime < time && c.endTime > time && c.endTime <= overwriteEnd) {
-            updatedClips.push({ ...c, endTime: time, sourceEndTime: c.sourceEndTime - (c.endTime - time) });
-            continue;
-          }
-          if (c.startTime >= time && c.startTime < overwriteEnd && c.endTime > overwriteEnd) {
-            const delta = overwriteEnd - c.startTime;
-            updatedClips.push({
-              ...c,
-              startTime: overwriteEnd,
-              sourceStartTime: c.sourceStartTime + delta,
-            });
-            continue;
-          }
-          if (c.startTime < time && c.endTime > overwriteEnd) {
-            const leftDelta = time - c.startTime;
-            const rightDelta = overwriteEnd - c.startTime;
-            updatedClips.push({
-              ...c,
-              endTime: time,
-              sourceEndTime: c.sourceStartTime + leftDelta,
-            });
-            updatedClips.push({
-              ...c,
-              id: `clip-${generateId()}`,
-              name: `${c.name} (2)`,
-              startTime: overwriteEnd,
-              sourceStartTime: c.sourceStartTime + rightDelta,
-            });
-            continue;
-          }
-          updatedClips.push(c);
-        }
-
+        const updatedClips = overwriteRange(t.clips, time, overwriteEnd, () => `clip-${generateId()}`);
         return { ...t, clips: [...updatedClips, insertedClip] };
       });
 
@@ -4632,45 +4145,27 @@ export const useEditorStore = create<EditorState & EditorActions>()(
     // ==================== Phase 8: Clipboard ====================
 
     copyClips: () => {
-      const { selection, tracks } = get();
+      const { selection, tracks, linkedSelectionEnabled } = get();
       if (selection.clipIds.length === 0) return;
-      const copiedClips: Clip[] = [];
-      const trackIds: string[] = [];
-      for (const track of tracks) {
-        for (const clip of track.clips) {
-          if (selection.clipIds.includes(clip.id)) {
-            copiedClips.push(structuredClone(clip));
-            trackIds.push(track.id);
-          }
-        }
-      }
-      set({ clipClipboard: { clips: copiedClips, trackIds } });
+      // Linked partners come along (when linked selection is on) so a pasted
+      // video keeps its audio.
+      const clipboard = collectClipboard(tracks, selection.clipIds, linkedSelectionEnabled);
+      if (clipboard) set({ clipClipboard: clipboard });
     },
 
     pasteClips: () => {
+      // One edit: new ids, links kept between pasted clips, overwrite what is
+      // under them, locked targets skipped (stores/editor/clipboard.ts).
       const { clipClipboard, currentTime, tracks } = get();
       if (!clipClipboard || clipClipboard.clips.length === 0) return;
-      const earliestStart = Math.min(...clipClipboard.clips.map((c) => c.startTime));
-      const offset = currentTime - earliestStart;
-      const newClipIds: string[] = [];
-      for (let i = 0; i < clipClipboard.clips.length; i++) {
-        const clip = clipClipboard.clips[i];
-        const sourceTrackId = clipClipboard.trackIds[i];
-        const targetTrack = tracks.find((t) => t.id === sourceTrackId) || tracks[0];
-        if (!targetTrack) continue;
-        const duration = clip.endTime - clip.startTime;
-        const newId = `clip-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        newClipIds.push(newId);
-        get().addClip(targetTrack.id, {
-          ...structuredClone(clip),
-          id: newId,
-          name: `${clip.name} (copy)`,
-          startTime: clip.startTime + offset,
-          endTime: clip.startTime + offset + duration,
-          linkedClipId: undefined,
-        });
-      }
-      set({ selection: { clipIds: newClipIds, trackIds: [] } });
+      const result = pasteClipboard(tracks, clipClipboard, currentTime, () => `clip-${generateId()}`);
+      if (!result) return;
+      set({
+        tracks: result.tracks,
+        duration: Math.max(calculateMaxEndTime(result.tracks), 1),
+        selection: { clipIds: result.pastedIds, trackIds: [] },
+        selectedClip: findClipById(result.tracks, result.pastedIds[0])?.clip ?? null,
+      });
       get().pushHistory('Paste Clips');
     },
 

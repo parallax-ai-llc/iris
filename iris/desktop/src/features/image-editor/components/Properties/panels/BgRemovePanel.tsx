@@ -2,27 +2,26 @@
  * BgRemovePanel - Background removal settings
  */
 
-import { memo, useCallback, useState, useRef, useEffect } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { cn } from '@/shared/lib/utils';
 import { useImageEditorStore } from '@/features/image-editor/stores/imageEditor.store';
 import { Eraser, Info, Download } from 'lucide-react';
-import { removeBackground, getAssetStatus } from '@/shared/api/image.api';
+import { removeBackground } from '@/shared/api/image.api';
 import { getCachedAssetUrl } from '@/shared/api/asset.api';
 import { toast } from '@/shared/lib/toast';
 import { formatTokenCost } from '@/shared/hooks/useTokenCost';
 import { useImageEditTokenCost } from '@/shared/hooks/useImageEditTokenCost';
 import { useAIOperation } from '@/features/image-editor/hooks/useAIOperation';
 import { MergeLayersDialog } from '@/features/image-editor/components/shared/MergeLayersDialog';
+import { runAIEditJob, addResultLayerOrOpen } from '@/features/image-editor/lib/aiEditJob';
+import { useMountedRef } from '@/features/image-editor/hooks/useMountedRef';
 import { Coins } from 'lucide-react';
 
 export const BgRemovePanel = memo(function BgRemovePanel() {
-  const { sourceAsset, isProcessing, setProcessing, setProcessingProgress, openEditor, addLayerFromUrl, layers } = useImageEditorStore();
+  const { sourceAsset, isProcessing, layers } = useImageEditorStore();
   const [error, setError] = useState<string | null>(null);
   const [refineEdges, setRefineEdges] = useState(true);
-  const isMountedRef = useRef(true);
-  useEffect(() => {
-    return () => { isMountedRef.current = false; };
-  }, []);
+  const isMountedRef = useMountedRef();
   const { cost: tokenCost, isLoading: costLoading } = useImageEditTokenCost('bgRemove');
   const [keepShadows, setKeepShadows] = useState(false);
   const [addAsNewLayer, setAddAsNewLayer] = useState(true); // Default to adding as layer when layers exist
@@ -38,64 +37,24 @@ export const BgRemovePanel = memo(function BgRemovePanel() {
 
     // If multiple layers, ask user to merge first
     const assetId = await prepareAssetForAI();
-    if (!assetId) return; // User cancelled or merge failed
-
-    setProcessing(true, 'Removing background...');
+    if (!assetId) return;
 
     try {
-      // Start background removal process
-      const result = await removeBackground(assetId);
-      
-      if (!result) {
-        throw new Error('Failed to start background removal');
-      }
-
-      // Poll for completion
-      let attempts = 0;
-      const maxAttempts = 60; // 2 minutes max
-      
-      while (attempts < maxAttempts) {
-        if (!isMountedRef.current) return;
-        const status = await getAssetStatus(result.id);
-
-        if (!status) {
-          throw new Error('Failed to get processing status');
-        }
-
-        if (status.status === 'READY' || status.status === 'COMPLETED') {
-          if (!isMountedRef.current) return;
-          setProcessing(false);
-          if (status.asset) {
-            if (addAsNewLayer && layers.length > 0) {
-              const imageUrl = status.asset.previewUrl || status.asset.publicUrl;
-              if (imageUrl) {
-                await addLayerFromUrl(imageUrl, 'BG Removed');
-                toast.success('Background removed - added as new layer');
-              }
-            } else {
-              openEditor(status.asset);
-            }
-          }
-          return;
-        }
-
-        if (status.status === 'FAILED' || status.status === 'ERROR') {
-          throw new Error(status.error || 'Background removal failed');
-        }
-
-        if (!isMountedRef.current) return;
-        setProcessingProgress(Math.min(90, (attempts / maxAttempts) * 100));
-
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        attempts++;
-      }
-
-      throw new Error('Processing timeout');
+      // Bound to this tab: keeps running (and lands here) if the panel closes or the tab changes
+      await runAIEditJob({
+        message: 'Removing background...',
+        start: () => removeBackground(assetId),
+        apply: async (asset, store) => {
+          const placed = await addResultLayerOrOpen(asset, store, { addAsLayer: addAsNewLayer, layerName: 'BG Removed' });
+          if (placed === 'layer') toast.success('Background removed - added as new layer');
+        },
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Background removal failed');
-      setProcessing(false);
+      const message = err instanceof Error ? err.message : 'Background removal failed';
+      if (isMountedRef.current) setError(message);
+      else toast.error(`Background remove: ${message}`);
     }
-  }, [sourceAsset?.id, setProcessing, setProcessingProgress, openEditor, addAsNewLayer, layers.length, addLayerFromUrl, prepareAssetForAI]);
+  }, [sourceAsset?.id, addAsNewLayer, prepareAssetForAI, isMountedRef]);
 
   const handleDownloadPng = useCallback(async () => {
     if (!sourceAsset) {

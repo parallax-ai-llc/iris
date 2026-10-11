@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Minus, Square, X, Maximize2, Settings, Bell, Bug } from 'lucide-react';
+import { Minus, Square, X, Maximize2, Settings, Bell, Bug, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/shared/lib/utils';
 import { IrisLogo } from '@/shared/components/common/IrisLogo';
 import { ParallaxSymbol } from '@/shared/components/common/ParallaxSymbol';
 import { useUIStore } from '@/shared/stores/ui.store';
+import { formatCombo } from '@/shared/lib/shortcuts';
+import { getPageHistoryKeymap } from '@/shared/hooks/useKeyboardShortcuts';
 import { AnnouncementsModal } from '@/features/announcements/components';
 import { ConfirmDialog } from '@/shared/components/ui/Modal';
 import { BugReportModal } from '@/features/bug-report/components/BugReportModal';
@@ -19,6 +21,8 @@ interface TitleBarProps {
   rightContent?: React.ReactNode;
   /** Editors: hide Bug report and Settings. Assistant toggle and Bell always show. */
   hideNav?: boolean;
+  /** App-shell pages: show the page history back / forward buttons. */
+  historyNav?: boolean;
 }
 
 const platform = window.electronAPI?.app?.getPlatform?.() || navigator.platform || '';
@@ -26,7 +30,7 @@ const isWindows = platform === 'win32' || navigator.platform?.startsWith('Win');
 const isMac = platform === 'darwin' || navigator.platform?.startsWith('Mac');
 const isLinux = !isWindows && !isMac;
 
-export function TitleBar({ leftContent, rightContent, hideNav }: TitleBarProps = {}) {
+export function TitleBar({ leftContent, rightContent, hideNav, historyNav }: TitleBarProps = {}) {
   const [isMaximized, setIsMaximized] = useState(false);
   const [isAnnouncementsOpen, setIsAnnouncementsOpen] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
@@ -34,6 +38,10 @@ export function TitleBar({ leftContent, rightContent, hideNav }: TitleBarProps =
   const [isBugReportOpen, setIsBugReportOpen] = useState(false);
   const [screenshotDataUrl, setScreenshotDataUrl] = useState<string | null>(null);
   const { currentPage, setCurrentPage } = useUIStore();
+  const canGoBack = useUIStore((s) => s.backStack.length > 0);
+  const canGoForward = useUIStore((s) => s.forwardStack.length > 0);
+  const goBack = useUIStore((s) => s.goBack);
+  const goForward = useUIStore((s) => s.goForward);
   const isAssistantOpen = useAssistantStore((s) => s.isOpen);
   const { t } = useTranslation('common');
   const assistantShortcut = isMac ? '⌘/' : 'Ctrl+/';
@@ -123,6 +131,15 @@ export function TitleBar({ leftContent, rightContent, hideNav }: TitleBarProps =
           </div>
         )}
       </div>
+
+      {historyNav && (
+        <HistoryNavButtons
+          canGoBack={canGoBack}
+          canGoForward={canGoForward}
+          onBack={goBack}
+          onForward={goForward}
+        />
+      )}
 
       <div className="flex-1 h-full drag-region" />
 
@@ -228,6 +245,52 @@ export function TitleBar({ leftContent, rightContent, hideNav }: TitleBarProps =
         }}
         screenshotDataUrl={screenshotDataUrl}
       />
+    </div>
+  );
+}
+
+interface HistoryNavButtonsProps {
+  canGoBack: boolean;
+  canGoForward: boolean;
+  onBack: () => void;
+  onForward: () => void;
+}
+
+// Inline so it beats the shell CSS (`.dt-titlebar-icon:hover`) without touching it.
+const DISABLED_STYLE = { opacity: 0.3, cursor: 'default', background: 'transparent' } as const;
+
+/** Back / forward between shell pages; the tooltips show the real key (from the keymap). */
+function HistoryNavButtons({ canGoBack, canGoForward, onBack, onForward }: HistoryNavButtonsProps) {
+  const { t } = useTranslation('common');
+  const keymap = getPageHistoryKeymap();
+  const backLabel = t('titleBar.back', 'Back');
+  const forwardLabel = t('titleBar.forward', 'Forward');
+  return (
+    <div className="no-drag flex items-center gap-0.5 ml-2">
+      <button
+        type="button"
+        onClick={onBack}
+        disabled={!canGoBack}
+        style={canGoBack ? undefined : DISABLED_STYLE}
+        className="dt-titlebar-icon"
+        title={`${backLabel} (${formatCombo(keymap.navBack.keys[0])})`}
+        aria-label={backLabel}
+        data-testid="titlebar-back"
+      >
+        <ChevronLeft className="w-4 h-4" />
+      </button>
+      <button
+        type="button"
+        onClick={onForward}
+        disabled={!canGoForward}
+        style={canGoForward ? undefined : DISABLED_STYLE}
+        className="dt-titlebar-icon"
+        title={`${forwardLabel} (${formatCombo(keymap.navForward.keys[0])})`}
+        aria-label={forwardLabel}
+        data-testid="titlebar-forward"
+      >
+        <ChevronRight className="w-4 h-4" />
+      </button>
     </div>
   );
 }

@@ -1,12 +1,23 @@
 {
   "title": "การตั้งค่า",
+  "tabsLabel": "หมวดการตั้งค่า",
+  "appearance": {
+    "theme": "ธีม",
+    "themeDesc": "เลือกรูปแบบการแสดงผลของ Iris",
+    "dark": "มืด",
+    "light": "สว่าง",
+    "system": "ตามระบบ",
+    "editorsNote": "ตัวแก้ไขภาพ วิดีโอ และเวิร์กโฟลว์จะเป็นธีมมืดเสมอ ตัวเลือกตามระบบจะใช้การตั้งค่าของระบบปฏิบัติการ"
+  },
   "sections": {
     "account": "บัญชี",
     "storage": "พื้นที่จัดเก็บ",
     "notifications": "การแจ้งเตือน",
     "keyboard": "แป้นพิมพ์ลัด",
     "about": "เกี่ยวกับ",
-    "language": "ภาษา"
+    "language": "ภาษา",
+    "appearance": "ลักษณะที่ปรากฏ",
+    "apiKeys": "คีย์ API ของเวิร์กโฟลว์"
   },
   "account": {
     "notLoggedIn": "ยังไม่ได้เข้าสู่ระบบ"
@@ -30,11 +41,13 @@
     "updatesDesc": "แจ้งเตือนเมื่อมีเวอร์ชันใหม่"
   },
   "keyboard": {
-    "newGeneration": "สร้างใหม่",
-    "saveDownload": "บันทึก/ดาวน์โหลด",
+    "goToPage": "ไปยังหน้าในแถบด้านข้าง",
+    "backForward": "ย้อนกลับ / ไปข้างหน้าระหว่างหน้า",
     "openSettings": "เปิดการตั้งค่า",
+    "toggleAssistant": "เปิดหรือปิดผู้ช่วย",
     "closeModal": "ปิดหน้าต่าง",
-    "navigateGallery": "นำทางแกลเลอรี"
+    "previewItems": "รายการก่อนหน้า / ถัดไปในตัวอย่าง",
+    "editorNote": "ปุ่มลัดของตัวแก้ไขแสดงอยู่ข้างคำสั่งแต่ละรายการในเมนูของตัวแก้ไข"
   },
   "about": {
     "irisDesktop": "Iris Desktop",
@@ -47,7 +60,9 @@
     "termsDesc": "เงื่อนไขและข้อตกลงในการใช้งาน",
     "checkUpdates": "ตรวจหาการอัปเดต",
     "latestVersion": "คุณกำลังใช้เวอร์ชันล่าสุด",
-    "updateCheckFailed": "ตรวจหาการอัปเดตไม่สำเร็จ"
+    "updateCheckFailed": "ตรวจหาการอัปเดตไม่สำเร็จ",
+    "updateAvailable": "มีอัปเดต {{version}}",
+    "updateCheckBusy": "กำลังตรวจหาอัปเดตอยู่แล้ว"
   },
   "footer": {
     "madeBy": "สร้างด้วยความใส่ใจโดย Parallax AI",

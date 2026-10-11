@@ -1,12 +1,23 @@
 {
   "title": "Settings",
+  "tabsLabel": "सेटिंग्ज विभाग",
+  "appearance": {
+    "theme": "थीम",
+    "themeDesc": "Iris कसे दिसावे ते निवडा.",
+    "dark": "डार्क",
+    "light": "लाइट",
+    "system": "सिस्टम",
+    "editorsNote": "इमेज, व्हिडिओ आणि वर्कफ्लो एडिटर नेहमी डार्कच राहतात. सिस्टम तुमच्या ऑपरेटिंग सिस्टमच्या सेटिंगचे पालन करते."
+  },
   "sections": {
     "account": "Account",
     "storage": "Storage",
     "notifications": "Notifications",
     "keyboard": "Keyboard Shortcuts",
     "about": "About",
-    "language": "Language"
+    "language": "Language",
+    "appearance": "रूप",
+    "apiKeys": "वर्कफ्लो API की"
   },
   "account": {
     "notLoggedIn": "Not logged in"
@@ -30,11 +41,13 @@
     "updatesDesc": "Notify when a new version is available"
   },
   "keyboard": {
-    "newGeneration": "New generation",
-    "saveDownload": "Save/Download",
+    "goToPage": "साइडबार पेजवर जा",
+    "backForward": "पेजांमध्ये मागे / पुढे जा",
     "openSettings": "Open settings",
+    "toggleAssistant": "असिस्टंट उघडा किंवा बंद करा",
     "closeModal": "Close modal",
-    "navigateGallery": "Navigate gallery"
+    "previewItems": "प्रिव्ह्यूमध्ये मागील / पुढील आयटम",
+    "editorNote": "एडिटरचे शॉर्टकट एडिटर मेनूमध्ये प्रत्येक कमांडशेजारी दाखवले जातात."
   },
   "about": {
     "irisDesktop": "Iris Desktop",
@@ -47,7 +60,9 @@
     "termsDesc": "Usage terms and conditions",
     "checkUpdates": "Check for Updates",
     "latestVersion": "You are on the latest version",
-    "updateCheckFailed": "Failed to check for updates"
+    "updateCheckFailed": "Failed to check for updates",
+    "updateAvailable": "अपडेट {{version}} उपलब्ध आहे",
+    "updateCheckBusy": "अपडेटची तपासणी आधीच सुरू आहे"
   },
   "footer": {
     "madeBy": "Made with care by Parallax AI",

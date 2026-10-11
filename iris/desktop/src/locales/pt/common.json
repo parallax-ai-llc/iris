@@ -122,7 +122,9 @@
     "bugReportError": "Falha ao enviar relatório de bug",
     "bugReportRateLimit": "Muitos relatórios. Por favor, tente novamente mais tarde.",
     "bugReportThankYou": "Obrigado pelo seu relatório! Iremos analisá-lo em breve.",
-    "workWithAgent": "Work with Agent"
+    "workWithAgent": "Work with Agent",
+    "back": "Voltar",
+    "forward": "Avançar"
   },
   "editor": {
     "localFileWarning": {
@@ -249,5 +251,14 @@
     "defaults": {
       "projectName": "Projeto sem título"
     }
+  },
+  "librarySearch": {
+    "label": "Pesquisar na biblioteca",
+    "placeholder": "Pesquisar prompts e modelos",
+    "clear": "Limpar pesquisa",
+    "scope": "Pesquisando nos {{count}} itens carregados até agora",
+    "loadMore": "Carregar mais itens",
+    "noResults": "Nenhum item carregado corresponde a “{{query}}”",
+    "countFiltered": "{{shown}} de {{total}} itens"
   }
 }

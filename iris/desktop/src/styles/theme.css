@@ -1,0 +1,244 @@
+/* ════════════════════════════════════════════════════════════
+   APPEARANCE THEMES — dark (default) / light
+   ════════════════════════════════════════════════════════════
+   The app was built dark-only: ~1,300 Tailwind classes hard-code zinc/white/
+   black and ~290 places read the --bg-* / --text-* / --line-* / --surf-*
+   tokens. Instead of touching components, the light theme re-points those
+   variables under <html data-theme="light"> (set by useAppTheme and the
+   first-paint script in index.html):
+
+   1. App tokens (below): light values for the design tokens in globals.css.
+   2. Tailwind palette (theme-palette.css, generated): neutrals mirrored,
+      light chromatic shades darkened, white <-> ink swapped.
+   3. Component fixes: the few rules in globals.css that use literal colours.
+
+   Editors (image, video, workflow canvas) stay dark: their root has
+   data-theme="dark", and [data-theme="dark"] re-declares every dark value so
+   the variables flip back underneath it.
+
+   Selectors use :root[data-theme="light"] (specificity 0,2,0) so they win
+   over the :root token block in globals.css regardless of source order. */
+
+@import "./theme-palette.css";
+
+/* ---------------------------------------------------------------- light */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  /* white text -> ink, black fills -> paper (classes: text-white, bg-white/5, bg-black/40 ...) */
+  --color-white: #18181b;
+  --color-black: #ffffff;
+
+  --bg-0: #f8f9fa;
+  --bg-1: #ffffff;
+  --bg-2: #f4f4f5;
+  --bg-3: #e9e9ed;
+
+  --surf-1: rgba(0, 0, 0, 0.025);
+  --surf-2: rgba(0, 0, 0, 0.045);
+  --surf-3: rgba(0, 0, 0, 0.07);
+  --surf-hover: rgba(0, 0, 0, 0.08);
+
+  --line-1: rgba(0, 0, 0, 0.07);
+  --line-2: rgba(0, 0, 0, 0.1);
+  --line-3: rgba(0, 0, 0, 0.16);
+  --line-strong: rgba(0, 0, 0, 0.26);
+
+  /* ≥ 4.5:1 on #fff and #f8f9fa for text-1..3; text-4 is for decorative captions */
+  --text-1: rgba(10, 10, 12, 0.94);
+  --text-2: rgba(10, 10, 12, 0.74);
+  --text-3: rgba(10, 10, 12, 0.6);
+  --text-4: rgba(10, 10, 12, 0.48);
+
+  --iris-violet: #6d28d9;
+  --iris-blue: #0369a1;
+  --iris-pink: #a21caf;
+  --iris-grad: linear-gradient(135deg, #7c3aed 0%, #0284c7 100%);
+  --iris-grad-soft: linear-gradient(135deg, rgba(124, 58, 237, 0.12) 0%, rgba(2, 132, 199, 0.12) 100%);
+  --iris-grad-glow: radial-gradient(80% 80% at 20% 0%, rgba(124, 58, 237, 0.25) 0%, rgba(2, 132, 199, 0.15) 50%, transparent 80%);
+
+  /* Iris brand CTA on light backgrounds: ink pill (bg-[#0A0A0A] text-white) */
+  --silver-grad: linear-gradient(180deg, #27272a 0%, #18181b 55%, #0a0a0a 100%);
+  --silver-grad-hover: linear-gradient(180deg, #3f3f46 0%, #27272a 55%, #18181b 100%);
+  --silver-shadow: 0 1px 0 rgba(255, 255, 255, 0.12) inset, 0 6px 18px -8px rgba(0, 0, 0, 0.35);
+
+  --ok: #047857;
+  --ok-bg: rgba(4, 120, 87, 0.1);
+  --warn: #b45309;
+  --warn-bg: rgba(180, 83, 9, 0.1);
+  --err: #b91c1c;
+  --err-bg: rgba(185, 28, 28, 0.08);
+
+  --scrollbar-thumb: rgba(0, 0, 0, 0.2);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.35);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 8px 24px -12px rgba(0, 0, 0, 0.18);
+  --shadow-lg: 0 24px 60px -20px rgba(0, 0, 0, 0.22);
+  --shadow-glow: 0 0 0 1px rgba(124, 58, 237, 0.25), 0 0 32px rgba(124, 58, 237, 0.12);
+
+  --color-background: #f8f9fa;
+  --color-foreground: rgba(10, 10, 12, 0.94);
+  --color-card: #ffffff;
+  --color-card-foreground: rgba(10, 10, 12, 0.94);
+  --color-popover: #ffffff;
+  --color-popover-foreground: rgba(10, 10, 12, 0.94);
+  --color-primary: #6d28d9;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: rgba(0, 0, 0, 0.045);
+  --color-secondary-foreground: rgba(10, 10, 12, 0.94);
+  --color-muted: rgba(0, 0, 0, 0.045);
+  --color-muted-foreground: rgba(10, 10, 12, 0.6);
+  --color-accent: rgba(0, 0, 0, 0.07);
+  --color-accent-foreground: rgba(10, 10, 12, 0.94);
+  --color-destructive: #b91c1c;
+  --color-destructive-foreground: #ffffff;
+  --color-border: rgba(0, 0, 0, 0.1);
+  --color-input: rgba(0, 0, 0, 0.12);
+  --color-ring: #6d28d9;
+}
+
+/* ---------------------------------------------------------------- dark (re-entry under a light <html>) */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-white: #fff;
+  --color-black: #000;
+
+  --bg-0: #07070a;
+  --bg-1: #0b0b10;
+  --bg-2: #101019;
+  --bg-3: #16161f;
+
+  --surf-1: rgba(255, 255, 255, 0.025);
+  --surf-2: rgba(255, 255, 255, 0.04);
+  --surf-3: rgba(255, 255, 255, 0.06);
+  --surf-hover: rgba(255, 255, 255, 0.075);
+
+  --line-1: rgba(255, 255, 255, 0.06);
+  --line-2: rgba(255, 255, 255, 0.09);
+  --line-3: rgba(255, 255, 255, 0.14);
+  --line-strong: rgba(255, 255, 255, 0.22);
+
+  --text-1: rgba(255, 255, 255, 0.96);
+  --text-2: rgba(255, 255, 255, 0.72);
+  --text-3: rgba(255, 255, 255, 0.5);
+  --text-4: rgba(255, 255, 255, 0.34);
+
+  --iris-violet: #a78bfa;
+  --iris-blue: #7dd3fc;
+  --iris-pink: #f0abfc;
+  --iris-grad: linear-gradient(135deg, #a78bfa 0%, #7dd3fc 100%);
+  --iris-grad-soft: linear-gradient(135deg, rgba(167, 139, 250, 0.18) 0%, rgba(125, 211, 252, 0.18) 100%);
+  --iris-grad-glow: radial-gradient(80% 80% at 20% 0%, rgba(167, 139, 250, 0.55) 0%, rgba(125, 211, 252, 0.35) 50%, transparent 80%);
+
+  --silver-grad: linear-gradient(180deg, #f5f5f7 0%, #d4d4d8 50%, #a1a1aa 100%);
+  --silver-grad-hover: linear-gradient(180deg, #fafafa 0%, #e4e4e7 50%, #b4b4b8 100%);
+  --silver-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 -1px 0 rgba(0, 0, 0, 0.2) inset, 0 8px 28px -8px rgba(255, 255, 255, 0.18);
+
+  --ok: #34d399;
+  --ok-bg: rgba(52, 211, 153, 0.12);
+  --warn: #fbbf24;
+  --warn-bg: rgba(251, 191, 36, 0.12);
+  --err: #f87171;
+  --err-bg: rgba(248, 113, 113, 0.12);
+
+  --scrollbar-thumb: rgba(255, 255, 255, 0.18);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.32);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 24px 60px -20px rgba(0, 0, 0, 0.7);
+  --shadow-glow: 0 0 0 1px rgba(167, 139, 250, 0.25), 0 0 40px rgba(167, 139, 250, 0.18);
+
+  --color-background: #07070a;
+  --color-foreground: rgba(255, 255, 255, 0.96);
+  --color-card: #0b0b10;
+  --color-card-foreground: rgba(255, 255, 255, 0.96);
+  --color-popover: #0b0b10;
+  --color-popover-foreground: rgba(255, 255, 255, 0.96);
+  --color-primary: #a78bfa;
+  --color-primary-foreground: #0a0a0c;
+  --color-secondary: rgba(255, 255, 255, 0.04);
+  --color-secondary-foreground: rgba(255, 255, 255, 0.96);
+  --color-muted: rgba(255, 255, 255, 0.04);
+  --color-muted-foreground: rgba(255, 255, 255, 0.5);
+  --color-accent: rgba(255, 255, 255, 0.06);
+  --color-accent-foreground: rgba(255, 255, 255, 0.96);
+  --color-destructive: #f87171;
+  --color-destructive-foreground: rgba(255, 255, 255, 0.96);
+  --color-border: rgba(255, 255, 255, 0.09);
+  --color-input: rgba(255, 255, 255, 0.09);
+  --color-ring: #a78bfa;
+
+  color: var(--text-1);
+}
+
+/* ---------------------------------------------------------------- light: rules with literal colours */
+:root[data-theme="light"] body {
+  background:
+    radial-gradient(60% 50% at 15% 0%, rgba(124, 58, 237, 0.05) 0%, transparent 50%),
+    radial-gradient(50% 40% at 85% 100%, rgba(2, 132, 199, 0.04) 0%, transparent 60%),
+    var(--bg-0);
+}
+:root[data-theme="light"] .dt-titlebar {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.005));
+}
+:root[data-theme="light"] .dt-seg-item[data-active="true"] {
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+:root[data-theme="light"] .btn-silver {
+  color: #ffffff;
+  border-color: rgba(0, 0, 0, 0.6);
+}
+:root[data-theme="light"] :is(.btn-primary, .dt-chip-avatar, .dt-gen-cta, .we-run) {
+  /* dark ink on the (now dark) iris / silver gradients -> white */
+  color: #ffffff;
+}
+:root[data-theme="light"] .dt-rail {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.035), rgba(0, 0, 0, 0.02));
+}
+:root[data-theme="light"] .dt-rail-item[data-active="true"] {
+  background: linear-gradient(180deg, rgba(124, 58, 237, 0.1), rgba(2, 132, 199, 0.05));
+  border-color: rgba(124, 58, 237, 0.22);
+}
+:root[data-theme="light"] .dt-titlebar-beta {
+  background: rgba(124, 58, 237, 0.08);
+  border-color: rgba(124, 58, 237, 0.25);
+}
+/* The Iris wordmark ships as a white SVG (IrisLogo variant="white"): ink it on light. */
+:root[data-theme="light"] img[alt="Iris"] {
+  filter: invert(1);
+}
+
+/* No colour animations while the theme flips (set for one frame by applyDocumentTheme). */
+:root[data-theme-switching] *,
+:root[data-theme-switching] *::before,
+:root[data-theme-switching] *::after {
+  transition: none !important;
+}
+
+/* Violet accents written as literal #c4b5fd (violet-300) for the dark canvas. */
+:root[data-theme="light"] :is(.pill-iris, .dt-qa-icon, .dt-ar-tile[data-active="true"], .dt-tpl-cta:hover) {
+  color: #5b21b6;
+  border-color: rgba(124, 58, 237, 0.28);
+}
+:root[data-theme="light"] :is(.dt-conn-action, .dt-titlebar-beta) {
+  color: #5b21b6;
+}
+/* Panels darkened with literal black overlays on the dark canvas. */
+:root[data-theme="light"] .dt-sidepanel {
+  background: rgba(255, 255, 255, 0.6);
+}
+:root[data-theme="light"] :is(.dt-thumb-badge, .dt-thumb-dur) {
+  color: #fff;
+}
+:root[data-theme="light"] .we-run-spinner {
+  border-color: rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+}
+/* The Parallax symbol is a silver gradient made for dark chrome: darken it on light. */
+:root[data-theme="light"] .dt-titlebar-agent svg {
+  filter: invert(1) contrast(1.2);
+}

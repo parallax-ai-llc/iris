@@ -778,6 +778,23 @@ describe('ExtensionManager', () => {
     expect(manager.getExtensionStatus('pub.toggle')?.status).toBe('active');
   });
 
+  it('the disabled state survives a restart (registry.json) and is not activated on startup', async () => {
+    const src = makeExtensionSource(workRoot, 'pub.persist');
+    await manager.installFromDirectory(src, 'community');
+    await manager.disableExtension('pub.persist');
+
+    const restarted = new ExtensionManager();
+    await restarted.initialize(makeFakeWindow());
+    expect(restarted.getExtensionStatus('pub.persist')?.status).toBe('disabled');
+    await restarted.activateByEvent('onStartup');
+    expect(restarted.getExtensionStatus('pub.persist')?.status).toBe('disabled');
+
+    await restarted.enableExtension('pub.persist');
+    const again = new ExtensionManager();
+    await again.initialize(makeFakeWindow());
+    expect(again.getExtensionStatus('pub.persist')?.status).not.toBe('disabled');
+  });
+
   it('uninstall removes files, registry entry, and status', async () => {
     const src = makeExtensionSource(workRoot, 'pub.gone');
     await manager.installFromDirectory(src, 'community');

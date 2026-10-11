@@ -21,7 +21,11 @@
     "ffmpegUpgradeMessage": "一部のトランジション効果にはFFmpeg 4.3以上が必要です。最新バージョンにアップグレードしてください。",
     "ffmpegPreparing": "動画エンコーダーを準備中...",
     "ffmpegDownloading": "動画エンコーダーをダウンロード中...",
-    "ffmpegSetupFailed": "動画エンコーダーをセットアップできませんでした"
+    "ffmpegSetupFailed": "動画エンコーダーをセットアップできませんでした",
+    "fidelityTitle": "一部の編集は書き出したファイルに反映されません",
+    "fidelitySpeedKeyframes": "速度キーフレームまたはタイムリマップのあるクリップ {{count}} 件は基本速度で書き出されます",
+    "fidelityBlurKeyframes": "ブラーキーフレームのあるクリップ {{count}} 件はブラーのアニメーションなしで書き出されます",
+    "fidelitySubtitleAnimation": "アニメーション字幕 {{count}} 件は静止テキストとして書き出されます"
   },
   "lumetri": {
     "colorMatchAnalyzing": "Color Match: AI解析中..."

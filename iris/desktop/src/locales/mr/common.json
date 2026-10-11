@@ -122,7 +122,9 @@
     "bugReportError": "Failed to submit bug report",
     "bugReportRateLimit": "Too many reports. Please try again later.",
     "bugReportThankYou": "Thank you for your report! We will review it shortly.",
-    "workWithAgent": "Work with Agent"
+    "workWithAgent": "Work with Agent",
+    "back": "मागे",
+    "forward": "पुढे"
   },
   "editor": {
     "localFileWarning": {
@@ -249,5 +251,14 @@
     "defaults": {
       "projectName": "शीर्षक नसलेला प्रोजेक्ट"
     }
+  },
+  "librarySearch": {
+    "label": "लायब्ररीत शोधा",
+    "placeholder": "प्रॉम्प्ट आणि मॉडेल शोधा",
+    "clear": "शोध साफ करा",
+    "scope": "आतापर्यंत लोड झालेल्या {{count}} आयटममध्ये शोधत आहे",
+    "loadMore": "आणखी आयटम लोड करा",
+    "noResults": "लोड झालेल्या कोणत्याही आयटमशी “{{query}}” जुळत नाही",
+    "countFiltered": "{{total}} पैकी {{shown}} आयटम"
   }
 }

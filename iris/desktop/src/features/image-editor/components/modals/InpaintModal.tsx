@@ -1,14 +1,24 @@
 /**
- * InpaintModal - Full-screen modal for AI inpainting
- * Shows the current image on a canvas where the user can paint a mask,
- * then submit with a prompt to generate inpainted content.
+ * InpaintModal - Full-screen modal for AI inpainting (the only inpaint UI).
+ * Shows the current document (composited from the layers, at the document
+ * size) on a canvas where the user paints a mask, then submits it with a prompt.
+ *
+ * What is sent is that same current document: the original asset while the
+ * document is unchanged, otherwise an upload of the composite (lib/aiSource),
+ * so the mask coordinates always match the image (also after a crop).
+ * The job belongs to the tab that started it (lib/aiEditJob): closing the
+ * modal or switching tabs does not lose the result or leave isProcessing on.
  */
 
 import { memo, useState, useRef, useCallback, useEffect } from 'react';
 import { cn } from '@/shared/lib/utils';
 import { useImageEditorStore } from '@/features/image-editor/stores/imageEditor.store';
 import { X, Wand2, Trash2, Minus, Plus, Coins } from 'lucide-react';
-import { inpaintImage, getAssetStatus } from '@/shared/api/image.api';
+import { inpaintImage } from '@/shared/api/image.api';
+import { resolveAIInputAssetId } from '@/features/image-editor/lib/aiSource';
+import { runAIEditJob, addResultLayerOrOpen } from '@/features/image-editor/lib/aiEditJob';
+import { renderDocumentForOutput } from '@/features/image-editor/lib/documentComposite';
+import { useMountedRef } from '@/features/image-editor/hooks/useMountedRef';
 import { toast } from '@/shared/lib/toast';
 import { formatTokenCost } from '@/shared/hooks/useTokenCost';
 import { useImageEditTokenCost } from '@/shared/hooks/useImageEditTokenCost';
@@ -24,15 +34,14 @@ export const InpaintModal = memo(function InpaintModal({
   onClose,
   canvasRef,
 }: InpaintModalProps) {
-  const {
-    sourceAsset,
-    isProcessing,
-    setProcessing,
-    setProcessingProgress,
-    addLayerFromUrl,
-    layers,
-    openEditor,
-  } = useImageEditorStore();
+  const { sourceAsset, isProcessing } = useImageEditorStore();
+  const isMountedRef = useMountedRef();
+  // The modal stays mounted while closed (renders null), so "still showing"
+  // is mounted AND open.
+  const isOpenRef = useRef(isOpen);
+  useEffect(() => {
+    isOpenRef.current = isOpen;
+  }, [isOpen]);
 
   // Local state
   const [prompt, setPrompt] = useState('');
@@ -55,44 +64,55 @@ export const InpaintModal = memo(function InpaintModal({
   const [imgDimensions, setImgDimensions] = useState({ width: 0, height: 0 });
   const [scale, setScale] = useState(1);
 
-  // Load current image into the modal canvas
+  // Load the current document into the modal canvas (from the layers: no
+  // display-only overlays, document size and orientation = what is sent)
   useEffect(() => {
     if (!isOpen) return;
+    let cancelled = false;
 
-    const sourceCanvas = canvasRef.current?.getCanvas();
-    if (!sourceCanvas || !imageCanvasRef.current || !maskCanvasRef.current) return;
+    (async () => {
+      const state = useImageEditorStore.getState();
+      const sourceCanvas = await renderDocumentForOutput(
+        { ...state, rotation: 0, flipHorizontal: false, flipVertical: false },
+        canvasRef.current?.getCanvas() ?? null,
+      );
+      if (cancelled || !sourceCanvas || !imageCanvasRef.current || !maskCanvasRef.current) return;
 
-    const imgW = sourceCanvas.width;
-    const imgH = sourceCanvas.height;
-    setImgDimensions({ width: imgW, height: imgH });
+      const imgW = sourceCanvas.width;
+      const imgH = sourceCanvas.height;
+      setImgDimensions({ width: imgW, height: imgH });
 
-    // Calculate scale to fit in container
-    const container = containerRef.current;
-    if (container) {
-      const maxW = container.clientWidth - 48;
-      const maxH = container.clientHeight - 48;
-      const s = Math.min(1, maxW / imgW, maxH / imgH);
-      setScale(s);
-    }
+      // Calculate scale to fit in container
+      const container = containerRef.current;
+      if (container) {
+        const maxW = container.clientWidth - 48;
+        const maxH = container.clientHeight - 48;
+        const s = Math.min(1, maxW / imgW, maxH / imgH);
+        setScale(s);
+      }
 
-    // Setup image canvas
-    imageCanvasRef.current.width = imgW;
-    imageCanvasRef.current.height = imgH;
-    const imgCtx = imageCanvasRef.current.getContext('2d');
-    if (imgCtx) {
-      imgCtx.drawImage(sourceCanvas, 0, 0);
-    }
+      // Setup image canvas
+      imageCanvasRef.current.width = imgW;
+      imageCanvasRef.current.height = imgH;
+      const imgCtx = imageCanvasRef.current.getContext('2d');
+      if (imgCtx) {
+        imgCtx.drawImage(sourceCanvas, 0, 0);
+      }
 
-    // Setup mask canvas (same size, transparent)
-    maskCanvasRef.current.width = imgW;
-    maskCanvasRef.current.height = imgH;
-    const maskCtx = maskCanvasRef.current.getContext('2d');
-    if (maskCtx) {
-      maskCtx.clearRect(0, 0, imgW, imgH);
-    }
+      // Setup mask canvas (same size, transparent)
+      maskCanvasRef.current.width = imgW;
+      maskCanvasRef.current.height = imgH;
+      const maskCtx = maskCanvasRef.current.getContext('2d');
+      if (maskCtx) {
+        maskCtx.clearRect(0, 0, imgW, imgH);
+      }
+    })();
 
     setHasMask(false);
     setError(null);
+    return () => {
+      cancelled = true;
+    };
   }, [isOpen, canvasRef]);
 
   // Get coordinates relative to the image
@@ -170,65 +190,29 @@ export const InpaintModal = memo(function InpaintModal({
     if (!maskCanvasRef.current || !sourceAsset?.id || !prompt.trim()) return;
 
     const maskDataUrl = maskCanvasRef.current.toDataURL('image/png');
-
     setError(null);
-    setProcessing(true, 'AI inpainting...');
 
     try {
-      const result = await inpaintImage(
-        sourceAsset.id,
-        prompt,
-        maskDataUrl,
-        negativePrompt || undefined
-      );
-
-      if (!result) {
-        throw new Error('Failed to start inpainting');
-      }
-
-      // Poll for completion
-      let attempts = 0;
-      const maxAttempts = 60;
-
-      while (attempts < maxAttempts) {
-        const status = await getAssetStatus(result.id);
-
-        if (!status) {
-          throw new Error('Failed to get processing status');
-        }
-
-        if (status.status === 'READY' || status.status === 'COMPLETED') {
-          setProcessing(false);
-          if (status.asset) {
-            if (layers.length > 0) {
-              const imageUrl = status.asset.previewUrl || status.asset.publicUrl;
-              if (imageUrl) {
-                await addLayerFromUrl(imageUrl, 'Inpainted');
-                toast.success('Inpaint complete - added as new layer');
-              }
-            } else {
-              openEditor(status.asset);
-            }
-          }
-          onClose();
-          return;
-        }
-
-        if (status.status === 'FAILED' || status.status === 'ERROR') {
-          throw new Error(status.error || 'Inpainting failed');
-        }
-
-        setProcessingProgress(Math.min(90, (attempts / maxAttempts) * 100));
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        attempts++;
-      }
-
-      throw new Error('Processing timeout');
+      await runAIEditJob({
+        message: 'AI inpainting...',
+        start: async () => {
+          // The image the mask was painted on: the original only while unchanged
+          const assetId = await resolveAIInputAssetId(useImageEditorStore.getState());
+          if (!assetId) throw new Error('No image selected');
+          return inpaintImage(assetId, prompt, maskDataUrl, negativePrompt || undefined);
+        },
+        apply: async (asset, store) => {
+          const placed = await addResultLayerOrOpen(asset, store, { addAsLayer: true, layerName: 'Inpainted' });
+          if (placed === 'layer') toast.success('Inpaint complete - added as new layer');
+        },
+      });
+      if (isMountedRef.current && isOpenRef.current) onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Inpainting failed');
-      setProcessing(false);
+      const message = err instanceof Error ? err.message : 'Inpainting failed';
+      if (isMountedRef.current && isOpenRef.current) setError(message);
+      else toast.error(`Inpaint: ${message}`);
     }
-  }, [sourceAsset?.id, prompt, negativePrompt, setProcessing, setProcessingProgress, openEditor, addLayerFromUrl, layers.length, onClose]);
+  }, [sourceAsset?.id, prompt, negativePrompt, onClose, isMountedRef]);
 
   if (!isOpen) return null;
 

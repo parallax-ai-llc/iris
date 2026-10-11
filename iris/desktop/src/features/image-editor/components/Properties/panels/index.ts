@@ -8,7 +8,6 @@ export { TextPanel } from './TextPanel';
 export { LayersPanel } from './LayersPanel';
 export { UpscalePanel } from './UpscalePanel';
 export { BgRemovePanel } from './BgRemovePanel';
-export { InpaintPanel } from './InpaintPanel';
 export { OutpaintPanel } from './OutpaintPanel';
 export { FaceRestorePanel } from './FaceRestorePanel';
 export { ColorizePanel } from './ColorizePanel';

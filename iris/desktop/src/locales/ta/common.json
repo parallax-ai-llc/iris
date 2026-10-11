@@ -122,7 +122,9 @@
     "bugReportError": "Failed to submit bug report",
     "bugReportRateLimit": "Too many reports. Please try again later.",
     "bugReportThankYou": "Thank you for your report! We will review it shortly.",
-    "workWithAgent": "Work with Agent"
+    "workWithAgent": "Work with Agent",
+    "back": "பின்",
+    "forward": "முன்"
   },
   "editor": {
     "localFileWarning": {
@@ -249,5 +251,14 @@
     "defaults": {
       "projectName": "பெயரிடப்படாத திட்டம்"
     }
+  },
+  "librarySearch": {
+    "label": "நூலகத்தில் தேடு",
+    "placeholder": "ப்ராம்ப்ட் மற்றும் மாடல்களைத் தேடு",
+    "clear": "தேடலை அழி",
+    "scope": "இதுவரை ஏற்றிய {{count}} உருப்படிகளில் தேடுகிறது",
+    "loadMore": "மேலும் ஏற்று",
+    "noResults": "ஏற்றிய உருப்படிகளில் “{{query}}” பொருந்தவில்லை",
+    "countFiltered": "{{total}} இல் {{shown}} உருப்படிகள்"
   }
 }

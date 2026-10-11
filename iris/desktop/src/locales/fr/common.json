@@ -122,7 +122,9 @@
     "bugReportError": "Échec de l'envoi du rapport de bug",
     "bugReportRateLimit": "Trop de rapports. Veuillez réessayer plus tard.",
     "bugReportThankYou": "Merci pour votre rapport ! Nous l'examinerons sous peu.",
-    "workWithAgent": "Work with Agent"
+    "workWithAgent": "Work with Agent",
+    "back": "Précédent",
+    "forward": "Suivant"
   },
   "editor": {
     "localFileWarning": {
@@ -249,5 +251,14 @@
     "defaults": {
       "projectName": "Projet sans titre"
     }
+  },
+  "librarySearch": {
+    "label": "Rechercher dans la bibliothèque",
+    "placeholder": "Rechercher des prompts et des modèles",
+    "clear": "Effacer la recherche",
+    "scope": "Recherche parmi les {{count}} éléments chargés jusqu’ici",
+    "loadMore": "Charger plus d’éléments",
+    "noResults": "Aucun élément chargé ne correspond à « {{query}} »",
+    "countFiltered": "{{shown}} sur {{total}} éléments"
   }
 }

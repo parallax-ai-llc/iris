@@ -21,7 +21,11 @@
     "ffmpegUpgradeMessage": "Some transition effects require FFmpeg 4.3 or higher. Please upgrade to the latest version.",
     "ffmpegPreparing": "Preparing video encoder...",
     "ffmpegDownloading": "Downloading video encoder...",
-    "ffmpegSetupFailed": "Couldn't set up the video encoder"
+    "ffmpegSetupFailed": "Couldn't set up the video encoder",
+    "fidelityTitle": "కొన్ని సవరణలు ఎగుమతి చేసిన ఫైల్‌లో కనిపించవు",
+    "fidelitySpeedKeyframes": "స్పీడ్ కీఫ్రేమ్‌లు లేదా టైమ్ రీమ్యాపింగ్ ఉన్న {{count}} క్లిప్‌లు ప్రాథమిక వేగంతో ఎగుమతి అవుతాయి",
+    "fidelityBlurKeyframes": "బ్లర్ కీఫ్రేమ్‌లు ఉన్న {{count}} క్లిప్‌లు యానిమేటెడ్ బ్లర్ లేకుండా ఎగుమతి అవుతాయి",
+    "fidelitySubtitleAnimation": "{{count}} యానిమేటెడ్ ఉపశీర్షికలు స్థిర వచనంగా ఎగుమతి అవుతాయి"
   },
   "lumetri": {
     "colorMatchAnalyzing": "Color Match: AI analyzing..."

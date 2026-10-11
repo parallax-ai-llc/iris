@@ -170,6 +170,10 @@
     "runError": "Échec de l'exécution de « {{command}} » : {{error}}",
     "commands": "Commandes",
     "tools": "Outils",
-    "noRunnable": "Cette extension ne fournit ni commande ni outil."
+    "noRunnable": "Cette extension ne fournit ni commande ni outil.",
+    "toggleLabel": "{{name}} activée",
+    "enable": "Activer l’extension",
+    "disable": "Désactiver l’extension",
+    "toggleError": "Impossible de modifier « {{name}} » : {{error}}"
   }
 }

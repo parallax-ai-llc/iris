@@ -105,7 +105,7 @@ export const EditorTimeline = memo(function EditorTimeline({
     seek, setZoom, zoomIn, zoomOut, setScrollLeft,
     addTrack, addClip, addAdjustmentLayer,
     clearSelection,
-    selectClipsInRange, updateDrag, endDrag, moveClipToTrack,
+    selectClipsInRange, updateDrag, endDrag, cancelDrag,
     addMarker, removeMarker, updateMarker, toggleMarkerList,
     removeAllGaps, alignClips, fitToView,
     removeMulticamCut,
@@ -508,7 +508,7 @@ export const EditorTimeline = memo(function EditorTimeline({
 
             // Link video clip back to audio clip
             if (audioClip) {
-              useEditorStore.getState().updateClip(videoClip.id, { linkedClipId: audioClip.id });
+              useEditorStore.getState().updateClip(videoClip.id, { linkedClipId: audioClip.id }, { history: 'amend' });
             }
           }
         } else if (isAudioTrack && isAudioMedia) {
@@ -606,8 +606,10 @@ export const EditorTimeline = memo(function EditorTimeline({
         // Sync to store for live cross-track preview rendering (only if same type as source)
         const sourceTrack = currentTracks.find((t) => t.id === dragState.trackId);
         const targetTrack = foundTrackId ? currentTracks.find((t) => t.id === foundTrackId) : null;
+        // Only a move drag can change tracks, and never onto a locked track.
         const validHover =
-          targetTrack && sourceTrack && targetTrack.type === sourceTrack.type
+          dragState.operation === 'move' &&
+          targetTrack && sourceTrack && targetTrack.type === sourceTrack.type && !targetTrack.locked
             ? targetTrack.id
             : null;
         if (useEditorStore.getState().dragHoverTrackId !== validHover) {
@@ -617,19 +619,19 @@ export const EditorTimeline = memo(function EditorTimeline({
     };
 
     const handleMouseUp = () => {
-      // Move clip to hovered track (if different from source) before endDrag finalizes
+      // The store moves the clip to the hovered track only for a move drag
+      // (trim/slip/roll released over another track stay put) and records one
+      // history entry for the whole drop.
       const hoveredTrackId = hoverTrackIdRef.current;
-      if (dragState && hoveredTrackId && hoveredTrackId !== dragState.trackId) {
-        moveClipToTrack(dragState.clipId, hoveredTrackId);
-      }
       hoverTrackIdRef.current = null;
-      endDrag();
+      endDrag(hoveredTrackId);
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        // Escape abandons the drag: everything returns to the drag-start state.
         hoverTrackIdRef.current = null;
-        endDrag();
+        cancelDrag();
       }
     };
 
@@ -642,7 +644,7 @@ export const EditorTimeline = memo(function EditorTimeline({
       document.removeEventListener('mouseup', handleMouseUp);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [dragState, updateDrag, endDrag, moveClipToTrack]);
+  }, [dragState, updateDrag, endDrag, cancelDrag]);
 
   // Rubber-band (marquee) selection logic
   const handleTrackAreaMouseDown = useCallback(

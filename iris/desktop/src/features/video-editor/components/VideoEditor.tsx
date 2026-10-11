@@ -369,7 +369,7 @@ export const VideoEditor = memo(function VideoEditor({
         });
 
         // Link video clip back to audio clip
-        useEditorStore.getState().updateClip(videoClip.id, { linkedClipId: audioClip.id });
+        useEditorStore.getState().updateClip(videoClip.id, { linkedClipId: audioClip.id }, { history: 'amend' });
       }
 
       // Add initial subtitles if provided

@@ -1,10 +1,14 @@
 /**
- * ModelSelector - A dropdown for selecting AI models with provider logos
+ * ModelSelector - A dropdown for selecting AI models with provider logos.
+ *
+ * Keyboard (while open): ArrowUp/Down, Home/End, Enter, Escape — see
+ * useListboxNavigation. The open list blocks page shortcuts underneath.
  */
 
-import { memo, useState, useRef, useEffect } from 'react';
+import { memo, useState, useRef, useEffect, useCallback } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
+import { useListboxNavigation } from '@/shared/hooks/useListboxNavigation';
 import { ProviderLogo } from './ProviderLogo';
 import { getProviderName } from '@/shared/lib/utils/provider-logos';
 
@@ -35,11 +39,35 @@ export const ModelSelector = memo(function ModelSelector({
 }: ModelSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const listboxRef = useRef<HTMLDivElement>(null);
 
-  const selectedOption = options.find((opt) => opt.id === value);
+  const selectedIndex = options.findIndex((opt) => opt.id === value);
+  const selectedOption = selectedIndex >= 0 ? options[selectedIndex] : undefined;
+
+  const select = useCallback(
+    (index: number) => {
+      const option = options[index];
+      if (!option) return;
+      onChange(option.id);
+      setIsOpen(false);
+    },
+    [options, onChange]
+  );
+
+  const { activeIndex, setActiveIndex, listboxId, optionId } = useListboxNavigation({
+    isOpen,
+    count: options.length,
+    selectedIndex,
+    onSelect: select,
+    onClose: () => setIsOpen(false),
+    listboxRef,
+    triggerRef,
+  });
 
   // Close dropdown when clicking outside
   useEffect(() => {
+    if (!isOpen) return;
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
@@ -48,27 +76,19 @@ export const ModelSelector = memo(function ModelSelector({
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Close dropdown on escape
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [isOpen]);
 
   return (
     <div ref={containerRef} className={cn('relative', className)}>
       {/* Trigger button */}
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-controls={isOpen ? listboxId : undefined}
         className={cn(
           'w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg',
           'bg-zinc-800 border border-zinc-700 text-white',
@@ -103,22 +123,32 @@ export const ModelSelector = memo(function ModelSelector({
 
       {/* Dropdown menu */}
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 py-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+        <div
+          ref={listboxRef}
+          id={listboxId}
+          role="listbox"
+          tabIndex={-1}
+          aria-activedescendant={activeIndex >= 0 ? optionId(activeIndex) : undefined}
+          className="absolute z-50 w-full mt-1 py-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl max-h-60 overflow-y-auto focus:outline-none"
+        >
           {options.length === 0 ? (
             <div className="px-3 py-2 text-sm text-zinc-500">No models available</div>
           ) : (
-            options.map((option) => (
+            options.map((option, index) => (
               <button
                 key={option.id}
+                id={optionId(index)}
                 type="button"
-                onClick={() => {
-                  onChange(option.id);
-                  setIsOpen(false);
-                }}
+                role="option"
+                tabIndex={-1}
+                aria-selected={value === option.id}
+                onClick={() => select(index)}
+                onMouseEnter={() => setActiveIndex(index)}
                 className={cn(
                   'w-full flex items-center gap-2 px-3 py-2 text-left',
                   'hover:bg-zinc-700 transition-colors',
-                  value === option.id && 'bg-white/10'
+                  value === option.id && 'bg-white/10',
+                  index === activeIndex && 'bg-zinc-700'
                 )}
               >
                 <ProviderLogo provider={option.provider} size="sm" modelId={option.id} />
