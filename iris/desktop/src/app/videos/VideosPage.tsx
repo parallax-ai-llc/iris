@@ -124,8 +124,8 @@ const FrameThumbnail = memo(function FrameThumbnail({ image, removeTitle, onClea
           <Loader2 className="w-5 h-5 animate-spin" />
         </div>
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
-      <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
+      <div data-theme="dark" className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+      <div data-theme="dark" className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
         <span className="text-xs text-white truncate max-w-[60%]">{image.name}</span>
         <button
           onClick={onClear}
@@ -162,8 +162,8 @@ const LocalFrameThumbnail = memo(function LocalFrameThumbnail({
           <Loader2 className="w-5 h-5 animate-spin" />
         </div>
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
-      <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
+      <div data-theme="dark" className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+      <div data-theme="dark" className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
         <span className="text-xs text-white truncate max-w-[60%]">{file.name}</span>
         <button
           onClick={onClear}

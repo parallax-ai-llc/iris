@@ -190,18 +190,31 @@ export function buildFFmpegArgs(
   }
 
   // ── Subtitles: renderer-rasterised PNGs (pixel-exact) or ASS fallback ──────
+  // Static subtitle: one looped PNG for its whole slot. Animated subtitle: an
+  // image2 sequence with one PNG per output frame, re-stamped so sequence
+  // frame i lands on output frame round(startTime·fps) + i.
   const subtitleOverlays = (request.subtitleOverlays ?? []).filter(
-    (s) => s.pngPath && s.endTime - s.startTime > 0,
+    (s) => (s.pngPath || (s.framePattern && (s.frameCount ?? 0) > 0)) && s.endTime - s.startTime > 0,
   );
   subtitleOverlays.forEach((sub, si) => {
-    args.push('-loop', '1', '-f', 'image2', '-framerate', String(fps), '-i', sub.pngPath!);
     const proc = `subpng${si}_proc`;
     const comp = `subpng${si}_comp`;
-    filterParts.push(
-      `[${nextInput}:v]trim=end=${(sub.endTime - sub.startTime).toFixed(4)},setpts=PTS-STARTPTS,fps=${num(fps)},format=rgba[${proc}]`,
-    );
-    const enable = `between(t,${sub.startTime.toFixed(4)},${sub.endTime.toFixed(4)})`;
-    filterParts.push(`[${videoOut}][${proc}]overlay=0:0:enable='${enable}'[${comp}]`);
+    if (sub.framePattern) {
+      const startFrame = Math.round(sub.startTime * fps);
+      args.push('-f', 'image2', '-framerate', String(fps), '-start_number', '0', '-i', sub.framePattern);
+      filterParts.push(
+        `[${nextInput}:v]trim=end_frame=${sub.frameCount},` +
+        `setpts=PTS-STARTPTS+${startFrame}/(${num(fps)}*TB),format=rgba[${proc}]`,
+      );
+      filterParts.push(`[${videoOut}][${proc}]overlay=0:0:eof_action=pass[${comp}]`);
+    } else {
+      args.push('-loop', '1', '-f', 'image2', '-framerate', String(fps), '-i', sub.pngPath!);
+      filterParts.push(
+        `[${nextInput}:v]trim=end=${(sub.endTime - sub.startTime).toFixed(4)},setpts=PTS-STARTPTS,fps=${num(fps)},format=rgba[${proc}]`,
+      );
+      const enable = `between(t,${sub.startTime.toFixed(4)},${sub.endTime.toFixed(4)})`;
+      filterParts.push(`[${videoOut}][${proc}]overlay=0:0:enable='${enable}'[${comp}]`);
+    }
     videoOut = comp;
     nextInput++;
   });

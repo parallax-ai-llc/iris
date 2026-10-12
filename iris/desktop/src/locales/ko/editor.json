@@ -21,11 +21,7 @@
     "ffmpegUpgradeMessage": "일부 전환 효과는 FFmpeg 4.3 이상이 필요합니다. 최신 버전으로 업그레이드하세요.",
     "ffmpegPreparing": "비디오 인코더 준비 중...",
     "ffmpegDownloading": "비디오 인코더 다운로드 중...",
-    "ffmpegSetupFailed": "비디오 인코더를 설정하지 못했습니다",
-    "fidelityTitle": "일부 편집은 내보낸 파일에 반영되지 않습니다",
-    "fidelitySpeedKeyframes": "속도 키프레임 또는 타임 리매핑이 있는 클립 {{count}}개는 기본 속도로 내보내집니다",
-    "fidelityBlurKeyframes": "블러 키프레임이 있는 클립 {{count}}개는 블러 애니메이션 없이 내보내집니다",
-    "fidelitySubtitleAnimation": "애니메이션 자막 {{count}}개는 정지된 텍스트로 내보내집니다"
+    "ffmpegSetupFailed": "비디오 인코더를 설정하지 못했습니다"
   },
   "lumetri": {
     "colorMatchAnalyzing": "Color Match: AI 분석 중..."

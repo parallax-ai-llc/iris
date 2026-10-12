@@ -21,11 +21,7 @@
     "ffmpegUpgradeMessage": "Some transition effects require FFmpeg 4.3 or higher. Please upgrade to the latest version.",
     "ffmpegPreparing": "Preparing video encoder...",
     "ffmpegDownloading": "Downloading video encoder...",
-    "ffmpegSetupFailed": "Couldn't set up the video encoder",
-    "fidelityTitle": "Some edits won't appear in the exported file",
-    "fidelitySpeedKeyframes": "{{count}} clip(s) with speed keyframes or time remapping will export at their base speed",
-    "fidelityBlurKeyframes": "{{count}} clip(s) with blur keyframes will export without the animated blur",
-    "fidelitySubtitleAnimation": "{{count}} animated subtitle(s) will export as static text"
+    "ffmpegSetupFailed": "Couldn't set up the video encoder"
   },
   "lumetri": {
     "colorMatchAnalyzing": "Color Match: AI analyzing..."

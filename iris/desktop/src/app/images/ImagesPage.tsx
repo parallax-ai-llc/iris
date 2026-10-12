@@ -199,9 +199,10 @@ const ImageCard = memo(function ImageCard({
         />
       )}
 
-      {/* Selection checkbox */}
+      {/* Selection checkbox (on the photo: dark in every theme) */}
       {isSelectionMode && (
         <div
+          data-theme="dark"
           className={cn(
             'absolute top-2 left-2 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all z-10',
             isSelected
@@ -215,15 +216,15 @@ const ImageCard = memo(function ImageCard({
 
       {/* Reference badge */}
       {isReference && !isSelectionMode && (
-        <div className="absolute top-2 left-2 z-10 px-2 py-1 bg-white/10 rounded-md text-xs font-medium text-white flex items-center gap-1">
+        <div data-theme="dark" className="absolute top-2 left-2 z-10 px-2 py-1 bg-white/10 rounded-md text-xs font-medium text-white flex items-center gap-1">
           <Layers className="w-3 h-3" />
           {t('gallery.referenceBadge')}
         </div>
       )}
 
-      {/* Overlay on hover - hidden in selection mode */}
+      {/* Overlay on hover - hidden in selection mode. Photo scrim: dark in every theme. */}
       {!isSelectionMode && (
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+        <div data-theme="dark" className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
           {/* Info */}
           <div className="absolute bottom-0 left-0 right-0 p-3">
             <p className="text-sm font-medium text-white truncate">{image.name}</p>
@@ -894,8 +895,8 @@ export function ImagesPage() {
                       alt={referenceFile ? referenceFile.name : referenceImage?.name}
                       className="w-full h-32 object-cover"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                    <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
+                    <div data-theme="dark" className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                    <div data-theme="dark" className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
                       <span className="text-xs text-white truncate max-w-[60%]">
                         {referenceFile ? referenceFile.name : referenceImage?.name}
                       </span>

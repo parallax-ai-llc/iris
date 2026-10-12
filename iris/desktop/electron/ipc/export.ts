@@ -325,13 +325,26 @@ export function setupExportHandlers() {
         const subTempDir = path.join(app.getPath('temp'), 'iris-export');
         await fs.mkdir(subTempDir, { recursive: true });
         for (const overlay of request.subtitleOverlays) {
+          const id = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+          if (overlay.frameDataUrls && overlay.frameIndex && overlay.frameIndex.length > 0) {
+            // Animated subtitle: one PNG per output frame (image2 sequence).
+            // Distinct frames are decoded once; repeats reuse the same bytes.
+            const frames = overlay.frameDataUrls.map((url) =>
+              Buffer.from(url.replace(/^data:image\/png;base64,/, ''), 'base64'));
+            for (let i = 0; i < overlay.frameIndex.length; i++) {
+              const file = path.join(subTempDir, `subseq_${id}_${String(i).padStart(5, '0')}.png`);
+              await fs.writeFile(file, frames[overlay.frameIndex[i]]);
+              tempFiles.push(file);
+            }
+            overlay.framePattern = path.join(subTempDir, `subseq_${id}_%05d.png`);
+            overlay.frameCount = overlay.frameIndex.length;
+            delete overlay.frameDataUrls;
+            continue;
+          }
           if (!overlay.pngDataUrl) continue;
           const b64 = overlay.pngDataUrl.replace(/^data:image\/png;base64,/, '');
           const buf = Buffer.from(b64, 'base64');
-          const tmpPng = path.join(
-            subTempDir,
-            `subtitle_${Date.now()}_${Math.random().toString(36).slice(2)}.png`,
-          );
+          const tmpPng = path.join(subTempDir, `subtitle_${id}.png`);
           await fs.writeFile(tmpPng, buf);
           overlay.pngPath = tmpPng;
           tempFiles.push(tmpPng);

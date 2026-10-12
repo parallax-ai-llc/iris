@@ -27,6 +27,7 @@ import { PreviewZoomControls } from './PreviewZoomControls';
 import { usePreviewZoom, ZOOM_MIN, ZOOM_MAX } from '@/features/video-editor/hooks/usePreviewZoom';
 import { useVideoProjectStore } from '@/features/video-editor/stores/videoProject.store';
 import { interpolateKeyframes } from '@/shared/lib/utils/effectRenderer';
+import { buildTimeMap } from '@/features/video-editor/lib/timeRemap';
 import { flattenCompoundClips, editableClipId } from '@/features/video-editor/lib/flattenCompoundClips';
 import {
   isTrackAudible,
@@ -164,6 +165,9 @@ export const EditorPreview = memo(function EditorPreview({
     }
     return null;
   }, [videoLayerEntries]);
+  // Timeline ↔ source time of the base clip (∫speed for speed keyframes / time
+  // remapping) — the same mapping the export uses (lib/timeRemap.ts).
+  const timeMap = useMemo(() => (activeVideoClip ? buildTimeMap(activeVideoClip) : null), [activeVideoClip]);
 
   // Overlay clips — every active video clip except the base, ordered
   // bottom→top so the top-most track paints last (on top). Images render at
@@ -353,20 +357,21 @@ export const EditorPreview = memo(function EditorPreview({
 
       // Use rAF to poll video.currentTime for smooth playhead movement
       const syncTime = () => {
-        if (!video.paused && activeVideoClip) {
+        if (!video.paused && activeVideoClip && timeMap) {
           const sourceTime = video.currentTime;
-          const clipSpeed = activeVideoClip.speed ?? 1;
-
           // Enforce source boundary - stop if video played past clip's source end
-          if (sourceTime >= activeVideoClip.sourceEndTime) {
+          // (a speed curve reads ∫speed of the slot, not the stored static range)
+          const sourceEnd = timeMap.variable
+            ? activeVideoClip.sourceStartTime + timeMap.sourceOffsetAt(activeVideoClip.endTime - activeVideoClip.startTime)
+            : activeVideoClip.sourceEndTime;
+          if (sourceTime >= sourceEnd) {
             video.pause();
             setCurrentTime(activeVideoClip.endTime + 0.001);
             videoRafRef.current = requestAnimationFrame(syncTime);
             return;
           }
 
-          const clipOffset = sourceTime - activeVideoClip.sourceStartTime;
-          const timelineTime = activeVideoClip.startTime + clipOffset / clipSpeed;
+          const timelineTime = activeVideoClip.startTime + timeMap.clipTimeAt(sourceTime - activeVideoClip.sourceStartTime);
 
           if (timelineTime >= activeVideoClip.endTime) {
             video.pause();
@@ -385,7 +390,7 @@ export const EditorPreview = memo(function EditorPreview({
     } else {
       video.pause();
     }
-  }, [isPlaying, activeVideoClip, setCurrentTime]);
+  }, [isPlaying, activeVideoClip, timeMap, setCurrentTime]);
 
   // Manual timeline progression when:
   // - No video clip active (gap between clips)
@@ -429,16 +434,11 @@ export const EditorPreview = memo(function EditorPreview({
   useEffect(() => {
     const video = videoRef.current;
     if (video) {
-      let clipSpeed = activeVideoClip?.speed ?? 1;
-      if (activeVideoClip?.keyframes?.length) {
-        const offset = currentTime - activeVideoClip.startTime;
-        const kfSpeed = interpolateKeyframes(activeVideoClip.keyframes, 'speed', offset);
-        if (kfSpeed !== undefined) clipSpeed = kfSpeed;
-      }
-      const rate = playbackRate * clipSpeed;
-      video.playbackRate = Math.max(0.0625, Math.abs(rate));
+      // Speed keyframes / time remapping: instantaneous rate of the shared curve.
+      const clipSpeed = activeVideoClip && timeMap ? timeMap.speedAt(currentTime - activeVideoClip.startTime) : 1;
+      video.playbackRate = Math.max(0.0625, Math.abs(playbackRate * clipSpeed));
     }
-  }, [playbackRate, activeVideoClip?.speed, activeVideoClip?.keyframes, activeVideoClip?.startTime, currentTime]);
+  }, [playbackRate, activeVideoClip, timeMap, currentTime]);
 
   // Compute video track volume (considering solo across all audio-producing tracks)
   const videoTrackVolume = useMemo(() => {
@@ -496,11 +496,9 @@ export const EditorPreview = memo(function EditorPreview({
   // rAF loop wrote: if they differ meaningfully, the change came from outside.
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !activeVideoClip) return;
+    if (!video || !activeVideoClip || !timeMap) return;
 
-    const clipSpeed = activeVideoClip.speed ?? 1;
-    const clipOffset = currentTime - activeVideoClip.startTime;
-    const sourceTime = activeVideoClip.sourceStartTime + clipOffset * clipSpeed;
+    const sourceTime = activeVideoClip.sourceStartTime + timeMap.sourceOffsetAt(currentTime - activeVideoClip.startTime);
     const isClipTransition = prevClipIdRef.current !== activeVideoClip.id;
 
     if (isPlaying) {
@@ -515,18 +513,16 @@ export const EditorPreview = memo(function EditorPreview({
         video.currentTime = sourceTime;
       }
     }
-  }, [currentTime, activeVideoClip, isPlaying]);
+  }, [currentTime, activeVideoClip, timeMap, isPlaying]);
 
   // When video source changes and loads, seek to correct position and resume playback
   const handleLoadedData = useCallback(() => {
     const video = videoRef.current;
-    if (!video || !activeVideoClip) return;
+    if (!video || !activeVideoClip || !timeMap) return;
 
-    // Seek to the correct source time (account for clip speed)
-    const clipSpeed = activeVideoClip.speed ?? 1;
-    const clipOffset = currentTime - activeVideoClip.startTime;
-    const sourceTime = activeVideoClip.sourceStartTime + clipOffset * clipSpeed;
-    
+    // Seek to the correct source time (clip speed / speed curve)
+    const sourceTime = activeVideoClip.sourceStartTime + timeMap.sourceOffsetAt(currentTime - activeVideoClip.startTime);
+
     if (sourceTime >= 0 && sourceTime <= video.duration) {
       video.currentTime = sourceTime;
     }
@@ -535,7 +531,7 @@ export const EditorPreview = memo(function EditorPreview({
     if (isPlaying) {
       video.play().catch(() => {});
     }
-  }, [activeVideoClip, currentTime, isPlaying]);
+  }, [activeVideoClip, timeMap, currentTime, isPlaying]);
 
   // Detect clip transitions and handle them
   useEffect(() => {

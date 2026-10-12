@@ -24,6 +24,7 @@ import {
 } from './audio-filters';
 import { type GraphContext, sourceHasAudio, takeAudioSrc, takeVideoSrc } from './graph-context';
 import { num } from './keyframe-expr';
+import { clipTimeMap, remapAudioFilters } from './speed-remap';
 
 export type BaseSegment =
   | { kind: 'gap'; startFrame: number; frames: number }
@@ -137,11 +138,15 @@ export function buildBaseTimeline(
     } else {
       const range = segmentSourceRange(seg.spec, fps);
       const lead = seg.spec.leadSeconds;
+      const map = clipTimeMap(clip);
       const af: string[] = [
         `atrim=start=${num(range.start)}:end=${num(range.end)}`,
         'asetpts=PTS-STARTPTS',
         AUDIO_NORMALIZE,
-        ...atempoChain(clip.speed || 1),
+        // Speed curve: tempo follows ∫speed piece by piece (speed-remap.ts).
+        ...(map.variable
+          ? remapAudioFilters(map, lead, frames / fps, `rm${aLabel}`)
+          : atempoChain(map.speedAt(0))),
       ];
       const volume = clipVolumeFilter(
         baseTrack?.volume ?? 1,

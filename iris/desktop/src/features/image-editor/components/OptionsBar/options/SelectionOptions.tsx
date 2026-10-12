@@ -64,7 +64,7 @@ export const SelectionOptions = memo(function SelectionOptions() {
   }, [contentAwareFill]);
 
   const handleApplyRefineEdge = useCallback(() => {
-    void (refineEdge as (o: { radius: number; smoothing: number; feather: number; contrast: number }) => void | Promise<void>)({
+    void refineEdge({
       radius: refineRadius,
       smoothing: refineSmoothing,
       feather: refineFeather,

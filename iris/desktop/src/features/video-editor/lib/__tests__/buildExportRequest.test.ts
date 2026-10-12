@@ -9,7 +9,6 @@ import { describe, it, expect } from 'vitest';
 import { buildExportRequest } from '../buildExportRequest';
 import { flattenCompoundClips, editableClipId } from '../flattenCompoundClips';
 import { isTrackAudible, isEmbeddedAudioHandledExternally } from '../trackAudio';
-import { collectExportWarnings } from '../exportWarnings';
 import type {
   AudioClip, Clip, CompoundClip, SubtitleClip, Track, VideoClip,
 } from '@/types/editor.types';
@@ -149,22 +148,46 @@ describe('trackAudio rules', () => {
   });
 });
 
-describe('collectExportWarnings', () => {
-  it('counts speed / time-remap, blur keyframes and animated subtitles', () => {
-    const sub: SubtitleClip = {
-      id: 's', trackId: 's', type: 'subtitle', name: 's', text: 'hi', startTime: 0, endTime: 1,
-      sourceStartTime: 0, sourceEndTime: 1,
-      style: { animation: 'typewriter' } as SubtitleClip['style'],
-    };
-    const w = collectExportWarnings([
-      track('v', 'video', [
-        video('a', 'v', A, 0, 1, { keyframes: [{ time: 0, property: 'speed', value: 2 }] }),
-        video('b', 'v', A, 1, 2, { timeRemappingKeyframes: [{ time: 0, speed: 50 } as never] }),
-        video('c', 'v', A, 2, 3, { keyframes: [{ time: 0, property: 'blur', value: 4 }] }),
-        video('d', 'v', A, 3, 4, { keyframes: [{ time: 0, property: 'opacity', value: 0.5 }] }),
-      ]),
-      track('s', 'subtitle', [sub]),
+describe('buildExportRequest — speed curves and subtitle keyframes', () => {
+  it('trims a speed-curve clip through ∫speed and re-bases its time remapping', async () => {
+    // speed 1 → 2 over [0, 2]: S(t) = t + t²/4 → a 0.5 s head trim starts at S(0.5) = 0.5625.
+    const keyframes = [
+      { time: 0, property: 'speed' as const, value: 1 },
+      { time: 2, property: 'speed' as const, value: 2 },
+    ];
+    const req = await buildExportRequest({
+      ...params,
+      tracks: [track('v', 'video', [video('c', 'v', A, 0, 2, { keyframes, sourceEndTime: 3 })])],
+      range: { start: 0.5, end: 1.5 },
+    });
+    const clip = (req.tracks as ReqTrack[])[0].clips[0];
+    expect(clip.sourceStartTime).toBeCloseTo(0.5625, 9);
+    expect(clip.sourceEndTime).toBeCloseTo(1.5 + 1.5 ** 2 / 4, 9);
+
+    const remap = await buildExportRequest({
+      ...params,
+      tracks: [track('v', 'video', [video('c', 'v', A, 0, 2, {
+        timeRemappingKeyframes: [{ time: 0, speed: 0.5 }, { time: 1, speed: 2 }],
+      })])],
+      range: { start: 0.5, end: 2 },
+    });
+    expect((remap.tracks as ReqTrack[])[0].clips[0].timeRemappingKeyframes).toEqual([
+      { time: -0.5, speed: 0.5 }, { time: 0.5, speed: 2 },
     ]);
-    expect(w).toEqual({ speedKeyframes: 2, blurKeyframes: 1, subtitleAnimations: 1 });
+  });
+
+  it('passes subtitle animationKeyframes re-based to the range', async () => {
+    const sub: SubtitleClip = {
+      id: 's', trackId: 's', type: 'subtitle', name: 's', text: 'hi', startTime: 0, endTime: 2,
+      sourceStartTime: 0, sourceEndTime: 2,
+      style: { animation: 'none' } as SubtitleClip['style'],
+      animationKeyframes: [{ time: 1, property: 'x', value: 10 }],
+    };
+    const req = await buildExportRequest({
+      ...params, tracks: [track('s', 'subtitle', [sub])], range: { start: 0.5, end: 2 },
+    });
+    expect((req.tracks as ReqTrack[])[0].clips[0].animationKeyframes).toEqual([
+      { time: 0.5, property: 'x', value: 10 },
+    ]);
   });
 });

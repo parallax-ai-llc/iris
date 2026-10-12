@@ -7,9 +7,11 @@
  * cut to exactly `frames` frames. Consecutive segments therefore always add up
  * to the timeline, whatever the speed or the source rounding.
  *
- * Chain: trim → speed → effects → spatial transitions → fit to W×H → CFR →
- * exact length → transform/opacity/keyframes → temporal transitions, followed
- * by the multi-input stages (glow, intra-clip xfade vs black, chroma key).
+ * Chain: trim → speed (constant, or the speed curve re-timed by
+ * speed-remap.ts) → effects → blur keyframes → spatial transitions → fit to
+ * W×H → CFR → exact length → transform/opacity/keyframes → temporal
+ * transitions, followed by the multi-input stages (glow, intra-clip xfade vs
+ * black, chroma key).
  * Moved from electron/ipc/export.ts and extended.
  */
 
@@ -18,6 +20,8 @@ import { buildEffectFilters } from './video-effect-filters';
 import { buildSpatialTransitionVideoFilters, buildTransitionVideoFilters } from './transition-filters';
 import { buildBaseClipTransformFilters } from './clip-transform';
 import { num } from './keyframe-expr';
+import { clipTimeMap, remapVideoFilter } from './speed-remap';
+import { buildBlurKeyframeFilters } from './blur-keyframes';
 // Pure data shared with the renderer — relative path only.
 import { XFADE_MAP } from '../../../src/features/video-editor/effects/registry';
 
@@ -42,19 +46,25 @@ const NON_XFADE_HANDLED = new Set([
   'blur', 'blur-transition',
 ]);
 
-/** Source range [start, end) read for a segment (timeline slot × speed). */
+/**
+ * Source range [start, end) read for a segment: the timeline slot mapped
+ * through the clip's speed (constant, or ∫speed for a speed curve — the same
+ * mapping the preview uses, lib/timeRemap.ts).
+ */
 export function segmentSourceRange(seg: ClipSegmentSpec, fps: number): { start: number; end: number } {
-  const speed = seg.clip.speed || 1;
-  const start = seg.clip.sourceStartTime + seg.leadSeconds * speed;
-  return { start, end: start + (seg.frames / fps) * speed };
+  const map = clipTimeMap(seg.clip);
+  const lead = seg.leadSeconds;
+  return {
+    start: seg.clip.sourceStartTime + map.sourceOffsetAt(lead),
+    end: seg.clip.sourceStartTime + map.sourceOffsetAt(lead + seg.frames / fps),
+  };
 }
 
 /** Linear filter chain for the segment (input pad → exact-length frames). */
-function buildLinearChain(seg: ClipSegmentSpec, frame: FrameSpec): string[] {
+function buildLinearChain(seg: ClipSegmentSpec, frame: FrameSpec, label: string): string[] {
   const { clip, frames } = seg;
   const { width: W, height: H, fps } = frame;
   const isImage = clip.mediaType === 'image';
-  const speed = clip.speed || 1;
   const duration = frames / fps;
   const chain: string[] = [];
 
@@ -62,17 +72,25 @@ function buildLinearChain(seg: ClipSegmentSpec, frame: FrameSpec): string[] {
     // Looped still: the input already runs at `fps`, just take `frames` of it.
     chain.push(`trim=end_frame=${frames}`, 'setpts=PTS-STARTPTS');
   } else {
+    const map = clipTimeMap(clip);
     const range = segmentSourceRange(seg, fps);
     // One extra source frame of margin so the last output frame has a picture.
-    const margin = speed / fps;
+    const margin = map.speedAt(seg.leadSeconds + duration) / fps;
     chain.push(`trim=start=${num(range.start)}:end=${num(range.end + margin)}`, 'setpts=PTS-STARTPTS');
-    if (speed !== 1) chain.push(`setpts=${num(1 / speed)}*PTS`);
+    if (map.variable) {
+      chain.push(remapVideoFilter(map, seg.leadSeconds, duration + 2 / fps, fps));
+    } else {
+      const speed = map.speedAt(0);
+      if (speed !== 1) chain.push(`setpts=${num(1 / speed)}*PTS`);
+    }
   }
 
   chain.push(...buildEffectFilters(clip.effects));
+  // Blur keyframes: per-frame sigma on top of the static effects (preview order).
+  chain.push(...buildBlurKeyframeFilters(clip, seg.leadSeconds, frames, fps, `kb${label}`));
   // Spatial transitions (zoom/blur) must run BEFORE the output scale so the
   // fit-scale upsamples the cropped/blurred region back to W×H.
-  chain.push(...buildSpatialTransitionVideoFilters(clip.effects, duration, W, H, fps));
+  chain.push(...buildSpatialTransitionVideoFilters(clip.effects, duration, W, H, fps, `tb${label}`));
 
   // Fit (object-contain) to the output frame, like the preview <video>.
   chain.push(`scale=${W}:${H}:force_original_aspect_ratio=decrease`);
@@ -101,7 +119,7 @@ export function appendBaseClipVideo(
   const { clip } = seg;
   const { width: W, height: H, fps } = frame;
   const duration = seg.frames / fps;
-  filterParts.push(`[${srcLabel}]${buildLinearChain(seg, frame).join(',')}[${label}]`);
+  filterParts.push(`[${srcLabel}]${buildLinearChain(seg, frame, label).join(',')}[${label}]`);
   let out = label;
 
   // Glow (requires split/blend — cannot be in the linear chain)

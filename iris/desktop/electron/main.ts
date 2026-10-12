@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell, Tray, Menu, nativeImage } from 'electron';
+import { app, BrowserWindow, ipcMain, shell, Tray, Menu, nativeImage, nativeTheme } from 'electron';
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
@@ -7,7 +7,8 @@ import { fileURLToPath } from 'url';
 import { setupAuthHandlers } from './ipc/auth';
 import { DesktopOAuthFlow } from './ipc/desktop-oauth';
 import { setupFileHandlers } from './ipc/files';
-import { setupStorageHandlers } from './ipc/storage';
+import { setupStorageHandlers, readSetting } from './ipc/storage';
+import { THEME_SETTING_KEY, windowBackgroundFor } from './windowTheme';
 import { setupUpdaterHandlers, checkForUpdatesOnStartup, runStartupUpdateGate } from './ipc/updater';
 import { setupExportHandlers } from './ipc/export';
 import { setupProxyHandlers } from './ipc/proxy';
@@ -205,6 +206,16 @@ function handleProtocolUrl(url: string) {
   });
 }
 
+/** Native background for the saved theme ('system' follows the OS), so a light launch never flashes dark. */
+function themedWindowBackground(): string {
+  return windowBackgroundFor(readSetting(THEME_SETTING_KEY), nativeTheme.shouldUseDarkColors);
+}
+
+/** Keep the open main window's native background in step with the theme (resize / reload paint it). */
+function syncWindowBackground(): void {
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.setBackgroundColor(themedWindowBackground());
+}
+
 function createWindow() {
   // Only use vite dev server in explicit development mode (not test/production)
   const isDev = (process.env.NODE_ENV === 'development' || !app.isPackaged) && process.env.USE_BUILT !== 'true';
@@ -228,7 +239,7 @@ function createWindow() {
     ...(process.platform === 'linux' ? {
       frame: false,
     } : {}),
-    backgroundColor: '#09090b',
+    backgroundColor: themedWindowBackground(),
     // E2E: keep the window off-screen so automated runs don't take over the desktop.
     ...(hideTestWindow ? { show: false } : {}),
     icon: path.join(__dirname, '../resources/icon.png'),
@@ -330,7 +341,12 @@ if (!skipSingleInstanceLock) {
 // Setup IPC handlers
 setupAuthHandlers();
 setupFileHandlers();
-setupStorageHandlers();
+setupStorageHandlers({
+  onSet: (key) => {
+    if (key === THEME_SETTING_KEY) syncWindowBackground();
+  },
+});
+nativeTheme.on('updated', syncWindowBackground);
 setupExportHandlers();
 setupProxyHandlers();
 setupPrerenderHandlers();

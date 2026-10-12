@@ -16,6 +16,8 @@ export function buildSpatialTransitionVideoFilters(
   outW: number,
   outH: number,
   fps: number,
+  /** Unique gblur instance name for the blur transition's sendcmd target. */
+  tag = 'tblur',
 ): string[] {
   if (!effects) return [];
   const filters: string[] = [];
@@ -63,7 +65,7 @@ export function buildSpatialTransitionVideoFilters(
         for (let i = 0; i <= STEPS; i++) {
           const tt = (i / STEPS) * dur;
           const sigma = maxBlur * (1 - i / STEPS);
-          cmds.push(`${tt.toFixed(4)} gblur sigma ${sigma.toFixed(2)}`);
+          cmds.push(`${tt.toFixed(4)} gblur@${tag} sigma ${sigma.toFixed(2)}`);
         }
       }
       if (pos === 'end' || pos === 'both') {
@@ -71,11 +73,13 @@ export function buildSpatialTransitionVideoFilters(
         for (let i = 0; i <= STEPS; i++) {
           const tt = startT + (i / STEPS) * dur;
           const sigma = maxBlur * (i / STEPS);
-          cmds.push(`${tt.toFixed(4)} gblur sigma ${sigma.toFixed(2)}`);
+          cmds.push(`${tt.toFixed(4)} gblur@${tag} sigma ${sigma.toFixed(2)}`);
         }
       }
-      if (pos === 'both') cmds.push(`${dur.toFixed(4)} gblur sigma 0`);
-      filters.push(`sendcmd=c='${cmds.join(';')}',gblur=sigma=0`);
+      if (pos === 'both') cmds.push(`${dur.toFixed(4)} gblur@${tag} sigma 0`);
+      // Instance target: a bare `gblur` target would also drive every other
+      // gblur in the graph (static Blur effects, other clips' blur keyframes).
+      filters.push(`sendcmd=c='${cmds.join(';')}',gblur@${tag}=sigma=0`);
     }
   }
   return filters;

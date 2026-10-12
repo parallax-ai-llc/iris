@@ -1066,7 +1066,7 @@ export interface ImageEditorActions {
   setColorRangeFuzziness: (value: number) => void;
   selectSubject: () => Promise<void>;
   selectLayerPixels: (layerId: string) => Promise<void>;
-  refineEdge: (options: { radius: number; smoothing: number; feather: number; contrast: number }) => void;
+  refineEdge: (options: { radius: number; smoothing: number; feather: number; contrast: number }) => Promise<void>;
   contentAwareFill: () => Promise<void>;
 
   // Crop
@@ -2071,25 +2071,14 @@ export function _createImageEditorSlice(
 
       setProcessing(true, 'Selecting subject...');
       try {
-        const { removeBackground, getAssetStatus, uploadImage } = await import('@/shared/api/image.api');
+        const { removeBackground, getAssetStatus } = await import('@/shared/api/image.api');
+        const { resolveAIInputAssetId } = await import('@/features/image-editor/lib/aiSource');
 
-        let assetId = sourceAsset.id;
-
-        // Handle local assets: upload first
-        if (assetId.startsWith('local-')) {
-          const originalImageUrl = get().originalImageUrl;
-          if (!originalImageUrl) throw new Error('No image available for subject selection');
-
-          const response = await fetch(originalImageUrl);
-          const blob = await response.blob();
-          const file = new File([blob], `${sourceAsset.name || 'image'}.png`, { type: 'image/png' });
-
-          const uploaded = await uploadImage(file, { storagePath: 'images', name: sourceAsset.name });
-          if (!uploaded) throw new Error('Failed to upload image for subject selection');
-
-          assetId = uploaded.id;
-          set({ sourceAsset: uploaded });
-        }
+        // Same input as the other AI tools: the original asset only while the
+        // document still matches it; otherwise (edited, cropped, local file)
+        // the current composite is uploaded so the mask lines up with the canvas.
+        const assetId = await resolveAIInputAssetId(get());
+        if (!assetId) throw new Error('No image available for subject selection');
 
         const result = await removeBackground(assetId);
         if (!result) throw new Error('Failed to start subject selection');

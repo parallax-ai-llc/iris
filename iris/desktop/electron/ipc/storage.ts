@@ -42,7 +42,17 @@ function writeStore(data: AppSettings): void {
   fs.writeFileSync(getStorePath(), JSON.stringify(data, null, 2), 'utf-8');
 }
 
-export function setupStorageHandlers() {
+/** One stored setting, readable from the main process before any window exists. */
+export function readSetting(key: string): unknown {
+  return readStore()[key] ?? null;
+}
+
+interface StorageHandlerOptions {
+  /** Called after a key is written (e.g. to follow `app:theme` in the native window). */
+  onSet?: (key: string, value: unknown) => void;
+}
+
+export function setupStorageHandlers(options: StorageHandlerOptions = {}) {
   ipcMain.handle('storage:get', (_, key: string) => {
     const store = readStore();
     return store[key] ?? null;
@@ -52,6 +62,7 @@ export function setupStorageHandlers() {
     const store = readStore();
     store[key] = value;
     writeStore(store);
+    options.onSet?.(key, value);
   });
 
   ipcMain.handle('storage:delete', (_, key: string) => {

@@ -130,7 +130,7 @@ const GridAssetCard = memo(function GridAssetCard({
             />
             {/* Play icon overlay */}
             {!isHovering && (
-              <div className="absolute inset-0 flex items-center justify-center">
+              <div data-theme="dark" className="absolute inset-0 flex items-center justify-center">
                 <div className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center">
                   <Play className="w-6 h-6 text-white ml-0.5" fill="white" />
                 </div>
@@ -156,6 +156,7 @@ const GridAssetCard = memo(function GridAssetCard({
         {/* Selection checkbox */}
         <button
           onClick={handleSelectClick}
+          data-theme="dark"
           className={cn(
             'absolute top-2 left-2 w-6 h-6 rounded-md transition-all',
             'flex items-center justify-center',
@@ -168,7 +169,7 @@ const GridAssetCard = memo(function GridAssetCard({
         </button>
 
         {/* Type badge */}
-        <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/50 text-xs text-white/80">
+        <div data-theme="dark" className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/50 text-xs text-white/80">
           {isVideo ? 'VIDEO' : 'IMAGE'}
         </div>
 
@@ -180,6 +181,7 @@ const GridAssetCard = memo(function GridAssetCard({
                 e.stopPropagation();
                 setShowMenu(!showMenu);
               }}
+              data-theme="dark"
               className="p-1.5 rounded-md bg-black/50 text-white hover:bg-black/70 transition-colors"
             >
               <MoreVertical className="w-4 h-4" />

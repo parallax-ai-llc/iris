@@ -232,6 +232,8 @@ export const VideoPlayer = memo(function VideoPlayer({
   return (
     <div
       ref={containerRef}
+      // Video surface: black frame + white controls in every theme.
+      data-theme="dark"
       className={cn(
         'relative bg-black rounded-xl overflow-hidden group',
         className

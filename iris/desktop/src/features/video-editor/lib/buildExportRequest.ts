@@ -13,6 +13,9 @@ import type {
   Track, VideoClip, AudioClip, MusicClip, SubtitleClip, AdjustmentClip,
 } from '@/types/editor.types';
 import { renderSubtitleClipToPng } from '@/features/video-editor/lib/renderSubtitlePng';
+import { renderSubtitleClipFrames } from './renderSubtitleFrames';
+import { isSubtitleAnimated } from './subtitleAnimation';
+import { buildTimeMap } from './timeRemap';
 import type { ClipEffect, Keyframe } from '@/types/videoProject.types';
 import { flattenCompoundClips } from './flattenCompoundClips';
 import { isEmbeddedAudioHandledExternally } from './trackAudio';
@@ -143,11 +146,16 @@ export async function buildExportRequest(
         const startTime = trimmedStart - rangeStart;
         const endTime = trimmedEnd - rangeStart;
 
-        const speed = (clip as { speed?: number }).speed ?? 1;
         const leftTrim = Math.max(0, rangeStart - clip.startTime);
         const rightTrim = Math.max(0, clip.endTime - rangeEnd);
-        const sourceStartTime = clip.sourceStartTime + leftTrim * speed;
-        const sourceEndTime = clip.sourceEndTime - rightTrim * speed;
+        // Source offsets follow the clip's speed (∫speed for a speed curve —
+        // the mapping the preview and the export share, lib/timeRemap.ts).
+        const map = buildTimeMap(clip as Parameters<typeof buildTimeMap>[0]);
+        const clipDur = clip.endTime - clip.startTime;
+        const sourceStartTime = clip.sourceStartTime + map.sourceOffsetAt(leftTrim);
+        const sourceEndTime = map.variable
+          ? clip.sourceStartTime + map.sourceOffsetAt(clipDur - rightTrim)
+          : clip.sourceEndTime - map.sourceOffsetAt(rightTrim);
 
         const base = {
           id: clip.id,
@@ -180,6 +188,9 @@ export async function buildExportRequest(
             transform: vc.transform,
             effects: exportEffects(vc.effects),
             keyframes: exportKeyframes(vc.keyframes, leftTrim),
+            timeRemappingKeyframes: vc.timeRemappingKeyframes?.length
+              ? vc.timeRemappingKeyframes.map((k) => ({ time: k.time - leftTrim, speed: k.speed }))
+              : undefined,
           };
         }
 
@@ -205,6 +216,9 @@ export async function buildExportRequest(
             ...base,
             text: sc.text,
             style: sc.style,
+            animationKeyframes: sc.animationKeyframes?.length
+              ? sc.animationKeyframes.map((k) => ({ ...k, time: k.time - leftTrim }))
+              : undefined,
           };
         }
 
@@ -231,9 +245,13 @@ export async function buildExportRequest(
       }),
   }));
 
-  // Rasterize subtitle clips to full-frame PNGs for pixel-accurate burned output.
+  // Rasterize subtitle clips to full-frame PNGs for pixel-accurate burned output:
+  // one PNG for a static subtitle, one per output frame for an animated one.
   let subtitleOverlays:
-    | Array<{ pngDataUrl: string; startTime: number; endTime: number }>
+    | Array<{
+      pngDataUrl?: string; frameDataUrls?: string[]; frameIndex?: number[];
+      startTime: number; endTime: number;
+    }>
     | undefined;
 
   if (includeSubtitles && subtitleFormat === 'burned') {
@@ -253,6 +271,12 @@ export async function buildExportRequest(
           const trimmedEnd = Math.min(clip.endTime, rangeEnd);
           const startTime = trimmedStart - rangeStart;
           const endTime = trimmedEnd - rangeStart;
+          if (isSubtitleAnimated(clip)) {
+            const seq = await renderSubtitleClipFrames(
+              clip, width, height, frameRate, startTime, endTime, rangeStart - clip.startTime,
+            );
+            return { ...seq, startTime, endTime };
+          }
           const pngDataUrl = await renderSubtitleClipToPng(clip, width, height);
           return { pngDataUrl, startTime, endTime };
         }),

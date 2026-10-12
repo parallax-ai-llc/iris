@@ -89,21 +89,22 @@ const AssetGridItem = memo(function AssetGridItem({
       />
 
       {/* Type badge */}
-      <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/60 text-[10px] text-white/80">
+      <div data-theme="dark" className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/60 text-[10px] text-white/80">
         {isVideo ? t('storage.badgeVideo') : t('storage.badgeImage')}
       </div>
 
       {/* Selection indicator */}
       {isSelected && (
-        <div className="absolute inset-0 bg-white/10 flex items-center justify-center">
+        <div data-theme="dark" className="absolute inset-0 bg-white/10 flex items-center justify-center">
           <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
             <Check className="w-6 h-6 text-zinc-900" />
           </div>
         </div>
       )}
 
-      {/* Info overlay on hover */}
+      {/* Info overlay on hover (photo scrim: dark in every theme) */}
       <div
+        data-theme="dark"
         className={cn(
           'absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 to-transparent',
           'opacity-0 group-hover:opacity-100 transition-opacity',

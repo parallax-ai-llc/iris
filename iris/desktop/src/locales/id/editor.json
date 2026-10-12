@@ -21,11 +21,7 @@
     "ffmpegUpgradeMessage": "Some transition effects require FFmpeg 4.3 or higher. Please upgrade to the latest version.",
     "ffmpegPreparing": "Preparing video encoder...",
     "ffmpegDownloading": "Downloading video encoder...",
-    "ffmpegSetupFailed": "Couldn't set up the video encoder",
-    "fidelityTitle": "Beberapa suntingan tidak akan muncul di file yang diekspor",
-    "fidelitySpeedKeyframes": "{{count}} klip dengan keyframe kecepatan atau time remapping akan diekspor dengan kecepatan dasarnya",
-    "fidelityBlurKeyframes": "{{count}} klip dengan keyframe blur akan diekspor tanpa animasi blur",
-    "fidelitySubtitleAnimation": "{{count}} subtitle animasi akan diekspor sebagai teks statis"
+    "ffmpegSetupFailed": "Couldn't set up the video encoder"
   },
   "lumetri": {
     "colorMatchAnalyzing": "Color Match: AI analyzing..."

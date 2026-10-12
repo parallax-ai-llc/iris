@@ -21,11 +21,7 @@
     "ffmpegUpgradeMessage": "Some transition effects require FFmpeg 4.3 or higher. Please upgrade to the latest version.",
     "ffmpegPreparing": "Preparing video encoder...",
     "ffmpegDownloading": "Downloading video encoder...",
-    "ffmpegSetupFailed": "Couldn't set up the video encoder",
-    "fidelityTitle": "কিছু সম্পাদনা রপ্তানি করা ফাইলে দেখা যাবে না",
-    "fidelitySpeedKeyframes": "স্পিড কীফ্রেম বা টাইম রিম্যাপিং থাকা {{count}}টি ক্লিপ মূল গতিতে রপ্তানি হবে",
-    "fidelityBlurKeyframes": "ব্লার কীফ্রেম থাকা {{count}}টি ক্লিপ অ্যানিমেটেড ব্লার ছাড়াই রপ্তানি হবে",
-    "fidelitySubtitleAnimation": "{{count}}টি অ্যানিমেটেড সাবটাইটেল স্থির টেক্সট হিসেবে রপ্তানি হবে"
+    "ffmpegSetupFailed": "Couldn't set up the video encoder"
   },
   "lumetri": {
     "colorMatchAnalyzing": "Color Match: AI analyzing..."

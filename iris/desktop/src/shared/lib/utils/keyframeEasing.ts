@@ -34,6 +34,39 @@ export function easeKeyframeProgress(
   return t;
 }
 
+/** Minimal keyframe shape shared by the editor's Keyframe and the export's ExportKeyframe. */
+export interface EasedKeyframe {
+  time: number;
+  value: number;
+  easing?: string;
+  bezierPoints?: [number, number, number, number];
+}
+
+/**
+ * Value of a curve at time `t` — the preview's interpolation rule
+ * (effectRenderer.interpolateKeyframes): hold the first value before the first
+ * keyframe, the last value after the last one, and between two keyframes ease
+ * with the OUT-going easing of the earlier one. `kfs` must be sorted by time.
+ * Used by the export for values it evaluates in JS (speed curves, blur steps,
+ * subtitle animation) so both sides read the same curve.
+ */
+export function interpolateKeyframeValue(kfs: readonly EasedKeyframe[], t: number): number | undefined {
+  if (kfs.length === 0) return undefined;
+  if (kfs.length === 1) return kfs[0].value;
+  if (t <= kfs[0].time) return kfs[0].value;
+  const last = kfs[kfs.length - 1];
+  if (t >= last.time) return last.value;
+  for (let i = 0; i < kfs.length - 1; i++) {
+    const k0 = kfs[i];
+    const k1 = kfs[i + 1];
+    if (t >= k0.time && t <= k1.time) {
+      const p = (t - k0.time) / (k1.time - k0.time);
+      return k0.value + (k1.value - k0.value) * easeKeyframeProgress(k0.easing, p, k0.bezierPoints);
+    }
+  }
+  return last.value;
+}
+
 /**
  * CSS-style cubic-bezier easing.
  * Solves for parameter u where x(u) = t (Newton's method), then returns y(u).

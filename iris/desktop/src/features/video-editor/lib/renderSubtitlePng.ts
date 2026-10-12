@@ -14,13 +14,20 @@
  *  - stroke → paint-order stroke
  *  - dropShadow → feDropShadow (omitted when animation === 'glow')
  *  - textTransform applied before measuring / rendering
- *  - Export renders settled state (displayProgress = 1, no entrance animation)
+ *  - Without a frame time: settled state (displayProgress = 1, no animation)
+ *  - With a frame time (animated subtitles, one image per output frame): the
+ *    preset values and animationKeyframes of lib/subtitleAnimation.ts at that
+ *    instant — the same values SubtitleOverlay renders
  *
- * Limitation: animations are rendered fully settled. Font availability depends
- * on what the OS has installed.
+ * Limitation: font availability depends on what the OS has installed; the
+ * preview's CSS transitions (0.15-0.3 s easing between states) are not drawn.
  */
 
 import type { SubtitleClip } from '@/types/editor.types';
+import {
+  subtitleAnimationFrameAt, subtitleKeyframeState, type SubtitleAnimationFrame,
+} from './subtitleAnimation';
+import { buildAnimatedTextBody, escapeXml } from './subtitleSvgText';
 
 // ==================== Text measurement ====================
 
@@ -78,10 +85,18 @@ function wrapText(
 
 // ==================== SVG builder (exported for unit tests) ====================
 
-export function buildSubtitleSvg(clip: SubtitleClip, W: number, H: number): string {
-  const style = clip.style;
+/** A specific instant of the clip (seconds from its start) for animated output. */
+export interface SubtitleSvgFrame {
+  time: number;
+}
 
-  const fontSize = style.fontSize;
+const fmt = (n: number) => String(Number(n.toFixed(3)));
+
+export function buildSubtitleSvg(clip: SubtitleClip, W: number, H: number, frame?: SubtitleSvgFrame): string {
+  const style = clip.style;
+  const kf = frame ? subtitleKeyframeState(clip.animationKeyframes, frame.time) : {};
+
+  const fontSize = kf.fontSize ?? style.fontSize;
   const fontFamily = style.fontFamily || 'Arial';
   const fontWeight = style.fontWeight ?? 'normal';
   const fontStyle = style.fontStyle ?? 'normal';
@@ -103,8 +118,15 @@ export function buildSubtitleSvg(clip: SubtitleClip, W: number, H: number): stri
   const fontStr = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`;
 
   // Center anchor in project px
-  const centerX = (style.position.x / 100) * W;
-  const centerY = (style.position.y / 100) * H;
+  const centerX = ((kf.x ?? style.position.x) / 100) * W;
+  const centerY = ((kf.y ?? style.position.y) / 100) * H;
+
+  // Preset animation state at this instant (null = settled / static text).
+  const anim: SubtitleAnimationFrame | null = frame && animation !== 'none'
+    ? subtitleAnimationFrameAt(
+      displayText, animation, frame.time, clip.endTime - clip.startTime,
+      fontColor, style.animationColor ?? '#FFD700')
+    : null;
 
   // Determine box width
   let boxW: number;
@@ -183,18 +205,24 @@ export function buildSubtitleSvg(clip: SubtitleClip, W: number, H: number): stri
   const hasDropShadow = !!style.dropShadow && !hasGlow;
   const shadowId = 'ds';
 
-  // ---- Build SVG tspan elements ----
-  const tspans = lines
-    .map((line, i) => {
-      const escapedLine = escapeXml(line);
-      const dy = i === 0 ? '0' : lineHeightPx.toFixed(2);
-      return `    <tspan x="${textX.toFixed(2)}" dy="${dy}">${escapedLine}</tspan>`;
-    })
-    .join('\n');
-
   // ---- Assemble SVG ----
   let defsContent = '';
-  if (hasGlow) {
+  if (hasGlow && anim) {
+    // Pulsing glow at this instant: the preview's
+    // "0 0 r color, 0 0 2r color@25%" text-shadow (blur radius r → σ = r / 2).
+    const r = anim.glow;
+    const c = escapeXml(style.animationColor ?? '#FFD700'); // preview default accent
+    defsContent =
+      `\n  <defs>\n    <filter id="${glowId}" x="-50%" y="-50%" width="200%" height="200%">` +
+      `\n      <feGaussianBlur in="SourceAlpha" stdDeviation="${(r / 2).toFixed(2)}" result="b1"/>` +
+      `\n      <feFlood flood-color="${c}" result="c1"/>` +
+      `\n      <feComposite in="c1" in2="b1" operator="in" result="g1"/>` +
+      `\n      <feGaussianBlur in="SourceAlpha" stdDeviation="${r.toFixed(2)}" result="b2"/>` +
+      `\n      <feFlood flood-color="${c}" flood-opacity="0.25" result="c2"/>` +
+      `\n      <feComposite in="c2" in2="b2" operator="in" result="g2"/>` +
+      `\n      <feMerge><feMergeNode in="g2"/><feMergeNode in="g1"/><feMergeNode in="SourceGraphic"/></feMerge>` +
+      `\n    </filter>\n  </defs>`;
+  } else if (hasGlow) {
     // Coloured halo: blur the glyph alpha, flood with the accent colour, then
     // stack the halo twice under the original text (matches the preview's
     // "0 0 4px color, 0 0 8px color" double text-shadow).
@@ -219,13 +247,27 @@ export function buildSubtitleSvg(clip: SubtitleClip, W: number, H: number): stri
     ? ` stroke="${escapeXml(strokeColor)}" stroke-width="${strokeWidth}"`
     : ' stroke="none" stroke-width="0"';
   const letterSpacingAttr = letterSpacing !== 0 ? ` letter-spacing="${letterSpacing}"` : '';
+  const fontAttrs =
+    ` font-family="${escapeXml(fontFamily)}" font-size="${fontSize}" font-weight="${fontWeight}"` +
+    ` font-style="${fontStyle}"${letterSpacingAttr}${paintOrderAttr}${strokeAttr}${filterAttr}`;
 
-  const svg = [
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">`,
-    defsContent,
-    `  <rect x="${boxX.toFixed(2)}" y="${boxY.toFixed(2)}" width="${boxW.toFixed(2)}" height="${boxH.toFixed(2)}"`,
-    `        rx="4" ry="4"`,
-    `        fill="${escapeXml(backgroundColor)}" fill-opacity="${backgroundOpacity}" />`,
+  // ---- Text body: static lines, or the animated frame's spans ----
+  const staticTspans = () => lines
+    .map((line, i) => {
+      const dy = i === 0 ? '0' : lineHeightPx.toFixed(2);
+      return `    <tspan x="${textX.toFixed(2)}" dy="${dy}">${escapeXml(line)}</tspan>`;
+    })
+    .join('\n');
+  const animated = anim
+    ? buildAnimatedTextBody(displayText, anim, {
+      lines, textX, firstBaselineY, lineHeightPx, fontSize, fontColor, hasStroke,
+      anchor: textAnchor as 'start' | 'middle' | 'end',
+      measure: (s) => measureTextWidth(s, fontStr, fontSize, letterSpacing),
+      textAttrs: fontAttrs,
+    })
+    : null;
+
+  const textLines = [
     `  <text x="${textX.toFixed(2)}" y="${firstBaselineY.toFixed(2)}"`,
     `        font-family="${escapeXml(fontFamily)}"`,
     `        font-size="${fontSize}"`,
@@ -233,8 +275,39 @@ export function buildSubtitleSvg(clip: SubtitleClip, W: number, H: number): stri
     `        font-style="${fontStyle}"`,
     `        fill="${escapeXml(fontColor)}"`,
     `        text-anchor="${textAnchor}"${letterSpacingAttr}${paintOrderAttr}${strokeAttr}${filterAttr}>`,
-    tspans,
+    animated ? animated.tspans : staticTspans(),
     `  </text>`,
+    animated?.pops ?? '',
+  ].filter(Boolean);
+
+  // slide-up moves / fades the text inside the box (not the box itself).
+  const block = anim && (anim.blockTranslateY !== 0 || anim.blockOpacity !== 1)
+    ? [`  <g transform="translate(0 ${fmt(anim.blockTranslateY)})" opacity="${fmt(anim.blockOpacity)}">`, ...textLines, '  </g>']
+    : textLines;
+
+  const content = [
+    `  <rect x="${boxX.toFixed(2)}" y="${boxY.toFixed(2)}" width="${boxW.toFixed(2)}" height="${boxH.toFixed(2)}"`,
+    `        rx="4" ry="4"`,
+    `        fill="${escapeXml(backgroundColor)}" fill-opacity="${backgroundOpacity}" />`,
+    ...block,
+  ];
+
+  // animationKeyframes opacity / scale / rotation act on the whole box about
+  // its centre (preview: translate(-50%,-50%) scale() rotate() + opacity).
+  const groupAttrs: string[] = [];
+  if (kf.opacity !== undefined) groupAttrs.push(`opacity="${fmt(Math.max(0, Math.min(1, kf.opacity)))}"`);
+  if (kf.scale !== undefined || kf.rotation !== undefined) {
+    groupAttrs.push(
+      `transform="translate(${fmt(centerX)} ${fmt(centerY)}) rotate(${fmt(kf.rotation ?? 0)})` +
+      ` scale(${fmt(kf.scale ?? 1)}) translate(${fmt(-centerX)} ${fmt(-centerY)})"`,
+    );
+  }
+  const body = groupAttrs.length > 0 ? [`  <g ${groupAttrs.join(' ')}>`, ...content, '  </g>'] : content;
+
+  const svg = [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">`,
+    defsContent,
+    ...body,
     `</svg>`,
   ]
     .filter(Boolean)
@@ -243,37 +316,10 @@ export function buildSubtitleSvg(clip: SubtitleClip, W: number, H: number): stri
   return svg;
 }
 
-// ==================== XML escaping ====================
-
-function escapeXml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-}
-
 // ==================== Public API ====================
 
-/**
- * Rasterize one subtitle clip to a full-frame (W×H) transparent PNG data URL.
- *
- * The box is positioned at project resolution (scale=1), matching
- * SubtitleOverlay.tsx exactly.
- *
- * Limitations:
- *  - Animations are rendered in their settled state (progress=1). Per-frame
- *    animation is not supported during export.
- *  - Font availability depends on what the OS has installed.
- */
-export async function renderSubtitleClipToPng(
-  clip: SubtitleClip,
-  projectWidth: number,
-  projectHeight: number,
-): Promise<string> {
-  const svgStr = buildSubtitleSvg(clip, projectWidth, projectHeight);
-
+/** Rasterize an SVG string to a W×H transparent PNG data URL (renderer only). */
+export async function rasterizeSubtitleSvg(svgStr: string, width: number, height: number): Promise<string> {
   // Use Blob URL to avoid the 2MB data: URL limit for large frames
   const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
   const url = URL.createObjectURL(svgBlob);
@@ -287,8 +333,8 @@ export async function renderSubtitleClipToPng(
     });
 
     const canvas = document.createElement('canvas');
-    canvas.width = projectWidth;
-    canvas.height = projectHeight;
+    canvas.width = width;
+    canvas.height = height;
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Could not get 2D canvas context');
     ctx.drawImage(img, 0, 0);
@@ -296,4 +342,20 @@ export async function renderSubtitleClipToPng(
   } finally {
     URL.revokeObjectURL(url);
   }
+}
+
+/**
+ * Rasterize one subtitle clip to a full-frame (W×H) transparent PNG data URL,
+ * in its settled state. Animated subtitles go through renderSubtitleFrames.ts
+ * (one image per output frame) instead.
+ *
+ * The box is positioned at project resolution (scale=1), matching
+ * SubtitleOverlay.tsx exactly. Font availability depends on the OS.
+ */
+export async function renderSubtitleClipToPng(
+  clip: SubtitleClip,
+  projectWidth: number,
+  projectHeight: number,
+): Promise<string> {
+  return rasterizeSubtitleSvg(buildSubtitleSvg(clip, projectWidth, projectHeight), projectWidth, projectHeight);
 }

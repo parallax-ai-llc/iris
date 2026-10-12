@@ -1,7 +1,11 @@
 /**
  * Burned-subtitle ASS fallback (used only when the renderer did not send
  * pre-rasterized subtitle PNGs). Moved from electron/ipc/export.ts.
+ * Subtitle animation (animationKeyframes + presets) is expressed with ASS
+ * override tags by ./ass-animation.ts.
  */
+
+import { keyframePieces, presetText, slideUpMove, type AssAnimSub } from './ass-animation';
 
 // ==================== ASS Subtitle Generator ====================
 
@@ -35,7 +39,10 @@ export interface SubClip {
   startTime: number;
   endTime: number;
   text?: string;
+  animationKeyframes?: Array<{ time: number; property: string; value: number; easing?: string }>;
   style?: {
+    animation?: string;
+    animationColor?: string;
     fontSize?: number;
     fontFamily?: string;
     fontColor?: string;
@@ -78,6 +85,8 @@ export function buildAssContent(subs: SubClip[], width: number, height: number):
   const assEvents = subs.map((sub) => {
     const style = sub.style;
     const tags: string[] = [];
+    let posTag = '';
+    let bgAlpha255 = 0;
 
     if (style) {
       // Use \an5 (middle-center anchor) + \pos(x,y) to centre the box at (x%,y%).
@@ -90,7 +99,7 @@ export function buildAssContent(subs: SubClip[], width: number, height: number):
       if (style.position) {
         const px = Math.round((style.position.x / 100) * width);
         const py = Math.round((style.position.y / 100) * height);
-        tags.push(`\\pos(${px},${py})`);
+        posTag = `\\pos(${px},${py})`;
       }
 
       // Font
@@ -100,13 +109,15 @@ export function buildAssContent(subs: SubClip[], width: number, height: number):
       if (style.fontWeight === 'bold') tags.push('\\b1');
       if (style.fontStyle === 'italic') tags.push('\\i1');
 
-      // Background (ASS BorderStyle=3 = opaque box, \\4c = box colour, \\4a = box alpha).
-      // paddingX/paddingY are approximated via \\bord — ASS padding is not per-axis,
-      // so we take the larger of the two and use it as the symmetric border width.
+      // Background (ASS BorderStyle=3 = opaque box drawn in the OUTLINE colour:
+      // \\3c = box colour, \\3a = box alpha; libass / VSFilter use BackColour
+      // \\4c only for the shadow). paddingX/paddingY are approximated via \\bord —
+      // ASS padding is not per-axis, so the larger of the two is the border.
       if (style.backgroundColor) {
         const bgAlpha = 1 - (style.backgroundOpacity ?? 0.7); // ASS alpha: 0=opaque, 1=transparent
-        tags.push(`\\4c${hexToAssBGR(style.backgroundColor)}&`);
-        tags.push(`\\4a&H${Math.round(bgAlpha * 255).toString(16).padStart(2, '0').toUpperCase()}&`);
+        bgAlpha255 = Math.round(bgAlpha * 255);
+        tags.push(`\\3c${hexToAssBGR(style.backgroundColor)}&`);
+        tags.push(`\\3a&H${bgAlpha255.toString(16).padStart(2, '0').toUpperCase()}&`);
         const padX = style.paddingX ?? 12;
         const padY = style.paddingY ?? 4;
         const bord = Math.max(padX, padY, 2);
@@ -119,28 +130,45 @@ export function buildAssContent(subs: SubClip[], width: number, height: number):
         tags.push(`\\bord${style.stroke.width}`);
       }
 
-      // Drop shadow
+      // Drop shadow (BackColour \\4c is the shadow colour in every border style)
       if (style.dropShadow) {
         tags.push(`\\shad${Math.round(style.dropShadow.blur)}`);
-        // Shadow colour goes to \\4c; if we already set it for background, this
-        // will override it — acceptable for clips that have a shadow but no bg.
-        if (!style.backgroundColor) {
-          tags.push(`\\4c${hexToAssBGR(style.dropShadow.color)}&`);
-        }
+        tags.push(`\\4c${hexToAssBGR(style.dropShadow.color)}&`);
       }
 
       // Letter spacing
       if (style.letterSpacing) tags.push(`\\fsp${style.letterSpacing}`);
     }
 
-    const overrideTags = tags.length > 0 ? `{${tags.join('')}}` : '';
-    let text = (sub.text || '').replace(/\n/g, '\\N');
-
+    let text = sub.text || '';
     // Text transform
     if (style?.textTransform === 'uppercase') text = text.toUpperCase();
     else if (style?.textTransform === 'lowercase') text = text.toLowerCase();
+    const escape = (t: string) => t.replace(/\n/g, '\\N');
 
-    return `Dialogue: 0,${toAssTime(sub.startTime)},${toAssTime(sub.endTime)},Default,,0,0,0,,${overrideTags}${text}`;
+    const animated = (style?.animation && style.animation !== 'none') || (sub.animationKeyframes?.length ?? 0) > 0;
+    if (!animated) {
+      const overrideTags = tags.length + (posTag ? 1 : 0) > 0 ? `{${tags.join('')}${posTag}}` : '';
+      return `Dialogue: 0,${toAssTime(sub.startTime)},${toAssTime(sub.endTime)},Default,,0,0,0,,${overrideTags}${escape(text)}`;
+    }
+
+    const animSub: AssAnimSub = {
+      startTime: sub.startTime, endTime: sub.endTime, text,
+      animationKeyframes: sub.animationKeyframes, animation: style?.animation,
+      fontColor: style?.fontColor ?? '#FFFFFF', animationColor: style?.animationColor ?? '#FFD700',
+      position: style?.position ?? { x: 50, y: 50 }, fontSize: style?.fontSize ?? 24,
+      alpha1: 0, alpha3: bgAlpha255, alpha4: 0,
+    };
+    const dur = sub.endTime - sub.startTime;
+    const pieces = (sub.animationKeyframes?.length ?? 0) > 0
+      ? keyframePieces(animSub, width, height)
+      : [{ start: 0, end: dur, tags: slideUpMove(animSub, width, height) ?? posTag }];
+    return pieces.map((piece) => {
+      const preset = presetText(animSub, piece.start, piece.end, escape);
+      const head = `{${tags.join('')}${piece.tags}${preset.head}}`;
+      return `Dialogue: 0,${toAssTime(sub.startTime + piece.start)},${toAssTime(sub.startTime + piece.end)},` +
+        `Default,,0,0,0,,${head}${preset.text}`;
+    }).join('\n');
   }).join('\n');
 
   return assHeader + '\n' + assEvents + '\n';

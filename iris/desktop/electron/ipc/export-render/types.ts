@@ -11,6 +11,19 @@ export interface SubtitleOverlayEntry {
   pngDataUrl?: string;
   /** Resolved temp file path written by the export handler. */
   pngPath?: string;
+  /**
+   * Animated subtitle (renderer): the distinct rasterised frames. Output frame
+   * round(startTime·fps) + i shows frameDataUrls[frameIndex[i]].
+   */
+  frameDataUrls?: string[];
+  frameIndex?: number[];
+  /**
+   * Animated subtitle (resolved by the export handler): image2 sequence
+   * pattern (…_%05d.png, numbered from 0) with one PNG per output frame,
+   * frame 0 = output frame round(startTime·fps).
+   */
+  framePattern?: string;
+  frameCount?: number;
   /** Timeline-relative start time (seconds). */
   startTime: number;
   /** Timeline-relative end time (seconds). */
@@ -110,8 +123,12 @@ export interface ExportClip {
     y: number;
   };
   effects?: ExportEffect[];
-  /** Property keyframes (opacity / scale / x / y / rotation / volume / brightness / contrast). */
+  /** Property keyframes (opacity / scale / x / y / rotation / volume / brightness / contrast / blur / speed). */
   keyframes?: ExportKeyframe[];
+  /** Time remapping: speed multiplier points (linear), used when there are no speed keyframes. */
+  timeRemappingKeyframes?: Array<{ time: number; speed: number }>;
+  /** Subtitle animation keyframes (seconds from the clip start; x / y in % of the frame). */
+  animationKeyframes?: Array<{ time: number; property: string; value: number; easing?: string }>;
   // Subtitle specific
   text?: string;
   /** Full SubtitleStyle passed through from the editor. The width/height/paddingX/paddingY
@@ -132,6 +149,9 @@ export interface ExportClip {
     letterSpacing?: number;
     lineHeight?: number;
     textTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
+    /** Preview animation preset (SubtitleOverlay) and its accent colour. */
+    animation?: string;
+    animationColor?: string;
     /** Width of the text box as % of the video frame width. */
     width?: number;
     /** Height of the text box as % of the video frame height. */

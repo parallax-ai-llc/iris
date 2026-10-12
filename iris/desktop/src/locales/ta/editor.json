@@ -21,11 +21,7 @@
     "ffmpegUpgradeMessage": "Some transition effects require FFmpeg 4.3 or higher. Please upgrade to the latest version.",
     "ffmpegPreparing": "Preparing video encoder...",
     "ffmpegDownloading": "Downloading video encoder...",
-    "ffmpegSetupFailed": "Couldn't set up the video encoder",
-    "fidelityTitle": "சில திருத்தங்கள் ஏற்றுமதி செய்யப்பட்ட கோப்பில் தோன்றாது",
-    "fidelitySpeedKeyframes": "வேக கீஃப்ரேம் அல்லது நேர மறுவரைபடம் உள்ள {{count}} கிளிப்புகள் அடிப்படை வேகத்தில் ஏற்றுமதி செய்யப்படும்",
-    "fidelityBlurKeyframes": "மங்கல் கீஃப்ரேம் உள்ள {{count}} கிளிப்புகள் அசைவூட்டிய மங்கல் இல்லாமல் ஏற்றுமதி செய்யப்படும்",
-    "fidelitySubtitleAnimation": "{{count}} அசைவூட்டிய வசனங்கள் நிலையான உரையாக ஏற்றுமதி செய்யப்படும்"
+    "ffmpegSetupFailed": "Couldn't set up the video encoder"
   },
   "lumetri": {
     "colorMatchAnalyzing": "Color Match: AI analyzing..."

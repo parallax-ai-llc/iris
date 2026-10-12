@@ -21,11 +21,7 @@
     "ffmpegUpgradeMessage": "Some transition effects require FFmpeg 4.3 or higher. Please upgrade to the latest version.",
     "ffmpegPreparing": "Preparing video encoder...",
     "ffmpegDownloading": "Downloading video encoder...",
-    "ffmpegSetupFailed": "Couldn't set up the video encoder",
-    "fidelityTitle": "การแก้ไขบางอย่างจะไม่ปรากฏในไฟล์ที่ส่งออก",
-    "fidelitySpeedKeyframes": "คลิป {{count}} รายการที่มีคีย์เฟรมความเร็วหรือการรีแมปเวลาจะถูกส่งออกด้วยความเร็วพื้นฐาน",
-    "fidelityBlurKeyframes": "คลิป {{count}} รายการที่มีคีย์เฟรมเบลอจะถูกส่งออกโดยไม่มีแอนิเมชันเบลอ",
-    "fidelitySubtitleAnimation": "คำบรรยายแบบเคลื่อนไหว {{count}} รายการจะถูกส่งออกเป็นข้อความนิ่ง"
+    "ffmpegSetupFailed": "Couldn't set up the video encoder"
   },
   "lumetri": {
     "colorMatchAnalyzing": "Color Match: AI analyzing..."

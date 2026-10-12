@@ -359,7 +359,8 @@ const SimpleVideoPlayer = memo(function SimpleVideoPlayer({
   }, [videoRef]);
 
   return (
-    <div className={cn('relative group', className)}>
+    // Video surface: black frame + white controls in every theme.
+    <div data-theme="dark" className={cn('relative group', className)}>
       <video
         ref={setVideoRef}
         src={src}

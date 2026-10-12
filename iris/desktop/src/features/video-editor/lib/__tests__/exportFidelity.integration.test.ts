@@ -10,111 +10,33 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { spawnSync } from 'child_process';
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
-import { buildFFmpegArgs } from '../../../../../electron/ipc/export-render/ffmpeg-args';
-import type { ExportClip, ExportRequest, ExportTrack } from '../../../../../electron/ipc/export-render/types';
+import type { ExportTrack } from '../../../../../electron/ipc/export-render/types';
 import { interpolateKeyframes } from '@/shared/lib/utils/effectRenderer';
 import { stereoPannerMatrix } from '../audioPan';
+import { FPS, H, W, audioClip, createHarness, luma, track, videoClip } from './exportFidelityHarness';
 
-function findFFmpeg(): string {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const mod = require('ffmpeg-static') as string | { default: string };
-  return typeof mod === 'string' ? mod : mod.default;
-}
-
-const FFMPEG = findFFmpeg();
-const W = 320;
-const H = 240;
-const FPS = 30;
-let dir = '';
+const h = createHarness('iris-export-fidelity-');
+const { pixel, frameCount, hasAudioStream, rms } = h;
 const src: Record<string, string> = {};
 
-function run(args: string[]): Buffer {
-  const r = spawnSync(FFMPEG, ['-hide_banner', '-loglevel', 'error', ...args], { maxBuffer: 256 * 1024 * 1024 });
-  if (r.status !== 0) throw new Error(`ffmpeg failed: ${r.stderr?.toString()}\nargs: ${args.join(' ')}`);
-  return r.stdout;
-}
-
 function makeVideo(name: string, color: string, freq: number | null, volume = 0.5): string {
-  const out = path.join(dir, name);
-  const a = ['-y', '-f', 'lavfi', '-i', `color=c=${color}:s=${W}x${H}:r=${FPS}:d=3`];
+  const a = ['-f', 'lavfi', '-i', `color=c=${color}:s=${W}x${H}:r=${FPS}:d=3`];
   if (freq !== null) a.push('-f', 'lavfi', '-i', `sine=frequency=${freq}:sample_rate=48000:duration=3`);
   a.push('-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p');
   if (freq !== null) a.push('-af', `volume=${volume}`, '-ac', '2', '-c:a', 'aac', '-b:a', '192k');
-  a.push('-t', '3', out);
-  run(a);
-  return out;
+  a.push('-t', '3');
+  return h.make(name, a);
 }
 
 function makeTone(name: string, freq: number, volume: number): string {
-  const out = path.join(dir, name);
-  run(['-y', '-f', 'lavfi', '-i', `sine=frequency=${freq}:sample_rate=48000:duration=3`,
-    '-af', `volume=${volume}`, '-ac', '2', '-c:a', 'pcm_s16le', out]);
-  return out;
+  return h.make(name, ['-f', 'lavfi', '-i', `sine=frequency=${freq}:sample_rate=48000:duration=3`,
+    '-af', `volume=${volume}`, '-ac', '2', '-c:a', 'pcm_s16le']);
 }
 
-let renderSeq = 0;
 function render(tracks: ExportTrack[], duration: number, sourcesWithAudio?: Set<string>): string {
-  const outputPath = path.join(dir, `out_${renderSeq++}.mp4`);
-  const request: ExportRequest = {
-    outputPath, format: 'mp4', quality: 'high', frameRate: FPS, width: W, height: H,
-    duration, tracks, includeSubtitles: false,
-  };
-  const args = buildFFmpegArgs(request, sourcesWithAudio ?? new Set([src.whiteSine, src.blueSine, src.tone, src.tone2]), { tempDir: dir });
-  run(args);
-  return outputPath;
-}
-
-/** RGB of pixel (x, y) of the frame shown at time t. */
-function pixel(file: string, t: number, x: number, y: number): [number, number, number] {
-  const buf = run(['-i', file, '-ss', t.toFixed(3), '-frames:v', '1', '-f', 'rawvideo', '-pix_fmt', 'rgb24', 'pipe:1']);
-  const i = (y * W + x) * 3;
-  return [buf[i], buf[i + 1], buf[i + 2]];
-}
-
-function frameCount(file: string): number {
-  const buf = run(['-i', file, '-map', '0:v:0', '-vf', 'scale=8:8', '-f', 'rawvideo', '-pix_fmt', 'gray', 'pipe:1']);
-  return buf.length / 64;
-}
-
-function hasAudioStream(file: string): boolean {
-  const r = spawnSync(FFMPEG, ['-hide_banner', '-i', file], { encoding: 'utf8' });
-  return (r.stderr ?? '').includes('Audio:');
-}
-
-/** Per-channel RMS of [t0, t0+d). */
-function rms(file: string, t0: number, d: number): { l: number; r: number } {
-  const buf = run(['-i', file, '-ss', t0.toFixed(3), '-t', d.toFixed(3), '-map', '0:a:0',
-    '-f', 'f32le', '-ac', '2', '-ar', '48000', 'pipe:1']);
-  const f = new Float32Array(buf.buffer, buf.byteOffset, Math.floor(buf.length / 4));
-  let l = 0; let r = 0;
-  const n = Math.floor(f.length / 2);
-  for (let i = 0; i < n; i++) { l += f[2 * i] ** 2; r += f[2 * i + 1] ** 2; }
-  return { l: Math.sqrt(l / n), r: Math.sqrt(r / n) };
-}
-
-const luma = ([r, g, b]: [number, number, number]) => 0.299 * r + 0.587 * g + 0.114 * b;
-
-function track(id: string, type: ExportTrack['type'], clips: ExportClip[], extra: Partial<ExportTrack> = {}): ExportTrack {
-  return { id, type, muted: false, volume: 1, clips, ...extra };
-}
-
-function videoClip(id: string, sourceUrl: string, start: number, end: number, extra: Partial<ExportClip> = {}): ExportClip {
-  return {
-    id, type: 'video', startTime: start, endTime: end, sourceStartTime: 0, sourceEndTime: end - start,
-    sourceUrl, volume: 1, muted: false, speed: 1,
-    transform: { scale: 1, rotation: 0, opacity: 1, x: 0, y: 0 }, effects: [], ...extra,
-  };
-}
-
-function audioClip(id: string, sourceUrl: string, start: number, end: number, extra: Partial<ExportClip> = {}): ExportClip {
-  return {
-    id, type: 'audio', startTime: start, endTime: end, sourceStartTime: 0, sourceEndTime: end - start,
-    sourceUrl, volume: 1, muted: false, fadeIn: 0, fadeOut: 0, ...extra,
-  };
+  return h.render(tracks, duration, {
+    sourcesWithAudio: sourcesWithAudio ?? new Set([src.whiteSine, src.blueSine, src.tone, src.tone2]),
+  });
 }
 
 /** Reference RMS of a source's audio in [t0, t0+d). */
@@ -122,7 +44,7 @@ const sourceRms = (file: string, t0 = 0.5, d = 1) => rms(file, t0, d);
 
 describe('export fidelity (real FFmpeg render)', () => {
   beforeAll(() => {
-    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'iris-export-fidelity-'));
+    h.setup();
     src.whiteSine = makeVideo('white_sine.mp4', 'white', 440, 0.5);
     src.blueSine = makeVideo('blue_sine.mp4', 'blue', 660, 0.5);
     src.whiteSilentStream = makeVideo('white_nosound.mp4', 'white', null);
@@ -130,9 +52,7 @@ describe('export fidelity (real FFmpeg render)', () => {
     src.tone2 = makeTone('tone2.wav', 300, 0.25);
   }, 60_000);
 
-  afterAll(() => {
-    if (dir) fs.rmSync(dir, { recursive: true, force: true });
-  });
+  afterAll(() => h.teardown());
 
   // ── #1 track mute / solo ────────────────────────────────────────────────
   it('#1 a muted video track keeps its pictures and only loses its sound', () => {

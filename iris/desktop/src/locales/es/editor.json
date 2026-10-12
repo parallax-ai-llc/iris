@@ -21,11 +21,7 @@
     "ffmpegUpgradeMessage": "Some transition effects require FFmpeg 4.3 or higher. Please upgrade to the latest version.",
     "ffmpegPreparing": "Preparing video encoder...",
     "ffmpegDownloading": "Downloading video encoder...",
-    "ffmpegSetupFailed": "Couldn't set up the video encoder",
-    "fidelityTitle": "Algunas ediciones no aparecerán en el archivo exportado",
-    "fidelitySpeedKeyframes": "{{count}} clip(s) con fotogramas clave de velocidad o reasignación de tiempo se exportarán a su velocidad base",
-    "fidelityBlurKeyframes": "{{count}} clip(s) con fotogramas clave de desenfoque se exportarán sin el desenfoque animado",
-    "fidelitySubtitleAnimation": "{{count}} subtítulo(s) animado(s) se exportarán como texto estático"
+    "ffmpegSetupFailed": "Couldn't set up the video encoder"
   },
   "lumetri": {
     "colorMatchAnalyzing": "Color Match: AI analyzing..."

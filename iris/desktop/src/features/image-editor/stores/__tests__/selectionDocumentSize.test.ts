@@ -57,6 +57,12 @@ vi.mock('@/shared/api/image.api', () => ({
   uploadImage: vi.fn(),
 }));
 
+// The edited document no longer matches the source asset, so the AI input is
+// the uploaded composite (same resolver as the other AI tools).
+vi.mock('@/features/image-editor/lib/aiSource', () => ({
+  resolveAIInputAssetId: vi.fn(async () => 'composite-1'),
+}));
+
 /** A 4x4 selected square at (3,2) on the 10x8 document. */
 function squareMask(): Uint8ClampedArray {
   const m = new Uint8ClampedArray(W * H);
@@ -114,6 +120,9 @@ describe('refineEdge', () => {
 describe('other actions that build a selection mask', () => {
   it('selectSubject builds the mask at document size', async () => {
     await store.getState().selectSubject();
+    // background removal runs on the current document, not the pre-edit original
+    const { removeBackground } = await import('@/shared/api/image.api');
+    expect(vi.mocked(removeBackground)).toHaveBeenCalledWith('composite-1');
     expect(vi.mocked(loadMaskAsSelection).mock.calls[0].slice(1)).toEqual([W, H]);
     expect(sizeOf(store.getState().selection!.maskDataUrl)).toEqual([W, H]);
   });

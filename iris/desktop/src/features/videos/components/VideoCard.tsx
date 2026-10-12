@@ -125,6 +125,7 @@ export const VideoCard = memo(function VideoCard({
       {/* Selection checkbox */}
       {isSelectionMode && !isProcessing && (
         <div
+          data-theme="dark"
           className={cn(
             'absolute top-2 left-2 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all z-10',
             isSelected
@@ -206,7 +207,7 @@ export const VideoCard = memo(function VideoCard({
 
           {/* Play icon overlay (when not hovering) */}
           {!isHovering && !hasError && videoUrl && (
-            <div className="absolute inset-0 flex items-center justify-center">
+            <div data-theme="dark" className="absolute inset-0 flex items-center justify-center">
               <div className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center">
                 <Play className="w-6 h-6 text-white ml-1" fill="white" />
               </div>
@@ -215,7 +216,7 @@ export const VideoCard = memo(function VideoCard({
 
           {/* Duration badge */}
           {duration && (
-            <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/70 rounded text-xs text-white flex items-center gap-1">
+            <div data-theme="dark" className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/70 rounded text-xs text-white flex items-center gap-1">
               <Clock className="w-3 h-3" />
               {formatDuration(duration)}
             </div>
@@ -225,15 +226,15 @@ export const VideoCard = memo(function VideoCard({
 
       {/* Reference badge */}
       {isReference && !isSelectionMode && (
-        <div className="absolute top-2 left-2 z-10 px-2 py-1 bg-white/10 rounded-md text-xs font-medium text-white flex items-center gap-1">
+        <div data-theme="dark" className="absolute top-2 left-2 z-10 px-2 py-1 bg-white/10 rounded-md text-xs font-medium text-white flex items-center gap-1">
           <ImageIcon className="w-3 h-3" />
           Reference
         </div>
       )}
 
-      {/* Overlay on hover - hidden in selection mode */}
+      {/* Overlay on hover - hidden in selection mode. Photo scrim: dark in every theme. */}
       {!isProcessing && !isFailed && !isSelectionMode && (
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+        <div data-theme="dark" className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
           {/* Info */}
           <div className="absolute bottom-0 left-0 right-0 p-3">
             <p className="text-sm font-medium text-white truncate">{video.name}</p>

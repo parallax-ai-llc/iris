@@ -248,8 +248,8 @@ export const PresetCreatorModal = memo(function PresetCreatorModal({
                       type="preview"
                       className="w-full h-40 object-cover"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                    <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
+                    <div data-theme="dark" className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                    <div data-theme="dark" className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
                       <span className="text-xs text-white truncate max-w-[70%]">
                         {selectedAsset.name || 'Reference image'}
                       </span>

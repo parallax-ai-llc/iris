@@ -192,7 +192,7 @@
   color: #ffffff;
   border-color: rgba(0, 0, 0, 0.6);
 }
-:root[data-theme="light"] :is(.btn-primary, .dt-chip-avatar, .dt-gen-cta, .we-run) {
+:root[data-theme="light"] :is(.btn-primary, .dt-chip-avatar, .dt-gen-cta, .we-run, .ast-send:not(.ast-send-stop), .ast-blocked-action) {
   /* dark ink on the (now dark) iris / silver gradients -> white */
   color: #ffffff;
 }
@@ -227,6 +227,16 @@
 :root[data-theme="light"] :is(.dt-conn-action, .dt-titlebar-beta) {
   color: #5b21b6;
 }
+/* Card "..." menus (projects, storage, batch): literal dark glass -> light popover. */
+:root[data-theme="light"] .glass-strong {
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow-md);
+}
+
+/* Photo / video overlays opt out of the light theme: an element with data-theme="dark"
+   (gallery card scrims, badges, play buttons, video players) gets the dark tokens back,
+   so `from-black/80` stays a dark scrim and `text-white` stays white on the picture. */
+
 /* Panels darkened with literal black overlays on the dark canvas. */
 :root[data-theme="light"] .dt-sidepanel {
   background: rgba(255, 255, 255, 0.6);

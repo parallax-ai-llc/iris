@@ -2,10 +2,11 @@
  * SubtitleOverlay - Draggable subtitle display with animation support
  */
 
-import { memo, useRef, useState, useCallback } from 'react';
+import { memo, useRef, useState, useCallback, type CSSProperties } from 'react';
 import { cn } from '@/shared/lib/utils';
 import { useShortcutLayer } from '@/shared/lib/shortcuts';
 import type { SubtitleClip } from '@/types/editor.types';
+import { subtitleAnimationFrame, subtitleKeyframeState, subtitleProgress } from '../lib/subtitleAnimation';
 
 interface SubtitleOverlayProps {
   clip: SubtitleClip;
@@ -87,186 +88,75 @@ interface ResizeState {
   pending: { pos: number; size: number } | null;
 }
 
-/** Render animated subtitle text based on animation type */
+/** CSS transitions the preview layers on top of each preset (export renders target states). */
+const PRESET_TRANSITIONS: Record<string, string> = {
+  highlight: 'color 0.15s ease',
+  bounce: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s',
+  scale: 'transform 0.2s ease, color 0.2s ease',
+  'fade-word': 'opacity 0.25s ease',
+  'slide-up': 'transform 0.3s ease-out',
+};
+
+/**
+ * Render animated subtitle text. The per-word / per-character values come from
+ * lib/subtitleAnimation.ts — the export rasterises the same values per frame.
+ * Offsets are project pixels, so they are multiplied by the preview scale like
+ * the font size.
+ */
 const AnimatedSubtitleText = memo(function AnimatedSubtitleText({
   text,
   animation,
   animationColor,
   progress,
   fontColor,
+  scale,
 }: {
   text: string;
   animation: string;
   animationColor: string;
   progress: number;
   fontColor: string;
+  scale: number;
 }) {
   if (animation === 'none' || !animation) {
     return <>{text}</>;
   }
 
-  const words = text.split(/(\s+)/);
-  const wordCount = words.filter((w) => w.trim()).length;
-
-  switch (animation) {
-    case 'highlight': {
-      const activeWordIdx = Math.floor(progress * wordCount);
-      let wordIdx = 0;
-      return (
-        <>
-          {words.map((word, i) => {
-            if (!word.trim()) return <span key={i}>{word}</span>;
-            const isActive = wordIdx <= activeWordIdx;
-            wordIdx++;
-            return (
-              <span key={i} style={{ color: isActive ? animationColor : fontColor, transition: 'color 0.15s ease' }}>
-                {word}
-              </span>
-            );
-          })}
-        </>
-      );
+  const frame = subtitleAnimationFrame(text, animation, progress, fontColor, animationColor);
+  const transition = PRESET_TRANSITIONS[animation];
+  const inlineBlock = animation === 'bounce' || animation === 'scale' || animation === 'wave';
+  const spans = frame.segments.map((s, i) => {
+    if (s.space) return <span key={i}>{s.text}</span>;
+    const style: CSSProperties = { transition };
+    if (s.color !== fontColor || animation === 'highlight' || animation === 'scale') style.color = s.color;
+    if (s.opacity !== 1 || animation === 'bounce' || animation === 'fade-word') style.opacity = s.opacity;
+    if (inlineBlock) {
+      style.display = 'inline-block';
+      style.transform = animation === 'scale' ? `scale(${s.scale})` : `translateY(${s.translateY * scale}px)`;
+      if (animation === 'wave' && s.text === ' ') style.whiteSpace = 'pre';
     }
+    return <span key={i} style={style}>{s.text}</span>;
+  });
 
-    case 'typewriter': {
-      const totalChars = text.length;
-      const visibleChars = Math.floor(progress * totalChars);
-      return (
-        <>
-          <span>{text.slice(0, visibleChars)}</span>
-          <span style={{ opacity: 0 }}>{text.slice(visibleChars)}</span>
-        </>
-      );
-    }
-
-    case 'bounce': {
-      let wordIdx = 0;
-      return (
-        <>
-          {words.map((word, i) => {
-            if (!word.trim()) return <span key={i}>{word}</span>;
-            const wordProgress = progress * wordCount - wordIdx;
-            const show = wordProgress > 0;
-            const bounceOffset = show ? Math.max(0, (1 - wordProgress) * -20) : -30;
-            wordIdx++;
-            return (
-              <span
-                key={i}
-                style={{
-                  display: 'inline-block',
-                  transform: `translateY(${bounceOffset}px)`,
-                  opacity: show ? 1 : 0,
-                  transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s',
-                }}
-              >
-                {word}
-              </span>
-            );
-          })}
-        </>
-      );
-    }
-
-    case 'scale': {
-      const activeWordIdx = Math.floor(progress * wordCount);
-      let wordIdx = 0;
-      return (
-        <>
-          {words.map((word, i) => {
-            if (!word.trim()) return <span key={i}>{word}</span>;
-            const isActive = wordIdx === activeWordIdx;
-            wordIdx++;
-            return (
-              <span
-                key={i}
-                style={{
-                  display: 'inline-block',
-                  transform: isActive ? 'scale(1.3)' : 'scale(1)',
-                  color: isActive ? animationColor : fontColor,
-                  transition: 'transform 0.2s ease, color 0.2s ease',
-                }}
-              >
-                {word}
-              </span>
-            );
-          })}
-        </>
-      );
-    }
-
-    case 'fade-word': {
-      let wordIdx = 0;
-      return (
-        <>
-          {words.map((word, i) => {
-            if (!word.trim()) return <span key={i}>{word}</span>;
-            const wordProgress = progress * wordCount - wordIdx;
-            const opacity = Math.min(1, Math.max(0, wordProgress));
-            wordIdx++;
-            return (
-              <span key={i} style={{ opacity, transition: 'opacity 0.25s ease' }}>
-                {word}
-              </span>
-            );
-          })}
-        </>
-      );
-    }
-
-    case 'slide-up': {
-      const slideOffset = Math.max(0, (1 - progress * 3) * 30);
-      return (
-        <span
-          style={{
-            display: 'inline-block',
-            transform: `translateY(${slideOffset}px)`,
-            opacity: Math.min(1, progress * 4),
-            transition: 'transform 0.3s ease-out',
-          }}
-        >
-          {text}
-        </span>
-      );
-    }
-
-    case 'glow': {
-      const glowIntensity = 4 + Math.sin(progress * Math.PI * 6) * 4;
-      return (
-        <span
-          style={{
-            textShadow: `0 0 ${glowIntensity}px ${animationColor}, 0 0 ${glowIntensity * 2}px ${animationColor}40`,
-          }}
-        >
-          {text}
-        </span>
-      );
-    }
-
-    case 'wave': {
-      return (
-        <>
-          {text.split('').map((char, i) => {
-            const waveOffset = Math.sin((progress * 8 - i * 0.3)) * 3;
-            return (
-              <span
-                key={i}
-                style={{
-                  display: 'inline-block',
-                  transform: `translateY(${waveOffset}px)`,
-                  whiteSpace: char === ' ' ? 'pre' : undefined,
-                }}
-              >
-                {char}
-              </span>
-            );
-          })}
-        </>
-      );
-    }
-
-    default:
-      return <>{text}</>;
+  if (animation === 'slide-up') {
+    return (
+      <span
+        style={{
+          display: 'inline-block',
+          transform: `translateY(${frame.blockTranslateY * scale}px)`,
+          opacity: frame.blockOpacity,
+          transition,
+        }}
+      >
+        {spans}
+      </span>
+    );
   }
+  if (animation === 'glow') {
+    const g = frame.glow * scale;
+    return <span style={{ textShadow: `0 0 ${g}px ${animationColor}, 0 0 ${g * 2}px ${animationColor}40` }}>{spans}</span>;
+  }
+  return <>{spans}</>;
 });
 
 export const SubtitleOverlay = memo(function SubtitleOverlay({
@@ -296,13 +186,16 @@ export const SubtitleOverlay = memo(function SubtitleOverlay({
   const resizeRef = useRef<ResizeState | null>(null);
 
   const style = clip.style;
-  const posX = live ? live.x : style.position.x;
-  const posY = live ? live.y : style.position.y;
+  // animationKeyframes (position / opacity / scale / rotation / font size) —
+  // same values the export rasterises (lib/subtitleAnimation.ts).
+  const kf = subtitleKeyframeState(clip.animationKeyframes, currentTime - clip.startTime);
+  const posX = live ? live.x : (kf.x ?? style.position.x);
+  const posY = live ? live.y : (kf.y ?? style.position.y);
   const effectiveWidth = live ? live.width : style.width;
   const effectiveHeight = live ? live.height : style.height;
 
   const clipDuration = clip.endTime - clip.startTime;
-  const progress = clipDuration > 0 ? Math.max(0, Math.min(1, (currentTime - clip.startTime) / clipDuration)) : 0;
+  const progress = subtitleProgress(currentTime - clip.startTime, clipDuration);
   // While a clip is selected (being authored), show its text fully settled so entrance
   // animations (fade/typewriter/slide) don't render it blank at progress 0 — otherwise a
   // freshly-added lower third looks like nothing was applied. Playback animates normally.
@@ -501,7 +394,10 @@ export const SubtitleOverlay = memo(function SubtitleOverlay({
   // The box is anchored by its center (position.x/y) on both axes — independent of
   // `alignment`/`verticalAlign`, which only justify text *inside* the box. This keeps the
   // box put when alignment changes; it relocates only when position itself changes.
-  const getTransform = () => 'translate(-50%, -50%)';
+  const getTransform = () =>
+    'translate(-50%, -50%)' +
+    (kf.scale !== undefined ? ` scale(${kf.scale})` : '') +
+    (kf.rotation !== undefined ? ` rotate(${kf.rotation}deg)` : '');
 
   return (
     <>
@@ -549,7 +445,8 @@ export const SubtitleOverlay = memo(function SubtitleOverlay({
             ? `${videoRect.top + (posY / 100) * videoRect.height}px`
             : `${posY}%`,
           transform: getTransform(),
-        fontSize: `${style.fontSize * scale}px`,
+          opacity: kf.opacity !== undefined ? Math.max(0, Math.min(1, kf.opacity)) : undefined,
+        fontSize: `${(kf.fontSize ?? style.fontSize) * scale}px`,
         fontFamily: style.fontFamily,
         fontWeight: style.fontWeight ?? 'normal',
         fontStyle: style.fontStyle ?? 'normal',
@@ -611,6 +508,7 @@ export const SubtitleOverlay = memo(function SubtitleOverlay({
             animationColor={style.animationColor ?? '#FFD700'}
             progress={displayProgress}
             fontColor={style.fontColor}
+            scale={scale}
           />
         </div>
       ) : (
@@ -620,6 +518,7 @@ export const SubtitleOverlay = memo(function SubtitleOverlay({
           animationColor={style.animationColor ?? '#FFD700'}
           progress={displayProgress}
           fontColor={style.fontColor}
+          scale={scale}
         />
       )}
 

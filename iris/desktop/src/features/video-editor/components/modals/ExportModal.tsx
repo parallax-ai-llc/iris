@@ -25,7 +25,6 @@ import { cn } from '@/shared/lib/utils';
 import { useEditorStore } from '@/features/video-editor/stores/editor.store';
 import { useVideoProjectStore } from '@/features/video-editor/stores/videoProject.store';
 import { buildExportRequest } from '@/features/video-editor/lib/buildExportRequest';
-import { ExportFidelityNotice } from './ExportFidelityNotice';
 
 export interface ExportOptions {
   format: 'mp4' | 'webm' | 'mov' | 'gif';
@@ -621,11 +620,6 @@ export const ExportModal = memo(function ExportModal({
                   <p className="text-sm text-red-300">{exportError}</p>
                 </div>
               )}
-
-              <ExportFidelityNotice
-                tracks={tracks}
-                burnsSubtitles={includeSubtitles && subtitleFormat === 'burned'}
-              />
 
               {/* Platform Presets */}
               <div>
