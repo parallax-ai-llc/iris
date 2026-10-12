@@ -17,6 +17,7 @@ import type { IrisAsset } from '@/shared/api/types';
 import type { HistogramData } from '@/features/image-editor/canvas/histogram';
 import { generateId } from '@/shared/lib/utils/id';
 import type { BlendMode } from '@/types/blendMode';
+import { documentSize } from '@/features/image-editor/canvas/layerMerge';
 import { getActiveStore } from './imageEditorRegistry';
 import { createHistorySlice } from './slices/history.slice';
 import { createLayerStructureSlice, type LayerHistoryOptions } from './slices/layerStructure.slice';
@@ -380,7 +381,6 @@ export interface SelectionData {
   maskDataUrl: string;
   bounds: CropData | null;
   feather: number;
-  isInverted: boolean;
 }
 
 export type AdjustmentLayerType =
@@ -681,33 +681,6 @@ export const DEFAULT_TEXT_SETTINGS: TextSettings = {
   alignment: 'left',
   lineHeight: 1.2,
   letterSpacing: 0,
-};
-
-export const DEFAULT_LEVELS: LevelsValues = {
-  inputBlack: 0,
-  inputWhite: 255,
-  gamma: 1.0,
-  outputBlack: 0,
-  outputWhite: 255,
-};
-
-const NEUTRAL_COLOR_BALANCE_TONE: ColorBalanceTone = { cyan: 0, magenta: 0, yellow: 0 };
-export const DEFAULT_COLOR_BALANCE: ColorBalanceValues = {
-  shadows: { ...NEUTRAL_COLOR_BALANCE_TONE },
-  midtones: { ...NEUTRAL_COLOR_BALANCE_TONE },
-  highlights: { ...NEUTRAL_COLOR_BALANCE_TONE },
-  preserveLuminosity: true,
-};
-
-const NEUTRAL_HUE_SAT_TONE: HueSatTone = { hue: 0, saturation: 0, lightness: 0 };
-export const DEFAULT_HUE_SAT_CHANNELS: HueSatChannelsValues = {
-  master: { ...NEUTRAL_HUE_SAT_TONE },
-  reds: { ...NEUTRAL_HUE_SAT_TONE },
-  yellows: { ...NEUTRAL_HUE_SAT_TONE },
-  greens: { ...NEUTRAL_HUE_SAT_TONE },
-  cyans: { ...NEUTRAL_HUE_SAT_TONE },
-  blues: { ...NEUTRAL_HUE_SAT_TONE },
-  magentas: { ...NEUTRAL_HUE_SAT_TONE },
 };
 
 export const DEFAULT_ADJUSTMENTS: AdjustmentValues = {
@@ -2018,17 +1991,19 @@ export function _createImageEditorSlice(
       set({ selection });
     },
 
+    // The inversion is baked into maskDataUrl: the mask is always the real
+    // selected area, and there is no separate "inverted" flag.
     invertSelection: async () => {
-      const { selection, layers } = get();
+      const { selection, layers, canvasWidth, canvasHeight } = get();
       if (!selection?.maskDataUrl) return;
 
       const { loadSelectionMask, maskToDataUrl, getSelectionBounds } = await import('@/features/image-editor/canvas/selectionEngine');
 
-      const baseLayer = layers[0];
-      const w = baseLayer?.width ?? 512;
-      const h = baseLayer?.height ?? 512;
+      // The mask is document size; the bottom layer can be smaller or moved.
+      const { width: w, height: h } = documentSize(layers, canvasWidth, canvasHeight);
 
       const mask = await loadSelectionMask(selection.maskDataUrl, w, h);
+      if (get().selection !== selection) return; // changed while loading
 
       // Invert every pixel: 0→255, 255→0
       const inverted = new Uint8ClampedArray(mask.length);
@@ -2042,7 +2017,6 @@ export function _createImageEditorSlice(
           ...selection,
           maskDataUrl: maskToDataUrl(inverted, w, h),
           bounds,
-          isInverted: !selection.isInverted,
         },
       });
     },
@@ -2092,7 +2066,7 @@ export function _createImageEditorSlice(
     },
 
     selectSubject: async () => {
-      const { sourceAsset, layers, setProcessing, setProcessingProgress, setSelection, selectionFeather } = get();
+      const { sourceAsset, layers, canvasWidth, canvasHeight, setProcessing, setProcessingProgress, setSelection, selectionFeather } = get();
       if (!sourceAsset?.id) throw new Error('No source image available for subject selection');
 
       setProcessing(true, 'Selecting subject...');
@@ -2130,34 +2104,18 @@ export function _createImageEditorSlice(
             const imageUrl = status.asset?.previewUrl || status.asset?.publicUrl;
             if (!imageUrl) throw new Error('No result image URL');
 
-            // Determine canvas dimensions from layers
-            const baseLayer = layers[0];
-            const canvasW = baseLayer?.width ?? 512;
-            const canvasH = baseLayer?.height ?? 512;
+            // The selection mask is document size; the bottom layer can be
+            // smaller or moved.
+            const { width: canvasW, height: canvasH } = documentSize(layers, canvasWidth, canvasHeight);
 
-            const { loadMaskAsSelection, getSelectionBounds } = await import('@/features/image-editor/canvas/selectionEngine');
+            const { loadMaskAsSelection, getSelectionBounds, maskToDataUrl } = await import('@/features/image-editor/canvas/selectionEngine');
             const mask = await loadMaskAsSelection(imageUrl, canvasW, canvasH);
             const bounds = getSelectionBounds(mask, canvasW, canvasH);
 
-            // Convert mask to data URL
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = canvasW;
-            tempCanvas.height = canvasH;
-            const tempCtx = tempCanvas.getContext('2d')!;
-            const imgData = tempCtx.createImageData(canvasW, canvasH);
-            for (let i = 0; i < mask.length; i++) {
-              imgData.data[i * 4] = mask[i];
-              imgData.data[i * 4 + 1] = mask[i];
-              imgData.data[i * 4 + 2] = mask[i];
-              imgData.data[i * 4 + 3] = 255;
-            }
-            tempCtx.putImageData(imgData, 0, 0);
-
             setSelection({
-              maskDataUrl: tempCanvas.toDataURL('image/png'),
+              maskDataUrl: maskToDataUrl(mask, canvasW, canvasH),
               bounds,
               feather: selectionFeather,
-              isInverted: false,
             });
             setProcessing(false);
             return;
@@ -2180,13 +2138,13 @@ export function _createImageEditorSlice(
     },
 
     selectLayerPixels: async (layerId) => {
-      const { layers, setSelection, selectionFeather } = get();
+      const { layers, canvasWidth, canvasHeight, setSelection, selectionFeather } = get();
       const layer = layers.find((l) => l.id === layerId);
       if (!layer || !layer.imageData || layer.type === 'group' || layer.type === 'adjustment') return;
 
-      const baseLayer = layers[0];
-      const canvasW = baseLayer?.width ?? 512;
-      const canvasH = baseLayer?.height ?? 512;
+      // The selection mask is document size; the layer is drawn at its
+      // document position.
+      const { width: canvasW, height: canvasH } = documentSize(layers, canvasWidth, canvasHeight);
 
       try {
         const img = new Image();
@@ -2209,28 +2167,13 @@ export function _createImageEditorSlice(
           mask[i] = pixelData.data[i * 4 + 3] > 0 ? 255 : 0;
         }
 
-        const { getSelectionBounds } = await import('@/features/image-editor/canvas/selectionEngine');
+        const { getSelectionBounds, maskToDataUrl } = await import('@/features/image-editor/canvas/selectionEngine');
         const bounds = getSelectionBounds(mask, canvasW, canvasH);
 
-        // Convert mask to data URL
-        const maskCanvas = document.createElement('canvas');
-        maskCanvas.width = canvasW;
-        maskCanvas.height = canvasH;
-        const maskCtx = maskCanvas.getContext('2d')!;
-        const imgData = maskCtx.createImageData(canvasW, canvasH);
-        for (let i = 0; i < mask.length; i++) {
-          imgData.data[i * 4] = mask[i];
-          imgData.data[i * 4 + 1] = mask[i];
-          imgData.data[i * 4 + 2] = mask[i];
-          imgData.data[i * 4 + 3] = 255;
-        }
-        maskCtx.putImageData(imgData, 0, 0);
-
         setSelection({
-          maskDataUrl: maskCanvas.toDataURL('image/png'),
+          maskDataUrl: maskToDataUrl(mask, canvasW, canvasH),
           bounds,
           feather: selectionFeather,
-          isInverted: false,
         });
       } catch (err) {
         console.error('selectLayerPixels error:', err);
@@ -2238,39 +2181,24 @@ export function _createImageEditorSlice(
     },
 
     refineEdge: async (options) => {
-      const { selection, layers } = get();
+      const { selection, layers, canvasWidth, canvasHeight } = get();
       if (!selection) return;
 
-      const { refineEdge: refineEdgeFn, loadSelectionMask } = await import('@/features/image-editor/canvas/selectionEngine');
+      const { refineEdge: refineEdgeFn, loadSelectionMask, maskToDataUrl, getSelectionBounds } = await import('@/features/image-editor/canvas/selectionEngine');
 
-      const baseLayer = layers[0];
-      const canvasW = baseLayer?.width ?? 512;
-      const canvasH = baseLayer?.height ?? 512;
+      // The mask is document size; the bottom layer can be smaller or moved.
+      const { width: canvasW, height: canvasH } = documentSize(layers, canvasWidth, canvasHeight);
 
-      // Convert existing selection maskDataUrl to a mask array
       const existingMask = await loadSelectionMask(selection.maskDataUrl, canvasW, canvasH);
+      if (get().selection !== selection) return; // changed while loading
 
-      // Refine the mask
       const refinedMask = refineEdgeFn(existingMask, canvasW, canvasH, options);
-
-      // Convert back to data URL
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = canvasW;
-      tempCanvas.height = canvasH;
-      const tempCtx = tempCanvas.getContext('2d')!;
-      const imgData = tempCtx.createImageData(canvasW, canvasH);
-      for (let i = 0; i < refinedMask.length; i++) {
-        imgData.data[i * 4] = refinedMask[i];
-        imgData.data[i * 4 + 1] = refinedMask[i];
-        imgData.data[i * 4 + 2] = refinedMask[i];
-        imgData.data[i * 4 + 3] = 255;
-      }
-      tempCtx.putImageData(imgData, 0, 0);
 
       set({
         selection: {
           ...selection,
-          maskDataUrl: tempCanvas.toDataURL('image/png'),
+          maskDataUrl: maskToDataUrl(refinedMask, canvasW, canvasH),
+          bounds: getSelectionBounds(refinedMask, canvasW, canvasH),
           feather: options.feather,
         },
       });
@@ -2748,7 +2676,6 @@ export function _createImageEditorSlice(
           maskDataUrl: channel.maskData,
           bounds,
           feather: selectionFeather,
-          isInverted: false,
         });
       };
       img.src = channel.maskData;
@@ -2815,13 +2742,13 @@ export function _createImageEditorSlice(
     // fillPath / strokePath: slices/layerPixelOps.slice.ts
 
     loadPathAsSelection: (pathId) => {
-      const { paths, layers, selectionFeather } = get();
+      const { paths, layers, canvasWidth, canvasHeight, selectionFeather } = get();
       const path = paths.find((p) => p.id === pathId);
       if (!path || path.points.length < 2) return;
 
-      const baseLayer = layers[0];
-      const w = baseLayer?.width || 512;
-      const h = baseLayer?.height || 512;
+      // Paths are in document coordinates and the selection mask is document
+      // size; the bottom layer can be smaller or moved.
+      const { width: w, height: h } = documentSize(layers, canvasWidth, canvasHeight);
 
       // Rasterize path to selection mask
       const canvas = document.createElement('canvas');
@@ -2869,7 +2796,6 @@ export function _createImageEditorSlice(
         maskDataUrl: canvas.toDataURL('image/png'),
         bounds,
         feather: selectionFeather,
-        isInverted: false,
       });
 
       // Clear the path and switch to select mode (Photoshop behavior)
@@ -3310,7 +3236,6 @@ export function _createImageEditorSlice(
           maskDataUrl: '',
           bounds,
           feather: 0,
-          isInverted: false,
         },
         editMode: 'selection',
       });

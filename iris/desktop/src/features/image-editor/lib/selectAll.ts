@@ -22,6 +22,5 @@ export function selectAllOnActiveLayer(): void {
     maskDataUrl: c.toDataURL(),
     bounds: { x: 0, y: 0, width: w, height: h },
     feather: 0,
-    isInverted: false,
   });
 }

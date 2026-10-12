@@ -89,19 +89,6 @@ export function sepia(imageData: ImageData): ImageData {
   return result;
 }
 
-/**
- * Compute luminance histogram (256 bins) from ImageData
- */
-export function computeHistogram(imageData: ImageData): Uint32Array {
-  const histogram = new Uint32Array(256);
-  const data = imageData.data;
-  for (let i = 0; i < data.length; i += 4) {
-    const lum = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
-    histogram[lum]++;
-  }
-  return histogram;
-}
-
 export interface LevelsParams {
   inputBlack: number;   // 0-255
   inputWhite: number;   // 0-255

@@ -1,6 +1,5 @@
 /**
  * LayersSection - Layer management for right panel
- * Reuses logic from the original LayersPanel
  */
 
 import { memo, useCallback, useState, useEffect, useLayoutEffect, useRef } from 'react';

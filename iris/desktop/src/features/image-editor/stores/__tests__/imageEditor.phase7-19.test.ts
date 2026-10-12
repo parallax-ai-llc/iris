@@ -62,7 +62,6 @@ function setTestSelection(): SelectionData {
     maskDataUrl: 'data:image/png;base64,BBBB',
     bounds: { x: 10, y: 20, width: 100, height: 80 },
     feather: 0,
-    isInverted: false,
   };
   useImageEditorStore.getState().setSelection(sel);
   return sel;
@@ -844,13 +843,12 @@ describe('Selection State: additional coverage', () => {
     resetStore();
   });
 
-  it('invertSelection toggles isInverted', async () => {
-    setTestSelection();
+  it('invertSelection bakes the inversion into a new mask (no inverted flag)', async () => {
+    const before = setTestSelection();
     await useImageEditorStore.getState().invertSelection();
-    expect(useImageEditorStore.getState().selection!.isInverted).toBe(true);
-
-    await useImageEditorStore.getState().invertSelection();
-    expect(useImageEditorStore.getState().selection!.isInverted).toBe(false);
+    const after = useImageEditorStore.getState().selection!;
+    expect(after.maskDataUrl).not.toBe(before.maskDataUrl);
+    expect(after).not.toHaveProperty('isInverted');
   });
 
   it('invertSelection does nothing when no selection', () => {

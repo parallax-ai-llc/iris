@@ -161,7 +161,6 @@ export function SelectionOverlay({
           maskDataUrl: maskToDataUrl(newMask, imageWidth, imageHeight),
           bounds,
           feather: selectionFeather,
-          isInverted: false,
         });
         return;
       }
@@ -191,7 +190,6 @@ export function SelectionOverlay({
           maskDataUrl: maskToDataUrl(combined, imageWidth, imageHeight),
           bounds,
           feather: selectionFeather,
-          isInverted: false,
         });
       };
       img.src = selection.maskDataUrl;
@@ -255,7 +253,6 @@ export function SelectionOverlay({
         maskDataUrl: maskToDataUrl(quickSelectMaskRef.current, imageWidth, imageHeight),
         bounds,
         feather: selectionFeather,
-        isInverted: false,
       });
     },
     [mainCanvasRef, imageWidth, imageHeight, quickSelectBrushSize, selectionTolerance, setSelection, selectionFeather]

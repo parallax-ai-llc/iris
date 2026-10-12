@@ -15,8 +15,6 @@ const read = (rel: string) => readFileSync(join(ROOT, rel), 'utf8');
 const MENU = 'components/tabs/EditorMenuBar.tsx';
 const TOOLBAR = 'components/Toolbar/ToolPanel.tsx';
 const SHORTCUTS = 'hooks/useImageEditorShortcuts.ts';
-// Not mounted anywhere (kept for reference only), so it does not count as a renderer.
-const UNMOUNTED = new Set(['components/Properties/PropertiesPanel.tsx']);
 
 function sourceFiles(dir: string): string[] {
   const out: string[] = [];
@@ -31,7 +29,7 @@ function sourceFiles(dir: string): string[] {
 
 /** Everything that can render or react to a mode, minus the files that only SET modes. */
 const HANDLER_SOURCES = [...sourceFiles('components'), ...sourceFiles('hooks')]
-  .filter((rel) => rel !== MENU && rel !== TOOLBAR && rel !== SHORTCUTS && !UNMOUNTED.has(rel))
+  .filter((rel) => rel !== MENU && rel !== TOOLBAR && rel !== SHORTCUTS)
   .map(read)
   .concat(readFileSync(resolve(process.cwd(), 'src/app/editor/ImageEditorPage.tsx'), 'utf8'))
   .join('\n');

@@ -188,7 +188,8 @@ test.describe('3. rectangular selection', () => {
     await dragDoc(page, [60, 50], [140, 110]);
     await key(page, 'Control+Shift+i');
     await sleep(page, 400);
-    expect.soft(await imgState(page, '(s)=>s.selection && s.selection.isInverted'), 'selection is flagged inverted').toBe(true);
+    // Inverse is baked into the mask: the inverted rect's bounds now start at the document corner.
+    expect.soft(await imgState(page, '(s)=>!!(s.selection && s.selection.bounds && s.selection.bounds.x === 0 && s.selection.bounds.y === 0)'), 'selection covers the outside of the rect').toBe(true);
     await key(page, 'Delete');
     await sleep(page, 600);
     const outside = await px(page, 300, 200);
@@ -210,7 +211,7 @@ test.describe('3. rectangular selection', () => {
     await dragDoc(page, [60, 50], [140, 110]);
     await menu(page, 'Select', 'Invert Selection');
     await sleep(page, 300);
-    expect.soft(await imgState(page, '(s)=>s.selection && s.selection.isInverted'), 'menu invert').toBe(true);
+    expect.soft(await imgState(page, '(s)=>!!(s.selection && s.selection.bounds && s.selection.bounds.x === 0 && s.selection.bounds.y === 0)'), 'menu invert').toBe(true);
     await menu(page, 'Select', 'Deselect');
     await sleep(page, 300);
     expect.soft((await activeDoc(page)).hasSelection, 'menu deselect').toBe(false);

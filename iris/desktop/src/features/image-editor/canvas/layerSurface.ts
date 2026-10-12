@@ -8,7 +8,7 @@
  */
 
 import { maskStrokeCanvas } from './canvasEngine';
-import { canvasToMask, featherSelection } from './selectionEngine';
+import { featherSelection, loadSelectionMask } from './selectionEngine';
 import { cropMaskToRect, editSurfaceRect, layerRect, type Rect } from './layerRegion';
 import type { Layer, SelectionData } from '@/features/image-editor/stores/imageEditor.store';
 
@@ -78,9 +78,9 @@ export async function layerEditSurface(layer: LayerPixels, docWidth: number, doc
  * The selection as a document-size mask (feather applied).
  *
  * `maskDataUrl` is already the effective selection: `invertSelection()` bakes
- * the inversion into the mask and only flips `isInverted` as a marker (the
- * selection tools combine with the mask the same way). Inverting again here
- * would select the original area again (E2E basics-image 3b).
+ * the inversion into the mask (the selection tools combine with the mask the
+ * same way). Inverting again here would select the original area again
+ * (E2E basics-image 3b).
  */
 export async function documentSelectionMask(
   selection: Pick<SelectionData, 'maskDataUrl'> | null | undefined,
@@ -89,11 +89,12 @@ export async function documentSelectionMask(
   docHeight: number,
 ): Promise<Uint8ClampedArray | null> {
   if (!selection?.maskDataUrl) return null;
-  const img = await loadImageElement(selection.maskDataUrl);
-  const surface = blankCanvas(docWidth, docHeight);
-  if (!img || !surface) return null;
-  surface.ctx.drawImage(img, 0, 0, docWidth, docHeight);
-  let mask = canvasToMask(surface.canvas);
+  let mask: Uint8ClampedArray;
+  try {
+    mask = await loadSelectionMask(selection.maskDataUrl, docWidth, docHeight);
+  } catch {
+    return null; // undecodable mask: treat as no selection
+  }
   if (feather > 0) mask = featherSelection(mask, docWidth, docHeight, feather);
   return mask;
 }

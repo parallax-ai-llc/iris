@@ -184,7 +184,7 @@ describe('#4 pixel operations record history', () => {
     const bg = openDoc();
     useImageEditorStore.setState({
       sourceAsset: { id: 'asset-1' } as never,
-      selection: { maskDataUrl: IMG, isInverted: false } as never,
+      selection: { maskDataUrl: IMG } as never,
     });
     s().setActiveLayer(bg);
     const running = s().contentAwareFill();

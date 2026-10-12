@@ -2,10 +2,10 @@
  * Select > Grow / Similar / Expand / Contract / Smooth / Border.
  *
  * The stored selection is a grayscale mask image (`selection.maskDataUrl`,
- * document size, white = selected) plus `isInverted`. Every operation here
- * works on the EFFECTIVE selection (the mask, inverted when `isInverted`) with
- * the morphology / colour functions of canvas/selectionEngine.ts, then stores
- * the result as a plain (non-inverted) mask with fresh bounds. Feather is kept.
+ * document size, white = selected). The mask is always the real selected area:
+ * Select > Inverse bakes the inversion into it. Every operation runs the
+ * morphology / colour functions of canvas/selectionEngine.ts on the mask, then
+ * stores the result with fresh bounds. Feather is kept.
  * A selection that becomes empty is cleared. The selection is not document
  * content, so no history entry is pushed and the document does not turn dirty.
  */
@@ -18,7 +18,6 @@ import {
   expandSelection,
   getSelectionBounds,
   growSelection,
-  invertSelection,
   isSelectionEmpty,
   loadSelectionMask,
   maskToDataUrl,
@@ -42,13 +41,12 @@ const MORPHOLOGY: Record<MorphologyOp, (m: Uint8ClampedArray, w: number, h: numb
   border: borderSelection,
 };
 
-/** The selection as the user sees it (inversion applied), at document size. */
+/** The selection mask at document size (already the real selected area). */
 async function effectiveMask(get: GetState): Promise<{ mask: Uint8ClampedArray; width: number; height: number } | null> {
   const { selection, layers, canvasWidth, canvasHeight } = get();
   if (!selection?.maskDataUrl) return null;
   const { width, height } = documentSize(layers, canvasWidth, canvasHeight);
-  let mask = await loadSelectionMask(selection.maskDataUrl, width, height);
-  if (selection.isInverted) mask = invertSelection(mask);
+  const mask = await loadSelectionMask(selection.maskDataUrl, width, height);
   return { mask, width, height };
 }
 
@@ -64,7 +62,6 @@ function storeMask(get: GetState, set: SetState, mask: Uint8ClampedArray, width:
       ...current,
       maskDataUrl: maskToDataUrl(mask, width, height),
       bounds: getSelectionBounds(mask, width, height),
-      isInverted: false,
     },
   });
 }

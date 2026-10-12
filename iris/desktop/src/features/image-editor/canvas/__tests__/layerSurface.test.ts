@@ -109,11 +109,9 @@ describe('createSerialQueue', () => {
 
 describe('selection masks', () => {
   // The mock canvas reads back mid-grey (R = 128) for drawn images.
-  it('the mask is already the effective selection: isInverted is not applied again', async () => {
+  it('the mask is already the effective selection (read as it is)', async () => {
     const plain = await documentSelectionMask({ maskDataUrl: 'data:mask' }, 0, 4, 2);
-    const inverted = await documentSelectionMask({ maskDataUrl: 'data:mask', isInverted: true } as never, 0, 4, 2);
     expect(Array.from(plain!)).toEqual(Array(8).fill(128));
-    expect(Array.from(inverted!)).toEqual(Array.from(plain!));
   });
 
   it('a layer-space mask is cut at the layer rect (outside the document = not selected)', async () => {

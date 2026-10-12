@@ -12,6 +12,7 @@
 import type { StoreApi } from 'zustand';
 import { layerEditSurface, loadImageElement } from '@/features/image-editor/canvas/layerSurface';
 import { isPaintableLayer, type Rect } from '@/features/image-editor/canvas/layerRegion';
+import { documentSize as layersDocumentSize } from '@/features/image-editor/canvas/layerMerge';
 import type { ImageEditorActions, ImageEditorState, PathPoint } from '../imageEditor.store';
 
 type Full = ImageEditorState & ImageEditorActions;
@@ -47,13 +48,10 @@ function tracePath(ctx: CanvasRenderingContext2D, points: PathPoint[], closed: b
   if (closed) ctx.closePath();
 }
 
+/** The document size, not the bottom layer's (it can be smaller or moved). */
 function documentSize(get: GetState) {
   const { canvasWidth, canvasHeight, layers } = get();
-  const base = layers[0];
-  return {
-    width: canvasWidth || base?.width || 512,
-    height: canvasHeight || base?.height || 512,
-  };
+  return layersDocumentSize(layers, canvasWidth, canvasHeight);
 }
 
 export function createLayerPixelOpsSlice(set: SetState, get: GetState): LayerPixelOpsSliceActions {
@@ -129,7 +127,8 @@ export function createLayerPixelOpsSlice(set: SetState, get: GetState): LayerPix
         const { contentAwareFill: contentAwareFillApi, waitForEditResult } = await import('@/shared/api/image.api');
         const { resolveAIInputAssetId } = await import('@/features/image-editor/lib/aiSource');
 
-        const inpaintMask = selectionToInpaintMask(selection.maskDataUrl, doc.width, doc.height, selection.isInverted);
+        // The mask is already the real selected area (Inverse is baked in).
+        const inpaintMask = await selectionToInpaintMask(selection.maskDataUrl, doc.width, doc.height);
         // Send the CURRENT document (the original asset only while unchanged),
         // so edits are kept and the document-size mask lines up with the image.
         const inputAssetId = await resolveAIInputAssetId(get());

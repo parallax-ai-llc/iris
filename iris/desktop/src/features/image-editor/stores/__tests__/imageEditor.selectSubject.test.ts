@@ -27,6 +27,7 @@ vi.mock('@/features/image-editor/canvas/selectionEngine', () => ({
   getSelectionBounds: vi.fn(),
   loadSelectionMask: vi.fn(),
   refineEdge: vi.fn(),
+  maskToDataUrl: vi.fn(() => 'data:image/png;base64,MASK'),
 }));
 
 // ==================== Helpers ====================
@@ -100,7 +101,6 @@ describe('imageEditor.store — selectSubject', () => {
     expect(selection).not.toBeNull();
     expect(selection?.bounds).not.toBeNull();
     expect(selection?.bounds).toEqual({ x: 0, y: 0, width: 800, height: 600 });
-    expect(selection?.isInverted).toBe(false);
     expect(isProcessing).toBe(false);
   });
 
@@ -199,17 +199,17 @@ describe('imageEditor.store — selectSubject', () => {
     expect(removeBackground).not.toHaveBeenCalled();
   });
 
-  // Canvas dimensions fall back to 512 if no layers
-  it('uses 512×512 if no layers exist', async () => {
-    useImageEditorStore.setState({ layers: [] });
+  // The mask is document size (canvasWidth x canvasHeight), not layer size
+  it('uses the document size, also when there are no layers', async () => {
+    useImageEditorStore.setState({ layers: [], canvasWidth: 640, canvasHeight: 480 });
     const { loadMaskAsSelection } = await getSelectionEngine();
 
     await useImageEditorStore.getState().selectSubject();
 
     expect(loadMaskAsSelection).toHaveBeenCalledWith(
       expect.any(String),
-      512,
-      512
+      640,
+      480
     );
   });
 });

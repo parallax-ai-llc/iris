@@ -642,41 +642,22 @@ export function canvasToMask(canvas: HTMLCanvasElement): Uint8ClampedArray {
 }
 
 /**
- * Convert current selection mask to an inpaint-ready mask data URL.
- * The inpaint mask uses white (255) for areas to fill and black (0) for areas to keep.
- * Selection masks are already in this format (selected = white).
+ * Convert current selection mask to an inpaint-ready mask data URL at
+ * canvasWidth x canvasHeight. The inpaint mask uses white (255) for areas to
+ * fill and black (0) for areas to keep, which is the selection mask format
+ * (selected = white). The mask is already the real selected area: Select >
+ * Inverse bakes the inversion in.
+ *
+ * Waits for the mask image to decode (drawing it right after setting `src`
+ * drew nothing, so the old synchronous version sent an empty mask).
  */
-export function selectionToInpaintMask(
+export async function selectionToInpaintMask(
   maskDataUrl: string,
   canvasWidth: number,
-  canvasHeight: number,
-  isInverted: boolean = false
-): string {
-  const canvas = document.createElement('canvas');
-  canvas.width = canvasWidth;
-  canvas.height = canvasHeight;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return maskDataUrl;
-
-  // Load mask data URL onto canvas
-  const img = new Image();
-  img.src = maskDataUrl;
-  ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
-
-  if (isInverted) {
-    // Invert the mask: white ↔ black
-    const imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
-    const data = imageData.data;
-    for (let i = 0; i < data.length; i += 4) {
-      data[i] = 255 - data[i];       // R
-      data[i + 1] = 255 - data[i + 1]; // G
-      data[i + 2] = 255 - data[i + 2]; // B
-      // Alpha stays the same
-    }
-    ctx.putImageData(imageData, 0, 0);
-  }
-
-  return canvas.toDataURL('image/png');
+  canvasHeight: number
+): Promise<string> {
+  const mask = await loadSelectionMask(maskDataUrl, canvasWidth, canvasHeight);
+  return maskToDataUrl(mask, canvasWidth, canvasHeight);
 }
 
 // ==================== Marching Ants Animation ====================

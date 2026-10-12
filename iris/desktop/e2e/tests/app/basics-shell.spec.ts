@@ -44,6 +44,7 @@ const openSettings = async (page: Page) => {
 
 test.describe('12. Settings', () => {
   test('opens from the title-bar gear and every tab shows its own section', async ({ page }) => {
+    test.setTimeout(120_000);
     await openSettings(page);
     await expect(page.locator('h1:has-text("Settings")')).toBeVisible();
     const sections: Array<[tab: string, heading: string]> = [

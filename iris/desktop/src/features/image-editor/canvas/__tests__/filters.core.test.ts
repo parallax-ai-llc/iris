@@ -3,7 +3,7 @@
  * applyConvolution, gaussianBlur, motionBlur, sharpen, unsharpMask,
  * addNoise, reduceNoise, vignette, pixelate, emboss, edgeDetect,
  * posterize, invert, grayscale, sepia,
- * computeHistogram, applyLevels, applyCurves, applyColorBalance, applySelectiveHSL
+ * applyLevels, applyCurves, applyColorBalance, applySelectiveHSL
  */
 import { describe, it, expect } from 'vitest';
 import {
@@ -22,7 +22,6 @@ import {
   invert,
   grayscale,
   sepia,
-  computeHistogram,
   applyLevels,
   applyCurves,
   applyColorBalance,
@@ -455,34 +454,7 @@ describe('sepia', () => {
   });
 });
 
-// ==================== Histogram & Levels ====================
-
-describe('computeHistogram', () => {
-  it('returns 256-element array', () => {
-    const h = computeHistogram(createTestImage(10, 10));
-    expect(h.length).toBe(256);
-  });
-
-  it('uniform image has single peak', () => {
-    const img = createTestImage(10, 10, [128, 128, 128, 255]);
-    const h = computeHistogram(img);
-    // Luminance of (128,128,128) = 128
-    expect(h[128]).toBe(100);
-    // All others zero
-    let nonZero = 0;
-    for (let i = 0; i < 256; i++) if (h[i] > 0) nonZero++;
-    expect(nonZero).toBe(1);
-  });
-
-  it('total count equals pixel count', () => {
-    const img = createTestImage(10, 10);
-    for (let i = 0; i < img.data.length; i += 4) img.data[i] = i / 4;
-    const h = computeHistogram(img);
-    let total = 0;
-    for (let i = 0; i < 256; i++) total += h[i];
-    expect(total).toBe(100);
-  });
-});
+// ==================== Levels ====================
 
 describe('applyLevels', () => {
   const defaultParams = { inputBlack: 0, inputWhite: 255, gamma: 1, outputBlack: 0, outputWhite: 255 };

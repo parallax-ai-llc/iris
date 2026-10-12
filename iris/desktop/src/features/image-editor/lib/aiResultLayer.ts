@@ -14,6 +14,7 @@
 
 import type { ImageEditorStoreApi } from '@/features/image-editor/stores/imageEditorFactory';
 import type { SelectionData } from '@/features/image-editor/stores/imageEditor.store';
+import { loadSelectionMask, maskToDataUrl } from '@/features/image-editor/canvas/selectionEngine';
 
 type StoreLike = Pick<ImageEditorStoreApi, 'getState'>;
 
@@ -70,15 +71,6 @@ async function loadImage(url: string): Promise<HTMLImageElement> {
   }
 }
 
-function loadDataUrl(dataUrl: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('Failed to load selection mask'));
-    img.src = dataUrl;
-  });
-}
-
 function makeCanvas(width: number, height: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
   const canvas = document.createElement('canvas');
   canvas.width = width;
@@ -98,26 +90,17 @@ export async function renderUrlToSize(url: string, width: number, height: number
   return canvas.toDataURL('image/png');
 }
 
-/** Selection mask at canvas size, inverted when the selection is inverted. */
+/**
+ * Selection mask at canvas size. The mask is already the real selected area
+ * (Select > Inverse bakes the inversion in).
+ */
 export async function selectionToLayerMask(
   selection: SelectionData,
   width: number,
   height: number,
 ): Promise<string> {
-  const img = await loadDataUrl(selection.maskDataUrl);
-  const [canvas, ctx] = makeCanvas(width, height);
-  ctx.drawImage(img, 0, 0, width, height);
-  if (selection.isInverted) {
-    const imageData = ctx.getImageData(0, 0, width, height);
-    const d = imageData.data;
-    for (let i = 0; i < d.length; i += 4) {
-      d[i] = 255 - d[i];
-      d[i + 1] = 255 - d[i + 1];
-      d[i + 2] = 255 - d[i + 2];
-    }
-    ctx.putImageData(imageData, 0, 0);
-  }
-  return canvas.toDataURL('image/png');
+  const mask = await loadSelectionMask(selection.maskDataUrl, width, height);
+  return maskToDataUrl(mask, width, height);
 }
 
 export interface ApplyAIResultLayerOptions {

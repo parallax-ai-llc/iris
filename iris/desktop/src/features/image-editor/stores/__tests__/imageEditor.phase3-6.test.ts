@@ -39,7 +39,6 @@ function setTestSelection(): SelectionData {
     maskDataUrl: 'data:image/png;base64,BBBB',
     bounds: { x: 10, y: 20, width: 100, height: 80 },
     feather: 0,
-    isInverted: false,
   };
   useImageEditorStore.getState().setSelection(sel);
   return sel;
@@ -288,7 +287,6 @@ describe('Phase 3: Transform Selection', () => {
       maskDataUrl: '',
       bounds: null,
       feather: 0,
-      isInverted: false,
     });
     useImageEditorStore.getState().transformSelection('move', { dx: 10, dy: 10 });
     expect(useImageEditorStore.getState().selection?.bounds).toBeNull();
@@ -451,7 +449,6 @@ describe('Phase 3: Object Select & Patch Area', () => {
     const { selection, editMode } = useImageEditorStore.getState();
     expect(selection?.bounds).toEqual(bounds);
     expect(selection?.feather).toBe(0);
-    expect(selection?.isInverted).toBe(false);
     expect(editMode).toBe('selection');
   });
 

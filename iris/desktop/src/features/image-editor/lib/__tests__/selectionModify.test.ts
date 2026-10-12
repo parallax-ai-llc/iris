@@ -58,7 +58,7 @@ beforeEach(() => {
     layers: [
       { id: 'bg', name: 'bg', visible: true, locked: false, opacity: 100, blendMode: 'normal', imageData: 'data:bg', x: 0, y: 0, width: W, height: H },
     ],
-    selection: { maskDataUrl: 'data:image/png;base64,SQUARE', bounds: { x: 3, y: 3, width: 4, height: 4 }, feather: 2, isInverted: false },
+    selection: { maskDataUrl: 'data:image/png;base64,SQUARE', bounds: { x: 3, y: 3, width: 4, height: 4 }, feather: 2 },
   });
   store.getState().pushHistory('Open', '', false);
 });
@@ -95,14 +95,6 @@ describe('selection modify actions', () => {
   it('Smooth keeps a clean square selected', async () => {
     await store.getState().smoothSelectionBy(1);
     expect(count(stored)).toBeGreaterThan(0);
-  });
-
-  it('works on the effective selection when it is inverted', async () => {
-    store.setState({ selection: { ...store.getState().selection!, isInverted: true } });
-    await store.getState().expandSelectionBy(1);
-    // inverted square = everything but the 4x4; expanded by 1 = everything but the inner 2x2
-    expect(count(stored)).toBe(W * H - 4);
-    expect(store.getState().selection!.isInverted).toBe(false);
   });
 
   it('Similar adds every pixel of a similar colour; Grow adds adjacent ones', async () => {
