@@ -4,6 +4,7 @@
  * API Docs: https://developer.ideogram.ai/ideogram-api/api-overview
  */
 
+import { abortableFetch } from '../abort-scope.js';
 import { BaseProviderAdapter } from './base-adapter.js';
 import {
   AICapability,
@@ -182,7 +183,7 @@ export class IdeogramAdapter extends BaseProviderAdapter {
     if (parameters.stylePreset)
       requestBody.style_preset = parameters.stylePreset;
 
-    const response = await fetch(`${this.baseUrl}/v1/ideogram-v3/generate`, {
+    const response = await abortableFetch(`${this.baseUrl}/v1/ideogram-v3/generate`, {
       method: 'POST',
       headers: {
         'Api-Key': this.credentials!.apiKey!,
@@ -323,7 +324,7 @@ export class IdeogramAdapter extends BaseProviderAdapter {
     const extension = mimeType.split('/')[1] || 'png';
     formData.append('image_file', blob, `image.${extension}`);
 
-    const response = await fetch(`${this.baseUrl}/remix`, {
+    const response = await abortableFetch(`${this.baseUrl}/remix`, {
       method: 'POST',
       headers: { 'Api-Key': this.credentials!.apiKey! },
       body: formData,
@@ -457,7 +458,7 @@ export class IdeogramAdapter extends BaseProviderAdapter {
     const extension = mimeType.split('/')[1] || 'png';
     formData.append('image_file', blob, `image.${extension}`);
 
-    const response = await fetch(`${this.baseUrl}/upscale`, {
+    const response = await abortableFetch(`${this.baseUrl}/upscale`, {
       method: 'POST',
       headers: { 'Api-Key': this.credentials!.apiKey! },
       body: formData,

@@ -15,11 +15,31 @@
 
 export { LocalWorkflowStore } from './local-workflow-store.js';
 export { LocalNodeCacheStore } from './local-node-cache.js';
+export { storedToDoc, isValidWorkflowId } from './local-workflow-store.js';
 export type {
   StoredWorkflow,
   StoredExecution,
   StoredNodeResult,
+  SaveDocResult,
+  LocalWorkflowStoreOptions,
 } from './local-workflow-store.js';
+export {
+  JsonFileExecutionRecords,
+  recoverInterruptedExecutions,
+  INTERRUPTED_MESSAGE,
+} from './execution-records.js';
+export type { ExecutionRecordStore } from './execution-records.js';
+export { ExecutionEventHub, summarizeOutputs, PREVIEW_BYTES } from './exec-events.js';
+export type {
+  ExecEvent,
+  NumberedExecEvent,
+  OutputSummary,
+  AssetRefSummary,
+  NodeFinishedStatus,
+  ExecFinishedStatus,
+  ExecutionEventHubOptions,
+} from './exec-events.js';
+export { writeFileAtomic } from './fs-util.js';
 export { createLocalNodeHost } from './local-node-host.js';
 export type { LocalNodeHostOptions } from './local-node-host.js';
 export { createLocalWorkflowEngine } from './engine-factory.js';

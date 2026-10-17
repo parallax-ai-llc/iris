@@ -3,6 +3,7 @@
  * Supports: text-to-text, image-analysis, text-to-image, image-to-image
  */
 
+import { abortableFetch } from '../abort-scope.js';
 import { BaseProviderAdapter } from './base-adapter.js';
 import {
   AICapability,
@@ -180,7 +181,7 @@ export class XAIAdapter extends BaseProviderAdapter {
   }
 
   protected async pingApi(): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/models`, {
+    const response = await abortableFetch(`${this.baseUrl}/models`, {
       headers: { Authorization: `Bearer ${this.credentials!.apiKey!}` },
     });
     if (!response.ok) {
@@ -264,7 +265,7 @@ export class XAIAdapter extends BaseProviderAdapter {
       requestBody.search_enabled = true;
     }
 
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+    const response = await abortableFetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.credentials!.apiKey!}`,
@@ -324,7 +325,7 @@ export class XAIAdapter extends BaseProviderAdapter {
     const model = request.model || 'grok-imagine-image-2.0';
     const numOutputs = (parameters.numOutputs as number) || 1;
 
-    const response = await fetch(`${this.baseUrl}/images/generations`, {
+    const response = await abortableFetch(`${this.baseUrl}/images/generations`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.credentials!.apiKey!}`,
@@ -398,7 +399,7 @@ export class XAIAdapter extends BaseProviderAdapter {
     // model/prompt/image are documented for this endpoint, so nothing else is
     // sent: `n` and `response_format` would have matched the defaults anyway
     // (1 image, url), and the response reader below accepts either form.
-    const response = await fetch(`${this.baseUrl}/images/edits`, {
+    const response = await abortableFetch(`${this.baseUrl}/images/edits`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.credentials!.apiKey!}`,

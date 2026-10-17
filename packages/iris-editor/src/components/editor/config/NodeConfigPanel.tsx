@@ -54,7 +54,7 @@ export function NodeConfigPanel() {
   const [storagePickerOutputName, setStoragePickerOutputName] = useState<string | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
-  const { selectedNodeId, nodes, nodeConfigs, updateNodeConfig, updateNodeSettings, updateNodeOutput, selectNode, updateNode, workflowId } =
+  const { selectedNodeId, nodes, nodeConfigs, updateNodeConfig, updateNodeSettings, updateNodeOutput, selectNode, updateNode, workflowId, history } =
     useIrisEditorStore();
 
   // Get selected node and its definition
@@ -214,7 +214,11 @@ export function NodeConfigPanel() {
   );
 
   return (
+    // Fields here edit the document: their Ctrl+Z goes to the editor history
+    // (WorkflowCanvas), and leaving a field ends its typing merge (07 C2).
     <aside
+      data-history-scope="doc"
+      onBlur={() => history.breakMerge()}
       className="h-full flex flex-col"
       style={{
         borderLeft: '1px solid var(--color-iris-line-2)',

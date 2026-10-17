@@ -206,12 +206,77 @@ function isAssetLike(value: unknown): value is { id: string } {
   );
 }
 
-function representAssets(value: unknown): unknown {
-  if (isAssetLike(value)) return { assetId: value.id };
+/** Content hashes of assets by id (host seam `AssetHost.getContentHash`).
+ *  An asset with a known hash is keyed by content, the rest by id. */
+export type AssetContentHashes = ReadonlyMap<string, string>;
+
+function representAsset(id: string, hashes?: AssetContentHashes): unknown {
+  const hash = hashes?.get(id);
+  return hash ? { assetHash: hash } : { assetId: id };
+}
+
+function representAssets(value: unknown, hashes?: AssetContentHashes): unknown {
+  if (isAssetLike(value)) return representAsset(value.id, hashes);
   if (Array.isArray(value) && value.length > 0 && value.every(isAssetLike)) {
-    return value.map(item => ({ assetId: (item as { id: string }).id }));
+    return value.map(item => representAsset((item as { id: string }).id, hashes));
   }
   return value;
+}
+
+/**
+ * Asset ids a cache key would contain: asset references among the input
+ * values and the direct asset inputs of the config (`config.inputs[x]
+ * .storageAssetId` / `.assetId`). The engine resolves their content hashes
+ * before computing the key when the host offers them.
+ */
+export function collectCacheAssetIds(
+  inputs: Record<string, unknown>,
+  config?: Record<string, unknown> | null
+): string[] {
+  const ids = new Set<string>();
+  for (const value of Object.values(inputs ?? {})) {
+    if (isAssetLike(value)) ids.add(value.id);
+    else if (Array.isArray(value)) {
+      for (const item of value) if (isAssetLike(item)) ids.add(item.id);
+    }
+  }
+  const configInputs = config?.inputs;
+  if (isPlainObject(configInputs)) {
+    for (const entry of Object.values(configInputs)) {
+      if (!isPlainObject(entry)) continue;
+      for (const key of ['storageAssetId', 'assetId']) {
+        const id = entry[key];
+        if (typeof id === 'string' && id) ids.add(id);
+      }
+    }
+  }
+  return [...ids];
+}
+
+/** The config with direct asset inputs replaced by their content hash. */
+export function applyAssetHashesToConfig(
+  config: Record<string, unknown>,
+  hashes?: AssetContentHashes
+): Record<string, unknown> {
+  if (!hashes || hashes.size === 0 || !isPlainObject(config.inputs)) return config;
+  const inputs: Record<string, unknown> = {};
+  for (const [name, entry] of Object.entries(config.inputs)) {
+    if (!isPlainObject(entry)) {
+      inputs[name] = entry;
+      continue;
+    }
+    const next: Record<string, unknown> = { ...entry };
+    for (const key of ['storageAssetId', 'assetId']) {
+      const id = next[key];
+      const hash = typeof id === 'string' ? hashes.get(id) : undefined;
+      if (hash) {
+        delete next[key];
+        next[`${key}Hash`] = hash;
+      }
+    }
+    inputs[name] = next;
+  }
+  return { ...config, inputs };
 }
 
 /** Content hash of a node's `outputs` (asset references by id). */
@@ -232,12 +297,13 @@ export function hashOutputs(outputs: Record<string, unknown>): string {
  */
 export function hashInputs(
   inputs: Record<string, unknown>,
-  variables?: Record<string, unknown>
+  variables?: Record<string, unknown>,
+  assetHashes?: AssetContentHashes
 ): Record<string, string> {
   const hashed: Record<string, string> = {};
   for (const [port, value] of Object.entries(inputs ?? {})) {
     if (value === undefined) continue;
-    const represented = representAssets(value);
+    const represented = representAssets(value, assetHashes);
     const resolved = variables
       ? substituteVariables(represented, variables)
       : represented;
@@ -253,13 +319,15 @@ export function computeNodeCacheKey(params: {
   inputs: Record<string, unknown>;
   /** Run variables for `{{var}}` substitution inside input values. */
   variables?: Record<string, unknown>;
+  /** Content hashes of the assets involved (optional host seam). */
+  assetHashes?: AssetContentHashes;
 }): string {
   return sha256Hex(
     canonicalJson({
       v: CACHE_SCHEMA_VERSION,
       type: params.type,
-      config: params.config,
-      inputs: hashInputs(params.inputs, params.variables),
+      config: applyAssetHashesToConfig(params.config, params.assetHashes),
+      inputs: hashInputs(params.inputs, params.variables, params.assetHashes),
     })
   );
 }

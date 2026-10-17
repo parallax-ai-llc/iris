@@ -24,6 +24,7 @@
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsc -p tsconfig.json && node --test \"test/*.test.mjs\"",
     "clean": "rimraf dist"
   },
   "dependencies": {

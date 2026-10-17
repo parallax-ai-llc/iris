@@ -18,6 +18,9 @@ import {
   WorkflowStore,
   EngineExecution,
   EngineExecutionResult,
+  EngineWorkflowData,
+  EngineWorkflowEdgeRow,
+  EngineWorkflowNodeRow,
   WorkflowRunOutcome,
   NodeCacheEntry,
 } from './workflow-store.js';
@@ -38,8 +41,20 @@ import {
 } from './branch-pruning.js';
 import { NodeExecutor } from './node-executor.js';
 import {
+  abortableSleep,
+  isAbortError,
+  runWithAbortSignal,
+} from './abort-scope.js';
+import {
+  checkGraph,
+  migrateWorkflowDocWithReport,
+  workflowDocGraphJson,
+} from 'iris-nodes';
+import {
+  collectCacheAssetIds,
   computeNodeCacheKey,
   isNodeCacheable,
+  sha256Hex,
   outputsWithinSizeLimit,
   resolveConfigForCacheKey,
 } from './node-cache.js';
@@ -47,7 +62,8 @@ import { isValidAssetId, resolveRunAsset } from './asset-access.js';
 
 /** Events emitted by the workflow engine */
 export interface WorkflowEngineEvents {
-  'execution:started': { executionId: string; workflowId: string };
+  /** `docHash`: sha256 of the graph that runs (compare runs with documents). */
+  'execution:started': { executionId: string; workflowId: string; docHash?: string };
   'execution:completed': {
     executionId: string;
     status: string;
@@ -116,12 +132,17 @@ export class WorkflowEngine extends EventEmitter {
     userId: string,
     options: ExecutionOptions = {}
   ): Promise<EngineExecution> {
-    // 1. Load workflow with nodes and edges
-    const workflow = await this.loadWorkflow(workflowId);
+    // 1. Load workflow with nodes and edges, then read the graph through the
+    //    v2 document rules (or run the caller's document snapshot).
+    const stored = await this.loadWorkflow(workflowId);
 
-    if (!workflow) {
+    if (!stored) {
       throw new WorkflowNotFoundError(workflowId);
     }
+    const { workflow, docHash, graphWarnings } = this.prepareWorkflow(
+      stored,
+      options.doc
+    );
 
     // 2. Build execution graph
     const graph = this.graphTraverser.buildGraph(
@@ -187,16 +208,26 @@ export class WorkflowEngine extends EventEmitter {
       startTime: Date.now(),
       totalTokens: 0,
       totalCost: 0,
+      abortController: new AbortController(),
+      docHash,
     };
 
     this.activeExecutions.set(execution.id, state);
 
-    // 6. Run execution in background
-    this.runExecution(execution.id, workflow, graph, state, options).catch(
-      error => {
-        this.handleExecutionError(execution.id, error);
-      }
-    );
+    // 6. Run execution in background. Everything the run awaits sees its
+    //    abort signal (provider fetches, poll sleeps), see abort-scope.ts.
+    const warnings = [
+      ...graphWarnings,
+      ...(graph.droppedEdges ?? []).map(
+        edgeId =>
+          `Connection ${edgeId} points at a node that does not exist and was ignored`
+      ),
+    ];
+    runWithAbortSignal(state.abortController!.signal, () =>
+      this.runExecution(execution.id, workflow, graph, state, options, warnings)
+    ).catch(error => {
+      this.handleExecutionError(execution.id, error);
+    });
 
     return execution;
   }
@@ -209,7 +240,8 @@ export class WorkflowEngine extends EventEmitter {
     workflow: Awaited<ReturnType<typeof this.loadWorkflow>>,
     graph: WorkflowGraph,
     state: ExecutionState,
-    options: ExecutionOptions
+    options: ExecutionOptions,
+    graphWarnings: string[] = []
   ): Promise<void> {
     if (!workflow) return;
 
@@ -221,6 +253,8 @@ export class WorkflowEngine extends EventEmitter {
         message: 'Execution timed out',
         code: 'TIMEOUT',
       };
+      // Stop the provider call in flight, not only the next node (R-03).
+      state.abortController?.abort('timeout');
     }, timeout);
 
     try {
@@ -232,12 +266,28 @@ export class WorkflowEngine extends EventEmitter {
       await this.createLog(executionId, {
         eventType: 'EXECUTION_START',
         message: `Started workflow execution: ${workflow.name}`,
-        data: { workflowId: state.workflowId, inputs: options.inputs },
+        data: {
+          workflowId: state.workflowId,
+          inputs: options.inputs,
+          docHash: state.docHash,
+          fromSnapshot: options.doc !== undefined,
+        },
       });
+
+      // Structural problems that do not stop the run (orphan or dangling
+      // connections, missing ports) are logged instead of dropped silently.
+      for (const warning of graphWarnings) {
+        await this.createLog(executionId, {
+          level: 'WARN',
+          eventType: 'GRAPH_WARNING',
+          message: warning,
+        });
+      }
 
       this.emit('execution:started', {
         executionId,
         workflowId: state.workflowId,
+        docHash: state.docHash,
       });
 
       // Get execution order. The whole graph runs (upstream results come from
@@ -464,11 +514,17 @@ export class WorkflowEngine extends EventEmitter {
           if (cacheEligible) {
             try {
               const runVariables = Object.fromEntries(state.variables);
+              const assetHashes = await this.resolveAssetHashes(
+                inputs,
+                nodeConfig,
+                workflow.userId
+              );
               cacheKey = computeNodeCacheKey({
                 type: graphNode.type,
                 config: resolveConfigForCacheKey(nodeConfig, runVariables),
                 inputs,
                 variables: runVariables,
+                assetHashes,
               });
             } catch {
               cacheKey = null;
@@ -549,6 +605,34 @@ export class WorkflowEngine extends EventEmitter {
 
         // Handle node result
         const nodeDuration = Date.now() - nodeStartTime;
+
+        // Cancelled or timed out while this node ran: record the node as
+        // stopped (never cached, never routed to a TRY_CATCH) and end the run
+        // with the status cancel() / the timeout already set.
+        if (
+          state.abortController?.signal.aborted &&
+          result.status === 'failed'
+        ) {
+          const timedOut = state.error?.code === 'TIMEOUT';
+          const stopped: NodeResult = {
+            ...result,
+            error: {
+              message: timedOut ? 'Execution timed out' : 'Cancelled',
+              code: timedOut ? 'TIMEOUT' : 'CANCELLED',
+            },
+          };
+          state.nodeResults.set(nodeId, stopped);
+          await this.saveNodeResult(executionId, nodeId, stopped);
+          await this.createLog(executionId, {
+            nodeId,
+            level: 'WARN',
+            eventType: 'NODE_CANCELLED',
+            message: `Node stopped: ${stopped.error!.message}`,
+            duration: nodeDuration,
+          });
+          this.emit('node:completed', { executionId, nodeId, result: stopped });
+          break;
+        }
 
         if (result.status === 'failed') {
           // Look for a downstream UTIL_TRY_CATCH — if one exists, convert
@@ -739,6 +823,7 @@ export class WorkflowEngine extends EventEmitter {
           cacheEligible &&
           cacheKey !== null &&
           result.status === 'completed' &&
+          !state.abortController?.signal.aborted &&
           outputsWithinSizeLimit(result.outputs ?? {})
         ) {
           const now = new Date().toISOString();
@@ -946,13 +1031,32 @@ export class WorkflowEngine extends EventEmitter {
         lastError = error as Error;
         retryCount++;
 
+        // A cancelled run is not retried.
+        if (state.abortController?.signal.aborted || isAbortError(error)) {
+          return {
+            nodeId: graphNode.id,
+            status: 'failed',
+            outputs: {},
+            assets: [],
+            duration: Date.now() - startTime,
+            error: {
+              message: lastError?.message ?? 'Cancelled',
+              code: 'CANCELLED',
+            },
+          };
+        }
+
         if (retryCount <= MAX_NODE_RETRIES) {
           // Exponential backoff
           const delay = Math.min(
             RETRY_DELAY_BASE * Math.pow(2, retryCount - 1),
             30000
           );
-          await new Promise(resolve => setTimeout(resolve, delay));
+          try {
+            await abortableSleep(delay);
+          } catch {
+            // cancelled during the backoff: the next attempt returns early
+          }
         }
       }
     }
@@ -1060,6 +1164,8 @@ export class WorkflowEngine extends EventEmitter {
     }
 
     state.status = 'cancelled';
+    // Abort the provider request in flight (R-02).
+    state.abortController?.abort('cancelled');
     await this.updateExecutionStatus(executionId, 'CANCELLED');
 
     this.emit('execution:cancelled', { executionId });
@@ -1079,6 +1185,107 @@ export class WorkflowEngine extends EventEmitter {
    */
   isExecutionActive(executionId: string): boolean {
     return this.activeExecutions.has(executionId);
+  }
+
+  /**
+   * Read the loaded graph (or a caller's document snapshot) through the v2
+   * document rules shared with the editors (`iris-nodes`
+   * `migrateWorkflowDoc`): one edge per input handle (the last, as before),
+   * v1 config-only node links turned into edges, duplicate edges collapsed.
+   * Rows keep their host fields (providerId, ports); a stored node's config is
+   * only rewritten when migration changed its inputs, so cache keys of
+   * untouched nodes stay the same. Returns the graph hash and the structural
+   * warnings to log.
+   */
+  private prepareWorkflow(
+    stored: EngineWorkflowData,
+    snapshot: unknown
+  ): {
+    workflow: EngineWorkflowData;
+    docHash: string;
+    graphWarnings: string[];
+  } {
+    const fromSnapshot = snapshot !== undefined;
+    const source = fromSnapshot
+      ? snapshot
+      : { nodes: stored.nodes, edges: stored.edges };
+    const { doc, changes } = migrateWorkflowDocWithReport(source);
+    const touched = new Set<string>();
+    for (const c of changes) {
+      if (c.kind === 'node-link-to-edge' || c.kind === 'node-link-dropped') {
+        touched.add(c.nodeId);
+      }
+    }
+    const rows = new Map(stored.nodes.map(n => [n.nodeId, n]));
+    const nodes: EngineWorkflowNodeRow[] = doc.nodes.map(n => {
+      const row = rows.get(n.id);
+      let config = n.config as Record<string, unknown>;
+      if (row && !fromSnapshot) {
+        config = touched.has(n.id)
+          ? { ...row.config, inputs: n.config.inputs }
+          : row.config;
+      }
+      return {
+        inputPorts: [],
+        outputPorts: [],
+        ...(row ?? {}),
+        id: n.id,
+        nodeId: n.id,
+        type: n.type as EngineWorkflowNodeRow['type'],
+        label: n.label,
+        config,
+      };
+    });
+    const edges: EngineWorkflowEdgeRow[] = doc.edges.map(e => ({
+      edgeId: e.id,
+      sourceNodeId: e.source,
+      targetNodeId: e.target,
+      sourceHandle: e.sourceHandle,
+      targetHandle: e.targetHandle,
+    }));
+
+    const graphWarnings: string[] = [];
+    for (const c of changes) {
+      if (c.kind === 'extra-input-edge-dropped') {
+        graphWarnings.push(
+          `Connection ${c.edgeId} feeds an input that already has connection ${c.keptEdgeId}; only ${c.keptEdgeId} is used`
+        );
+      }
+    }
+    for (const issue of checkGraph(doc)) {
+      // Cycles fail the run in buildGraph; multiple inputs were collapsed above.
+      if (issue.code === 'cycle' || issue.code === 'multiple-inputs') continue;
+      graphWarnings.push(issue.message);
+    }
+
+    return {
+      workflow: { ...stored, nodes, edges },
+      docHash: sha256Hex(workflowDocGraphJson(doc)),
+      graphWarnings,
+    };
+  }
+
+  /** Content hashes of the assets a cache key involves, when the host offers
+   *  them (`AssetHost.getContentHash`, local hosts). Cloud: undefined. */
+  private async resolveAssetHashes(
+    inputs: Record<string, unknown>,
+    config: Record<string, unknown>,
+    userId: string
+  ): Promise<Map<string, string> | undefined> {
+    const assets = this.nodeHost.assets;
+    if (!assets.getContentHash) return undefined;
+    const ids = collectCacheAssetIds(inputs, config);
+    if (ids.length === 0) return undefined;
+    const hashes = new Map<string, string>();
+    for (const id of ids) {
+      try {
+        const hash = await assets.getContentHash(id, userId);
+        if (hash) hashes.set(id, hash);
+      } catch {
+        // unknown hash: the id stands in for it
+      }
+    }
+    return hashes;
   }
 
   /**
@@ -1627,6 +1834,18 @@ export class WorkflowEngine extends EventEmitter {
       };
       // eslint-disable-next-line no-constant-condition
       while (true) {
+        // The parent was cancelled: cancel the child too.
+        if (state.abortController?.signal.aborted) {
+          await this.cancel(subExecution.id);
+          return {
+            nodeId: graphNode.id,
+            status: 'failed',
+            outputs: { executionId: subExecution.id },
+            assets: [],
+            duration: Date.now() - startTime,
+            error: { message: 'Cancelled', code: 'CANCELLED' },
+          };
+        }
         if (Date.now() > deadline) {
           return {
             nodeId: graphNode.id,
@@ -1650,7 +1869,14 @@ export class WorkflowEngine extends EventEmitter {
         ) {
           break;
         }
-        await new Promise(r => setTimeout(r, SUB_POLL_INTERVAL_MS));
+        try {
+          await abortableSleep(
+            SUB_POLL_INTERVAL_MS,
+            state.abortController?.signal
+          );
+        } catch {
+          // cancelled: handled at the top of the loop
+        }
       }
 
       const succeeded = finalResult.status === 'COMPLETED';

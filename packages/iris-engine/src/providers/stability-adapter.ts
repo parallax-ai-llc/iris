@@ -3,6 +3,7 @@
  * Supports: text-to-image, image-to-image, inpaint, outpaint
  */
 
+import { abortableFetch } from '../abort-scope.js';
 import { BaseProviderAdapter } from './base-adapter.js';
 import {
   AICapability,
@@ -142,7 +143,7 @@ export class StabilityAdapter extends BaseProviderAdapter {
   }
 
   protected async pingApi(): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/stable-image/generate/sd3`, {
+    const response = await abortableFetch(`${this.baseUrl}/stable-image/generate/sd3`, {
       method: 'OPTIONS',
       headers: { Authorization: `Bearer ${this.credentials!.apiKey}` },
     });
@@ -214,7 +215,7 @@ export class StabilityAdapter extends BaseProviderAdapter {
     if (parameters.negativePrompt)
       formData.append('negative_prompt', parameters.negativePrompt as string);
 
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+    const response = await abortableFetch(`${this.baseUrl}${endpoint}`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.credentials!.apiKey}`,
@@ -280,7 +281,7 @@ export class StabilityAdapter extends BaseProviderAdapter {
     if (parameters.negativePrompt)
       formData.append('negative_prompt', parameters.negativePrompt as string);
 
-    const response = await fetch(
+    const response = await abortableFetch(
       `${this.baseUrl}/stable-image/control/structure`,
       {
         method: 'POST',
@@ -362,7 +363,7 @@ export class StabilityAdapter extends BaseProviderAdapter {
     if (request.negativePrompt)
       formData.append('negative_prompt', request.negativePrompt);
 
-    const response = await fetch(`${this.baseUrl}/stable-image/edit/inpaint`, {
+    const response = await abortableFetch(`${this.baseUrl}/stable-image/edit/inpaint`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.credentials!.apiKey}`,
@@ -426,7 +427,7 @@ export class StabilityAdapter extends BaseProviderAdapter {
     formData.append('foreground_prompt', foregroundPrompt);
     formData.append('output_format', 'png');
 
-    const response = await fetch(
+    const response = await abortableFetch(
       `${this.baseUrl}/stable-image/edit/replace-background-and-relight`,
       {
         method: 'POST',
@@ -484,7 +485,7 @@ export class StabilityAdapter extends BaseProviderAdapter {
     formData.append('output_format', 'png');
     if (request.prompt) formData.append('prompt', request.prompt);
 
-    const response = await fetch(
+    const response = await abortableFetch(
       `${this.baseUrl}/stable-image/upscale/conservative`,
       {
         method: 'POST',
@@ -556,7 +557,7 @@ export class StabilityAdapter extends BaseProviderAdapter {
     if (direction === 'all' || direction === 'down')
       formData.append('down', String(pixels));
 
-    const response = await fetch(`${this.baseUrl}/stable-image/edit/outpaint`, {
+    const response = await abortableFetch(`${this.baseUrl}/stable-image/edit/outpaint`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.credentials!.apiKey}`,

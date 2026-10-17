@@ -3,6 +3,7 @@
  * Supports: text-to-text (DeepSeek V4.1 Flash)
  */
 
+import { abortableFetch } from '../abort-scope.js';
 import { BaseProviderAdapter } from './base-adapter.js';
 import {
   AICapability,
@@ -123,7 +124,7 @@ export class DeepSeekAdapter extends BaseProviderAdapter {
     }
 
     // DeepSeek uses OpenAI-compatible format
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+    const response = await abortableFetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.credentials!.apiKey!}`,

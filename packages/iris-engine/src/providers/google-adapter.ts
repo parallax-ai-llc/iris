@@ -4,6 +4,7 @@
  * text-to-speech (Gemini TTS)
  */
 
+import { abortableFetch, abortableSleep } from '../abort-scope.js';
 import { BaseProviderAdapter } from './base-adapter.js';
 import {
   AICapability,
@@ -72,7 +73,7 @@ export class GoogleAdapter extends BaseProviderAdapter {
   }
 
   protected async pingApi(): Promise<void> {
-    const response = await fetch(
+    const response = await abortableFetch(
       `${this.baseUrl}/models?key=${this.credentials!.apiKey}`
     );
     if (!response.ok) {
@@ -169,7 +170,7 @@ export class GoogleAdapter extends BaseProviderAdapter {
     const accessToken = await this.getVertexAccessToken();
     const vertexUrl = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${model}:predict`;
 
-    const response = await fetch(vertexUrl, {
+    const response = await abortableFetch(vertexUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -279,7 +280,7 @@ export class GoogleAdapter extends BaseProviderAdapter {
     const editModel = 'gemini-2.5-flash-image';
     const vertexUrl = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${editModel}:predict`;
 
-    const response = await fetch(vertexUrl, {
+    const response = await abortableFetch(vertexUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -374,7 +375,7 @@ export class GoogleAdapter extends BaseProviderAdapter {
       };
     }
 
-    const response = await fetch(
+    const response = await abortableFetch(
       `${this.baseUrl}/models/${model}:generateContent?key=${this.credentials!.apiKey}`,
       {
         method: 'POST',
@@ -480,7 +481,7 @@ export class GoogleAdapter extends BaseProviderAdapter {
       };
     }
 
-    const response = await fetch(
+    const response = await abortableFetch(
       `${this.baseUrl}/models/${model}:generateContent?key=${this.credentials!.apiKey}`,
       {
         method: 'POST',
@@ -603,7 +604,7 @@ export class GoogleAdapter extends BaseProviderAdapter {
       };
     }
 
-    const response = await fetch(
+    const response = await abortableFetch(
       `${this.baseUrl}/models/${model}:generateContent?key=${this.credentials!.apiKey}`,
       {
         method: 'POST',
@@ -729,7 +730,7 @@ export class GoogleAdapter extends BaseProviderAdapter {
       },
     };
 
-    const response = await fetch(
+    const response = await abortableFetch(
       `${this.baseUrl}/models/${model}:generateContent?key=${this.credentials!.apiKey}`,
       {
         method: 'POST',
@@ -907,7 +908,7 @@ Do NOT modify facial features or hairstyle.`;
       requestBody.tools = [{ google_search: {} }];
     }
 
-    const response = await fetch(
+    const response = await abortableFetch(
       `${this.baseUrl}/models/${model}:generateContent?key=${this.credentials!.apiKey}`,
       {
         method: 'POST',
@@ -985,7 +986,7 @@ Do NOT modify facial features or hairstyle.`;
       parameters.voice ?? parameters.voiceId
     );
 
-    const response = await fetch(
+    const response = await abortableFetch(
       `${this.baseUrl}/models/${model}:generateContent?key=${this.credentials!.apiKey}`,
       {
         method: 'POST',
@@ -1095,7 +1096,7 @@ Do NOT modify facial features or hairstyle.`;
 
     const analysisPrompt = prompt || 'Describe what you see in this video.';
 
-    const response = await fetch(
+    const response = await abortableFetch(
       `${this.baseUrl}/models/${model}:generateContent?key=${this.credentials!.apiKey}`,
       {
         method: 'POST',
@@ -1195,7 +1196,7 @@ Do NOT modify facial features or hairstyle.`;
     const model = request.model || 'veo-3.1-generate-001';
     const vertexUrl = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${model}:predictLongRunning`;
 
-    const response = await fetch(vertexUrl, {
+    const response = await abortableFetch(vertexUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1342,7 +1343,7 @@ Do NOT modify facial features or hairstyle.`;
     const randomId = Math.random().toString(36).substring(7);
     const storageUri = `gs://${gcsBucket}/iris/veo-outputs/${timestamp}-${randomId}/`;
 
-    const response = await fetch(vertexUrl, {
+    const response = await abortableFetch(vertexUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1539,7 +1540,7 @@ Do NOT modify facial features or hairstyle.`;
         ? parts[locationIndex + 1]
         : 'us-central1';
 
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    await abortableSleep(3000);
 
     let consecutive404Count = 0;
     const max404Retries = 5;
@@ -1555,7 +1556,7 @@ Do NOT modify facial features or hairstyle.`;
       const accessToken = await this.getVertexAccessToken();
       const fetchOpUrl = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${model}:fetchPredictOperation`;
 
-      const response = await fetch(fetchOpUrl, {
+      const response = await abortableFetch(fetchOpUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1571,7 +1572,7 @@ Do NOT modify facial features or hairstyle.`;
             pollIntervalMs * consecutive404Count,
             30000
           );
-          await new Promise(resolve => setTimeout(resolve, waitTime));
+          await abortableSleep(waitTime);
           continue;
         }
         const errorData = await response.json().catch(() => ({}));
@@ -1643,7 +1644,7 @@ Do NOT modify facial features or hairstyle.`;
         return { done: true, predictions };
       }
 
-      await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+      await abortableSleep(pollIntervalMs);
     }
 
     return {
@@ -1666,7 +1667,7 @@ Do NOT modify facial features or hairstyle.`;
     const encodedPath = encodeURIComponent(objectPath);
     const downloadUrl = `https://storage.googleapis.com/storage/v1/b/${bucket}/o/${encodedPath}?alt=media`;
 
-    const response = await fetch(downloadUrl, {
+    const response = await abortableFetch(downloadUrl, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
@@ -1756,7 +1757,7 @@ Do NOT modify facial features or hairstyle.`;
       ...(encoding === 'LINEAR16' ? { sampleRateHertz: 16000 } : {}),
     };
 
-    const response = await fetch(speechUrl, {
+    const response = await abortableFetch(speechUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

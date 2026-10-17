@@ -3,6 +3,7 @@
  * Supports: text-to-video, image-to-video (Dream Machine)
  */
 
+import { abortableFetch } from '../abort-scope.js';
 import { BaseProviderAdapter } from './base-adapter.js';
 import {
   AICapability,
@@ -118,7 +119,7 @@ export class LumaAdapter extends BaseProviderAdapter {
   }
 
   protected async pingApi(): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/generations`, {
+    const response = await abortableFetch(`${this.baseUrl}/generations`, {
       method: 'GET',
       headers: { Authorization: `Bearer ${this.credentials!.apiKey}` },
     });
@@ -158,7 +159,7 @@ export class LumaAdapter extends BaseProviderAdapter {
     const { prompt, parameters = {} } = request;
     const modelName = request.model || 'ray-2';
 
-    const response = await fetch(`${this.baseUrl}/generations`, {
+    const response = await abortableFetch(`${this.baseUrl}/generations`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.credentials!.apiKey}`,
@@ -238,7 +239,7 @@ export class LumaAdapter extends BaseProviderAdapter {
       requestBody.prompt = prompt;
     }
 
-    const response = await fetch(`${this.baseUrl}/generations`, {
+    const response = await abortableFetch(`${this.baseUrl}/generations`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.credentials!.apiKey}`,
@@ -280,7 +281,7 @@ export class LumaAdapter extends BaseProviderAdapter {
   ): Promise<{ video_url: string }> {
     return this.pollForCompletion<{ video_url: string }>(
       async () => {
-        const statusRes = await fetch(
+        const statusRes = await abortableFetch(
           `${this.baseUrl}/generations/${generationId}`,
           {
             headers: { Authorization: `Bearer ${this.credentials!.apiKey}` },

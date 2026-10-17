@@ -51,6 +51,23 @@ export interface IrisEditorSeams {
    * When omitted the editor shows a "sign in required" screen instead.
    */
   onUnauthorized?: (info: { workflowId: string }) => void;
+  /**
+   * The host routes undo/redo keys itself (the desktop shell sends Ctrl+Z to
+   * the active document's history). The canvas then leaves those keys alone.
+   */
+  hostHandlesHistoryKeys?: boolean;
+  /**
+   * Whether this editor should react to window key presses right now. Hosts
+   * that keep several editors mounted (hidden tabs) answer true only for the
+   * visible one, so copy / paste / delete never reach a hidden document.
+   */
+  isKeyboardActive?: () => boolean;
+  /**
+   * Clipboard used by copy / paste of nodes. Defaults to `navigator.clipboard`.
+   * Hosts whose web view gates the system clipboard behind a permission prompt
+   * (the desktop app's WebView2) pass their own.
+   */
+  clipboard?: { readText(): Promise<string>; writeText(text: string): Promise<void> };
   /** Optional media/storage components (storage input source, output picker). */
   StorageBrowserModal?: ComponentType<Record<string, unknown>>;
   StorageLocationPicker?: ComponentType<Record<string, unknown>>;

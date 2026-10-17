@@ -32,6 +32,7 @@
  * undici dispatcher), which the dep-light engine intentionally avoids.
  */
 
+import { currentAbortSignal, RunAbortedError } from './abort-scope.js';
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 
@@ -327,7 +328,10 @@ export async function safeHttpFetchBuffer(
   const maxRedirects = policy?.maxRedirects ?? DEFAULT_HTTP_MAX_REDIRECTS;
 
   // One deadline for the whole exchange: every hop and the body read share it.
-  const signal = AbortSignal.timeout(timeoutMs);
+  // A cancelled run aborts it too.
+  const deadline = AbortSignal.timeout(timeoutMs);
+  const runSignal = currentAbortSignal();
+  const signal = runSignal ? AbortSignal.any([deadline, runSignal]) : deadline;
 
   let currentUrl = url;
   let method = init.method;
@@ -347,6 +351,7 @@ export async function safeHttpFetchBuffer(
         signal,
       });
     } catch (error) {
+      if (runSignal?.aborted) throw new RunAbortedError(runSignal.reason);
       if (isTimeoutError(error)) {
         throw new Error(
           `Request timed out after ${Math.round(timeoutMs / 1000)}s.`
@@ -391,6 +396,7 @@ export async function safeHttpFetchBuffer(
     try {
       bodyBuffer = await readBodyCapped(response, maxResponseBytes);
     } catch (error) {
+      if (runSignal?.aborted) throw new RunAbortedError(runSignal.reason);
       if (isTimeoutError(error)) {
         throw new Error(
           `Request timed out after ${Math.round(timeoutMs / 1000)}s while reading the response.`

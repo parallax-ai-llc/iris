@@ -623,6 +623,15 @@ export interface ExecutionOptions {
   /** Batch job reference */
   batchJobId?: string;
   batchRowNumber?: number;
+
+  /**
+   * Run this document instead of the stored graph ("run what is on screen",
+   * 04-workflow-editor.md 3.7). The stored workflow still supplies the name,
+   * owner and output settings. Any saved version is accepted (it goes through
+   * `migrateWorkflowDoc`). Hosts whose store maps node ids to database rows
+   * must only pass nodes the store knows.
+   */
+  doc?: unknown;
 }
 
 /** Execution state (in-memory during execution) */
@@ -646,6 +655,13 @@ export interface ExecutionState {
 
   /** Current node being executed */
   currentNodeId?: string;
+
+  /** Aborted by `cancel()` and the run timeout; reaches provider calls through
+   *  the run's abort scope (`abort-scope.ts`). */
+  abortController?: AbortController;
+
+  /** sha256 of the graph that ran (`workflowDocGraphJson`). */
+  docHash?: string;
 
   /** Completed nodes */
   completedNodes: Set<string>;
@@ -688,6 +704,10 @@ export interface WorkflowGraph {
   entryNodes: string[]; // Nodes with no inputs
   exitNodes: string[]; // Nodes with no outputs
   topologicalOrder: string[];
+
+  /** Edges `buildGraph` could not place because an endpoint node is missing
+   *  (kept for warnings; they never carry data). */
+  droppedEdges?: string[];
 }
 
 /** Graph node */

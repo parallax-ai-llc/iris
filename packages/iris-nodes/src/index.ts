@@ -154,33 +154,7 @@ export {
   OUTPUT_DISCORD,
 } from './nodes/output.js';
 
-import type { NodeDefinition } from './types.js';
-import * as trigger from './nodes/trigger.js';
-import * as generator from './nodes/generator.js';
-import * as analyzer from './nodes/analyzer.js';
-import * as editor from './nodes/editor.js';
-import * as utility from './nodes/utility.js';
-import * as web from './nodes/web.js';
-import * as output from './nodes/output.js';
-
-/**
- * Full canonical catalog. Every node defined in iris-nodes is keyed here.
- * Individual consumers may opt-in to a subset (e.g. iris/ excludes some
- * desktop-only nodes from its picker) but the definitions live here.
- */
-export const NODE_DEFINITIONS: Record<string, NodeDefinition> = {
-  ...trigger,
-  ...generator,
-  ...analyzer,
-  ...editor,
-  ...utility,
-  ...web,
-  ...output,
-};
-
-export function getNodeDefinition(type: string): NodeDefinition | undefined {
-  return NODE_DEFINITIONS[type];
-}
+export { NODE_DEFINITIONS, getNodeDefinition } from './catalog.js';
 
 // Re-export prompt helpers so consumers can import from the main entry,
 // avoiding subpath-export resolution issues in tsconfigs that aren't
@@ -251,3 +225,56 @@ export type {
   NodeBillingKind,
   NodeBillingPlan,
 } from './billing.js';
+
+// Workflow document v2 + connection rules + semantic checks (shared by the
+// editors, the engine and the hosts; 04-workflow-editor.md 3.1~3.3).
+export {
+  WORKFLOW_DOC_SCHEMA_VERSION,
+  edgeIdFor,
+  migrateWorkflowDoc,
+  migrateWorkflowDocWithReport,
+  normalizeWorkflowDoc,
+  workflowDocGraphJson,
+  workflowDocToRows,
+} from './workflow-doc.js';
+export type {
+  DocInputConfig,
+  DocOutputConfig,
+  DocNodeConfig,
+  DocNode,
+  DocEdge,
+  WorkflowDoc,
+  MigrationChange,
+  MigrationResult,
+  WorkflowNodeRow,
+  WorkflowEdgeRow,
+} from './workflow-doc.js';
+export {
+  PORT_TYPE_COMPATIBILITY,
+  isPortTypeCompatible,
+  resolvePorts,
+  canConnect,
+  checkGraph,
+  orphanEdgeIds,
+  diffDynamicOutputs,
+} from './connect.js';
+export type {
+  NodeDefinitionLookup,
+  ResolvedPorts,
+  ConnectionRequest,
+  ConnectReason,
+  ConnectResult,
+  GraphIssueCode,
+  GraphIssue,
+  PortRename,
+} from './connect.js';
+export {
+  DEFAULT_MAX_LOOP_ITERATIONS_TOTAL,
+  PROVIDER_REQUIRED_NODE_TYPES,
+  validateWorkflowSemantics,
+} from './validate-semantics.js';
+export type {
+  SemanticIssueCode,
+  SemanticIssue,
+  SemanticValidationOptions,
+} from './validate-semantics.js';

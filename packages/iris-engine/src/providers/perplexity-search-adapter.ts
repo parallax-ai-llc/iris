@@ -21,6 +21,7 @@
  * cost (LLM-driven retry storms inside agent loops).
  */
 
+import { abortableFetch } from '../abort-scope.js';
 import { createHash } from 'crypto';
 
 export interface PerplexitySearchInput {
@@ -74,7 +75,7 @@ export function buildCacheKey(query: string, maxResults: number): string {
  * to avoid hitting the live API.
  */
 export type FetchFn = typeof fetch;
-let fetchImpl: FetchFn = (...args) => fetch(...args);
+let fetchImpl: FetchFn = (...args) => abortableFetch(...args);
 
 /** Test-only: swap the fetch implementation. */
 export function __setPerplexityFetchImpl(impl: FetchFn): void {
@@ -83,7 +84,7 @@ export function __setPerplexityFetchImpl(impl: FetchFn): void {
 
 /** Test-only: restore the default fetch implementation. */
 export function __resetPerplexityFetchImpl(): void {
-  fetchImpl = (...args) => fetch(...args);
+  fetchImpl = (...args) => abortableFetch(...args);
 }
 
 /**

@@ -3,6 +3,7 @@
  * Abstract class for all AI provider adapters
  */
 
+import { abortableFetch, abortableSleep } from '../abort-scope.js';
 import {
   AICapability,
   AIRequest,
@@ -361,7 +362,7 @@ export abstract class BaseProviderAdapter implements IProviderAdapter {
       headers['Authorization'] = `Bearer ${this.credentials.accessToken}`;
     }
 
-    const response = await fetch(url, {
+    const response = await abortableFetch(url, {
       ...options,
       headers,
     });
@@ -448,7 +449,7 @@ export abstract class BaseProviderAdapter implements IProviderAdapter {
       }
 
       // Wait before next poll
-      await new Promise(resolve => setTimeout(resolve, interval));
+      await abortableSleep(interval);
     }
 
     throw new ProviderApiError(this.name, 'Operation timed out');

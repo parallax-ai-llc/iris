@@ -3,6 +3,7 @@
  * Supports: text-to-text (Claude models)
  */
 
+import { abortableFetch } from '../abort-scope.js';
 import { BaseProviderAdapter } from './base-adapter.js';
 import {
   AICapability,
@@ -303,7 +304,7 @@ export class AnthropicAdapter extends BaseProviderAdapter {
       ];
     }
 
-    const response = await fetch(`${this.baseUrl}/messages`, {
+    const response = await abortableFetch(`${this.baseUrl}/messages`, {
       method: 'POST',
       headers: {
         'x-api-key': this.credentials!.apiKey!,

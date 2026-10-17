@@ -3,6 +3,7 @@
  * Handles execution of individual nodes based on their type
  */
 
+import { abortableFetch, abortableSleep } from './abort-scope.js';
 import type { HeaderEntry } from 'iris-nodes';
 import {
   NODE_DEFINITIONS as SHARED_NODE_DEFINITIONS,
@@ -31,6 +32,7 @@ import type {
   PublicStoreSource,
   TokenUsageOpts,
 } from './node-host.js';
+import { requireStoredOutput } from './node-host.js';
 import { safeHttpFetch } from './safe-http.js';
 import { evaluateCondition as evaluateSafeCondition } from './safe-expression.js';
 import { StorePublicBlockedError } from './public-store.js';
@@ -765,6 +767,7 @@ export class NodeExecutor {
             model: effectiveModelId,
             provider: effectiveProviderName,
           });
+          requireStoredOutput(this.host, storeResult);
 
           if (storeResult.success && storeResult.apiUrl && storeResult.asset) {
             // Set output based on type
@@ -1023,6 +1026,7 @@ export class NodeExecutor {
             executionId: context.executionId,
             baseName: 'cropped-image',
           });
+          requireStoredOutput(this.host, storeResult);
 
           if (storeResult.success && storeResult.apiUrl && storeResult.asset) {
             outputs.image = storeResult.apiUrl;
@@ -1161,6 +1165,7 @@ export class NodeExecutor {
               model: aiRequest.model,
               provider: providerName,
             });
+            requireStoredOutput(this.host, storeResult);
 
             if (
               storeResult.success &&
@@ -1241,6 +1246,7 @@ export class NodeExecutor {
               model: aiRequest.model,
               provider: 'fal',
             });
+            requireStoredOutput(this.host, storeResult);
             if (
               storeResult.success &&
               storeResult.apiUrl &&
@@ -1346,6 +1352,7 @@ export class NodeExecutor {
               model: aiRequest.model,
               provider: providerName,
             });
+            requireStoredOutput(this.host, storeResult);
 
             if (
               storeResult.success &&
@@ -1432,7 +1439,7 @@ export class NodeExecutor {
             errorMessage.includes('10 second')
           ) {
             // Wait 3 seconds to avoid rate limiting (Replicate allows 6 req/min with burst of 1)
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            await abortableSleep(3000);
 
             aiRequest.parameters = {
               ...aiRequest.parameters,
@@ -1464,6 +1471,7 @@ export class NodeExecutor {
               model: aiRequest.model,
               provider: 'replicate',
             });
+            requireStoredOutput(this.host, storeResult);
 
             if (
               storeResult.success &&
@@ -1534,7 +1542,7 @@ export class NodeExecutor {
       case 'UTIL_DELAY': {
         const delayMs =
           this.pickConfigField<number>(config, 'duration') ?? 1000;
-        await new Promise(resolve => setTimeout(resolve, delayMs));
+        await abortableSleep(delayMs);
         outputs.output = inputs.input;
         break;
       }
@@ -4377,7 +4385,7 @@ export class NodeExecutor {
     }
 
     // Download video buffer
-    const response = await globalThis.fetch(videoUrl.value);
+    const response = await abortableFetch(videoUrl.value);
     if (!response.ok) {
       throw new Error(
         `GEN_VIDEO_SUBTITLE: failed to download video (${response.status})`

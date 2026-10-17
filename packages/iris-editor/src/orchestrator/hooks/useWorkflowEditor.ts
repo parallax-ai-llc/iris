@@ -5,10 +5,13 @@ import { Node, Edge } from '@xyflow/react';
 import { toast } from 'sonner';
 import {
   irisApiClient,
+  irisApiSupport,
   Workflow as WorkflowType,
   TokenCostsResponse,
+  WorkflowRevisionConflictError,
   type WorkflowLoadErrorKind,
 } from '@editor/lib/apis/iris-api-client';
+import { checkGraph, validateWorkflowSemantics } from 'iris-nodes';
 import { useI18n } from '@editor/hooks/usei18n';
 import { useSeams } from '@editor/seams';
 import { usePlanAccessStore } from '@editor/store/planAccess';
@@ -92,25 +95,30 @@ export function useWorkflowEditor(workflowId: string) {
   const pendingPartialRef = useRef<PartialRunOptions | undefined>(undefined);
 
   // Store state
-  const { 
-    initWorkflow, 
-    nodes, 
-    edges, 
-    nodeConfigs, 
-    isDirty, 
-    isExecuting, 
+  const {
+    initWorkflow,
+    nodes,
+    edges,
+    nodeConfigs,
+    isDirty,
+    isExecuting,
+    executionId,
+    isStopping,
+    editRevision,
     setExecuting,
-    setNodeValidationError, 
+    setStopping,
+    setNodeValidationError,
     clearValidationErrors,
   } = useIrisEditorStore();
   
   const { fetchPlanAccess } = usePlanAccessStore();
 
-  // Reset validation when workflow changes
+  // Any document change (settings and reconnects included) needs a new
+  // validation (W-23).
   useEffect(() => {
     setIsValidated(false);
     setValidationResult(null);
-  }, [nodes.length, edges.length]);
+  }, [editRevision]);
 
   // Run-cost estimate: same billing plan + price function the engine uses
   // for its balance check and charge (iris-nodes billing).
@@ -209,6 +217,11 @@ export function useWorkflowEditor(workflowId: string) {
           }));
           
           initWorkflow(data.id, data.name, rfNodes, rfEdges);
+          // Local hosts report the saved revision for whole-document saves.
+          const revision = (data as { revision?: unknown }).revision;
+          if (typeof revision === 'number') {
+            useIrisEditorStore.setState({ baseRevision: revision });
+          }
           return;
         }
 
@@ -269,8 +282,38 @@ export function useWorkflowEditor(workflowId: string) {
 
     clearValidationErrors();
     setIsValidating(true);
-    
+
     try {
+      // The same checks the engine and hosts run (iris-nodes), on the document
+      // as it is on screen, reported by node id (W-22). Structural problems
+      // (orphan connections, missing ports) are shown as warnings; a cycle and
+      // the semantic checks block.
+      const doc = useIrisEditorStore.getState().doc;
+      const graphIssues = checkGraph(doc);
+      for (const issue of graphIssues) {
+        if (issue.nodeId) setNodeValidationError(issue.nodeId, issue.message);
+      }
+      const blocking = [
+        ...graphIssues.filter((i) => i.code === 'cycle'),
+        ...validateWorkflowSemantics(doc),
+      ];
+      if (blocking.length > 0) {
+        for (const issue of blocking) {
+          if (!issue.nodeId) continue;
+          let suggestion = issue.message;
+          if (issue.code === 'model-required') suggestion = t('iris.editor.validation.selectModel');
+          else if (issue.code === 'provider-required') suggestion = t('iris.editor.validation.selectProvider');
+          setNodeValidationError(issue.nodeId, suggestion);
+        }
+        setValidationResult({
+          valid: false,
+          errors: blocking.map((i) => i.message),
+          warnings: graphIssues.filter((i) => i.code !== 'cycle').map((i) => i.message),
+        });
+        setIsValidated(false);
+        return false;
+      }
+
       const apiNodes = nodes.map((node) => {
         const storeConfig = nodeConfigs[node.id];
         const mergedConfig = {
@@ -311,9 +354,12 @@ export function useWorkflowEditor(workflowId: string) {
             const nodeMatch = error.match(/Node "([^"]+)"/);
             if (nodeMatch) {
               const nodeLabel = nodeMatch[1];
-              const node = nodes.find(n =>
+              const matches = nodes.filter(n =>
                 n.data.label.trim().toLowerCase() === nodeLabel.trim().toLowerCase()
               );
+              // Server messages name nodes by label; skip ambiguous labels
+              // rather than marking the wrong node (W-22).
+              const node = matches.length === 1 ? matches[0] : undefined;
               if (node) {
                 let suggestion = error;
                 if (error.includes('requires a model')) {
@@ -357,22 +403,35 @@ export function useWorkflowEditor(workflowId: string) {
   // Save workflow. The graph is snapshotted when the save starts; `isDirty`
   // is cleared only if nothing was edited while the requests were in flight
   // (see save-workflow.ts). A failed save keeps `isDirty`.
-  const performSave = useCallback(async () => {
-    if (!workflow) return;
+  // Resolves true when the save succeeded.
+  const performSave = useCallback(async (): Promise<boolean> => {
+    if (!workflow) return false;
 
     setIsSaving(true);
     try {
+      const support = irisApiSupport();
       const { status } = await saveWorkflowGraph({
         workflow,
         getState: useIrisEditorStore.getState,
-        api: irisApiClient,
+        api: {
+          updateWorkflow: irisApiClient.updateWorkflow,
+          updateNodes: irisApiClient.updateNodes,
+          updateEdges: irisApiClient.updateEdges,
+          ...(support.saveDoc ? { saveWorkflowDoc: irisApiClient.saveWorkflowDoc } : {}),
+        },
       });
 
       setWorkflow((prev) => prev ? { ...prev, status } : prev);
       toast.success(t('iris.editor.saveSuccess'));
+      return true;
     } catch (error) {
       console.error('Failed to save workflow:', error);
-      toast.error(t('iris.editor.saveFailed'));
+      if (error instanceof WorkflowRevisionConflictError) {
+        toast.error('This workflow was changed elsewhere since it was opened. Reload it before saving.');
+      } else {
+        toast.error(t('iris.editor.saveFailed'));
+      }
+      return false;
     } finally {
       setIsSaving(false);
     }
@@ -382,9 +441,17 @@ export function useWorkflowEditor(workflowId: string) {
   const performExecute = useCallback(async (userInput?: UserInput, partial?: PartialRunOptions) => {
     if (!workflow) return;
 
-    if (isDirty) {
-      await performSave();
+    // Run what is on screen (W-18): hosts that take a document get the
+    // current one; the others run the saved copy, so it must be saved first
+    // and a failed save stops the run instead of running stale data.
+    const runDocument = irisApiSupport().runDocument;
+    const store = useIrisEditorStore.getState();
+    store.history.breakMerge();
+    if (!runDocument && isDirty) {
+      const saved = await performSave();
+      if (!saved) return;
     }
+    const docSnapshot = runDocument ? store.doc : undefined;
 
     try {
       setExecuting(true);
@@ -436,6 +503,7 @@ export function useWorkflowEditor(workflowId: string) {
       const runOptions: Partial<NonNullable<typeof executeData>> = {
         ...(ignoreCache ? { useCache: false } : {}),
         ...normalizePartial(partial),
+        ...(docSnapshot ? { doc: { ...docSnapshot, id: workflow.id } } : {}),
       };
       if (Object.keys(runOptions).length > 0) {
         executeData = { ...(executeData ?? {}), ...runOptions };
@@ -452,6 +520,25 @@ export function useWorkflowEditor(workflowId: string) {
       setExecuting(false);
     }
   }, [workflow, isDirty, performSave, setExecuting, manualTriggerNode, ignoreCache]);
+
+  // Stop the running execution (R-01). The run ends as CANCELLED through the
+  // event stream / polling; until then the header shows "Stopping".
+  const canStop = irisApiSupport().cancel;
+  const handleStop = useCallback(async () => {
+    if (!executionId || isStopping) return;
+    setStopping(true);
+    try {
+      const ok = await irisApiClient.cancelExecution(executionId);
+      if (!ok) {
+        setStopping(false);
+        toast.error('Could not stop the run.');
+      }
+    } catch (error) {
+      console.error('Failed to stop execution:', error);
+      setStopping(false);
+      toast.error('Could not stop the run.');
+    }
+  }, [executionId, isStopping, setStopping]);
 
   // Handle save button click
   const handleSave = useCallback(() => {
@@ -568,9 +655,12 @@ export function useWorkflowEditor(workflowId: string) {
     manualTriggerNode,
     isDirty,
     isExecuting,
+    isStopping,
+    canStop,
     ignoreCache,
-    
+
     // Actions
+    handleStop,
     retryLoad,
     handleValidate,
     handleSave,

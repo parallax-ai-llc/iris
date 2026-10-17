@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid';
-import { XYPosition, Connection } from '@xyflow/react';
+import type { XYPosition, Connection } from '@xyflow/react';
 import { NODE_DEFINITIONS, getNodeDefaultSettings } from '../constants/node-definitions';
-import { useIrisEditorStore, IrisNodeData, NodeConfig } from '@editor/store/iris-editor';
+import { irisEditorStore, type IrisEditorStoreApi, type IrisNodeData, type NodeConfig } from '@editor/store/iris-editor';
 
 // Action types for workflow modifications
 export type WorkflowAction = 'add' | 'modify' | 'delete';
@@ -137,16 +137,16 @@ function generateUniqueNodeId(existingIds: Set<string>): string {
 /**
  * Find an existing node by its ID
  */
-function findExistingNode(nodeId: string) {
-  const store = useIrisEditorStore.getState();
+function findExistingNode(api: IrisEditorStoreApi, nodeId: string) {
+  const store = api.getState();
   return store.nodes.find((n) => n.id === nodeId);
 }
 
 /**
  * Find an existing edge by source/target
  */
-function findExistingEdge(sourceId: string, targetId: string, sourceHandle?: string, targetHandle?: string) {
-  const store = useIrisEditorStore.getState();
+function findExistingEdge(api: IrisEditorStoreApi, sourceId: string, targetId: string, sourceHandle?: string, targetHandle?: string) {
+  const store = api.getState();
   return store.edges.find((e) =>
     e.source === sourceId &&
     e.target === targetId &&
@@ -157,10 +157,25 @@ function findExistingEdge(sourceId: string, targetId: string, sourceHandle?: str
 
 /**
  * Apply a workflow JSON to the canvas by creating/modifying/deleting nodes and edges
- * Returns a summary of what was changed
+ * Returns a summary of what was changed.
+ *
+ * The whole apply is one undo step ("Apply AI changes", U-04). A modify starts
+ * from the node's current config, so inputs and settings the user changed
+ * after loading survive (W-16). Edges go through the shared connection rules
+ * like a drag on the canvas; refused ones are reported as warnings (W-15).
+ *
+ * `store` is the editor store of the document to change (hosts with one store
+ * per open document pass theirs); the default store when omitted.
  */
-export function applyWorkflowToCanvas(workflow: WorkflowJSON): ApplyWorkflowResult {
-  const store = useIrisEditorStore.getState();
+export function applyWorkflowToCanvas(
+  workflow: WorkflowJSON,
+  store: IrisEditorStoreApi = irisEditorStore,
+): ApplyWorkflowResult {
+  return store.getState().transaction('Apply AI changes', () => applyWorkflowInTransaction(store, workflow));
+}
+
+function applyWorkflowInTransaction(api: IrisEditorStoreApi, workflow: WorkflowJSON): ApplyWorkflowResult {
+  const store = api.getState();
   const warnings: string[] = [];
 
   // Track ID mappings (JSON nodeId -> actual store nodeId)
@@ -183,7 +198,7 @@ export function applyWorkflowToCanvas(workflow: WorkflowJSON): ApplyWorkflowResu
 
     if (action === 'delete') {
       // Delete existing node
-      const existingNode = findExistingNode(nodeJson.nodeId);
+      const existingNode = findExistingNode(api, nodeJson.nodeId);
       if (existingNode) {
         store.deleteNode(nodeJson.nodeId);
         existingNodeIds.delete(nodeJson.nodeId);
@@ -197,7 +212,7 @@ export function applyWorkflowToCanvas(workflow: WorkflowJSON): ApplyWorkflowResu
 
     if (action === 'modify') {
       // Modify existing node
-      const existingNode = findExistingNode(nodeJson.nodeId);
+      const existingNode = findExistingNode(api, nodeJson.nodeId);
       if (!existingNode) {
         warnings.push(`Cannot modify: node not found: ${nodeJson.nodeId}`);
         continue;
@@ -211,7 +226,9 @@ export function applyWorkflowToCanvas(workflow: WorkflowJSON): ApplyWorkflowResu
       }
 
       if (nodeJson.config) {
-        const currentConfig = existingNode.data?.config || {};
+        // The current config (not the one the node was loaded with).
+        const currentConfig: Partial<NodeConfig> =
+          api.getState().nodeConfigs[nodeJson.nodeId] || existingNode.data?.config || {};
         const newSettings = { ...currentConfig.settings };
 
         // Merge new config into existing
@@ -242,14 +259,11 @@ export function applyWorkflowToCanvas(workflow: WorkflowJSON): ApplyWorkflowResu
         store.updateNode(nodeJson.nodeId, updates);
       }
 
-      // Update position if provided
+      // Update position if provided (an undoable move, U-08)
       if (nodeJson.position) {
-        const nodeChanges = [{
-          id: nodeJson.nodeId,
-          type: 'position' as const,
-          position: { x: nodeJson.position.x, y: nodeJson.position.y },
-        }];
-        store.onNodesChange(nodeChanges);
+        store.moveNodes({
+          [nodeJson.nodeId]: { x: nodeJson.position.x, y: nodeJson.position.y },
+        });
       }
 
       idMapping.set(nodeJson.nodeId, nodeJson.nodeId);
@@ -305,16 +319,9 @@ export function applyWorkflowToCanvas(workflow: WorkflowJSON): ApplyWorkflowResu
       status: 'idle',
     };
 
-    // Use addNode which pushes history
-    store.addNode(nodeJson.type, position, nodeData);
-
-    // Get the last added node to update mapping
-    const addedNodes = useIrisEditorStore.getState().nodes;
-    const lastNode = addedNodes[addedNodes.length - 1];
-    if (lastNode) {
-      idMapping.set(nodeJson.nodeId, lastNode.id);
-      existingNodeIds.add(lastNode.id);
-    }
+    const addedId = store.addNode(nodeJson.type, position, nodeData);
+    idMapping.set(nodeJson.nodeId, addedId);
+    existingNodeIds.add(addedId);
 
     nodesCreated++;
   }
@@ -332,7 +339,7 @@ export function applyWorkflowToCanvas(workflow: WorkflowJSON): ApplyWorkflowResu
 
     if (action === 'delete') {
       // Find and delete the edge
-      const existingEdge = findExistingEdge(sourceId, targetId, edgeJson.sourceHandle, edgeJson.targetHandle);
+      const existingEdge = findExistingEdge(api, sourceId, targetId, edgeJson.sourceHandle, edgeJson.targetHandle);
       if (existingEdge) {
         store.deleteEdge(existingEdge.id);
         edgesDeleted++;
@@ -345,19 +352,19 @@ export function applyWorkflowToCanvas(workflow: WorkflowJSON): ApplyWorkflowResu
     // action === 'add' (default) - modify not applicable for edges, just recreate
 
     // Verify source node exists
-    if (!useIrisEditorStore.getState().nodes.find((n) => n.id === sourceId)) {
+    if (!api.getState().nodes.find((n) => n.id === sourceId)) {
       warnings.push(`Edge references unknown source node: ${edgeJson.sourceNodeId}`);
       continue;
     }
 
     // Verify target node exists
-    if (!useIrisEditorStore.getState().nodes.find((n) => n.id === targetId)) {
+    if (!api.getState().nodes.find((n) => n.id === targetId)) {
       warnings.push(`Edge references unknown target node: ${edgeJson.targetNodeId}`);
       continue;
     }
 
     // Check if edge already exists
-    const existingEdge = findExistingEdge(sourceId, targetId, edgeJson.sourceHandle, edgeJson.targetHandle);
+    const existingEdge = findExistingEdge(api, sourceId, targetId, edgeJson.sourceHandle, edgeJson.targetHandle);
     if (existingEdge) {
       // Edge already exists, skip
       continue;
@@ -371,8 +378,14 @@ export function applyWorkflowToCanvas(workflow: WorkflowJSON): ApplyWorkflowResu
       targetHandle: edgeJson.targetHandle,
     };
 
-    // Use onConnect which handles edge creation and updates nodeConfigs
-    useIrisEditorStore.getState().onConnect(connection);
+    // Same rules as connecting on the canvas (types, ports, cycles).
+    const result = api.getState().onConnect(connection);
+    if (!result.ok) {
+      warnings.push(
+        `Edge ${edgeJson.sourceNodeId}.${edgeJson.sourceHandle} -> ${edgeJson.targetNodeId}.${edgeJson.targetHandle} refused: ${result.reason}`,
+      );
+      continue;
+    }
     edgesCreated++;
   }
 
@@ -399,7 +412,8 @@ export function hasWorkflowJSON(response: string): boolean {
  */
 export function tryApplyWorkflow(
   currentResponse: string,
-  alreadyApplied: boolean
+  alreadyApplied: boolean,
+  store: IrisEditorStoreApi = irisEditorStore,
 ): { applied: boolean; result?: ApplyWorkflowResult } {
   if (alreadyApplied) {
     return { applied: false };
@@ -414,6 +428,6 @@ export function tryApplyWorkflow(
     return { applied: false };
   }
 
-  const result = applyWorkflowToCanvas(workflow);
+  const result = applyWorkflowToCanvas(workflow, store);
   return { applied: true, result };
 }

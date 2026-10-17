@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { cn } from '@editor/lib/convert/string';
 import { useIrisEditorStore, InputSourceType } from '@editor/store/iris-editor';
 import { getNodeDefinition, PortType } from '../../../../constants/node-definitions';
+import { isPortTypeCompatible, resolvePorts } from 'iris-nodes';
 import { Edit3, Link, LinkIcon, Globe } from 'lucide-react';
 
 import { portTypeIcons } from './constants';
@@ -73,16 +74,21 @@ export function InputSourceSelector({
     return getUpstreamNodes(nodeId);
   }, [nodeId, getUpstreamNodes]);
 
-  // Get available outputs from upstream nodes
+  // Outputs of upstream nodes this input can take: same ports (dynamic ones
+  // included) and type table as connecting on the canvas (W-10).
   const availableOutputs = useMemo((): AvailableOutput[] => {
     const outputs: AvailableOutput[] = [];
 
     for (const node of upstreamNodes) {
-      const nodeDef = getNodeDefinition(node.data.type);
-      if (!nodeDef) continue;
+      const ports = resolvePorts({
+        type: node.data.type,
+        config: node.data.config as unknown as Parameters<typeof resolvePorts>[0]['config'],
+      });
+      if (!ports) continue;
 
-      for (const output of nodeDef.outputs) {
-        if (inputType === 'any' || output.type === 'any' || output.type === inputType) {
+      for (const output of ports.outputs) {
+        if (output.hideHandle) continue;
+        if (isPortTypeCompatible(output.type, inputType)) {
           outputs.push({
             nodeId: node.id,
             nodeName: node.data.label,

@@ -13,6 +13,7 @@
  */
 const SORA_SUNSET_AT = new Date('2026-09-24T00:00:00.000Z');
 
+import { abortableFetch, abortableSleep } from '../abort-scope.js';
 import { BaseProviderAdapter } from './base-adapter.js';
 import {
   AICapability,
@@ -431,7 +432,7 @@ export class OpenAIAdapter extends BaseProviderAdapter {
   }
 
   protected async pingApi(): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/models`, {
+    const response = await abortableFetch(`${this.baseUrl}/models`, {
       headers: { Authorization: `Bearer ${this.credentials!.apiKey}` },
     });
     if (!response.ok) throw new Error('Failed to connect to OpenAI API');
@@ -684,7 +685,7 @@ export class OpenAIAdapter extends BaseProviderAdapter {
     formData.append('size', size);
 
     // Make request with multipart/form-data (no Content-Type header - let fetch set it with boundary)
-    const response = await fetch(`${this.baseUrl}/images/edits`, {
+    const response = await abortableFetch(`${this.baseUrl}/images/edits`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.credentials!.apiKey}`,
@@ -758,7 +759,7 @@ export class OpenAIAdapter extends BaseProviderAdapter {
       );
     }
 
-    const response = await fetch(`${this.baseUrl}/audio/speech`, {
+    const response = await abortableFetch(`${this.baseUrl}/audio/speech`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.credentials!.apiKey}`,
@@ -818,7 +819,7 @@ export class OpenAIAdapter extends BaseProviderAdapter {
 
     if (request.prompt) formData.append('prompt', request.prompt);
 
-    const response = await fetch(`${this.baseUrl}/audio/transcriptions`, {
+    const response = await abortableFetch(`${this.baseUrl}/audio/transcriptions`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${this.credentials!.apiKey}` },
       body: formData,
@@ -1128,11 +1129,11 @@ export class OpenAIAdapter extends BaseProviderAdapter {
         }
 
         // Status is 'pending' or 'in_progress', continue polling
-        await new Promise(resolve => setTimeout(resolve, intervalMs));
+        await abortableSleep(intervalMs);
       } catch (error) {
         console.error(`[OpenAI Video] Polling error:`, error);
         // Continue polling on transient errors
-        await new Promise(resolve => setTimeout(resolve, intervalMs));
+        await abortableSleep(intervalMs);
       }
     }
 

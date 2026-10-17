@@ -3,6 +3,7 @@
  * Supports: text-to-speech, speech-to-text (Scribe)
  */
 
+import { abortableFetch } from '../abort-scope.js';
 import { BaseProviderAdapter } from './base-adapter.js';
 import {
   AICapability,
@@ -101,7 +102,7 @@ export class ElevenLabsAdapter extends BaseProviderAdapter {
   }
 
   protected async pingApi(): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/user`, {
+    const response = await abortableFetch(`${this.baseUrl}/user`, {
       headers: { 'xi-api-key': this.credentials!.apiKey! },
     });
     if (!response.ok) {
@@ -157,7 +158,7 @@ export class ElevenLabsAdapter extends BaseProviderAdapter {
       (parameters.voiceId as string) ||
       '21m00Tcm4TlvDq8ikWAM';
 
-    const response = await fetch(`${this.baseUrl}/text-to-speech/${voiceId}`, {
+    const response = await abortableFetch(`${this.baseUrl}/text-to-speech/${voiceId}`, {
       method: 'POST',
       headers: {
         'xi-api-key': this.credentials!.apiKey!,
@@ -264,7 +265,7 @@ export class ElevenLabsAdapter extends BaseProviderAdapter {
     if (parameters.diarize !== undefined)
       formData.append('diarize', String(parameters.diarize));
 
-    const response = await fetch(`${this.baseUrl}/speech-to-text`, {
+    const response = await abortableFetch(`${this.baseUrl}/speech-to-text`, {
       method: 'POST',
       headers: { 'xi-api-key': this.credentials!.apiKey! },
       body: formData,

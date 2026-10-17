@@ -11,6 +11,7 @@
 
 import { resolveLipSyncModel } from 'iris-nodes';
 import type { NodeExecutorHost } from './node-host.js';
+import { requireStoredOutput } from './node-host.js';
 import type {
   NodeDefinition,
   AssetReference,
@@ -114,6 +115,7 @@ export async function genLipSync(
       provider: 'replicate',
       model: replicateModel,
     });
+    requireStoredOutput(host, stored);
     if (stored.success && stored.apiUrl && stored.asset) {
       outputs.video = stored.apiUrl;
       assets.push({

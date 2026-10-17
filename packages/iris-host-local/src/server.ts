@@ -33,6 +33,7 @@ import { createLocalGenerator, type GenerateAssetInput } from './local-generate.
 import { createLocalImporter, type ImportAssetInput } from './local-import.js';
 import { LocalProjectStore } from './local-projects.js';
 import { validateWorkflowSemantics } from './validate.js';
+import { ExecutionEventHub } from './exec-events.js';
 import {
   LocalScheduler,
   CRON_PRESETS,
@@ -41,6 +42,7 @@ import {
   supportedTimezones,
 } from './scheduler.js';
 import { BatchManager, type CreateBatchInput } from './batch.js';
+import { isValidWorkflowId } from './local-workflow-store.js';
 import {
   DAEMON_TOKEN_HEADER,
   registerAccessGuard,
@@ -99,6 +101,25 @@ export async function buildServer(
     userId: LOCAL_USER_ID,
   });
   const traverser = new GraphTraverser();
+  const events = new ExecutionEventHub(engine);
+  app.addHook('onClose', async () => {
+    events.close();
+  });
+
+  // Runs a previous engine left RUNNING / PENDING can never finish: close them
+  // as FAILED (INTERRUPTED) before accepting new runs (R-04).
+  try {
+    const closed = await store.recoverInterruptedExecutions();
+    if (closed.length > 0) {
+      // eslint-disable-next-line no-console
+      console.log(`[iris-flow] closed ${closed.length} interrupted run(s)`);
+    }
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[iris-flow] interrupted-run cleanup failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
 
   // Node result cache retention: drop entries unused for 7 days at startup.
   try {
@@ -297,11 +318,23 @@ export async function buildServer(
   app.post<{
     Body: {
       name?: string;
+      /** Optional id chosen by the embedder; 409 when it is taken. */
+      id?: string;
       nodes?: EngineWorkflowNodeRow[];
       edges?: EngineWorkflowEdgeRow[];
     };
-  }>('/api/iris/workflows', async req => {
+  }>('/api/iris/workflows', async (req, reply) => {
+    const id = req.body?.id;
+    if (id !== undefined) {
+      if (!isValidWorkflowId(id)) {
+        return reply.code(400).send({ error: 'Invalid workflow id', code: 'INVALID_ID' });
+      }
+      if (await store.getWorkflow(id)) {
+        return reply.code(409).send({ error: 'A workflow with this id exists', code: 'ID_TAKEN' });
+      }
+    }
     const wf = await store.createWorkflow({
+      id,
       name: req.body?.name,
       userId: LOCAL_USER_ID,
       nodes: req.body?.nodes,
@@ -316,6 +349,41 @@ export async function buildServer(
       const wf = await store.getWorkflow(req.params.id);
       if (!wf) return reply.code(404).send({ error: 'Workflow not found' });
       return { workflow: wf };
+    },
+  );
+
+  // Whole-document save in one atomic write (W-19). `baseRevision` is the
+  // revision the editor loaded; a stale one gets 409 and nothing is written.
+  app.put<{
+    Params: { id: string };
+    Body: { doc?: unknown; baseRevision?: number };
+  }>('/api/iris/workflows/:id', async (req, reply) => {
+    const body = req.body ?? {};
+    if (!body.doc || typeof body.doc !== 'object') {
+      return reply.code(400).send({ error: 'doc is required', code: 'INVALID_DOC' });
+    }
+    const base =
+      typeof body.baseRevision === 'number' && Number.isInteger(body.baseRevision)
+        ? body.baseRevision
+        : undefined;
+    const result = await store.saveDoc(req.params.id, body.doc, base);
+    if ('notFound' in result) return reply.code(404).send({ error: 'Workflow not found' });
+    if (!result.ok) {
+      return reply.code(409).send({
+        error: 'The workflow changed since it was loaded',
+        code: 'REVISION_CONFLICT',
+        revision: result.revision,
+      });
+    }
+    return { workflow: result.workflow, revision: result.revision };
+  });
+
+  app.get<{ Params: { id: string } }>(
+    '/api/iris/workflows/:id/doc',
+    async (req, reply) => {
+      const doc = await store.getWorkflowDoc(req.params.id);
+      if (!doc) return reply.code(404).send({ error: 'Workflow not found' });
+      return { doc };
     },
   );
 
@@ -404,6 +472,8 @@ export async function buildServer(
       endNodeId?: string;
       /** Legacy alias of forceNodeIds=[startNodeId]. */
       startNodeId?: string;
+      /** Run this document (what the editor shows) instead of the saved graph. */
+      doc?: unknown;
     };
   }>('/api/iris/workflows/:id/execute', async (req, reply) => {
     const wf = await store.getWorkflow(req.params.id);
@@ -411,7 +481,13 @@ export async function buildServer(
     const body = req.body ?? {};
     const endNodeId =
       typeof body.endNodeId === 'string' && body.endNodeId ? body.endNodeId : undefined;
-    if (endNodeId && !wf.nodes.some(n => n.nodeId === endNodeId)) {
+    const doc =
+      body.doc && typeof body.doc === 'object' ? (body.doc as { nodes?: unknown }) : undefined;
+    const knownNode = (id: string) =>
+      doc && Array.isArray(doc.nodes)
+        ? doc.nodes.some(n => (n as { id?: string; nodeId?: string })?.id === id || (n as { nodeId?: string })?.nodeId === id)
+        : wf.nodes.some(n => n.nodeId === id);
+    if (endNodeId && !knownNode(endNodeId)) {
       return reply.code(400).send({ error: 'Node not found', code: 'INVALID_NODE' });
     }
     const forceNodeIds = Array.isArray(body.forceNodeIds)
@@ -428,6 +504,7 @@ export async function buildServer(
           typeof body.startNodeId === 'string' && body.startNodeId
             ? body.startNodeId
             : undefined,
+        doc,
       });
       return {
         executionId: execution.id,
@@ -716,6 +793,72 @@ export async function buildServer(
     },
   );
 
+  // Full value of one node output port (events only carry a 2 KB preview).
+  app.get<{ Params: { id: string; nodeId: string; port: string } }>(
+    '/api/iris/executions/:id/nodes/:nodeId/output/:port',
+    async (req, reply) => {
+      const exec = await store.getExecution(req.params.id);
+      const result = exec?.nodeResults[req.params.nodeId];
+      const outputs = result?.outputData ?? {};
+      if (!exec || !result || !Object.prototype.hasOwnProperty.call(outputs, req.params.port)) {
+        return reply.code(404).send({ error: 'Output not found' });
+      }
+      return { value: outputs[req.params.port] };
+    },
+  );
+
+  // Execution events over SSE (replaces 1 s polling for event-aware clients).
+  // Resume with `Last-Event-ID` or `?after=<seq>`; the stream ends after
+  // `exec.finished`. A client that lost the buffer window re-reads
+  // `/executions/:id/status` and `/nodes` once.
+  app.get<{ Params: { id: string }; Querystring: { after?: string } }>(
+    '/api/iris/executions/:id/events',
+    async (req, reply) => {
+      const exec = await store.getExecution(req.params.id);
+      if (!exec) return reply.code(404).send({ error: 'Execution not found' });
+      const lastId = req.headers['last-event-id'];
+      const after = Number(
+        (Array.isArray(lastId) ? lastId[0] : lastId) ?? req.query?.after ?? 0,
+      );
+      reply.hijack();
+      const res = reply.raw;
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache, no-transform',
+        Connection: 'keep-alive',
+        'X-Content-Type-Options': 'nosniff',
+        ...corsHeadersFor(reply),
+      });
+      res.write(': iris-flow events\n\n');
+      let unsubscribe: () => void = () => undefined;
+      const end = () => {
+        unsubscribe();
+        clearInterval(keepAlive);
+        if (!res.writableEnded) res.end();
+      };
+      const keepAlive = setInterval(() => res.write(': ping\n\n'), 15_000);
+      keepAlive.unref?.();
+      unsubscribe = events.subscribe(
+        req.params.id,
+        Number.isFinite(after) && after > 0 ? after : 0,
+        event => {
+          res.write(`id: ${event.seq}\nevent: ${event.t}\ndata: ${JSON.stringify(event)}\n\n`);
+          if (event.t === 'exec.finished') setImmediate(end);
+        },
+      );
+      // Finished before this host saw it (e.g. restarted): nothing will come.
+      const terminal = ['COMPLETED', 'FAILED', 'CANCELLED', 'TIMEOUT'];
+      if (terminal.includes(exec.status) && events.replay(req.params.id, 0).length === 0) {
+        const status = exec.status as 'COMPLETED' | 'FAILED' | 'CANCELLED' | 'TIMEOUT';
+        res.write(
+          `id: 0\nevent: exec.finished\ndata: ${JSON.stringify({ t: 'exec.finished', executionId: exec.id, status, seq: 0 })}\n\n`,
+        );
+        end();
+      }
+      req.raw.on('close', end);
+    },
+  );
+
   app.post<{ Params: { id: string } }>(
     '/api/iris/executions/:id/cancel',
     async req => {
@@ -818,4 +961,14 @@ function landingPage(config: ResolvedConfig): string {
     </div>
   </body>
 </html>`;
+}
+
+/** CORS headers @fastify/cors already put on the reply (lost on hijack). */
+function corsHeadersFor(reply: FastifyReply): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const name of ['access-control-allow-origin', 'access-control-allow-credentials', 'vary']) {
+    const value = reply.getHeader(name);
+    if (typeof value === 'string') out[name] = value;
+  }
+  return out;
 }

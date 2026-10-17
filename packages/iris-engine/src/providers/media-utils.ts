@@ -3,6 +3,7 @@
  * Common utilities for handling images, videos, and audio across all adapters
  */
 
+import { abortableFetch } from '../abort-scope.js';
 import { MediaInput } from '../types.js';
 
 // ============================================================
@@ -90,7 +91,7 @@ export function detectMimeTypeFromBase64(base64: string): string {
  * Fetch a URL and return as base64
  */
 export async function fetchAsBase64(url: string): Promise<FetchedMedia> {
-  const response = await fetch(url);
+  const response = await abortableFetch(url);
   if (!response.ok) {
     throw new Error(
       `Failed to fetch: ${response.status} ${response.statusText}`

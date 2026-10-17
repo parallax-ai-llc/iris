@@ -3,6 +3,7 @@
  * Supports: text-to-text (Sonar models with built-in web search)
  */
 
+import { abortableFetch } from '../abort-scope.js';
 import { BaseProviderAdapter } from './base-adapter.js';
 import {
   AICapability,
@@ -140,7 +141,7 @@ export class PerplexityAdapter extends BaseProviderAdapter {
     }
 
     // Perplexity uses OpenAI-compatible format
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+    const response = await abortableFetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.credentials!.apiKey!}`,

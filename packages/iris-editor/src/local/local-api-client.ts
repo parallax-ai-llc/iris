@@ -22,7 +22,12 @@ import type {
   CronPreset,
   WorkflowLoadResult,
 } from '@editor/lib/apis/iris-api-client';
-import { workflowLoadErrorFromStatus } from '@editor/lib/apis/iris-api-client';
+import {
+  workflowLoadErrorFromStatus,
+  WorkflowRevisionConflictError,
+  type ExecutionStreamEvent,
+  type SaveWorkflowDocInput,
+} from '@editor/lib/apis/iris-api-client';
 import type {
   ExecutionStatusResponse,
   NodeResult,
@@ -68,6 +73,7 @@ interface LocalWorkflow {
   id: string;
   name: string;
   status: string;
+  revision?: number;
   nodes: LocalNode[];
   edges: LocalEdge[];
   totalExecutions: number;
@@ -108,6 +114,8 @@ function toCloudWorkflow(w: LocalWorkflow): Workflow {
       createdAt: w.createdAt,
     })) as Workflow['edges'],
     isTemplate: false,
+    // Local REST revision (optimistic concurrency of whole-document saves).
+    ...(typeof w.revision === 'number' ? { revision: w.revision } : {}),
     totalExecutions: w.totalExecutions ?? 0,
     successfulRuns: w.successfulRuns ?? 0,
     failedRuns: w.failedRuns ?? 0,
@@ -125,6 +133,84 @@ export function createLocalApiClient(baseUrl = ''): IrisApiClient {
   const call = <T>(method: string, path: string, body?: unknown): Promise<T> =>
     req<T>(method, `${baseUrl}${path}`, body);
   return {
+    // The local host runs the posted document (what the editor shows, W-18).
+    capabilities: { runDocument: true },
+
+    async saveWorkflowDoc(id, input: SaveWorkflowDocInput) {
+      const res = await fetch(`${baseUrl}/api/iris/workflows/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      });
+      if (res.status === 409) {
+        let revision: number | null = null;
+        try {
+          revision = ((await res.json()) as { revision?: number }).revision ?? null;
+        } catch {
+          /* ignore */
+        }
+        throw new WorkflowRevisionConflictError(revision);
+      }
+      if (!res.ok) {
+        let message = `${res.status} ${res.statusText}`;
+        try {
+          const data = (await res.json()) as { error?: string };
+          if (data.error) message = data.error;
+        } catch {
+          /* ignore */
+        }
+        throw new Error(message);
+      }
+      const data = (await res.json()) as { revision?: number };
+      return { revision: typeof data.revision === 'number' ? data.revision : null };
+    },
+
+    async cancelExecution(executionId) {
+      const r = await call<{ success: boolean }>(
+        'POST',
+        `/api/iris/executions/${executionId}/cancel`,
+      );
+      return !!r.success;
+    },
+
+    subscribeExecution(executionId, onEvent, onError) {
+      if (typeof EventSource === 'undefined') {
+        throw new Error('EventSource is not available');
+      }
+      const source = new EventSource(
+        `${baseUrl}/api/iris/executions/${executionId}/events`,
+      );
+      let closed = false;
+      const close = () => {
+        closed = true;
+        source.close();
+      };
+      const kinds: ExecutionStreamEvent['t'][] = [
+        'exec.started',
+        'node.started',
+        'node.progress',
+        'node.finished',
+        'exec.finished',
+      ];
+      for (const kind of kinds) {
+        source.addEventListener(kind, (message) => {
+          try {
+            const event = JSON.parse((message as MessageEvent<string>).data) as ExecutionStreamEvent;
+            if (event.t === 'exec.finished') close();
+            onEvent(event);
+          } catch {
+            /* ignore malformed frames */
+          }
+        });
+      }
+      source.onerror = (error) => {
+        if (closed) return;
+        close();
+        onError?.(error);
+      };
+      return close;
+    },
+
     async getWorkflow(id) {
       const { workflow } = await call<{ workflow: LocalWorkflow }>(
         'GET',

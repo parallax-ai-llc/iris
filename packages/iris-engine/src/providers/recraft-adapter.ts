@@ -4,6 +4,7 @@
  * API Docs: https://www.recraft.ai/docs/api-reference/usage
  */
 
+import { abortableFetch } from '../abort-scope.js';
 import { BaseProviderAdapter } from './base-adapter.js';
 import {
   AICapability,
@@ -157,7 +158,7 @@ export class RecraftAdapter extends BaseProviderAdapter {
   }
 
   protected async pingApi(): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/users/me`, {
+    const response = await abortableFetch(`${this.baseUrl}/users/me`, {
       headers: { Authorization: `Bearer ${this.credentials!.apiKey}` },
     });
     if (!response.ok) {
@@ -230,7 +231,7 @@ export class RecraftAdapter extends BaseProviderAdapter {
 
     if (negativePrompt) requestBody.negative_prompt = negativePrompt;
 
-    const response = await fetch(`${this.baseUrl}/images/generations`, {
+    const response = await abortableFetch(`${this.baseUrl}/images/generations`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.credentials!.apiKey}`,
@@ -319,7 +320,7 @@ export class RecraftAdapter extends BaseProviderAdapter {
 
     if (negativePrompt) formData.append('negative_prompt', negativePrompt);
 
-    const response = await fetch(`${this.baseUrl}/images/imageToImage`, {
+    const response = await abortableFetch(`${this.baseUrl}/images/imageToImage`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.credentials!.apiKey}`,
@@ -431,7 +432,7 @@ export class RecraftAdapter extends BaseProviderAdapter {
 
     if (negativePrompt) formData.append('negative_prompt', negativePrompt);
 
-    const response = await fetch(`${this.baseUrl}/images/inpaint`, {
+    const response = await abortableFetch(`${this.baseUrl}/images/inpaint`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.credentials!.apiKey}`,
@@ -512,7 +513,7 @@ export class RecraftAdapter extends BaseProviderAdapter {
     formData.append('file', blob, `image.${mimeType.split('/')[1] || 'png'}`);
     formData.append('response_format', 'url');
 
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+    const response = await abortableFetch(`${this.baseUrl}${endpoint}`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.credentials!.apiKey}`,
@@ -583,7 +584,7 @@ export class RecraftAdapter extends BaseProviderAdapter {
     formData.append('file', blob, `image.${mimeType.split('/')[1] || 'png'}`);
     formData.append('response_format', 'url');
 
-    const response = await fetch(`${this.baseUrl}/images/removeBackground`, {
+    const response = await abortableFetch(`${this.baseUrl}/images/removeBackground`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.credentials!.apiKey}`,

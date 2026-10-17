@@ -25,6 +25,8 @@
  *   firecrawl   → $0.0015 (matches their entry pricing for /scrape v1)
  */
 
+import { abortableFetch } from '../abort-scope.js';
+
 // jsdom / @mozilla/readability / turndown are heavyweight, ESM-only deps used
 // only by the readability path. They are imported lazily inside
 // scrapeWithReadability() so merely importing the engine barrel doesn't pull
@@ -109,7 +111,7 @@ async function scrapeWithReadability(
 }
 
 async function fetchHtml(url: string): Promise<string> {
-  const response = await fetch(url, {
+  const response = await abortableFetch(url, {
     // A friendly UA — many sites 403 default fetch UA.
     headers: {
       'User-Agent':
@@ -140,7 +142,7 @@ async function scrapeWithJina(
   };
   if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
 
-  const response = await fetch(url, { headers });
+  const response = await abortableFetch(url, { headers });
   if (!response.ok) {
     throw new Error(
       `WEB_SCRAPER jina: ${response.status} ${response.statusText}`
@@ -190,7 +192,7 @@ async function scrapeWithFirecrawl(
     body.waitFor = input.waitForSelector;
   }
 
-  const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+  const response = await abortableFetch('https://api.firecrawl.dev/v1/scrape', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,

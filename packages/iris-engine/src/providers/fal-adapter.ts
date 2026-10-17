@@ -3,6 +3,7 @@
  * Supports: text-to-image, text-to-video (various models via Fal)
  */
 
+import { abortableFetch, abortableSleep } from '../abort-scope.js';
 import { BaseProviderAdapter } from './base-adapter.js';
 import {
   AICapability,
@@ -379,7 +380,7 @@ export class FalAdapter extends BaseProviderAdapter {
     const model = request.model || 'fal-ai/flux/schnell';
 
     try {
-      const response = await fetch(`${this.baseUrl}/${model}`, {
+      const response = await abortableFetch(`${this.baseUrl}/${model}`, {
         method: 'POST',
         headers: {
           Authorization: `Key ${this.credentials!.apiKey}`,
@@ -462,7 +463,7 @@ export class FalAdapter extends BaseProviderAdapter {
         ? 'fal-ai/flux-pro/v1.1/redux'
         : 'fal-ai/flux/schnell/redux';
 
-      const response = await fetch(`${this.baseUrl}/${img2imgModel}`, {
+      const response = await abortableFetch(`${this.baseUrl}/${img2imgModel}`, {
         method: 'POST',
         headers: {
           Authorization: `Key ${this.credentials!.apiKey}`,
@@ -556,7 +557,7 @@ export class FalAdapter extends BaseProviderAdapter {
       const input = this.buildVideoInput(model, prompt!, parameters);
 
       // Submit request to fal.ai queue
-      const response = await fetch(`https://queue.fal.run/${endpoint}`, {
+      const response = await abortableFetch(`https://queue.fal.run/${endpoint}`, {
         method: 'POST',
         headers: {
           Authorization: `Key ${this.credentials!.apiKey}`,
@@ -692,7 +693,7 @@ export class FalAdapter extends BaseProviderAdapter {
           );
 
       // Submit request to fal.ai queue
-      const response = await fetch(`https://queue.fal.run/${endpoint}`, {
+      const response = await abortableFetch(`https://queue.fal.run/${endpoint}`, {
         method: 'POST',
         headers: {
           Authorization: `Key ${this.credentials!.apiKey}`,
@@ -865,7 +866,7 @@ export class FalAdapter extends BaseProviderAdapter {
         { imageUrls, videoUrls, audioUrls }
       );
 
-      const response = await fetch(`https://queue.fal.run/${endpoint}`, {
+      const response = await abortableFetch(`https://queue.fal.run/${endpoint}`, {
         method: 'POST',
         headers: {
           Authorization: `Key ${this.credentials!.apiKey}`,
@@ -1085,9 +1086,9 @@ export class FalAdapter extends BaseProviderAdapter {
     const startTime = Date.now();
 
     while (Date.now() - startTime < options.maxWait) {
-      await new Promise(resolve => setTimeout(resolve, options.interval));
+      await abortableSleep(options.interval);
 
-      const statusResponse = await fetch(statusUrl, {
+      const statusResponse = await abortableFetch(statusUrl, {
         headers: {
           Authorization: `Key ${this.credentials!.apiKey}`,
         },
@@ -1128,7 +1129,7 @@ export class FalAdapter extends BaseProviderAdapter {
 
       if (statusData.status === 'COMPLETED') {
         // Fetch the result using the response URL provided by fal.ai
-        const resultResponse = await fetch(responseUrl, {
+        const resultResponse = await abortableFetch(responseUrl, {
           headers: {
             Authorization: `Key ${this.credentials!.apiKey}`,
           },
@@ -1185,7 +1186,7 @@ export class FalAdapter extends BaseProviderAdapter {
     );
     const prompt = request.prompt || 'soft natural lighting from the left';
 
-    const response = await fetch(`${this.baseUrl}/fal-ai/iclight-v2`, {
+    const response = await abortableFetch(`${this.baseUrl}/fal-ai/iclight-v2`, {
       method: 'POST',
       headers: {
         Authorization: `Key ${this.credentials!.apiKey}`,

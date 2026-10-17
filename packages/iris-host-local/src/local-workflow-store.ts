@@ -44,12 +44,22 @@ import type {
   NodeCacheEntry,
 } from 'iris-engine';
 import {
+  migrateWorkflowDoc,
+  workflowDocToRows,
+  type WorkflowDoc,
+} from 'iris-nodes';
+import {
   withFileLock,
   readJsonOrNull,
   writeJson,
   listJsonIds,
 } from './fs-util.js';
 import { LocalNodeCacheStore } from './local-node-cache.js';
+import {
+  JsonFileExecutionRecords,
+  recoverInterruptedExecutions,
+  type ExecutionRecordStore,
+} from './execution-records.js';
 
 /** A workflow as persisted on disk. The graph rows already match the engine's
  *  `EngineWorkflow*Row` shapes (with `id === nodeId`), so `loadWorkflow` is a
@@ -74,8 +84,24 @@ export interface StoredWorkflow {
   scheduleTimezone?: string | null;
   scheduleNextRun?: string | null;
   scheduleLastRun?: string | null;
+  /** 2 once written by a v2-aware host (rows already follow the v2 rules).
+   *  Older files are read through `migrateWorkflowDoc`. */
+  schemaVersion?: 2;
+  /** Bumped by every graph or name change; `saveDoc` rejects a stale base. */
+  revision?: number;
   createdAt: string;
   updatedAt: string;
+}
+
+/** `saveDoc` outcome: saved, or the file moved on since `baseRevision`. */
+export type SaveDocResult =
+  | { ok: true; workflow: StoredWorkflow; revision: number }
+  | { ok: false; conflict: 'revision'; revision: number }
+  | { ok: false; notFound: true };
+
+export interface LocalWorkflowStoreOptions {
+  /** Where run records live. Default: one JSON file per run. */
+  executions?: ExecutionRecordStore;
 }
 
 /** A single node's result inside a stored execution. */
@@ -115,23 +141,25 @@ export interface StoredExecution {
   createdAt: string;
 }
 
+/** Ids an embedder may choose for a new workflow (also a file name). */
+export function isValidWorkflowId(id: unknown): id is string {
+  return typeof id === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(id);
+}
+
 export class LocalWorkflowStore implements WorkflowStore {
   private workflowsDir: string;
-  private executionsDir: string;
   private nodeCache: LocalNodeCacheStore;
+  /** Run records (port; JSON files by default). */
+  readonly executions: ExecutionRecordStore;
 
-  constructor(dataDir: string) {
+  constructor(dataDir: string, options: LocalWorkflowStoreOptions = {}) {
     this.workflowsDir = path.join(dataDir, 'workflows');
-    this.executionsDir = path.join(dataDir, 'executions');
     this.nodeCache = new LocalNodeCacheStore(dataDir);
+    this.executions = options.executions ?? new JsonFileExecutionRecords(dataDir);
   }
 
   private workflowFile(id: string): string {
     return path.join(this.workflowsDir, `${id}.json`);
-  }
-
-  private executionFile(id: string): string {
-    return path.join(this.executionsDir, `${id}.json`);
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -176,7 +204,7 @@ export class LocalWorkflowStore implements WorkflowStore {
       logs: [],
       createdAt: now,
     };
-    await writeJson(this.executionFile(id), execution);
+    await this.executions.create(execution);
     return { id, workflowId: input.workflowId, status: 'PENDING' };
   }
 
@@ -304,8 +332,9 @@ export class LocalWorkflowStore implements WorkflowStore {
 
   async appendLog(executionId: string, entry: WorkflowLogEntry): Promise<void> {
     try {
-      await this.mutateExecution(executionId, exec => {
-        exec.logs.push({ ...entry, timestamp: new Date().toISOString() });
+      await this.executions.appendLog(executionId, {
+        ...entry,
+        timestamp: new Date().toISOString(),
       });
     } catch {
       // best-effort, mirroring the cloud store
@@ -353,6 +382,11 @@ export class LocalWorkflowStore implements WorkflowStore {
     await this.nodeCache.delete(workflowId, cacheKey);
   }
 
+  /** Close runs a previous engine left RUNNING / PENDING (startup, R-04). */
+  async recoverInterruptedExecutions(): Promise<string[]> {
+    return recoverInterruptedExecutions(this.executions);
+  }
+
   /** Remove node cache entries unused for the retention window (startup). */
   async cleanupExpiredNodeCache(): Promise<{ removed: number }> {
     return this.nodeCache.cleanupExpired();
@@ -362,8 +396,45 @@ export class LocalWorkflowStore implements WorkflowStore {
   // CRUD helpers (called by the local REST API)
   // ──────────────────────────────────────────────────────────────────────────
 
+  /** A stored workflow with its graph read through the v2 rules (old files
+   *  open unchanged on disk; v1 node links come back as edges). */
   async getWorkflow(id: string): Promise<StoredWorkflow | null> {
-    return readJsonOrNull<StoredWorkflow>(this.workflowFile(id));
+    const raw = await readJsonOrNull<StoredWorkflow>(this.workflowFile(id));
+    return raw ? normalizeStored(raw) : null;
+  }
+
+  /** The workflow as a v2 document (name + graph + revision). */
+  async getWorkflowDoc(id: string): Promise<WorkflowDoc | null> {
+    const wf = await this.getWorkflow(id);
+    return wf ? storedToDoc(wf) : null;
+  }
+
+  /**
+   * Save a whole document in one write (W-19). `baseRevision` is the revision
+   * the editor loaded; when the file has moved on since, nothing is written
+   * and the current revision is returned (HTTP 409). Omit it to overwrite.
+   */
+  async saveDoc(
+    id: string,
+    input: unknown,
+    baseRevision?: number,
+  ): Promise<SaveDocResult> {
+    const doc = migrateWorkflowDoc(input);
+    let outcome: SaveDocResult = { ok: false, notFound: true };
+    await this.mutateWorkflow(id, wf => {
+      const current = wf.revision ?? 0;
+      if (baseRevision !== undefined && baseRevision !== current) {
+        outcome = { ok: false, conflict: 'revision', revision: current };
+        return false;
+      }
+      const rows = workflowDocToRows(doc);
+      if (typeof doc.name === 'string' && doc.name) wf.name = doc.name;
+      wf.nodes = rows.nodes as EngineWorkflowNodeRow[];
+      wf.edges = rows.edges;
+      outcome = { ok: true, workflow: wf, revision: current + 1 };
+      return true;
+    });
+    return outcome;
   }
 
   async listWorkflows(): Promise<StoredWorkflow[]> {
@@ -375,19 +446,28 @@ export class LocalWorkflowStore implements WorkflowStore {
   }
 
   async createWorkflow(
-    input: { name?: string; userId: string } & Partial<
+    input: { name?: string; userId: string; id?: string } & Partial<
       Pick<StoredWorkflow, 'nodes' | 'edges' | 'outputBucket' | 'outputPath'>
     >,
   ): Promise<StoredWorkflow> {
-    const id = randomUUID();
+    // An embedder may pick the id (the desktop app uses its document id) so it
+    // can find the workflow again without keeping a mapping. Callers check the
+    // shape (`isValidWorkflowId`) and that the id is free first.
+    const id = input.id ?? randomUUID();
     const now = new Date().toISOString();
+    const graph = normalizeStored({
+      nodes: input.nodes ?? [],
+      edges: input.edges ?? [],
+    } as StoredWorkflow);
     const wf: StoredWorkflow = {
       id,
       name: input.name ?? 'Untitled workflow',
       userId: input.userId,
       status: 'DRAFT',
-      nodes: input.nodes ?? [],
-      edges: input.edges ?? [],
+      schemaVersion: 2,
+      revision: 0,
+      nodes: graph.nodes,
+      edges: graph.edges,
       outputBucket: input.outputBucket ?? null,
       outputPath: input.outputPath ?? null,
       totalExecutions: 0,
@@ -519,10 +599,8 @@ export class LocalWorkflowStore implements WorkflowStore {
   }
 
   async listExecutions(workflowId?: string): Promise<StoredExecution[]> {
-    const ids = await listJsonIds(this.executionsDir);
-    const all = await Promise.all(ids.map(id => this.readExecution(id)));
+    const all = await this.executions.list();
     return all
-      .filter((e): e is StoredExecution => e !== null)
       .filter(e => !workflowId || e.workflowId === workflowId)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
@@ -532,38 +610,68 @@ export class LocalWorkflowStore implements WorkflowStore {
   // ──────────────────────────────────────────────────────────────────────────
 
   private readExecution(id: string): Promise<StoredExecution | null> {
-    return readJsonOrNull<StoredExecution>(this.executionFile(id));
+    return this.executions.get(id);
   }
 
   /** Read-modify-write a workflow file under a per-file lock. `touchUpdatedAt`
-   *  controls whether `updatedAt` is refreshed (the scheduler skips it). */
+   *  controls whether `updatedAt` is refreshed (the scheduler skips it). A
+   *  touching write is an edit: it bumps `revision` and stamps the v2 schema.
+   *  `mutate` may return false to cancel the write. */
   private async mutateWorkflow(
     id: string,
-    mutate: (wf: StoredWorkflow) => void,
+    mutate: (wf: StoredWorkflow) => void | boolean,
     touchUpdatedAt = true,
   ): Promise<StoredWorkflow | null> {
     const file = this.workflowFile(id);
     return withFileLock(file, async () => {
-      const wf = await readJsonOrNull<StoredWorkflow>(file);
-      if (!wf) return null;
-      mutate(wf);
-      if (touchUpdatedAt) wf.updatedAt = new Date().toISOString();
+      const raw = await readJsonOrNull<StoredWorkflow>(file);
+      if (!raw) return null;
+      const wf = normalizeStored(raw);
+      if (mutate(wf) === false) return wf;
+      if (touchUpdatedAt) {
+        wf.updatedAt = new Date().toISOString();
+        wf.revision = (wf.revision ?? 0) + 1;
+      }
       await writeJson(file, wf);
       return wf;
     });
   }
 
-  /** Read-modify-write an execution file under a per-file lock. */
+  /** Read-modify-write an execution record (serialized per record). */
   private async mutateExecution(
     id: string,
     mutate: (exec: StoredExecution) => void,
   ): Promise<void> {
-    const file = this.executionFile(id);
-    await withFileLock(file, async () => {
-      const exec = await readJsonOrNull<StoredExecution>(file);
-      if (!exec) return;
-      mutate(exec);
-      await writeJson(file, exec);
-    });
+    await this.executions.update(id, mutate);
   }
+}
+
+/** Stored workflow → v2 document. */
+export function storedToDoc(wf: StoredWorkflow): WorkflowDoc {
+  return migrateWorkflowDoc({
+    schemaVersion: wf.schemaVersion,
+    id: wf.id,
+    name: wf.name,
+    revision: wf.revision ?? 0,
+    nodes: wf.nodes,
+    edges: wf.edges,
+  });
+}
+
+/**
+ * Read a stored workflow's graph through the v2 rules. Rows keep their
+ * extra fields; nodes and edges come back in the v2 shape the engine and the
+ * editor agree on (one edge per input, no config-only node links).
+ */
+function normalizeStored(wf: StoredWorkflow): StoredWorkflow {
+  const doc = migrateWorkflowDoc({ nodes: wf.nodes ?? [], edges: wf.edges ?? [] });
+  const rows = workflowDocToRows(doc);
+  const byId = new Map((wf.nodes ?? []).map(n => [n.nodeId || n.id, n]));
+  return {
+    ...wf,
+    schemaVersion: 2,
+    revision: wf.revision ?? 0,
+    nodes: rows.nodes.map(n => ({ ...(byId.get(n.nodeId) ?? {}), ...n })) as EngineWorkflowNodeRow[],
+    edges: rows.edges,
+  };
 }

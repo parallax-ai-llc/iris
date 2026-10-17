@@ -9,6 +9,7 @@ import {
   Menu,
   Play,
   Save,
+  Square,
   Workflow,
   MessageSquare,
 } from 'lucide-react';
@@ -39,6 +40,10 @@ interface EditorHeaderProps {
   onUpgrade: () => void;
   onMobileMenuToggle: () => void;
   onOpenChat: () => void;
+  /** Shown while a run is in progress when the host can stop runs (R-01). */
+  canStop?: boolean;
+  isStopping?: boolean;
+  onStop?: () => void;
 }
 
 export function EditorHeader({
@@ -60,6 +65,9 @@ export function EditorHeader({
   onUpgrade,
   onMobileMenuToggle,
   onOpenChat,
+  canStop = false,
+  isStopping = false,
+  onStop,
 }: EditorHeaderProps) {
   const { t } = useI18n();
   const ignoreCacheLabel = t('iris.editor.ignoreCache') || 'Ignore cache (run all)';
@@ -220,6 +228,20 @@ export function EditorHeader({
             />
             <span>{ignoreCacheLabel}</span>
           </label>
+        )}
+
+        {isExecuting && canStop && onStop && (
+          <button
+            onClick={onStop}
+            disabled={isStopping}
+            className="we-iconbtn"
+            type="button"
+            title={isStopping ? 'Stopping…' : 'Stop the run'}
+            aria-label={isStopping ? 'Stopping' : 'Stop the run'}
+            data-testid="workflow-stop"
+          >
+            <Square size={13} />
+          </button>
         )}
 
         <button

@@ -2,7 +2,7 @@
  * Filesystem helpers shared by the local store and host.
  *
  * The store keeps a workflow/execution as one JSON file each and rewrites the
- * whole file on every mutation. Because a single execution fans several node
+ * whole file on every mutation (atomically, see `writeJson`). Because a single execution fans several node
  * writes at the same file concurrently, every write is funnelled through a
  * per-path promise chain (`withFileLock`) so the last writer never clobbers an
  * in-flight read-modify-write.
@@ -50,10 +50,55 @@ export async function readJsonOrNull<T>(file: string): Promise<T | null> {
   return readJson<T | null>(file, null);
 }
 
-/** Pretty-write a JSON file (creating its parent directory). */
+let tmpCounter = 0;
+
+/**
+ * Pretty-write a JSON file (creating its parent directory) atomically: the
+ * bytes go to a temp file next to it, are fsynced, then renamed over the
+ * target. A reader sees the old file or the new one, never a half-written
+ * one, and a crash mid-write leaves the old file intact (W-20).
+ */
 export async function writeJson(file: string, value: unknown): Promise<void> {
-  await ensureDir(path.dirname(file));
-  await fs.writeFile(file, JSON.stringify(value, null, 2), 'utf8');
+  await writeFileAtomic(file, JSON.stringify(value, null, 2));
+}
+
+/** Atomic text write (temp file + fsync + rename). */
+export async function writeFileAtomic(file: string, data: string): Promise<void> {
+  const dir = path.dirname(file);
+  await ensureDir(dir);
+  const tmp = path.join(
+    dir,
+    `.${path.basename(file)}.${process.pid}.${Date.now()}.${tmpCounter++}.tmp`,
+  );
+  const handle = await fs.open(tmp, 'w');
+  try {
+    await handle.writeFile(data, 'utf8');
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+  try {
+    await renameWithRetry(tmp, file);
+  } catch (error) {
+    await fs.unlink(tmp).catch(() => undefined);
+    throw error;
+  }
+}
+
+/** Windows refuses a rename over a file another handle is reading
+ *  (EPERM/EACCES/EBUSY) for a moment; retry briefly before giving up. */
+async function renameWithRetry(from: string, to: string): Promise<void> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await fs.rename(from, to);
+      return;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      const retryable = code === 'EPERM' || code === 'EACCES' || code === 'EBUSY';
+      if (!retryable || attempt >= 20) throw error;
+      await new Promise(resolve => setTimeout(resolve, 10 * (attempt + 1)));
+    }
+  }
 }
 
 /** List the ids (filenames without `.json`) in a directory. */

@@ -8,6 +8,7 @@
  * - Status Endpoint: GET /api/v1/generate/record-info?taskId={taskId}
  */
 
+import { abortableFetch } from '../abort-scope.js';
 import { BaseProviderAdapter } from './base-adapter.js';
 import {
   AICapability,
@@ -572,7 +573,7 @@ export class SunoAdapter extends BaseProviderAdapter {
   private async submitGeneration(
     payload: SunoGenerateRequest
   ): Promise<SunoGenerateResponse> {
-    const response = await fetch(`${this.baseUrl}/generate`, {
+    const response = await abortableFetch(`${this.baseUrl}/generate`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.credentials!.apiKey}`,
@@ -592,7 +593,7 @@ export class SunoAdapter extends BaseProviderAdapter {
    * Check the status of a generation task
    */
   private async checkStatus(taskId: string): Promise<SunoStatusResponse> {
-    const response = await fetch(
+    const response = await abortableFetch(
       `${this.baseUrl}/generate/record-info?taskId=${taskId}`,
       {
         method: 'GET',

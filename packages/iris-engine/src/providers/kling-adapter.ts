@@ -5,6 +5,7 @@
  * Kling API uses JWT authentication with Access Key and Secret Key
  */
 
+import { abortableFetch } from '../abort-scope.js';
 import { BaseProviderAdapter } from './base-adapter.js';
 import {
   AICapability,
@@ -177,7 +178,7 @@ export class KlingAdapter extends BaseProviderAdapter {
     const jwtToken = this.generateJWT();
     const duration = (parameters.duration as number) || 5;
 
-    const response = await fetch(`${this.baseUrl}/videos/text2video`, {
+    const response = await abortableFetch(`${this.baseUrl}/videos/text2video`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${jwtToken}`,
@@ -206,7 +207,7 @@ export class KlingAdapter extends BaseProviderAdapter {
     const result = await this.pollForCompletion<{ video_url: string }>(
       async () => {
         const pollToken = this.generateJWT();
-        const statusRes = await fetch(
+        const statusRes = await abortableFetch(
           `${this.baseUrl}/videos/tasks/${data.task_id}`,
           {
             headers: { Authorization: `Bearer ${pollToken}` },
@@ -299,7 +300,7 @@ export class KlingAdapter extends BaseProviderAdapter {
 
     const duration = (parameters.duration as number) || 5;
 
-    const response = await fetch(`${this.baseUrl}/videos/image2video`, {
+    const response = await abortableFetch(`${this.baseUrl}/videos/image2video`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${jwtToken}`,
@@ -348,7 +349,7 @@ export class KlingAdapter extends BaseProviderAdapter {
     const result = await this.pollForCompletion<{ video_url: string }>(
       async () => {
         const pollToken = this.generateJWT();
-        const statusRes = await fetch(
+        const statusRes = await abortableFetch(
           `${this.baseUrl}/videos/image2video/${taskId}`,
           {
             headers: { Authorization: `Bearer ${pollToken}` },
@@ -400,7 +401,7 @@ export class KlingAdapter extends BaseProviderAdapter {
     let base64Video: string | undefined;
     if (result.video_url) {
       try {
-        const videoResponse = await fetch(result.video_url);
+        const videoResponse = await abortableFetch(result.video_url);
         if (videoResponse.ok) {
           const buffer = await videoResponse.arrayBuffer();
           base64Video = Buffer.from(buffer).toString('base64');

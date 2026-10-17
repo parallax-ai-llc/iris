@@ -3,6 +3,7 @@
  * Supports: text-to-image, text-to-video (various models)
  */
 
+import { abortableFetch } from '../abort-scope.js';
 import { BaseProviderAdapter } from './base-adapter.js';
 import {
   AICapability,
@@ -57,7 +58,7 @@ export class ReplicateAdapter extends BaseProviderAdapter {
   }
 
   protected async pingApi(): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/models`, {
+    const response = await abortableFetch(`${this.baseUrl}/models`, {
       headers: {
         Authorization: `Bearer ${this.credentials!.apiKey}`,
       },
@@ -73,7 +74,7 @@ export class ReplicateAdapter extends BaseProviderAdapter {
    * Required for some models that don't support the /models/{owner}/{model}/predictions endpoint
    */
   private async getLatestModelVersion(modelPath: string): Promise<string> {
-    const response = await fetch(`${this.baseUrl}/models/${modelPath}`, {
+    const response = await abortableFetch(`${this.baseUrl}/models/${modelPath}`, {
       headers: {
         Authorization: `Bearer ${this.credentials!.apiKey}`,
       },
@@ -103,7 +104,7 @@ export class ReplicateAdapter extends BaseProviderAdapter {
     status: string;
     output?: unknown;
   }> {
-    const response = await fetch(`${this.baseUrl}/predictions`, {
+    const response = await abortableFetch(`${this.baseUrl}/predictions`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.credentials!.apiKey}`,
@@ -193,7 +194,7 @@ export class ReplicateAdapter extends BaseProviderAdapter {
         body.version = model;
       }
 
-      const response = await fetch(endpoint, {
+      const response = await abortableFetch(endpoint, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${this.credentials!.apiKey}`,
@@ -225,7 +226,7 @@ export class ReplicateAdapter extends BaseProviderAdapter {
         output: string | string[];
       }>(
         async () => {
-          const statusRes = await fetch(data.urls.get, {
+          const statusRes = await abortableFetch(data.urls.get, {
             headers: { Authorization: `Bearer ${this.credentials!.apiKey}` },
           });
           const statusData = (await statusRes.json()) as {
@@ -304,7 +305,7 @@ export class ReplicateAdapter extends BaseProviderAdapter {
         },
       };
 
-      const response = await fetch(endpoint, {
+      const response = await abortableFetch(endpoint, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${this.credentials!.apiKey}`,
@@ -334,7 +335,7 @@ export class ReplicateAdapter extends BaseProviderAdapter {
       // Poll for completion
       const result = await this.pollForCompletion<{ output: string[] }>(
         async () => {
-          const statusRes = await fetch(data.urls.get, {
+          const statusRes = await abortableFetch(data.urls.get, {
             headers: { Authorization: `Bearer ${this.credentials!.apiKey}` },
           });
           const statusData = (await statusRes.json()) as {
@@ -401,7 +402,7 @@ export class ReplicateAdapter extends BaseProviderAdapter {
       const replicateModel = mapModelToReplicatePath(model);
       const input = buildVideoInput(model, prompt, parameters);
 
-      const response = await fetch(
+      const response = await abortableFetch(
         `${this.baseUrl}/models/${replicateModel}/predictions`,
         {
           method: 'POST',
@@ -444,7 +445,7 @@ export class ReplicateAdapter extends BaseProviderAdapter {
         output: string | string[];
       }>(
         async () => {
-          const statusRes = await fetch(data.urls.get, {
+          const statusRes = await abortableFetch(data.urls.get, {
             headers: { Authorization: `Bearer ${this.credentials!.apiKey}` },
           });
           const statusData = (await statusRes.json()) as {
@@ -570,7 +571,7 @@ export class ReplicateAdapter extends BaseProviderAdapter {
         endFrameUrl
       );
 
-      const response = await fetch(
+      const response = await abortableFetch(
         `${this.baseUrl}/models/${replicateModel}/predictions`,
         {
           method: 'POST',
@@ -611,7 +612,7 @@ export class ReplicateAdapter extends BaseProviderAdapter {
         output: string | string[];
       }>(
         async () => {
-          const statusRes = await fetch(data.urls.get, {
+          const statusRes = await abortableFetch(data.urls.get, {
             headers: { Authorization: `Bearer ${this.credentials!.apiKey}` },
           });
           const statusData = (await statusRes.json()) as {
@@ -707,7 +708,7 @@ export class ReplicateAdapter extends BaseProviderAdapter {
         input.output_quality = parameters.outputQuality;
       }
 
-      const response = await fetch(
+      const response = await abortableFetch(
         `${this.baseUrl}/models/${model}/predictions`,
         {
           method: 'POST',
@@ -750,7 +751,7 @@ export class ReplicateAdapter extends BaseProviderAdapter {
         output: string | string[];
       }>(
         async () => {
-          const statusRes = await fetch(data.urls.get, {
+          const statusRes = await abortableFetch(data.urls.get, {
             headers: { Authorization: `Bearer ${this.credentials!.apiKey}` },
           });
           const statusData = (await statusRes.json()) as {
@@ -818,7 +819,7 @@ export class ReplicateAdapter extends BaseProviderAdapter {
           input.upscale = parameters.upscale;
       }
 
-      const response = await fetch(
+      const response = await abortableFetch(
         `${this.baseUrl}/models/${model}/predictions`,
         {
           method: 'POST',
@@ -859,7 +860,7 @@ export class ReplicateAdapter extends BaseProviderAdapter {
         output: string | string[];
       }>(
         async () => {
-          const statusRes = await fetch(data.urls.get, {
+          const statusRes = await abortableFetch(data.urls.get, {
             headers: { Authorization: `Bearer ${this.credentials!.apiKey}` },
           });
           const statusData = (await statusRes.json()) as {
@@ -1000,7 +1001,7 @@ export class ReplicateAdapter extends BaseProviderAdapter {
         output: string | string[];
       }>(
         async () => {
-          const statusRes = await fetch(data.urls.get, {
+          const statusRes = await abortableFetch(data.urls.get, {
             headers: { Authorization: `Bearer ${this.credentials!.apiKey}` },
           });
           const statusData = (await statusRes.json()) as {
@@ -1105,7 +1106,7 @@ export class ReplicateAdapter extends BaseProviderAdapter {
         character_orientation: parameters.characterOrientation || 'image',
       };
 
-      const response = await fetch(
+      const response = await abortableFetch(
         `${this.baseUrl}/models/${model}/predictions`,
         {
           method: 'POST',
@@ -1150,7 +1151,7 @@ export class ReplicateAdapter extends BaseProviderAdapter {
 
       const result = await this.pollForCompletion<{ output: string }>(
         async () => {
-          const statusRes = await fetch(data.urls.get, {
+          const statusRes = await abortableFetch(data.urls.get, {
             headers: { Authorization: `Bearer ${this.credentials!.apiKey}` },
           });
           const statusData = (await statusRes.json()) as {
@@ -1240,7 +1241,7 @@ export class ReplicateAdapter extends BaseProviderAdapter {
 
       const result = await this.pollForCompletion<{ output: string }>(
         async () => {
-          const statusRes = await fetch(data.urls.get, {
+          const statusRes = await abortableFetch(data.urls.get, {
             headers: { Authorization: `Bearer ${this.credentials!.apiKey}` },
           });
           const statusData = (await statusRes.json()) as {

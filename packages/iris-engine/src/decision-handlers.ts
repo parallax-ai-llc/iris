@@ -19,6 +19,7 @@
  * least two); the returned `score` is that index.
  */
 
+import { abortableSleep } from './abort-scope.js';
 import { getApiKeyForProvider } from './node-executor-config.js';
 
 export type DecisionMode = 'noul' | 'choice' | 'score';
@@ -201,7 +202,7 @@ export function getJevOperatingLimits() {
   } as const;
 }
 
-const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
+const sleep = (ms: number) => abortableSleep(ms);
 
 type WireQuestion =
   | { type: 'noul'; instructions: string }

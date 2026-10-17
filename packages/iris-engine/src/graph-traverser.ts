@@ -58,13 +58,20 @@ export class GraphTraverser {
 
     // Build edges
     const graphEdges: GraphEdge[] = [];
+    const droppedEdges: string[] = [];
+    const byRowId = new Map(nodes.map(n => [n.id, n]));
 
     for (const edge of edges) {
       // Find the nodes by their internal IDs
-      const sourceNode = nodes.find(n => n.id === edge.sourceNodeId);
-      const targetNode = nodes.find(n => n.id === edge.targetNodeId);
+      const sourceNode = byRowId.get(edge.sourceNodeId);
+      const targetNode = byRowId.get(edge.targetNodeId);
 
-      if (!sourceNode || !targetNode) continue;
+      // An edge to a missing node carries nothing; the engine logs it as a
+      // graph warning instead of dropping it silently (W-13).
+      if (!sourceNode || !targetNode) {
+        droppedEdges.push(edge.edgeId);
+        continue;
+      }
 
       const sourceNodeId = sourceNode.nodeId;
       const targetNodeId = targetNode.nodeId;
@@ -125,6 +132,7 @@ export class GraphTraverser {
       entryNodes,
       exitNodes,
       topologicalOrder,
+      droppedEdges,
     };
   }
 
@@ -186,16 +194,20 @@ export class GraphTraverser {
 
       const node = nodes.get(nodeId)!;
 
-      // Reduce in-degree of dependent nodes
+      // Reduce in-degree once per dependent node. In-degree counts unique
+      // upstream nodes (`dependencies` is a Set), so two edges from this node
+      // into the same target must count once, or the target is released
+      // before its other dependencies ran (W-12).
+      const dependents = new Set<string>();
       for (const [, outputs] of node.outputs) {
-        for (const output of outputs) {
-          const currentDegree = inDegree.get(output.nodeId) ?? 0;
-          const newDegree = currentDegree - 1;
-          inDegree.set(output.nodeId, newDegree);
+        for (const output of outputs) dependents.add(output.nodeId);
+      }
+      for (const dependentId of dependents) {
+        const newDegree = (inDegree.get(dependentId) ?? 0) - 1;
+        inDegree.set(dependentId, newDegree);
 
-          if (newDegree === 0) {
-            queue.push(output.nodeId);
-          }
+        if (newDegree === 0) {
+          queue.push(dependentId);
         }
       }
     }

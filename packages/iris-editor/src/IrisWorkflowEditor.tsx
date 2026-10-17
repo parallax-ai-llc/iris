@@ -49,6 +49,9 @@ export function IrisWorkflowEditor({
     manualTriggerNode,
     isDirty,
     isExecuting,
+    isStopping,
+    canStop,
+    handleStop,
     handleValidate,
     handleSave,
     handleExecute,
@@ -114,6 +117,9 @@ export function IrisWorkflowEditor({
         onUpgrade={() => navigate?.('/plan')}
         onMobileMenuToggle={toggleMobileMenu}
         onOpenChat={() => onOpenChat?.(workflow.id)}
+        canStop={canStop}
+        isStopping={isStopping}
+        onStop={handleStop}
       />
 
       <MobileMenu

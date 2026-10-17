@@ -18,8 +18,10 @@ export type { IrisEditorSeams, ModelsSeam } from './seams';
 // consumers use; this avoids an ambiguous re-export.
 export {
   irisApiClient,
+  irisApiSupport,
   setIrisApiClient,
   workflowLoadErrorFromStatus,
+  WorkflowRevisionConflictError,
 } from './lib/apis/iris-api-client';
 export type {
   IrisApiClient,
@@ -35,6 +37,9 @@ export type {
   TokenCostsResponse,
   WorkflowLoadErrorKind,
   WorkflowLoadResult,
+  SaveWorkflowDocInput,
+  ExecutionStreamEvent,
+  IrisApiCapabilities,
 } from './lib/apis/iris-api-client';
 export type { StorageFile } from './lib/apis/storage-api-client';
 
@@ -47,6 +52,12 @@ export { createLocalT } from './local/local-i18n';
 // Store + types (consumers like workflow-parser, chat modal, demos use these).
 export {
   useIrisEditorStore,
+  createIrisEditorStore,
+  irisEditorStore,
+  IrisEditorStoreProvider,
+  useIrisEditorStoreApi,
+  type IrisEditorState,
+  type IrisEditorStoreApi,
   type IrisNodeData,
   type NodeConfig,
   type NodeStatus,
@@ -56,6 +67,13 @@ export {
   type InputSourceType,
 } from './store/iris-editor';
 export type { AgentModel } from './store/agent';
+
+// Command history (07 C2) and document clipboard fragments.
+export { DocHistory, ROOT_ENTRY_ID } from './history/history';
+export type { Command, History, HistoryEntryInfo, DocHistoryOptions } from './history/history';
+export { FRAGMENT_KIND } from './store/doc-model';
+export type { WorkflowFragment, PasteResult } from './store/doc-model';
+export { saveWorkflowGraph, docToApiGraph } from './orchestrator/save-workflow';
 
 // Node catalog (single source adapter over iris-nodes).
 export * from './constants/node-definitions';

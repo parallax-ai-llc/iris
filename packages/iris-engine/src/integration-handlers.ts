@@ -16,6 +16,7 @@
  * seam instead. See `core/server/.../integration-handlers.ts`.
  */
 
+import { abortableFetch } from './abort-scope.js';
 import type { NodeDefinition, AssetReference } from './types.js';
 import { parseDataUrl } from './media-source.js';
 
@@ -132,7 +133,7 @@ export async function outputDiscordPost(
   inputs: Record<string, unknown>
 ): Promise<{ outputs: Record<string, unknown>; assets: AssetReference[] }> {
   const request = buildDiscordPostRequest(node, inputs);
-  const response = await fetch(request.url, {
+  const response = await abortableFetch(request.url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request.body),
@@ -347,7 +348,7 @@ async function postViaWebhook(
   if (username) body.username = username;
   if (iconEmoji) body.icon_emoji = iconEmoji;
 
-  const response = await fetch(url, {
+  const response = await abortableFetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -391,7 +392,7 @@ async function postViaApi(
   if (iconEmoji) body.icon_emoji = iconEmoji;
   if (threadTs) body.thread_ts = threadTs;
 
-  const response = await fetch('https://slack.com/api/chat.postMessage', {
+  const response = await abortableFetch('https://slack.com/api/chat.postMessage', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,

@@ -4,6 +4,7 @@
  * API Documentation: https://docs.bfl.ml/
  */
 
+import { abortableFetch, abortableSleep } from '../abort-scope.js';
 import { BaseProviderAdapter } from './base-adapter.js';
 import {
   AICapability,
@@ -294,7 +295,7 @@ export class BflAdapter extends BaseProviderAdapter {
 
   protected async pingApi(): Promise<void> {
     // Check credits to verify API key
-    const response = await fetch(`${this.baseUrl}/credits`, {
+    const response = await abortableFetch(`${this.baseUrl}/credits`, {
       headers: {
         'x-key': this.credentials!.apiKey!,
       },
@@ -377,7 +378,7 @@ export class BflAdapter extends BaseProviderAdapter {
       );
 
       // Submit task
-      const taskResponse = await fetch(`${this.baseUrl}/${model}`, {
+      const taskResponse = await abortableFetch(`${this.baseUrl}/${model}`, {
         method: 'POST',
         headers: {
           'x-key': this.credentials!.apiKey!,
@@ -491,7 +492,7 @@ export class BflAdapter extends BaseProviderAdapter {
       );
 
       // Submit task
-      const taskResponse = await fetch(`${this.baseUrl}/${model}`, {
+      const taskResponse = await abortableFetch(`${this.baseUrl}/${model}`, {
         method: 'POST',
         headers: {
           'x-key': this.credentials!.apiKey!,
@@ -686,9 +687,9 @@ export class BflAdapter extends BaseProviderAdapter {
     const startTime = Date.now();
 
     while (Date.now() - startTime < maxWait) {
-      await new Promise(resolve => setTimeout(resolve, interval));
+      await abortableSleep(interval);
 
-      const response = await fetch(pollingUrl, {
+      const response = await abortableFetch(pollingUrl, {
         headers: {
           'x-key': this.credentials!.apiKey!,
           accept: 'application/json',

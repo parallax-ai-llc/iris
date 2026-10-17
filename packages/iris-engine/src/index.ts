@@ -34,5 +34,6 @@ export * from './analyzer-handlers.js';
 export * from './decision-handlers.js';
 export * from './media-gen-handlers.js';
 export * from './integration-handlers.js';
+export * from './abort-scope.js';
 export * from './workflow-engine.js';
 export * from './providers/index.js';

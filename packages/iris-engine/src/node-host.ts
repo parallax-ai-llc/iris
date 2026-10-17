@@ -130,6 +130,16 @@ export interface MediaHost {
    *  through an SSRF guard with a size cap, and accept a `gs://` source only
    *  when it lies inside the requesting user's own storage area. */
   storePublic(input: StorePublicInput): Promise<StorePublicResult>;
+
+  /**
+   * When `storeOutput` fails, may the executor put the raw bytes inline as a
+   * `data:` URI (or the provider's temporary URL) instead? Omitted = true
+   * (cloud behavior). A host that hands results around by asset reference
+   * only (the desktop app) sets false: the node then fails with the storage
+   * error instead of shipping megabytes of base64 through results, events and
+   * history (04-workflow-editor.md R-08, 3.10).
+   */
+  allowInlineFallback?: boolean;
 }
 
 /** Read access to library assets (replaces `prisma.irisAsset.findUnique`). */
@@ -146,6 +156,14 @@ export interface AssetHost {
     id: string,
     requesterUserId: string
   ): Promise<EngineStoredAssetInfo | null>;
+
+  /**
+   * Optional: sha256 of an asset's bytes. When present the node result cache
+   * keys asset inputs by content instead of id, so a local file that was
+   * overwritten under the same id is not served a stale result (R-10).
+   * Return null when unknown (the id is used then).
+   */
+  getContentHash?(id: string, requesterUserId: string): Promise<string | null>;
 }
 
 export interface EngineStoredAssetInfo {
@@ -330,3 +348,17 @@ export interface NodeExecutorHost {
 
 // Re-exported so hosts can annotate AssetKind on stored outputs if desired.
 export type { AssetKind };
+
+/**
+ * Fail the node when storing its output failed and the host forbids the
+ * inline fallback (`media.allowInlineFallback === false`). Hosts that allow it
+ * (default) keep the old behavior: the caller falls back to a `data:` URI or
+ * the provider URL.
+ */
+export function requireStoredOutput(
+  host: Pick<NodeExecutorHost, 'media'>,
+  result: Pick<StoreOutputResult, 'success' | 'error'>,
+): void {
+  if (result.success || host.media.allowInlineFallback !== false) return;
+  throw new Error(`Storing the node output failed: ${result.error ?? 'unknown error'}`);
+}

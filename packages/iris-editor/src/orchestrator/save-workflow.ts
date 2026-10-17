@@ -1,17 +1,23 @@
 /**
  * Saving the editor graph.
  *
- * A save is three requests (PATCH name/status, PUT nodes, PUT edges) and the
- * user can keep editing while they are in flight. The save therefore works
- * on a snapshot taken when it starts and records the store's `editRevision`
- * at that moment. When the requests finish it clears `isDirty` only if the
- * revision has not moved (`markSaved`); an edit made during the save keeps
- * the graph dirty so it is not shown as saved and is not lost on close. A
- * failed save leaves `isDirty` as it was. Nothing is re-saved automatically.
+ * The save works on the document as it is when the save starts and on the
+ * history entry it was at (`headEntryId`, 07 C3). When the requests finish,
+ * that entry becomes the saved point: if the user kept editing meanwhile the
+ * document stays dirty, and undoing back to the saved point makes it clean.
+ * A failed save leaves the saved point where it was. Nothing is re-saved
+ * automatically.
+ *
+ * Hosts that can store a whole document at once (`saveWorkflowDoc`, the local
+ * REST host) get one request with the revision the editor loaded, so a save
+ * is atomic and a stale copy is refused (W-19). Other hosts (the cloud) keep
+ * the three requests (PATCH name/status, PUT nodes, PUT edges), built from the
+ * same document.
  *
  * This module only uses type imports so it can be tested without a bundler.
  */
 import type { Edge, Node } from '@xyflow/react';
+import type { WorkflowDoc } from 'iris-nodes';
 import type {
   ApiEdgeInput,
   ApiNodeInput,
@@ -28,13 +34,18 @@ export interface SaveStoreState {
   nodeConfigs: Record<string, NodeConfig>;
   editRevision: number;
   markSaved: (revision: number) => boolean;
+  /** Document stores (current editor) also provide these. */
+  doc?: WorkflowDoc;
+  history?: { headEntryId: string };
+  baseRevision?: number | null;
+  markSavedEntry?: (entryId: string, baseRevision?: number | null) => boolean;
 }
 
 export interface SaveWorkflowInput {
   workflow: Pick<Workflow, 'id' | 'name' | 'description'>;
   /** Read the store at call time (e.g. `useIrisEditorStore.getState`). */
   getState: () => SaveStoreState;
-  api: Pick<IrisApiClient, 'updateWorkflow' | 'updateNodes' | 'updateEdges'>;
+  api: Pick<IrisApiClient, 'updateWorkflow' | 'updateNodes' | 'updateEdges' | 'saveWorkflowDoc'>;
 }
 
 export interface SaveWorkflowResult {
@@ -84,22 +95,72 @@ export function toApiGraph(
   return { nodes: apiNodes, edges: apiEdges };
 }
 
+/** The document as the cloud's node/edge payloads (the only DTO mapping). */
+export function docToApiGraph(doc: WorkflowDoc): { nodes: ApiNodeInput[]; edges: ApiEdgeInput[] } {
+  return {
+    nodes: doc.nodes.map((n) => ({
+      nodeId: n.id,
+      type: n.type,
+      label: n.label,
+      positionX: n.position.x,
+      positionY: n.position.y,
+      config: n.config as unknown as Record<string, unknown>,
+    })),
+    edges: doc.edges.map((e) => ({
+      edgeId: e.id,
+      sourceNodeId: e.source,
+      sourceHandle: e.sourceHandle,
+      targetNodeId: e.target,
+      targetHandle: e.targetHandle,
+    })),
+  };
+}
+
 /**
- * Save the graph as it is now. Throws when a request fails (`isDirty` is
- * left untouched).
+ * Save the graph as it is now. Throws when a request fails (the saved point
+ * is left untouched), including `WorkflowRevisionConflictError` on a stale
+ * single-document save.
  */
 export async function saveWorkflowGraph({
   workflow,
   getState,
   api,
 }: SaveWorkflowInput): Promise<SaveWorkflowResult> {
-  // One consistent snapshot: graph and revision read together.
-  const { nodes, edges, nodeConfigs, editRevision } = getState();
+  // One consistent snapshot: graph and history position read together.
+  const state = getState();
+  const { doc } = state;
+  const entryId = state.history?.headEntryId;
 
+  if (doc && entryId !== undefined && state.markSavedEntry) {
+    const hasTrigger = doc.nodes.some((n) => n.type.startsWith('TRIGGER_'));
+    const status: WorkflowStatus = hasTrigger ? 'ACTIVE' : 'DRAFT';
+    let baseRevision: number | null | undefined;
+    if (api.saveWorkflowDoc) {
+      const named = { ...doc, id: workflow.id, name: workflow.name };
+      const saved = await api.saveWorkflowDoc(workflow.id, {
+        doc: named,
+        ...(typeof state.baseRevision === 'number' ? { baseRevision: state.baseRevision } : {}),
+      });
+      baseRevision = saved?.revision ?? null;
+    } else {
+      const graph = docToApiGraph(doc);
+      await api.updateWorkflow(workflow.id, {
+        name: workflow.name,
+        description: workflow.description,
+        status,
+      });
+      await api.updateNodes(workflow.id, graph.nodes);
+      await api.updateEdges(workflow.id, graph.edges);
+    }
+    const upToDate = getState().markSavedEntry!(entryId, baseRevision);
+    return { status, upToDate };
+  }
+
+  // Older store shape (nodes / edges / nodeConfigs + editRevision).
+  const { nodes, edges, nodeConfigs, editRevision } = state;
   const hasTrigger = nodes.some((node) => node.data.type.startsWith('TRIGGER_'));
   const status: WorkflowStatus = hasTrigger ? 'ACTIVE' : 'DRAFT';
   const graph = toApiGraph(nodes, edges, nodeConfigs);
-
   await api.updateWorkflow(workflow.id, {
     name: workflow.name,
     description: workflow.description,
@@ -107,7 +168,6 @@ export async function saveWorkflowGraph({
   });
   await api.updateNodes(workflow.id, graph.nodes);
   await api.updateEdges(workflow.id, graph.edges);
-
   const upToDate = getState().markSaved(editRevision);
   return { status, upToDate };
 }

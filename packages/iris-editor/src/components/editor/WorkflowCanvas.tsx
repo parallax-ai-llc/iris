@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useMemo, useState, useEffect } from 'react';
+import { useCallback, useRef, useMemo, useState, useEffect, useId } from 'react';
 import {
   ReactFlow,
   Background,
@@ -16,14 +16,15 @@ import {
   ConnectionLineType,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { useIrisEditorStore, IrisNodeData } from '@editor/store/iris-editor';
+import { useIrisEditorStore, type IrisNodeData } from '@editor/store/iris-editor';
+import { toast } from 'sonner';
 import { cn } from '@editor/lib/convert/string';
 import { IrisNode } from './nodes/IrisNode';
 import { ConfirmModal } from '../common/ConfirmModal';
-import { getNodeDefinition, PortType } from '../../constants/node-definitions';
 import { ZoomIn, ZoomOut, Maximize2, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { useExecutionPolling } from '../../hooks/useExecutionPolling';
 import { useI18n } from '@editor/hooks/usei18n';
+import { useSeams } from '@editor/seams';
 
 // Custom node types
 const nodeTypes: NodeTypes = {
@@ -55,50 +56,13 @@ const edgeStyles = {
   },
 };
 
-// Validate connection
-function isValidConnection(connection: Connection, nodes: any[]): boolean {
-  if (!connection.source || !connection.target) return false;
-  if (connection.source === connection.target) return false;
-
-  const sourceNode = nodes.find((n) => n.id === connection.source);
-  const targetNode = nodes.find((n) => n.id === connection.target);
-
-  if (!sourceNode || !targetNode) return false;
-
-  const sourceNodeDef = getNodeDefinition(sourceNode.data?.type);
-  const targetNodeDef = getNodeDefinition(targetNode.data?.type);
-
-  if (!sourceNodeDef || !targetNodeDef) return true;
-
-  // Find the source output port and target input port
-  const sourcePort = sourceNodeDef.outputs.find(
-    (p) => p.name === connection.sourceHandle
-  );
-  const targetPort = targetNodeDef.inputs.find(
-    (p) => p.name === connection.targetHandle
-  );
-
-  if (!sourcePort || !targetPort) return true;
-
-  // Type compatibility check
-  const compatibleTypes: Record<PortType, PortType[]> = {
-    any: ['text', 'image', 'video', 'audio', 'document', 'json', 'any', 'trigger'],
-    trigger: ['trigger'],
-    text: ['text', 'any', 'json'],
-    image: ['image', 'any'],
-    video: ['video', 'any'],
-    audio: ['audio', 'any'],
-    document: ['document', 'any'],
-    json: ['json', 'any', 'text'],
-  };
-
-  const allowed = compatibleTypes[sourcePort.type] || [];
-  return allowed.includes(targetPort.type) || targetPort.type === 'any';
-}
+/** Fallback clipboard when the system clipboard cannot be read. */
+let lastCopiedFragment: unknown = null;
 
 // Inner canvas component (needs ReactFlowProvider context)
 function CanvasInner() {
   const { t } = useI18n();
+  const { hostHandlesHistoryKeys, isKeyboardActive, clipboard } = useSeams();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { fitView, zoomIn, zoomOut, screenToFlowPosition } = useReactFlow();
   const [selectedEdgeIds, setSelectedEdgeIds] = useState<string[]>([]);
@@ -106,7 +70,11 @@ function CanvasInner() {
     isOpen: boolean;
     nodeId: string | null;
     nodeName: string | null;
+    /** Delete the whole selection (nodes + edges) instead of `nodeId`. */
+    selection?: boolean;
   }>({ isOpen: false, nodeId: null, nodeName: null });
+  // Last pointer position in flow coordinates (paste target).
+  const pointerFlowPos = useRef<{ x: number; y: number } | null>(null);
 
   const {
     nodes,
@@ -125,6 +93,13 @@ function CanvasInner() {
     canRedo,
     isExecuting,
     executionProgress,
+    checkConnection,
+    deleteSelection,
+    copySelection,
+    pasteFragment,
+    duplicateSelection,
+    getSelectedNodeIds,
+    history,
   } = useIrisEditorStore();
 
   // Execution polling - auto-starts when execution begins
@@ -167,22 +142,32 @@ function CanvasInner() {
     return { completed, failed, running, total };
   }, [executionProgress, nodes.length]);
 
+  // The edge gradient id is unique per canvas: hosts that keep several editors
+  // mounted (desktop tabs) would otherwise resolve `url(#…)` to the gradient
+  // inside a hidden tab, and the edges would draw with no stroke.
+  const gradientId = `weEdgeIris-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
+  const edgeDefaultStyle = useMemo(() => ({ ...edgeStyles.default, stroke: `url(#${gradientId})` }), [gradientId]);
+  const canvasEdgeOptions = useMemo<DefaultEdgeOptions>(
+    () => ({ ...defaultEdgeOptions, style: { ...defaultEdgeOptions.style, stroke: `url(#${gradientId})` } }),
+    [gradientId]
+  );
+
   // 선택된 edge에 스타일 적용
   const styledEdges = useMemo(() => {
     return edges.map((edge) => ({
       ...edge,
-      style: selectedEdgeIds.includes(edge.id) ? edgeStyles.selected : edgeStyles.default,
+      style: selectedEdgeIds.includes(edge.id) ? edgeStyles.selected : edgeDefaultStyle,
       animated: !selectedEdgeIds.includes(edge.id), // 선택되면 애니메이션 끄기
     }));
-  }, [edges, selectedEdgeIds]);
+  }, [edges, selectedEdgeIds, edgeDefaultStyle]);
 
   // Handle node/edge selection
   const handleSelectionChange = useCallback(
     ({ nodes: selectedNodes, edges: selectedEdges }: { nodes: any[]; edges: any[] }) => {
-      // 노드 선택
+      // 노드 선택: 하나면 설정 패널 대상, 여러 개면 패널 대상 없음(U-06)
       if (selectedNodes.length === 1) {
         selectNode(selectedNodes[0].id);
-      } else if (selectedNodes.length === 0) {
+      } else {
         selectNode(null);
       }
       // Edge 선택 추적
@@ -191,14 +176,27 @@ function CanvasInner() {
     [selectNode]
   );
 
-  // Handle connection with validation
+  // Connections follow the shared rules (iris-nodes canConnect): the store
+  // refuses what does not fit and replaces an edge already on the input.
   const handleConnect = useCallback(
     (connection: Connection) => {
-      if (isValidConnection(connection, nodes)) {
-        onConnect(connection);
-      }
+      onConnect(connection);
     },
-    [nodes, onConnect]
+    [onConnect]
+  );
+
+  // Same rules while dragging, so a refused handle is shown before the drop.
+  const isValidConnection = useCallback(
+    (connection: Connection | { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null }) =>
+      checkConnection(connection as Connection).ok,
+    [checkConnection]
+  );
+
+  const handlePaneMouseMove = useCallback(
+    (event: React.MouseEvent) => {
+      pointerFlowPos.current = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+    },
+    [screenToFlowPosition]
   );
 
   // Handle drop for adding nodes from palette
@@ -232,8 +230,10 @@ function CanvasInner() {
   }, []);
 
   // Keyboard shortcuts — attached to window so they work without canvas focus.
-  // Editable targets (inputs, textareas, contenteditable) are skipped so the
-  // user can still use the browser's native undo while editing text fields.
+  // Text fields inside the editor are marked data-history-scope="doc": their
+  // Ctrl+Z goes to the document history (the field re-renders from the
+  // document), so the field and the editor never keep two histories (U-03).
+  // Fields outside (search, dialogs) keep the browser's own undo.
   useEffect(() => {
     const isEditableTarget = (target: EventTarget | null): boolean => {
       if (!(target instanceof HTMLElement)) return false;
@@ -242,55 +242,135 @@ function CanvasInner() {
       if (target.isContentEditable) return true;
       return false;
     };
+    const historyScope = (target: EventTarget | null): string | null =>
+      target instanceof HTMLElement
+        ? target.closest('[data-history-scope]')?.getAttribute('data-history-scope') ?? null
+        : null;
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (deleteConfirm.isOpen) return;
-      if (isEditableTarget(event.target)) return;
+      // A hidden editor (another tab is in front) ignores the keyboard.
+      if (isKeyboardActive && !isKeyboardActive()) return;
+      // Never record mid-composition (Korean / Japanese IME).
+      if (event.isComposing) return;
+      const editable = isEditableTarget(event.target);
+      if (editable && historyScope(event.target) !== 'doc') return;
+      const mod = event.ctrlKey || event.metaKey;
+      const key = event.key.toLowerCase();
 
-      // Undo/Redo — handle "z" and "Z" since shift produces uppercase
-      if ((event.ctrlKey || event.metaKey) && (event.key === 'z' || event.key === 'Z')) {
+      // Undo/Redo — "z" (shift = redo) and "y"
+      if (mod && (key === 'z' || key === 'y')) {
+        if (hostHandlesHistoryKeys) return;
         event.preventDefault();
-        if (event.shiftKey) {
+        history.breakMerge();
+        if (key === 'y' || event.shiftKey) {
           redo();
         } else {
           undo();
         }
         return;
       }
+      if (editable) return;
 
-      // Delete selected edges with Backspace or Delete key (no confirmation needed)
-      if ((event.key === 'Backspace' || event.key === 'Delete') && selectedEdgeIds.length > 0 && !selectedNodeId) {
+      if (mod && key === 'c') {
+        const fragment = copySelection();
+        if (!fragment) return;
         event.preventDefault();
-        for (const edgeId of selectedEdgeIds) {
-          deleteEdge(edgeId);
-        }
-        setSelectedEdgeIds([]);
+        lastCopiedFragment = fragment;
+        void (clipboard ?? navigator.clipboard)?.writeText(JSON.stringify(fragment)).catch(() => undefined);
         return;
       }
 
-      // Delete selected node with Backspace or Delete key (with confirmation)
-      if ((event.key === 'Backspace' || event.key === 'Delete') && selectedNodeId) {
+      if (mod && key === 'v') {
         event.preventDefault();
-        const selectedNode = nodes.find((n) => n.id === selectedNodeId);
+        const at = pointerFlowPos.current ?? undefined;
+        const applyPaste = (raw: unknown) => {
+          const result = pasteFragment(raw, at);
+          if (result.skippedTrigger) toast.warning('A workflow can have one trigger; the copied trigger was not pasted.');
+          if (result.skippedTypes.length > 0) {
+            toast.warning(`Unknown node types were not pasted: ${[...new Set(result.skippedTypes)].join(', ')}`);
+          }
+        };
+        const read = (clipboard ?? navigator.clipboard)?.readText?.();
+        if (!read) {
+          if (lastCopiedFragment) applyPaste(lastCopiedFragment);
+          return;
+        }
+        read
+          .then((text) => {
+            let parsed: unknown = null;
+            try {
+              parsed = JSON.parse(text);
+            } catch {
+              parsed = null;
+            }
+            applyPaste(parsed && typeof parsed === 'object' ? parsed : lastCopiedFragment);
+          })
+          .catch(() => {
+            if (lastCopiedFragment) applyPaste(lastCopiedFragment);
+          });
+        return;
+      }
+
+      if (mod && key === 'd') {
+        event.preventDefault();
+        duplicateSelection();
+        return;
+      }
+
+      if (event.key === 'Backspace' || event.key === 'Delete') {
+        const selectedIds = getSelectedNodeIds();
+        const ids = selectedIds.length > 0 ? selectedIds : selectedNodeId ? [selectedNodeId] : [];
+        if (ids.length === 0) {
+          // Edges only: no confirmation, one undo step.
+          if (selectedEdgeIds.length > 0) {
+            event.preventDefault();
+            deleteSelection();
+            setSelectedEdgeIds([]);
+          }
+          return;
+        }
+        event.preventDefault();
+        const first = nodes.find((n) => n.id === ids[0]);
         setDeleteConfirm({
           isOpen: true,
-          nodeId: selectedNodeId,
-          nodeName: selectedNode?.data?.label || null,
+          nodeId: ids.length === 1 ? ids[0] : null,
+          nodeName: ids.length === 1 ? first?.data?.label || null : `${ids.length} nodes`,
+          selection: true,
         });
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo, selectedNodeId, selectedEdgeIds, nodes, deleteConfirm.isOpen, deleteEdge]);
+  }, [
+    undo,
+    redo,
+    history,
+    selectedNodeId,
+    selectedEdgeIds,
+    nodes,
+    deleteConfirm.isOpen,
+    copySelection,
+    pasteFragment,
+    duplicateSelection,
+    deleteSelection,
+    getSelectedNodeIds,
+    hostHandlesHistoryKeys,
+    isKeyboardActive,
+    clipboard,
+  ]);
 
   // Handle delete confirmation
   const handleConfirmDelete = useCallback(() => {
-    if (deleteConfirm.nodeId) {
+    if (deleteConfirm.selection) {
+      deleteSelection();
+      setSelectedEdgeIds([]);
+    } else if (deleteConfirm.nodeId) {
       deleteNode(deleteConfirm.nodeId);
     }
     setDeleteConfirm({ isOpen: false, nodeId: null, nodeName: null });
-  }, [deleteConfirm.nodeId, deleteNode]);
+  }, [deleteConfirm.nodeId, deleteConfirm.selection, deleteNode, deleteSelection]);
 
   // Minimap node colors — handoff palette
   const minimapNodeColor = useCallback((node: any) => {
@@ -308,6 +388,8 @@ function CanvasInner() {
   return (
     <div
       ref={reactFlowWrapper}
+      data-history-scope="doc"
+      onBlur={() => history.breakMerge()}
       className="w-full h-full"
       onDrop={handleDrop}
       onDragOver={handleDragOver}
@@ -318,9 +400,11 @@ function CanvasInner() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={handleConnect}
+        isValidConnection={isValidConnection}
+        onPaneMouseMove={handlePaneMouseMove}
         onSelectionChange={handleSelectionChange}
         nodeTypes={nodeTypes}
-        defaultEdgeOptions={defaultEdgeOptions}
+        defaultEdgeOptions={canvasEdgeOptions}
         deleteKeyCode={null}
         fitView
         snapToGrid
@@ -332,7 +416,7 @@ function CanvasInner() {
         {/* SVG gradient defs for edges */}
         <svg width="0" height="0" style={{ position: 'absolute' }}>
           <defs>
-            <linearGradient id="weEdgeIris" x1="0" y1="0" x2="1" y2="0">
+            <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0">
               <stop offset="0%" stopColor="#a78bfa" stopOpacity="0.85" />
               <stop offset="100%" stopColor="#7dd3fc" stopOpacity="0.85" />
             </linearGradient>

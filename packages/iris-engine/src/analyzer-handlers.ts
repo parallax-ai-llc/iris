@@ -16,6 +16,7 @@
  * resolves it through the host first.
  */
 
+import { abortableFetch } from './abort-scope.js';
 import { getApiKeyForProvider } from './node-executor-config.js';
 
 // ============================================================
@@ -106,7 +107,7 @@ async function openaiChatCompletion(
 ): Promise<OpenAIChatResponse> {
   const apiKey = getApiKeyForProvider('openai');
   if (!apiKey) throw new Error('OPENAI_API_KEY not configured');
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await abortableFetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -145,7 +146,7 @@ async function anthropicMessages(
 ): Promise<AnthropicResponse> {
   const apiKey = getApiKeyForProvider('anthropic');
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const response = await abortableFetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -178,7 +179,7 @@ async function geminiGenerateContent(
 ): Promise<GeminiResponse> {
   const apiKey = getApiKeyForProvider('google');
   if (!apiKey) throw new Error('GOOGLE_API_KEY not configured');
-  const response = await fetch(
+  const response = await abortableFetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
       method: 'POST',

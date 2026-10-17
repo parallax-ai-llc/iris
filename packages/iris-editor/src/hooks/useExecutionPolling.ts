@@ -2,7 +2,11 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { useIrisEditorStore, NodeProgress, NodeStatus } from '@editor/store/iris-editor';
-import { irisApiClient } from '@editor/lib/apis/iris-api-client';
+import {
+  irisApiClient,
+  irisApiSupport,
+  type ExecutionStreamEvent,
+} from '@editor/lib/apis/iris-api-client';
 import {
   ExecutionStatusResponse,
   NodeResultsResponse,
@@ -58,8 +62,39 @@ function mapNodeResultToProgress(result: NodeResult): NodeProgress {
   };
 }
 
+/** Node progress from a streamed `node.finished` event. */
+function progressFromEvent(
+  event: Extract<ExecutionStreamEvent, { t: 'node.finished' }>,
+): Partial<NodeProgress> {
+  const status: NodeStatus =
+    event.status === 'completed' || event.status === 'cached'
+      ? 'success'
+      : event.status === 'skipped'
+        ? 'skipped'
+        : 'error';
+  // Text previews are enough for the canvas; the full value is one request
+  // away when a result panel opens.
+  const output: Record<string, unknown> = {};
+  for (const [port, summary] of Object.entries(event.outputs ?? {})) {
+    output[port] =
+      summary.kind === 'asset'
+        ? (summary.ref as { url?: string } | undefined)?.url ?? summary.ref
+        : summary.preview;
+  }
+  return {
+    status,
+    error: event.error?.message,
+    output,
+    completedAt: Date.now(),
+    cached: event.status === 'cached',
+  };
+}
+
 /**
- * Hook for polling execution status and updating node progress
+ * Hook for following a run and updating node progress: subscribes to the
+ * host's event stream when it has one (`subscribeExecution`), and polls the
+ * status endpoints otherwise or when the stream drops (polling seam kept for
+ * iris/web and older hosts).
  */
 export function useExecutionPolling(options: UseExecutionPollingOptions = {}) {
   const {
@@ -193,14 +228,22 @@ export function useExecutionPolling(options: UseExecutionPollingOptions = {}) {
     }
   }, [fetchExecutionStatus, fetchNodeResultsData, shouldFetchNodeResults, updateNodeProgress, setExecuting, onComplete, onError]);
 
+  const unsubscribeRef = useRef<(() => void) | null>(null);
+
+  const stopStream = useCallback(() => {
+    unsubscribeRef.current?.();
+    unsubscribeRef.current = null;
+  }, []);
+
   /**
-   * Start polling for execution status
+   * Start following an execution (events when available, else polling)
    */
   const startPolling = useCallback((execId: string) => {
     // Clear any existing polling
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
     }
+    stopStream();
 
     // Initialize all nodes as waiting (use ref to avoid dependency on nodes)
     nodesRef.current.forEach((node) => {
@@ -211,14 +254,49 @@ export function useExecutionPolling(options: UseExecutionPollingOptions = {}) {
       });
     });
 
-    // Start polling
-    pollingRef.current = setInterval(() => {
+    const poll = () => {
+      if (pollingRef.current) return;
+      pollingRef.current = setInterval(() => {
+        updateExecutionState(execId);
+      }, interval);
       updateExecutionState(execId);
-    }, interval);
+    };
 
-    // Initial fetch
-    updateExecutionState(execId);
-  }, [updateNodeProgress, updateExecutionState, interval]);
+    if (irisApiSupport().events) {
+      try {
+        unsubscribeRef.current = irisApiClient.subscribeExecution(
+          execId,
+          (event) => {
+            if (executionIdRef.current !== execId) return;
+            if (event.t === 'node.started') {
+              updateNodeProgress(event.nodeId, { status: 'running', startedAt: Date.now() });
+            } else if (event.t === 'node.progress') {
+              updateNodeProgress(event.nodeId, {
+                status: 'running',
+                progress: event.percent,
+                message: event.message,
+              });
+            } else if (event.t === 'node.finished') {
+              updateNodeProgress(event.nodeId, progressFromEvent(event));
+            } else if (event.t === 'exec.finished') {
+              stopStream();
+              // One status read settles the error node and the callbacks.
+              void updateExecutionState(execId);
+            }
+          },
+          () => {
+            // Stream lost (host restarted): re-sync by polling.
+            stopStream();
+            poll();
+          },
+        );
+        return;
+      } catch {
+        // fall through to polling
+      }
+    }
+    poll();
+  }, [updateNodeProgress, updateExecutionState, interval, stopStream]);
 
   /**
    * Stop polling
@@ -228,7 +306,8 @@ export function useExecutionPolling(options: UseExecutionPollingOptions = {}) {
       clearInterval(pollingRef.current);
       pollingRef.current = null;
     }
-  }, []);
+    stopStream();
+  }, [stopStream]);
 
   /**
    * Reset execution state
@@ -242,11 +321,11 @@ export function useExecutionPolling(options: UseExecutionPollingOptions = {}) {
   useEffect(() => {
     if (isExecuting && executionId) {
       // Prevent double-starting if already polling for the same execution
-      if (pollingRef.current && executionIdRef.current === executionId) {
+      if ((pollingRef.current || unsubscribeRef.current) && executionIdRef.current === executionId) {
         return;
       }
       startPolling(executionId);
-    } else if (!isExecuting && pollingRef.current) {
+    } else if (!isExecuting && (pollingRef.current || unsubscribeRef.current)) {
       stopPolling();
     }
 

@@ -118,6 +118,50 @@ export interface ExecuteWorkflowData {
   useCache?: boolean;
   /** These nodes skip the cache read and always run. */
   forceNodeIds?: string[];
+  /** Run this document (what the editor shows) instead of the saved graph.
+   *  Only sent to hosts with `capabilities.runDocument`. */
+  doc?: unknown;
+}
+
+/** Save of a whole v2 document (`saveWorkflowDoc`). */
+export interface SaveWorkflowDocInput {
+  doc: unknown;
+  /** Revision the editor loaded; a different saved revision is a conflict. */
+  baseRevision?: number;
+}
+
+/** Thrown by `saveWorkflowDoc` when the saved copy moved on (HTTP 409). */
+export class WorkflowRevisionConflictError extends Error {
+  readonly code = 'REVISION_CONFLICT';
+  readonly revision: number | null;
+  constructor(revision: number | null) {
+    super('The workflow changed since it was loaded');
+    this.revision = revision;
+    this.name = 'WorkflowRevisionConflictError';
+  }
+}
+
+/** Run events pushed by hosts that stream them (04 3.7). */
+export type ExecutionStreamEvent =
+  | { t: 'exec.started'; executionId: string; seq: number; docHash?: string }
+  | { t: 'node.started'; executionId: string; seq: number; nodeId: string; at?: string }
+  | { t: 'node.progress'; executionId: string; seq: number; nodeId: string; percent?: number; message?: string }
+  | {
+      t: 'node.finished';
+      executionId: string;
+      seq: number;
+      nodeId: string;
+      status: 'completed' | 'failed' | 'cached' | 'skipped' | 'cancelled';
+      outputs: Record<string, { kind: string; preview?: string; size?: number; ref?: Record<string, unknown> }>;
+      error?: { code: string; message: string };
+      durationMs?: number;
+    }
+  | { t: 'exec.finished'; executionId: string; seq: number; status: 'COMPLETED' | 'FAILED' | 'CANCELLED' | 'TIMEOUT' };
+
+/** What an `IrisApiClient` implementation can do beyond the base contract. */
+export interface IrisApiCapabilities {
+  /** `executeWorkflow` honors `data.doc` (runs the editor's document). */
+  runDocument?: boolean;
 }
 
 export interface ValidationResultDTO {
@@ -304,6 +348,24 @@ export interface IrisApiClient {
     count?: number,
   ): Promise<SchedulePreviewResult | null>;
   getSchedulePresets?(): Promise<SchedulePresetsResponse | null>;
+  /** Optional: save the whole document in one request (W-19). Throws
+   *  `WorkflowRevisionConflictError` on a stale `baseRevision`. */
+  saveWorkflowDoc?(
+    workflowId: string,
+    input: SaveWorkflowDocInput,
+  ): Promise<{ revision: number | null }>;
+  /** Optional: stop a running execution (R-01). */
+  cancelExecution?(executionId: string): Promise<boolean>;
+  /** Optional: push run events instead of polling (the polling seam stays the
+   *  default). Returns the unsubscribe function. `onError` fires when the
+   *  stream drops; the editor then falls back to polling. */
+  subscribeExecution?(
+    executionId: string,
+    onEvent: (event: ExecutionStreamEvent) => void,
+    onError?: (error: unknown) => void,
+  ): () => void;
+  /** Optional capability flags. */
+  capabilities?: IrisApiCapabilities;
 }
 
 let _impl: IrisApiClient | null = null;
@@ -374,4 +436,34 @@ export const irisApiClient: IrisApiClientProxy = {
     client().previewSchedule?.(id, cron, tz, count) ?? Promise.resolve(null),
   getSchedulePresets: () =>
     client().getSchedulePresets?.() ?? Promise.resolve(null),
+  saveWorkflowDoc: (id, input) => {
+    const impl = client();
+    if (!impl.saveWorkflowDoc) return Promise.reject(new Error('saveWorkflowDoc is not supported'));
+    return impl.saveWorkflowDoc(id, input);
+  },
+  cancelExecution: id => client().cancelExecution?.(id) ?? Promise.resolve(false),
+  subscribeExecution: (id, onEvent, onError) => {
+    const impl = client();
+    if (!impl.subscribeExecution) throw new Error('subscribeExecution is not supported');
+    return impl.subscribeExecution(id, onEvent, onError);
+  },
+  get capabilities() {
+    return client().capabilities ?? {};
+  },
 };
+
+/** Which optional host features the bound client has (for UI and fallbacks). */
+export function irisApiSupport(): {
+  saveDoc: boolean;
+  cancel: boolean;
+  events: boolean;
+  runDocument: boolean;
+} {
+  const impl = _impl;
+  return {
+    saveDoc: !!impl?.saveWorkflowDoc,
+    cancel: !!impl?.cancelExecution,
+    events: !!impl?.subscribeExecution,
+    runDocument: !!impl?.capabilities?.runDocument,
+  };
+}

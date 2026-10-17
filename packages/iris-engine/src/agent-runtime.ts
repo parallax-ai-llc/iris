@@ -16,6 +16,7 @@
  *  - maxIterations is clamped to [1, 50].
  */
 
+import { abortableFetch } from './abort-scope.js';
 import { NODE_DEFINITIONS as SHARED_NODE_DEFINITIONS } from 'iris-nodes';
 import type { EngineWorkflowNode } from './node-host.js';
 
@@ -69,7 +70,7 @@ export function createOpenAIChatClient(
     chat: {
       completions: {
         async create(params: unknown): Promise<ChatCompletionResponse> {
-          const response = await fetch(endpoint, {
+          const response = await abortableFetch(endpoint, {
             method: 'POST',
             headers: {
               Authorization: `Bearer ${apiKey}`,
