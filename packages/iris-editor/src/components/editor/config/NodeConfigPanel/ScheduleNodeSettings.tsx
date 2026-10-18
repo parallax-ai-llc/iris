@@ -191,8 +191,8 @@ export function ScheduleNodeSettings({ workflowId }: { workflowId: string }) {
 
   if (isLoading) {
     return (
-      <div className="p-3 bg-white/5 rounded-lg border border-white/10">
-        <div className="flex items-center gap-2 text-white/50 text-xs">
+      <div className="p-3 bg-iris-fg/5 rounded-lg border border-iris-fg/10">
+        <div className="flex items-center gap-2 text-iris-fg/50 text-xs">
           <Loader2 size={14} className="animate-spin" />
           {t('iris.schedule.loading') || 'Loading schedule...'}
         </div>
@@ -204,11 +204,11 @@ export function ScheduleNodeSettings({ workflowId }: { workflowId: string }) {
     <div className="space-y-3">
       {/* Current Schedule Status */}
       {scheduleInfo?.cron && (
-        <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+        <div className="p-3 bg-iris-fg/5 rounded-lg border border-iris-fg/10">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Calendar size={14} className="text-green-400" />
-              <span className="text-xs text-white/70">
+              <span className="text-xs text-iris-fg/70">
                 {scheduleInfo.description || t('iris.schedule.customSchedule') || 'Custom schedule'}
               </span>
             </div>
@@ -217,7 +217,7 @@ export function ScheduleNodeSettings({ workflowId }: { workflowId: string }) {
               disabled={isUpdating}
               className={cn(
                 'relative w-9 h-5 rounded-full transition-colors duration-200',
-                scheduleInfo.enabled ? 'bg-green-500' : 'bg-white/20',
+                scheduleInfo.enabled ? 'bg-green-500' : 'bg-iris-fg/20',
                 isUpdating && 'opacity-50 cursor-not-allowed'
               )}
             >
@@ -229,11 +229,11 @@ export function ScheduleNodeSettings({ workflowId }: { workflowId: string }) {
               />
             </button>
           </div>
-          <div className="text-[10px] text-white/50 font-mono mb-1">
+          <div className="text-[10px] text-iris-fg/50 font-mono mb-1">
             {scheduleInfo.cron}
           </div>
           {scheduleInfo.nextRun && (
-            <div className="flex items-center gap-1 text-[10px] text-white/40">
+            <div className="flex items-center gap-1 text-[10px] text-iris-text-4">
               <Clock size={10} />
               {t('iris.schedule.nextRun') || 'Next'}: {formatDate(scheduleInfo.nextRun)}
             </div>
@@ -242,8 +242,8 @@ export function ScheduleNodeSettings({ workflowId }: { workflowId: string }) {
       )}
 
       {/* Timezone Selector */}
-      <div className="p-3 bg-white/5 rounded-lg border border-white/10">
-        <label className="text-white/70 text-xs flex items-center gap-1 mb-2">
+      <div className="p-3 bg-iris-fg/5 rounded-lg border border-iris-fg/10">
+        <label className="text-iris-fg/70 text-xs flex items-center gap-1 mb-2">
           <Globe size={12} />
           {t('iris.schedule.timezone') || 'Timezone'}
         </label>
@@ -251,24 +251,24 @@ export function ScheduleNodeSettings({ workflowId }: { workflowId: string }) {
           <select
             value={selectedTimezone}
             onChange={(e) => handleTimezoneChange(e.target.value)}
-            className="w-full bg-white/10 border border-white/10 rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-slate-400 appearance-none pr-6"
+            className="w-full bg-iris-fg/10 border border-iris-fg/10 rounded px-2 py-1.5 text-xs text-iris-fg focus:outline-none focus:border-iris-tint-400 appearance-none pr-6"
           >
             {timezones.map((tz) => (
-              <option key={tz} value={tz} className="bg-slate-800">
+              <option key={tz} value={tz} className="bg-iris-tint-800">
                 {tz}
               </option>
             ))}
           </select>
           <ChevronDown
             size={12}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-iris-text-4 pointer-events-none"
           />
         </div>
       </div>
 
       {/* Quick Select Presets */}
-      <div className="p-3 bg-white/5 rounded-lg border border-white/10">
-        <label className="text-white/70 text-xs mb-2 block">
+      <div className="p-3 bg-iris-fg/5 rounded-lg border border-iris-fg/10">
+        <label className="text-iris-fg/70 text-xs mb-2 block">
           {t('iris.schedule.quickSelect') || 'Quick Select'}
         </label>
 
@@ -277,7 +277,7 @@ export function ScheduleNodeSettings({ workflowId }: { workflowId: string }) {
             <div className="text-[10px] text-amber-400 mb-2">
               {t('iris.schedule.upgradeRequired') || 'Upgrade to Pro or Ultra for scheduled triggers'}
             </div>
-            <div className="text-[10px] text-white/40">
+            <div className="text-[10px] text-iris-text-4">
               Pro: {t('iris.schedule.proMin') || 'Daily or longer'}<br />
               Ultra: {t('iris.schedule.ultraMin') || 'Hourly or longer'}
             </div>
@@ -294,17 +294,17 @@ export function ScheduleNodeSettings({ workflowId }: { workflowId: string }) {
                 className={cn(
                   'p-2 text-left rounded border transition-colors text-[10px]',
                   scheduleInfo?.cron === preset.cron
-                    ? 'bg-slate-400/20 border-slate-400/50 text-white'
-                    : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
+                    ? 'bg-iris-tint-400/20 border-iris-tint-400/50 text-iris-fg'
+                    : 'bg-iris-fg/5 border-iris-fg/10 text-iris-fg/70 hover:bg-iris-fg/10'
                 )}
               >
                 <div className="font-medium flex items-center justify-between">
                   {preset.label}
                   {scheduleInfo?.cron === preset.cron && (
-                    <Check size={10} className="text-slate-300" />
+                    <Check size={10} className="text-iris-tint-300" />
                   )}
                 </div>
-                <div className="text-[9px] text-white/40 mt-0.5">
+                <div className="text-[9px] text-iris-text-4 mt-0.5">
                   {preset.description}
                 </div>
               </button>
@@ -313,7 +313,7 @@ export function ScheduleNodeSettings({ workflowId }: { workflowId: string }) {
         )}
 
         {!isFreePlan && presets.length === 0 && (
-          <div className="text-center py-2 text-[10px] text-white/40">
+          <div className="text-center py-2 text-[10px] text-iris-text-4">
             {t('iris.schedule.noPresets') || 'Loading presets...'}
           </div>
         )}
@@ -321,10 +321,10 @@ export function ScheduleNodeSettings({ workflowId }: { workflowId: string }) {
 
       {/* Custom Cron Toggle - Only for paid plans */}
       {!isFreePlan && (
-        <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+        <div className="p-3 bg-iris-fg/5 rounded-lg border border-iris-fg/10">
           <button
             onClick={() => setShowCustomCron(!showCustomCron)}
-            className="w-full flex items-center justify-between text-white/70 hover:text-white transition-colors text-xs"
+            className="w-full flex items-center justify-between text-iris-fg/70 hover:text-iris-fg transition-colors text-xs"
           >
             <span>{t('iris.schedule.customCron') || 'Custom Cron'}</span>
             <ChevronDown
@@ -341,24 +341,24 @@ export function ScheduleNodeSettings({ workflowId }: { workflowId: string }) {
                   value={customCron}
                   onChange={(e) => setCustomCron(e.target.value)}
                   placeholder="0 9 * * *"
-                  className="flex-1 bg-white/10 border border-white/10 rounded px-2 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-slate-400"
+                  className="flex-1 bg-iris-fg/10 border border-iris-fg/10 rounded px-2 py-1.5 text-xs text-iris-fg font-mono focus:outline-none focus:border-iris-tint-400"
                 />
                 <button
                   onClick={handlePreviewCron}
-                  className="px-2 py-1.5 bg-white/10 hover:bg-white/20 rounded text-white/70 text-[10px]"
+                  className="px-2 py-1.5 bg-iris-fg/10 hover:bg-iris-fg/20 rounded text-iris-fg/70 text-[10px]"
                 >
                   {t('iris.schedule.preview') || 'Preview'}
                 </button>
               </div>
 
               {previewRuns.length > 0 && (
-                <div className="bg-white/5 rounded p-2">
-                  <div className="text-[10px] text-white/50 mb-1">
+                <div className="bg-iris-fg/5 rounded p-2">
+                  <div className="text-[10px] text-iris-fg/50 mb-1">
                     {t('iris.schedule.nextRuns') || 'Next runs'}:
                   </div>
                   <div className="space-y-0.5">
                     {previewRuns.slice(0, 3).map((run, i) => (
-                      <div key={i} className="text-[10px] text-white/60">
+                      <div key={i} className="text-[10px] text-iris-fg/60">
                         {formatDate(run)}
                       </div>
                     ))}
@@ -372,8 +372,8 @@ export function ScheduleNodeSettings({ workflowId }: { workflowId: string }) {
                 className={cn(
                   'w-full py-1.5 rounded text-xs font-medium transition-colors',
                   customCron.trim()
-                    ? 'bg-slate-400 hover:bg-slate-300 text-white'
-                    : 'bg-white/10 text-white/40 cursor-not-allowed'
+                    ? 'bg-iris-tint-400 hover:bg-iris-tint-300 text-white'
+                    : 'bg-iris-fg/10 text-iris-text-4 cursor-not-allowed'
                 )}
               >
                 {isUpdating
@@ -381,7 +381,7 @@ export function ScheduleNodeSettings({ workflowId }: { workflowId: string }) {
                   : (t('iris.schedule.save') || 'Save')}
               </button>
 
-              <div className="text-[10px] text-white/40">
+              <div className="text-[10px] text-iris-text-4">
                 <p>{t('iris.schedule.cronFormat') || 'Format: min hour day month weekday'}</p>
                 <p className="mt-1">
                   {userPlan.toLowerCase() === 'pro'
@@ -397,7 +397,7 @@ export function ScheduleNodeSettings({ workflowId }: { workflowId: string }) {
 
       {/* Plan info for paid users */}
       {!isFreePlan && (
-        <div className="text-[9px] text-white/30 text-center">
+        <div className="text-[9px] text-iris-text-4 text-center">
           {t('iris.schedule.yourPlan') || 'Your plan'}: {userPlan}
         </div>
       )}

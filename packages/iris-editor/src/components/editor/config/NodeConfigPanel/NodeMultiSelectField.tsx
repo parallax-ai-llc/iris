@@ -79,14 +79,14 @@ export function NodeMultiSelectField({
 
   return (
     <div>
-      <label className="block text-xs text-white/50 mb-1">{field.label}</label>
+      <label className="block text-xs text-iris-fg/50 mb-1">{field.label}</label>
 
       {candidates.length === 0 ? (
         <div
           className={cn(
             'px-3 py-3 text-xs rounded-md text-center',
-            'bg-white/5 border border-dashed border-white/10',
-            'text-white/40',
+            'bg-iris-fg/5 border border-dashed border-iris-fg/10',
+            'text-iris-text-4',
           )}
         >
           {t('iris.nodeConfig.noToolEligibleNodes') ||
@@ -96,10 +96,10 @@ export function NodeMultiSelectField({
         <div
           className={cn(
             'rounded-md overflow-hidden',
-            'bg-white/5 border border-white/10',
+            'bg-iris-fg/5 border border-iris-fg/10',
           )}
         >
-          <ul className="max-h-56 overflow-y-auto divide-y divide-white/5">
+          <ul className="max-h-56 overflow-y-auto divide-y divide-iris-fg/5">
             {candidates.map((c) => {
               const checked = selectedIds.includes(c.id);
               const CategoryIcon = CATEGORY_ICONS[c.category];
@@ -111,7 +111,7 @@ export function NodeMultiSelectField({
                     className={cn(
                       'w-full flex items-center gap-2 px-3 py-2 text-left',
                       'transition-colors',
-                      checked ? 'bg-slate-400/10' : 'hover:bg-white/5',
+                      checked ? 'bg-iris-tint-400/10' : 'hover:bg-iris-fg/5',
                     )}
                   >
                     <span
@@ -119,8 +119,8 @@ export function NodeMultiSelectField({
                         'flex items-center justify-center flex-shrink-0',
                         'w-4 h-4 rounded border',
                         checked
-                          ? 'bg-slate-400 border-slate-400 text-slate-900'
-                          : 'border-white/20',
+                          ? 'bg-iris-tint-400 border-iris-tint-400 text-iris-tint-900'
+                          : 'border-iris-fg/20',
                       )}
                     >
                       {checked && <Check size={11} strokeWidth={3} />}
@@ -128,14 +128,14 @@ export function NodeMultiSelectField({
                     {CategoryIcon && (
                       <CategoryIcon
                         size={12}
-                        className="flex-shrink-0 text-white/40"
+                        className="flex-shrink-0 text-iris-text-4"
                       />
                     )}
-                    <span className="flex-1 min-w-0 truncate text-xs text-white/80">
+                    <span className="flex-1 min-w-0 truncate text-xs text-iris-fg/80">
                       {c.label}
                     </span>
                     <span
-                      className="text-[10px] text-white/40 flex-shrink-0"
+                      className="text-[10px] text-iris-text-4 flex-shrink-0"
                       style={{
                         fontFamily: 'var(--font-mono, ui-monospace, monospace)',
                       }}
@@ -151,14 +151,14 @@ export function NodeMultiSelectField({
       )}
 
       {liveSelectedIds.length > 0 && (
-        <p className="text-[11px] text-white/50 mt-1.5">
+        <p className="text-[11px] text-iris-fg/50 mt-1.5">
           {liveSelectedIds.length}{' '}
           {liveSelectedIds.length === 1 ? 'tool selected' : 'tools selected'}
         </p>
       )}
 
       {field.description && (
-        <p className="text-xs text-white/40 mt-1">{field.description}</p>
+        <p className="text-xs text-iris-text-4 mt-1">{field.description}</p>
       )}
     </div>
   );

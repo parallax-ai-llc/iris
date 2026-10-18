@@ -26,6 +26,98 @@ export class ElevenLabsAdapter extends BaseProviderAdapter {
   readonly capabilities: AICapability[] = ['text-to-speech', 'speech-to-text'];
 
   readonly models: ModelInfo[] = [
+    // Pay-as-you-go API rates per character, checked 2026-10-18 against
+    // https://elevenlabs.io/pricing/api ($0.08 / 1K for v4, v3 and
+    // Multilingual v2; $0.04 / 1K for v4 Turbo and Flash/Turbo). Character
+    // limits per request from https://elevenlabs.io/docs/models.
+    {
+      id: 'eleven_v4',
+      name: 'v4',
+      provider: 'elevenlabs',
+      capabilities: ['text-to-speech'],
+      inputTypes: ['text'],
+      outputTypes: ['audio'],
+      constraints: {
+        maxTokens: 10000,
+        supportedFormats: ['mp3', 'wav', 'ogg'],
+      },
+      pricing: {
+        unit: 'token',
+        inputCost: 0,
+        outputCost: 0.00008,
+        currency: 'USD',
+      },
+      defaultParameters: {
+        stability: 0.5,
+        similarityBoost: 0.75,
+      },
+    },
+    {
+      id: 'eleven_v4_turbo',
+      name: 'v4 Turbo',
+      provider: 'elevenlabs',
+      capabilities: ['text-to-speech'],
+      inputTypes: ['text'],
+      outputTypes: ['audio'],
+      constraints: {
+        maxTokens: 10000,
+        supportedFormats: ['mp3', 'wav', 'ogg'],
+      },
+      pricing: {
+        unit: 'token',
+        inputCost: 0,
+        outputCost: 0.00004,
+        currency: 'USD',
+      },
+      defaultParameters: {
+        stability: 0.5,
+        similarityBoost: 0.75,
+      },
+    },
+    {
+      id: 'eleven_v3',
+      name: 'v3',
+      provider: 'elevenlabs',
+      capabilities: ['text-to-speech'],
+      inputTypes: ['text'],
+      outputTypes: ['audio'],
+      constraints: {
+        maxTokens: 5000,
+        supportedFormats: ['mp3', 'wav', 'ogg'],
+      },
+      pricing: {
+        unit: 'token',
+        inputCost: 0,
+        outputCost: 0.00008,
+        currency: 'USD',
+      },
+      defaultParameters: {
+        stability: 0.5,
+        similarityBoost: 0.75,
+      },
+    },
+    {
+      id: 'eleven_flash_v2_5',
+      name: 'Flash v2.5',
+      provider: 'elevenlabs',
+      capabilities: ['text-to-speech'],
+      inputTypes: ['text'],
+      outputTypes: ['audio'],
+      constraints: {
+        maxTokens: 40000,
+        supportedFormats: ['mp3', 'wav', 'ogg'],
+      },
+      pricing: {
+        unit: 'token',
+        inputCost: 0,
+        outputCost: 0.00004,
+        currency: 'USD',
+      },
+      defaultParameters: {
+        stability: 0.5,
+        similarityBoost: 0.75,
+      },
+    },
     {
       id: 'eleven_multilingual_v2',
       name: 'Multilingual v2',
@@ -40,7 +132,7 @@ export class ElevenLabsAdapter extends BaseProviderAdapter {
       pricing: {
         unit: 'token',
         inputCost: 0,
-        outputCost: 0.00003,
+        outputCost: 0.00008,
         currency: 'USD',
       },
       defaultParameters: {
@@ -62,12 +154,35 @@ export class ElevenLabsAdapter extends BaseProviderAdapter {
       pricing: {
         unit: 'token',
         inputCost: 0,
-        outputCost: 0.00002,
+        outputCost: 0.00004,
         currency: 'USD',
       },
       defaultParameters: {
         stability: 0.5,
         similarityBoost: 0.75,
+      },
+    },
+    // Scribe v2 replaces the deprecated scribe_v1 at $0.22 / hour of audio.
+    {
+      id: 'scribe_v2',
+      name: 'Scribe v2',
+      provider: 'elevenlabs',
+      capabilities: ['speech-to-text'],
+      inputTypes: ['audio'],
+      outputTypes: ['text'],
+      constraints: {
+        maxAudioDuration: 10800,
+        supportedFormats: ['mp3', 'wav', 'mp4', 'mov', 'ogg', 'webm'],
+      },
+      pricing: {
+        unit: 'second',
+        inputCost: 0.22 / 3600,
+        outputCost: 0,
+        currency: 'USD',
+      },
+      defaultParameters: {
+        tagAudioEvents: true,
+        timestampsGranularity: 'word',
       },
     },
     {
@@ -83,7 +198,7 @@ export class ElevenLabsAdapter extends BaseProviderAdapter {
       },
       pricing: {
         unit: 'second',
-        inputCost: 0.0001,
+        inputCost: 0.22 / 3600,
         outputCost: 0,
         currency: 'USD',
       },
@@ -190,7 +305,7 @@ export class ElevenLabsAdapter extends BaseProviderAdapter {
 
     const modelInfo = this.getModelInfo(model);
     const characterCount = prompt?.length || 0;
-    const cost = (modelInfo?.pricing?.outputCost ?? 0.00003) * characterCount;
+    const cost = (modelInfo?.pricing?.outputCost ?? 0.00008) * characterCount;
 
     return ResponseBuilder.success()
       .outputs([
@@ -210,7 +325,7 @@ export class ElevenLabsAdapter extends BaseProviderAdapter {
     startTime: number
   ): Promise<AIResponse> {
     const { parameters = {} } = request;
-    const model = request.model || 'scribe_v1';
+    const model = request.model || 'scribe_v2';
 
     // Validate audio input
     const validationError = InputValidator.requireAudio(
@@ -303,7 +418,7 @@ export class ElevenLabsAdapter extends BaseProviderAdapter {
     }
 
     const modelInfo = this.getModelInfo(model);
-    const cost = (modelInfo?.pricing?.inputCost ?? 0.0001) * audioDuration;
+    const cost = (modelInfo?.pricing?.inputCost ?? 0.22 / 3600) * audioDuration;
 
     return ResponseBuilder.success()
       .outputs([

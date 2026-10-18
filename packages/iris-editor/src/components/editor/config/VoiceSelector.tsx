@@ -34,7 +34,7 @@ export function VoiceSelector({ provider, value, onChange }: VoiceSelectorProps)
 
   return (
     <div>
-      <label className="block text-xs text-white/50 mb-1 flex items-center gap-1">
+      <label className="block text-xs text-iris-fg/50 mb-1 flex items-center gap-1">
         <Volume2 size={12} />
         Voice
       </label>
@@ -44,25 +44,25 @@ export function VoiceSelector({ provider, value, onChange }: VoiceSelectorProps)
           onChange={(e) => onChange(e.target.value)}
           className={cn(
             'w-full px-3 py-2 text-sm rounded-md appearance-none cursor-pointer',
-            'bg-white/5 border border-white/10',
-            'text-white',
-            'focus:outline-none focus:border-slate-400/50',
+            'bg-iris-fg/5 border border-iris-fg/10',
+            'text-iris-fg',
+            'focus:outline-none focus:border-iris-tint-400/50',
             'pr-8'
           )}
         >
           {voices.map((voice) => (
-            <option key={voice.value} value={voice.value} className="bg-slate-800">
+            <option key={voice.value} value={voice.value} className="bg-iris-tint-800">
               {voice.label}
             </option>
           ))}
         </select>
         <ChevronDown
           size={14}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none"
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-iris-text-4 pointer-events-none"
         />
       </div>
       {selectedVoice?.description && (
-        <p className="text-[10px] text-white/40 mt-1">{selectedVoice.description}</p>
+        <p className="text-[10px] text-iris-text-4 mt-1">{selectedVoice.description}</p>
       )}
       {!provider && (
         <p className="text-[10px] text-amber-400/70 mt-1">Select a model first to see available voices</p>

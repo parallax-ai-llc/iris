@@ -19,7 +19,7 @@ export function ConfigField({
     case 'text':
       return (
         <div>
-          <label className="block text-xs text-white/50 mb-1">{field.label}</label>
+          <label className="block text-xs text-iris-fg/50 mb-1">{field.label}</label>
           <input
             type="text"
             value={(value as string) || ''}
@@ -27,13 +27,13 @@ export function ConfigField({
             placeholder={field.placeholder}
             className={cn(
               'w-full px-3 py-2 text-sm rounded-md',
-              'bg-white/5 border border-white/10',
-              'text-white placeholder-white/40',
-              'focus:outline-none focus:border-slate-400/50'
+              'bg-iris-fg/5 border border-iris-fg/10',
+              'text-iris-fg placeholder-iris-fg/40',
+              'focus:outline-none focus:border-iris-tint-400/50'
             )}
           />
           {field.description && (
-            <p className="text-xs text-white/40 mt-1">{field.description}</p>
+            <p className="text-xs text-iris-text-4 mt-1">{field.description}</p>
           )}
         </div>
       );
@@ -41,7 +41,7 @@ export function ConfigField({
     case 'textarea':
       return (
         <div>
-          <label className="block text-xs text-white/50 mb-1">{field.label}</label>
+          <label className="block text-xs text-iris-fg/50 mb-1">{field.label}</label>
           <textarea
             value={(value as string) || ''}
             onChange={(e) => onChange(e.target.value)}
@@ -49,13 +49,13 @@ export function ConfigField({
             rows={4}
             className={cn(
               'w-full px-3 py-2 text-sm rounded-md resize-none',
-              'bg-white/5 border border-white/10',
-              'text-white placeholder-white/40',
-              'focus:outline-none focus:border-slate-400/50'
+              'bg-iris-fg/5 border border-iris-fg/10',
+              'text-iris-fg placeholder-iris-fg/40',
+              'focus:outline-none focus:border-iris-tint-400/50'
             )}
           />
           {field.description && (
-            <p className="text-xs text-white/40 mt-1">{field.description}</p>
+            <p className="text-xs text-iris-text-4 mt-1">{field.description}</p>
           )}
         </div>
       );
@@ -63,7 +63,7 @@ export function ConfigField({
     case 'number':
       return (
         <div>
-          <label className="block text-xs text-white/50 mb-1">{field.label}</label>
+          <label className="block text-xs text-iris-fg/50 mb-1">{field.label}</label>
           <input
             type="number"
             value={(value as number) ?? field.defaultValue ?? ''}
@@ -73,9 +73,9 @@ export function ConfigField({
             step={field.step || 1}
             className={cn(
               'w-full px-3 py-2 text-sm rounded-md',
-              'bg-white/5 border border-white/10',
-              'text-white',
-              'focus:outline-none focus:border-slate-400/50'
+              'bg-iris-fg/5 border border-iris-fg/10',
+              'text-iris-fg',
+              'focus:outline-none focus:border-iris-tint-400/50'
             )}
           />
         </div>
@@ -84,31 +84,31 @@ export function ConfigField({
     case 'select':
       return (
         <div>
-          <label className="block text-xs text-white/50 mb-1">{field.label}</label>
+          <label className="block text-xs text-iris-fg/50 mb-1">{field.label}</label>
           <div className="relative">
             <select
               value={String(value ?? field.defaultValue ?? '')}
               onChange={(e) => onChange(e.target.value)}
               className={cn(
                 'w-full px-3 py-2 text-sm rounded-md appearance-none cursor-pointer',
-                'bg-white/5 border border-white/10',
-                'text-white',
-                'focus:outline-none focus:border-slate-400/50',
+                'bg-iris-fg/5 border border-iris-fg/10',
+                'text-iris-fg',
+                'focus:outline-none focus:border-iris-tint-400/50',
                 'pr-8'
               )}
             >
-              <option value="" className="bg-slate-800">
+              <option value="" className="bg-iris-tint-800">
                 Select...
               </option>
               {field.options?.map((opt) => (
-                <option key={opt.value} value={opt.value} className="bg-slate-800">
+                <option key={opt.value} value={opt.value} className="bg-iris-tint-800">
                   {opt.label}
                 </option>
               ))}
             </select>
             <ChevronDown
               size={14}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-iris-text-4 pointer-events-none"
             />
           </div>
         </div>
@@ -119,8 +119,8 @@ export function ConfigField({
       return (
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="text-xs text-white/50">{field.label}</label>
-            <span className="text-xs text-white/70">{numValue}</span>
+            <label className="text-xs text-iris-fg/50">{field.label}</label>
+            <span className="text-xs text-iris-fg/70">{numValue}</span>
           </div>
           <input
             type="range"
@@ -129,7 +129,7 @@ export function ConfigField({
             min={field.min}
             max={field.max}
             step={field.step || 0.1}
-            className="w-full accent-slate-400"
+            className="w-full accent-iris-tint-400"
           />
         </div>
       );
@@ -158,12 +158,12 @@ export function ConfigField({
       const isOn = value === true;
       return (
         <div className="flex items-center justify-between">
-          <label className="text-xs text-white/70">{field.label}</label>
+          <label className="text-xs text-iris-fg/70">{field.label}</label>
           <button
             onClick={() => onChange(!isOn)}
             className={cn(
               'relative w-10 h-5 rounded-full transition-colors',
-              isOn ? 'bg-slate-400' : 'bg-white/20'
+              isOn ? 'bg-iris-tint-400' : 'bg-iris-fg/20'
             )}
           >
             <div
