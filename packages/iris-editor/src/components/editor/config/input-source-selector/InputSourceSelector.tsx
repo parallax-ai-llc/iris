@@ -143,8 +143,8 @@ export function InputSourceSelector({
     <div className={cn('space-y-2', disabled && 'opacity-50 pointer-events-none')}>
       {/* Input Label */}
       <div className="flex items-center gap-2">
-        <TypeIcon size={12} className="text-iris-text-4" />
-        <span className="text-xs text-iris-fg/70">{inputLabel}</span>
+        <TypeIcon size={12} className="text-white/40" />
+        <span className="text-xs text-white/70">{inputLabel}</span>
         {required && !disabled && (
           <span className={cn('text-xs', isRequiredSatisfied ? 'text-green-400' : 'text-red-400')}>*</span>
         )}

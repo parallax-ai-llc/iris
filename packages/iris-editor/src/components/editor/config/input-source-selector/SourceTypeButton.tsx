@@ -29,8 +29,8 @@ export function SourceTypeButton({
       className={cn(
         'flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-xs transition-colors min-w-[60px]',
         isActive
-          ? 'bg-iris-tint-400/20 border border-iris-tint-400/50 text-iris-tint-200'
-          : 'bg-iris-fg/5 border border-iris-fg/10 text-iris-fg/50 hover:text-iris-fg/70',
+          ? 'bg-slate-400/20 border border-slate-400/50 text-slate-200'
+          : 'bg-white/5 border border-white/10 text-white/50 hover:text-white/70',
         disabled && 'opacity-50 cursor-not-allowed'
       )}
     >

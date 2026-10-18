@@ -30,7 +30,7 @@ import { OutputPreviewTooltip, ErrorPreviewTooltip } from './NodeOutputPreview';
 function StatusIcon({ status }: { status: NodeStatus }) {
   switch (status) {
     case 'running':
-      return <Loader2 size={14} className="animate-spin text-iris-tint-300" />;
+      return <Loader2 size={14} className="animate-spin text-slate-300" />;
     case 'success':
       return <CheckCircle2 size={14} className="text-green-400 fill-green-400/20" />;
     case 'error':
@@ -38,7 +38,7 @@ function StatusIcon({ status }: { status: NodeStatus }) {
     case 'waiting':
       return <Clock size={14} className="text-yellow-400" />;
     case 'skipped':
-      return <CircleSlash size={14} className="text-iris-tint-500" />;
+      return <CircleSlash size={14} className="text-slate-500" />;
     default:
       return null;
   }
@@ -156,18 +156,18 @@ export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps
           minWidth: 220,
           maxWidth: 280,
           background:
-            'linear-gradient(180deg, var(--color-iris-node-top, rgba(22,22,28,0.92)), var(--color-iris-node-bottom, rgba(14,14,20,0.96)))',
+            'linear-gradient(180deg, rgba(22,22,28,0.92), rgba(14,14,20,0.96))',
           backdropFilter: 'blur(14px) saturate(140%)',
           WebkitBackdropFilter: 'blur(14px) saturate(140%)',
           border:
             '1px solid ' +
             (validationError
-              ? 'var(--color-iris-warn, #fbbf24)'
+              ? '#fbbf24'
               : currentStatus === 'error'
-              ? 'var(--color-iris-err, #f87171)'
+              ? '#f87171'
               : selected
               ? palette.stroke
-              : 'color-mix(in srgb, var(--color-iris-fg, #fff) 10%, transparent)'),
+              : 'rgba(255,255,255,0.10)'),
           borderRadius: 14,
           boxShadow:
             validationError
@@ -176,7 +176,7 @@ export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps
               ? '0 0 0 4px rgba(248,113,113,0.18), 0 24px 60px -20px rgba(248,113,113,0.45)'
               : selected
               ? `0 0 0 4px ${palette.soft}, 0 24px 60px -20px ${palette.glow}`
-              : '0 12px 32px -16px var(--color-iris-node-shadow, rgba(0,0,0,0.7))',
+              : '0 12px 32px -16px rgba(0,0,0,0.7)',
           overflow: 'visible',
         }}
       >
@@ -188,7 +188,7 @@ export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps
             height: 3,
             borderTopLeftRadius: 14,
             borderTopRightRadius: 14,
-            background: `linear-gradient(90deg, ${palette.stroke}, color-mix(in srgb, ${palette.stroke} 50%, transparent) 60%, transparent)`,
+            background: `linear-gradient(90deg, ${palette.stroke}, ${palette.stroke}80 60%, transparent)`,
             opacity: selected ? 1 : 0.6,
           }}
         />
@@ -210,7 +210,7 @@ export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps
               borderRadius: 7,
               background: palette.soft,
               color: palette.text,
-              border: `1px solid color-mix(in srgb, ${palette.stroke} 20%, transparent)`,
+              border: `1px solid ${palette.stroke}33`,
             }}
           >
             {Icon && <Icon size={14} />}
@@ -253,7 +253,7 @@ export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps
             )}
           </div>
           {validationError ? (
-            <AlertTriangle size={14} style={{ color: 'var(--color-iris-warn, #fbbf24)' }} />
+            <AlertTriangle size={14} style={{ color: '#fbbf24' }} />
           ) : (
             <StatusIcon status={currentStatus} />
           )}
@@ -408,7 +408,7 @@ export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps
                 style={{
                   height: '100%',
                   width: `${nodeProgress.progress}%`,
-                  background: `linear-gradient(90deg, ${palette.stroke}, color-mix(in srgb, ${palette.stroke} 50%, transparent))`,
+                  background: `linear-gradient(90deg, ${palette.stroke}, ${palette.stroke}80)`,
                 }}
               />
             </div>
@@ -663,7 +663,7 @@ export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps
                   width: 5,
                   height: 5,
                   borderRadius: 999,
-                  background: 'color-mix(in srgb, var(--color-iris-fg, #fff) 20%, transparent)',
+                  background: 'rgba(255,255,255,0.2)',
                 }}
               />
               <span>Idle</span>
@@ -700,8 +700,8 @@ export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps
                       className={cn(
                         'inline-flex items-center justify-center rounded transition-colors',
                         isOpen
-                          ? 'bg-iris-fg/20 text-iris-fg/90'
-                          : 'text-iris-text-4 hover:text-iris-fg/80 hover:bg-iris-fg/10',
+                          ? 'bg-white/20 text-white/90'
+                          : 'text-white/40 hover:text-white/80 hover:bg-white/10',
                       )}
                       style={{ width: 16, height: 16 }}
                       title={output.label}
@@ -795,7 +795,7 @@ function TriggerKv({ k, v, mono, inline, accent }: TriggerKvProps) {
             borderRadius: 4,
             color: accent.text,
             background: accent.soft,
-            border: `1px solid color-mix(in srgb, ${accent.stroke} 13%, transparent)`,
+            border: `1px solid ${accent.stroke}22`,
             flexShrink: 0,
           }}
         >

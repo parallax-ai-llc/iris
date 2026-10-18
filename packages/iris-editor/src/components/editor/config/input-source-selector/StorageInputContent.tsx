@@ -34,14 +34,14 @@ export function StorageInputContent({
     <div className="space-y-2">
       {/* Selected file display */}
       {storageAssetId && (
-        <div className="flex items-center gap-2 p-2 rounded-md bg-iris-tint-400/10 border border-iris-tint-400/30">
-          <HardDrive size={14} className="text-iris-tint-300 flex-shrink-0" />
-          <span className="text-xs text-iris-tint-200 truncate flex-1">
+        <div className="flex items-center gap-2 p-2 rounded-md bg-slate-400/10 border border-slate-400/30">
+          <HardDrive size={14} className="text-slate-300 flex-shrink-0" />
+          <span className="text-xs text-slate-200 truncate flex-1">
             {displayValue || 'Selected file'}
           </span>
           <button
             onClick={onClearSelection}
-            className="p-1 rounded hover:bg-iris-fg/10 text-iris-fg/50 hover:text-iris-fg transition-colors flex-shrink-0"
+            className="p-1 rounded hover:bg-white/10 text-white/50 hover:text-white transition-colors flex-shrink-0"
             title="Clear selection"
           >
             <X size={12} />
@@ -54,8 +54,8 @@ export function StorageInputContent({
         onClick={() => setIsStorageModalOpen(true)}
         className={cn(
           'w-full flex items-center justify-center gap-2 py-3 rounded-md',
-          'border border-dashed border-iris-fg/20 hover:border-iris-fg/40',
-          'text-xs text-iris-fg/50 hover:text-iris-fg/70',
+          'border border-dashed border-white/20 hover:border-white/40',
+          'text-xs text-white/50 hover:text-white/70',
           'transition-colors cursor-pointer'
         )}
       >

@@ -19,7 +19,7 @@ export function NodeInputContent({
 }: NodeInputContentProps) {
   if (availableOutputs.length === 0) {
     return (
-      <p className="text-xs text-iris-text-4 text-center py-2">
+      <p className="text-xs text-white/40 text-center py-2">
         No compatible upstream nodes
       </p>
     );
@@ -36,20 +36,20 @@ export function NodeInputContent({
           }}
           className={cn(
             'w-full px-3 py-2 text-sm rounded-md appearance-none cursor-pointer',
-            'bg-iris-fg/5 border border-iris-fg/10',
-            'text-iris-fg',
-            'focus:outline-none focus:border-iris-tint-400/50',
+            'bg-white/5 border border-white/10',
+            'text-white',
+            'focus:outline-none focus:border-slate-400/50',
             'pr-8'
           )}
         >
-          <option value="" className="bg-iris-tint-800">
+          <option value="" className="bg-slate-800">
             Select output...
           </option>
           {availableOutputs.map((output) => (
             <option
               key={`${output.nodeId}:${output.outputName}`}
               value={`${output.nodeId}:${output.outputName}`}
-              className="bg-iris-tint-800"
+              className="bg-slate-800"
             >
               {output.nodeName} / {output.outputLabel}
             </option>
@@ -57,14 +57,14 @@ export function NodeInputContent({
         </select>
         <ChevronDown
           size={14}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-iris-text-4 pointer-events-none"
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none"
         />
       </div>
 
       {/* Variable reference preview */}
       {currentNodeRef && currentOutputRef && (
-        <div className="p-2 rounded-md bg-iris-tint-400/10 border border-iris-tint-400/30">
-          <code className="text-xs text-iris-tint-200">
+        <div className="p-2 rounded-md bg-slate-400/10 border border-slate-400/30">
+          <code className="text-xs text-slate-200">
             {`{{${currentNodeRef}.${currentOutputRef}}}`}
           </code>
         </div>

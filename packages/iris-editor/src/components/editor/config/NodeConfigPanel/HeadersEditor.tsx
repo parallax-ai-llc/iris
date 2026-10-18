@@ -179,7 +179,7 @@ export function HeadersEditor({
 
   return (
     <div>
-      <label className="block text-xs text-iris-fg/50 mb-1">{label}</label>
+      <label className="block text-xs text-white/50 mb-1">{label}</label>
 
       <datalist id={datalistId}>
         {COMMON_HEADER_NAMES.map((name) => (
@@ -197,7 +197,7 @@ export function HeadersEditor({
                 checked={enabled}
                 onChange={(e) => updateRow(index, { enabled: e.target.checked })}
                 title={enabled ? t('iris.headersEditor.disable') || 'Disable' : t('iris.headersEditor.enable') || 'Enable'}
-                className="w-3.5 h-3.5 accent-iris-tint-400 cursor-pointer flex-shrink-0"
+                className="w-3.5 h-3.5 accent-slate-400 cursor-pointer flex-shrink-0"
               />
               <input
                 type="text"
@@ -207,9 +207,9 @@ export function HeadersEditor({
                 placeholder={t('iris.headersEditor.keyPlaceholder') || 'Header name'}
                 className={cn(
                   'flex-1 min-w-0 px-2 py-1.5 text-xs rounded-md',
-                  'bg-iris-fg/5 border border-iris-fg/10',
-                  'text-iris-fg placeholder-iris-fg/40',
-                  'focus:outline-none focus:border-iris-tint-400/50',
+                  'bg-white/5 border border-white/10',
+                  'text-white placeholder-white/40',
+                  'focus:outline-none focus:border-slate-400/50',
                   !enabled && 'opacity-50',
                 )}
               />
@@ -220,9 +220,9 @@ export function HeadersEditor({
                 placeholder={t('iris.headersEditor.valuePlaceholder') || 'Value'}
                 className={cn(
                   'flex-1 min-w-0 px-2 py-1.5 text-xs rounded-md',
-                  'bg-iris-fg/5 border border-iris-fg/10',
-                  'text-iris-fg placeholder-iris-fg/40',
-                  'focus:outline-none focus:border-iris-tint-400/50',
+                  'bg-white/5 border border-white/10',
+                  'text-white placeholder-white/40',
+                  'focus:outline-none focus:border-slate-400/50',
                   !enabled && 'opacity-50',
                 )}
               />
@@ -230,7 +230,7 @@ export function HeadersEditor({
                 type="button"
                 onClick={() => removeRow(index)}
                 title={t('iris.headersEditor.removeRow') || 'Remove header'}
-                className="flex-shrink-0 p-1.5 rounded-md text-iris-text-4 hover:text-rose-300 hover:bg-iris-fg/5 transition-colors"
+                className="flex-shrink-0 p-1.5 rounded-md text-white/40 hover:text-rose-300 hover:bg-white/5 transition-colors"
               >
                 <Trash2 size={12} />
               </button>
@@ -239,7 +239,7 @@ export function HeadersEditor({
         })}
 
         {entries.length === 0 && (
-          <p className="text-xs text-iris-text-4 py-1.5">
+          <p className="text-xs text-white/40 py-1.5">
             {t('iris.headersEditor.empty') || 'No headers configured.'}
           </p>
         )}
@@ -251,8 +251,8 @@ export function HeadersEditor({
           onClick={() => addRow()}
           className={cn(
             'inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md',
-            'bg-iris-fg/5 border border-iris-fg/10 text-iris-fg/80',
-            'hover:bg-iris-fg/10 transition-colors',
+            'bg-white/5 border border-white/10 text-white/80',
+            'hover:bg-white/10 transition-colors',
           )}
         >
           <Plus size={12} />
@@ -265,8 +265,8 @@ export function HeadersEditor({
             onClick={() => setPresetOpen((v) => !v)}
             className={cn(
               'inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md',
-              'bg-iris-fg/5 border border-iris-fg/10 text-iris-fg/80',
-              'hover:bg-iris-fg/10 transition-colors',
+              'bg-white/5 border border-white/10 text-white/80',
+              'hover:bg-white/10 transition-colors',
             )}
           >
             {t('iris.headersEditor.addPreset') || 'Common presets'}
@@ -277,7 +277,7 @@ export function HeadersEditor({
             <div
               className={cn(
                 'absolute z-10 mt-1 left-0 min-w-[260px] py-1 rounded-md',
-                'bg-iris-tint-900 border border-iris-fg/10 shadow-lg',
+                'bg-slate-900 border border-white/10 shadow-lg',
               )}
             >
               {HEADER_PRESETS.map((preset) => (
@@ -285,7 +285,7 @@ export function HeadersEditor({
                   key={preset.id}
                   type="button"
                   onClick={() => addPreset(preset)}
-                  className="w-full text-left px-2.5 py-1.5 text-xs text-iris-fg/80 hover:bg-iris-fg/10 transition-colors"
+                  className="w-full text-left px-2.5 py-1.5 text-xs text-white/80 hover:bg-white/10 transition-colors"
                 >
                   {presetLabel(preset)}
                 </button>
@@ -295,7 +295,7 @@ export function HeadersEditor({
         </div>
       </div>
 
-      {description && <p className="text-xs text-iris-text-4 mt-1.5">{description}</p>}
+      {description && <p className="text-xs text-white/40 mt-1.5">{description}</p>}
     </div>
   );
 }

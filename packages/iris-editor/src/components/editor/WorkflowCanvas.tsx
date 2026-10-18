@@ -50,7 +50,7 @@ const edgeStyles = {
     strokeWidth: 1.8,
   },
   selected: {
-    stroke: 'var(--color-iris-err, #f87171)',
+    stroke: '#f87171',
     strokeWidth: 2.5,
     filter: 'drop-shadow(0 0 6px rgba(248,113,113,0.45))',
   },
@@ -375,14 +375,14 @@ function CanvasInner() {
   // Minimap node colors — handoff palette
   const minimapNodeColor = useCallback((node: any) => {
     const colors: Record<string, string> = {
-      TRIGGER: 'var(--color-iris-cat-trigger, #34d399)',
-      GENERATOR: 'var(--color-iris-cat-generator, #a78bfa)',
-      ANALYZER: 'var(--color-iris-cat-analyzer, #7dd3fc)',
-      EDITOR: 'var(--color-iris-cat-editor, #fbbf24)',
-      UTILITY: 'var(--color-iris-cat-utility, #94a3b8)',
-      OUTPUT: 'var(--color-iris-cat-output, #f0abfc)',
+      TRIGGER: '#34d399',
+      GENERATOR: '#a78bfa',
+      ANALYZER: '#7dd3fc',
+      EDITOR: '#fbbf24',
+      UTILITY: '#94a3b8',
+      OUTPUT: '#f0abfc',
     };
-    return colors[node.data?.category] || 'var(--color-iris-cat-utility, #94a3b8)';
+    return colors[node.data?.category] || '#94a3b8';
   }, []);
 
   return (
@@ -409,7 +409,7 @@ function CanvasInner() {
         fitView
         snapToGrid
         snapGrid={[16, 16]}
-        connectionLineStyle={{ stroke: 'var(--color-iris-violet, #a78bfa)', strokeWidth: 1.8 }}
+        connectionLineStyle={{ stroke: '#a78bfa', strokeWidth: 1.8 }}
         connectionLineType={ConnectionLineType.SmoothStep}
         proOptions={{ hideAttribution: true }}
       >
@@ -417,8 +417,8 @@ function CanvasInner() {
         <svg width="0" height="0" style={{ position: 'absolute' }}>
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" style={{ stopColor: 'var(--color-iris-violet, #a78bfa)', stopOpacity: 0.85 }} />
-              <stop offset="100%" style={{ stopColor: 'var(--color-iris-cyan, #7dd3fc)', stopOpacity: 0.85 }} />
+              <stop offset="0%" stopColor="#a78bfa" stopOpacity="0.85" />
+              <stop offset="100%" stopColor="#7dd3fc" stopOpacity="0.85" />
             </linearGradient>
           </defs>
         </svg>
@@ -427,16 +427,16 @@ function CanvasInner() {
           variant={BackgroundVariant.Dots}
           gap={24}
           size={1}
-          color="color-mix(in srgb, var(--color-iris-fg, #fff) 4.5%, transparent)"
+          color="rgba(255,255,255,0.045)"
         />
         <MiniMap
           nodeColor={minimapNodeColor}
-          maskColor="var(--color-iris-minimap-mask, rgba(7,7,10,0.7))"
+          maskColor="rgba(7,7,10,0.7)"
           style={{
             width: 196,
             height: 96,
             borderRadius: 10,
-            background: 'var(--color-iris-minimap-bg, rgba(7,7,10,0.7))',
+            background: 'rgba(7,7,10,0.7)',
             border: '1px solid var(--color-iris-line-2)',
             backdropFilter: 'blur(14px)',
           }}

@@ -38,9 +38,6 @@ const FAL_VIDEO_POLL_MAX_WAIT_MS = 30 * 60 * 1000;
 /** fal caps Seedance 2.5 reference-to-video at 50 mixed references per request. */
 const FAL_MAX_VIDEO_REFERENCES = 50;
 
-/** Catalog/model id for Wan 3.0 (fal alibaba/wan-3.0/*). */
-const WAN_3_MODEL_ID = 'wan-3.0';
-
 /**
  * fal FLUX endpoints take `image_size` as a preset name (square_hd,
  * landscape_16_9, …), not a ratio. Nodes store ratios like '16:9', which fal
@@ -211,32 +208,6 @@ export class FalAdapter extends BaseProviderAdapter {
       },
       defaultParameters: {
         duration: 3,
-      },
-    },
-    // Wan 3.0 (Alibaba) via fal.ai: $0.05/s 480p, $0.10/s 720p, $0.20/s
-    // 1080p, audio included, up to 30 s (fal.ai/wan-3, checked 2026-10-18).
-    // buildVideoInput caps it at 720p.
-    {
-      id: WAN_3_MODEL_ID,
-      name: 'Wan 3.0',
-      provider: 'fal',
-      capabilities: ['text-to-video', 'image-to-video'],
-      inputTypes: ['text', 'image'],
-      outputTypes: ['video'],
-      constraints: {
-        maxVideoDuration: 30,
-        supportedDurations: [5, 10],
-        supportedFormats: ['mp4'],
-        supportedAspectRatios: ['16:9', '4:3', '1:1', '3:4', '9:16'],
-      },
-      pricing: {
-        unit: 'second',
-        inputCost: 0,
-        outputCost: 0.1,
-        currency: 'USD',
-      },
-      defaultParameters: {
-        duration: 5,
       },
     },
     // Seedance (ByteDance) video models via fal.ai
@@ -1014,13 +985,6 @@ export class FalAdapter extends BaseProviderAdapter {
         : 'bytedance/seedance-2.0/fast/text-to-video';
     }
 
-    // Wan 3.0 lives under fal's alibaba/ namespace, not fal-ai/.
-    if (model === WAN_3_MODEL_ID) {
-      return isImageToVideo
-        ? 'alibaba/wan-3.0/image-to-video'
-        : 'alibaba/wan-3.0/text-to-video';
-    }
-
     // Map known model IDs to fal endpoints
     // Note: Pika is no longer supported on fal.ai as of 2026
     const modelMap: Record<string, string> = {
@@ -1052,23 +1016,6 @@ export class FalAdapter extends BaseProviderAdapter {
     }
   ): Record<string, unknown> {
     const input: Record<string, unknown> = { prompt };
-
-    // Wan 3.0 names its frames start_image_url / end_image_url, defaults to
-    // 1080p ($0.20/s) and generates audio unless told otherwise. Resolution is
-    // capped at 720p so the catalog's flat $0.10/s rate always covers the call
-    // (fal.ai/models/alibaba/wan-3.0/image-to-video/api, checked 2026-10-18).
-    if (model === WAN_3_MODEL_ID) {
-      if (imageUrl) input.start_image_url = imageUrl;
-      if (endImageUrl && imageUrl) input.end_image_url = endImageUrl;
-      input.resolution = parameters.resolution === '480p' ? '480p' : '720p';
-      if (parameters.duration) input.duration = Number(parameters.duration);
-      if (parameters.aspectRatio) input.aspect_ratio = parameters.aspectRatio;
-      if (parameters.generateAudio !== undefined) {
-        input.audio = parameters.generateAudio;
-      }
-      if (parameters.seed !== undefined) input.seed = parameters.seed;
-      return input;
-    }
 
     // Add image for image-to-video
     if (imageUrl) {

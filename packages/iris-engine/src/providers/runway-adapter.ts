@@ -22,29 +22,6 @@ export class RunwayAdapter extends BaseProviderAdapter {
   readonly capabilities: AICapability[] = ['image-to-video', 'text-to-video'];
 
   readonly models: ModelInfo[] = [
-    // Gen-4.5: 12 credits/s at $0.01/credit, image-to-video with the same
-    // request shape as gen4_turbo. https://docs.dev.runwayml.com/guides/pricing
-    // (checked 2026-10-18).
-    {
-      id: 'gen4.5',
-      name: 'Gen-4.5',
-      provider: 'runway',
-      capabilities: ['image-to-video'],
-      inputTypes: ['image', 'text'],
-      outputTypes: ['video'],
-      constraints: {
-        maxVideoDuration: 10,
-        supportedDurations: [5, 10],
-        supportedAspectRatios: ['16:9', '9:16'],
-      },
-      pricing: {
-        unit: 'second',
-        inputCost: 0,
-        outputCost: 0.12,
-        currency: 'USD',
-      },
-      defaultParameters: { duration: 5, aspectRatio: '16:9' },
-    },
     {
       id: 'gen4_turbo',
       name: 'Gen-4 Turbo',
@@ -226,10 +203,8 @@ export class RunwayAdapter extends BaseProviderAdapter {
       gen3a_turbo: 'gen3a_turbo',
       gen3a: 'gen3a_turbo',
       gen4_turbo: 'gen4_turbo',
-      'gen4.5': 'gen4.5',
     };
-    // gen3a_turbo was shut down on 2026-07-30, so unknown ids go to Gen-4 Turbo.
-    return modelMap[modelId] || 'gen4_turbo';
+    return modelMap[modelId] || 'gen3a_turbo';
   }
 
   private mapModelToTextToVideoApiName(modelId: string): string {

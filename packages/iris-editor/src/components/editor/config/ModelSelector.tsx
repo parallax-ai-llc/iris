@@ -97,7 +97,7 @@ function ProviderIcon({ provider, size = 16 }: { provider: string; size?: number
   if (!logo) {
     return (
       <div
-        className="rounded-lg bg-iris-fg/10 flex items-center justify-center text-iris-fg/60 text-xs font-medium"
+        className="rounded-lg bg-white/10 flex items-center justify-center text-white/60 text-xs font-medium"
         style={{ width: size, height: size }}
       >
         {provider.charAt(0).toUpperCase()}
@@ -320,16 +320,16 @@ export function ModelSelector({
     <div className="space-y-3">
       {/* Model Selector Button */}
       <div>
-        <label className="block text-xs text-iris-fg/50 mb-1">Model</label>
+        <label className="block text-xs text-white/50 mb-1">Model</label>
         <button
           type="button"
           onClick={() => setIsModalOpen(true)}
           disabled={isLoadingModels}
           className={cn(
             'w-full px-3 py-2.5 text-sm rounded-lg text-left',
-            'bg-iris-fg/5 border border-iris-fg/10',
-            'text-iris-fg',
-            'hover:border-iris-fg/20 transition-colors',
+            'bg-white/5 border border-white/10',
+            'text-white',
+            'hover:border-white/20 transition-colors',
             'disabled:opacity-50 disabled:cursor-not-allowed',
             'flex items-center gap-2'
           )}
@@ -340,19 +340,19 @@ export function ModelSelector({
               <span className="flex-1 truncate">{selectedModel.name}</span>
             </>
           ) : (
-            <span className="text-iris-fg/50 flex-1">Select model...</span>
+            <span className="text-white/50 flex-1">Select model...</span>
           )}
           {isLoadingModels ? (
-            <Loader2 size={14} className="text-iris-text-4 animate-spin" />
+            <Loader2 size={14} className="text-white/40 animate-spin" />
           ) : (
-            <ChevronDown size={14} className="text-iris-text-4" />
+            <ChevronDown size={14} className="text-white/40" />
           )}
         </button>
       </div>
 
       {/* Modal - rendered via portal to escape container constraints */}
       {isModalOpen && isMounted && createPortal(
-        <div data-iris-portal className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -360,32 +360,32 @@ export function ModelSelector({
           />
 
           {/* Modal Content */}
-          <div className="relative w-full max-w-3xl max-h-[85vh] border border-iris-fg/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden" style={{ backgroundColor: 'var(--color-iris-bg-solid, #0f0f0f)' }}>
+          <div className="relative w-full max-w-3xl max-h-[85vh] border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden" style={{ backgroundColor: '#0f0f0f' }}>
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-iris-fg/10">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
               <div>
-                <h2 className="text-lg font-semibold text-iris-fg">Select Model</h2>
+                <h2 className="text-lg font-semibold text-white">Select Model</h2>
                 {capability && (
-                  <p className="text-xs text-iris-text-4 mt-0.5">
-                    Showing models with <span className="text-iris-tint-300">{capability}</span> capability
+                  <p className="text-xs text-white/40 mt-0.5">
+                    Showing models with <span className="text-slate-300">{capability}</span> capability
                   </p>
                 )}
               </div>
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="p-1.5 rounded-lg hover:bg-iris-fg/10 text-iris-fg/60 hover:text-iris-fg transition-colors"
+                className="p-1.5 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors"
               >
                 <X size={20} />
               </button>
             </div>
 
             {/* Search */}
-            <div className="px-5 py-3 border-b border-iris-fg/10">
+            <div className="px-5 py-3 border-b border-white/10">
               <div className="relative">
                 <Search
                   size={16}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-iris-text-4"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40"
                 />
                 <input
                   type="text"
@@ -394,9 +394,9 @@ export function ModelSelector({
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className={cn(
                     'w-full pl-10 pr-4 py-2.5 text-sm rounded-xl',
-                    'bg-iris-fg/5 border border-iris-fg/10',
-                    'text-iris-fg placeholder:text-iris-text-4',
-                    'focus:outline-none focus:border-iris-tint-400/50 focus:ring-1 focus:ring-iris-tint-400/25'
+                    'bg-white/5 border border-white/10',
+                    'text-white placeholder:text-white/40',
+                    'focus:outline-none focus:border-slate-400/50 focus:ring-1 focus:ring-slate-400/25'
                   )}
                   autoFocus
                 />
@@ -406,7 +406,7 @@ export function ModelSelector({
             {/* Model Grid */}
             <div className="flex-1 overflow-y-auto p-5">
               {filteredModels.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-iris-text-4">
+                <div className="flex flex-col items-center justify-center py-12 text-white/40">
                   <Search size={32} className="mb-3 opacity-50" />
                   <p className="text-sm">No models found</p>
                 </div>
@@ -454,20 +454,20 @@ function ModelCard({
       className={cn(
         'relative p-4 rounded-xl text-left transition-all duration-200 border group',
         disabled
-          ? 'cursor-not-allowed opacity-40 bg-iris-fg/[0.02] border-iris-fg/10'
+          ? 'cursor-not-allowed opacity-40 bg-white/[0.02] border-white/10'
           : isSelected
-            ? 'bg-iris-tint-400/10 border-iris-tint-400/50 ring-1 ring-iris-tint-400/25'
-            : 'bg-iris-fg/[0.02] border-iris-fg/10 hover:border-iris-tint-400/50 hover:bg-iris-fg/5'
+            ? 'bg-slate-400/10 border-slate-400/50 ring-1 ring-slate-400/25'
+            : 'bg-white/[0.02] border-white/10 hover:border-slate-400/50 hover:bg-white/5'
       )}
     >
       {/* Selected Check / Locked (no API key) */}
       {disabled ? (
-        <div className="absolute top-3 right-3 text-iris-text-4">
+        <div className="absolute top-3 right-3 text-white/40">
           <Lock size={14} />
         </div>
       ) : isSelected ? (
-        <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-iris-tint-400 flex items-center justify-center">
-          <Check size={12} className="text-iris-fg" />
+        <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-slate-400 flex items-center justify-center">
+          <Check size={12} className="text-white" />
         </div>
       ) : null}
 
@@ -477,10 +477,10 @@ function ModelCard({
       </div>
 
       {/* Model Name */}
-      <div className="text-iris-fg font-medium text-sm mb-1 pr-6 truncate">{model.name}</div>
+      <div className="text-white font-medium text-sm mb-1 pr-6 truncate">{model.name}</div>
 
       {/* Provider */}
-      <div className="text-iris-text-4 text-xs capitalize mb-2">{model.provider}</div>
+      <div className="text-white/40 text-xs capitalize mb-2">{model.provider}</div>
 
       {/* Tags */}
       <div className="flex flex-wrap gap-1.5">
@@ -497,12 +497,12 @@ function ModelCard({
           </span>
         )}
         {model.contextWindow && (
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-iris-fg/10 text-iris-fg/60 text-[10px]">
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/10 text-white/60 text-[10px]">
             {(model.contextWindow / 1000).toFixed(0)}K
           </span>
         )}
         {model.costPer1k !== undefined && (
-          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-iris-fg/10 text-iris-fg/60 text-[10px]">
+          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-white/10 text-white/60 text-[10px]">
             <DollarSign size={10} />
             {model.costPer1k.toFixed(3)}
           </span>

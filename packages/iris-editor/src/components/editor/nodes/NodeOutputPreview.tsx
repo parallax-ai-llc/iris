@@ -152,7 +152,7 @@ export function OutputPreviewTooltip({
   // Get display content based on output type
   const renderContent = () => {
     if (!outputData) {
-      return <span className="text-iris-fg/50 text-xs">No output data</span>;
+      return <span className="text-white/50 text-xs">No output data</span>;
     }
 
     // Handle different output types
@@ -180,7 +180,7 @@ export function OutputPreviewTooltip({
             </div>
             <button
               onClick={() => handleDownload(imageUrl, 'image')}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-iris-tint-400/20 hover:bg-iris-tint-400/30 text-iris-tint-200 rounded-lg text-xs transition-colors w-full justify-center"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-400/20 hover:bg-slate-400/30 text-slate-200 rounded-lg text-xs transition-colors w-full justify-center"
             >
               <Download size={12} />
               <span>Download Image</span>
@@ -205,7 +205,7 @@ export function OutputPreviewTooltip({
             />
             <button
               onClick={() => handleDownload(videoUrl, 'video')}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-iris-tint-400/20 hover:bg-iris-tint-400/30 text-iris-tint-200 rounded-lg text-xs transition-colors w-full justify-center"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-400/20 hover:bg-slate-400/30 text-slate-200 rounded-lg text-xs transition-colors w-full justify-center"
             >
               <Download size={12} />
               <span>Download Video</span>
@@ -226,7 +226,7 @@ export function OutputPreviewTooltip({
             <audio src={audioUrl} controls className="w-80" />
             <button
               onClick={() => handleDownload(audioUrl, 'audio')}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-iris-tint-400/20 hover:bg-iris-tint-400/30 text-iris-tint-200 rounded-lg text-xs transition-colors w-full justify-center"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-400/20 hover:bg-slate-400/30 text-slate-200 rounded-lg text-xs transition-colors w-full justify-center"
             >
               <Download size={12} />
               <span>Download Audio</span>
@@ -267,7 +267,7 @@ export function OutputPreviewTooltip({
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="block text-xs text-iris-tint-300 hover:text-iris-tint-200 underline break-all"
+              className="block text-xs text-slate-300 hover:text-slate-200 underline break-all"
             >
               {url}
             </a>
@@ -280,7 +280,7 @@ export function OutputPreviewTooltip({
                   "flex-1 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors justify-center",
                   copied
                     ? "bg-green-500/20 text-green-300"
-                    : "bg-iris-fg/10 hover:bg-iris-fg/20 text-iris-fg/70"
+                    : "bg-white/10 hover:bg-white/20 text-white/70"
                 )}
               >
                 {copied ? <Check size={12} /> : <Copy size={12} />}
@@ -289,7 +289,7 @@ export function OutputPreviewTooltip({
               {(isImage || isVideo || isAudio) && (
                 <button
                   onClick={() => handleDownload(url, isImage ? 'image' : isVideo ? 'video' : 'audio')}
-                  className="flex-1 flex items-center gap-1.5 px-3 py-1.5 bg-iris-tint-400/20 hover:bg-iris-tint-400/30 text-iris-tint-200 rounded-lg text-xs transition-colors justify-center"
+                  className="flex-1 flex items-center gap-1.5 px-3 py-1.5 bg-slate-400/20 hover:bg-slate-400/30 text-slate-200 rounded-lg text-xs transition-colors justify-center"
                 >
                   <Download size={12} />
                   <span>Download</span>
@@ -326,7 +326,7 @@ export function OutputPreviewTooltip({
       <div className="space-y-2">
         <pre
           className={cn(
-            "text-xs text-iris-fg/80 whitespace-pre-wrap break-words font-mono select-text overflow-auto",
+            "text-xs text-white/80 whitespace-pre-wrap break-words font-mono select-text overflow-auto",
             expanded ? "max-h-[400px]" : "max-h-[260px]"
           )}
         >
@@ -335,7 +335,7 @@ export function OutputPreviewTooltip({
         {hasMore && (
           <button
             onClick={() => setExpanded((v) => !v)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors w-full justify-center bg-iris-fg/5 hover:bg-iris-fg/10 text-iris-fg/70"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors w-full justify-center bg-white/5 hover:bg-white/10 text-white/70"
           >
             <span>
               {expanded ? 'Show less' : `Show more (${hiddenLineCount} more line${hiddenLineCount > 1 ? 's' : ''})`}
@@ -348,7 +348,7 @@ export function OutputPreviewTooltip({
             "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors w-full justify-center",
             copied
               ? "bg-green-500/20 text-green-300"
-              : "bg-iris-tint-400/20 hover:bg-iris-tint-400/30 text-iris-tint-200"
+              : "bg-slate-400/20 hover:bg-slate-400/30 text-slate-200"
           )}
         >
           {copied ? <Check size={12} /> : <Copy size={12} />}
@@ -362,42 +362,42 @@ export function OutputPreviewTooltip({
     <div
       ref={tooltipRef}
       data-output-preview
-      className="nodrag nowheel absolute top-full mt-2 right-0 z-50 bg-iris-tint-800 border border-iris-fg/20 rounded-lg shadow-xl p-3 min-w-[400px] max-w-[90vw] cursor-default select-text"
+      className="nodrag nowheel absolute top-full mt-2 right-0 z-50 bg-slate-800 border border-white/20 rounded-lg shadow-xl p-3 min-w-[400px] max-w-[90vw] cursor-default select-text"
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-iris-fg/10">
+      <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-white/10">
         <div className="flex items-center gap-1.5">
           <Eye size={12} className="text-green-400" />
-          <span className="text-xs font-medium text-iris-fg/80">Output Preview</span>
+          <span className="text-xs font-medium text-white/80">Output Preview</span>
           {iterations && (
-            <span className="text-[10px] text-iris-text-4 ml-1">
+            <span className="text-[10px] text-white/40 ml-1">
               · loop
             </span>
           )}
         </div>
         <button
           onClick={onClose}
-          className="p-0.5 hover:bg-iris-fg/10 rounded transition-colors"
+          className="p-0.5 hover:bg-white/10 rounded transition-colors"
         >
-          <X size={12} className="text-iris-fg/50" />
+          <X size={12} className="text-white/50" />
         </button>
       </div>
       {cached && (
-        <p className="text-[11px] text-iris-fg/50 mb-2">
+        <p className="text-[11px] text-white/50 mb-2">
           {t('iris.editor.cachedResultNote') || 'Reused previous run result · 0 credits'}
         </p>
       )}
       {iterations && iterationCount > 0 && (
-        <div className="flex items-center justify-between gap-2 mb-2 px-2 py-1.5 rounded-md bg-iris-fg/5 border border-iris-fg/10">
+        <div className="flex items-center justify-between gap-2 mb-2 px-2 py-1.5 rounded-md bg-white/5 border border-white/10">
           <button
             onClick={() => setIterationIndex((idx) => Math.max(0, idx - 1))}
             disabled={safeIndex === 0}
-            className="p-1 rounded hover:bg-iris-fg/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-iris-fg/70"
+            className="p-1 rounded hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-white/70"
             title="Previous iteration"
           >
             <ChevronLeft size={12} />
           </button>
-          <span className="text-[11px] font-mono text-iris-fg/80 tabular-nums">
+          <span className="text-[11px] font-mono text-white/80 tabular-nums">
             {safeIndex + 1} / {iterationCount}
           </span>
           <button
@@ -405,7 +405,7 @@ export function OutputPreviewTooltip({
               setIterationIndex((idx) => Math.min(iterationCount - 1, idx + 1))
             }
             disabled={safeIndex >= iterationCount - 1}
-            className="p-1 rounded hover:bg-iris-fg/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-iris-fg/70"
+            className="p-1 rounded hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-white/70"
             title="Next iteration"
           >
             <ChevronRight size={12} />
@@ -460,18 +460,18 @@ export function ErrorPreviewTooltip({
       data-output-preview
       className="nodrag nowheel absolute top-full mt-2 right-0 z-50 cursor-default"
     >
-      <div className="bg-iris-tint-900 border border-red-500/30 rounded-lg shadow-2xl overflow-hidden min-w-[400px] max-w-[90vw]">
+      <div className="bg-slate-900 border border-red-500/30 rounded-lg shadow-2xl overflow-hidden min-w-[400px] max-w-[90vw]">
         <div className="flex items-center justify-between p-3 border-b border-red-500/20 bg-red-500/10">
           <div className="flex items-center gap-2">
             <AlertTriangle size={14} className="text-red-400" />
-            <span className="text-sm font-medium text-iris-fg">Error</span>
+            <span className="text-sm font-medium text-white">Error</span>
           </div>
           <button
             onClick={(e) => {
               e.stopPropagation();
               onClose();
             }}
-            className="p-1 rounded hover:bg-iris-fg/10 transition-colors text-iris-fg/60 hover:text-iris-fg"
+            className="p-1 rounded hover:bg-white/10 transition-colors text-white/60 hover:text-white"
           >
             <X size={14} />
           </button>

@@ -111,7 +111,7 @@ export function ExecutionInputModal({
   if (!isOpen || !isMounted) return null;
 
   const modalContent = (
-    <div data-iris-portal className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -119,36 +119,36 @@ export function ExecutionInputModal({
       />
 
       {/* Modal */}
-      <div className="relative border border-iris-fg/10 rounded-xl w-full max-w-lg p-6 shadow-2xl" style={{ backgroundColor: 'var(--color-iris-bg-solid, #0f0f0f)' }}>
+      <div className="relative border border-white/10 rounded-xl w-full max-w-lg p-6 shadow-2xl" style={{ backgroundColor: '#0f0f0f' }}>
         {/* Close button */}
         <button
           onClick={onClose}
           disabled={isExecuting}
-          className="absolute top-4 right-4 text-iris-text-4 hover:text-iris-fg/70 p-1 disabled:opacity-50"
+          className="absolute top-4 right-4 text-white/40 hover:text-white/70 p-1 disabled:opacity-50"
         >
           <X size={18} />
         </button>
 
         {/* Header */}
         <div className="mb-6">
-          <h3 className="text-lg font-semibold text-iris-fg">Run Workflow</h3>
-          <p className="text-sm text-iris-fg/50 mt-1">
+          <h3 className="text-lg font-semibold text-white">Run Workflow</h3>
+          <p className="text-sm text-white/50 mt-1">
             Provide input to start the workflow execution
           </p>
         </div>
 
         {/* Input Section */}
         <div className="mb-6">
-          <label className="block text-sm font-medium text-iris-fg/70 mb-2">
+          <label className="block text-sm font-medium text-white/70 mb-2">
             {inputLabel || 'Input'}
             {(inputType === 'image' || inputType === 'file') && (
-              <span className="ml-2 text-xs text-iris-text-4">
+              <span className="ml-2 text-xs text-white/40">
                 ({inputType === 'image' ? 'Image' : 'File'})
               </span>
             )}
           </label>
           {inputType === 'none' ? (
-            <div className="rounded-lg border border-iris-fg/10 bg-iris-fg/5 px-4 py-3 text-sm text-iris-fg/70">
+            <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
               No input is required. This will emit a trigger signal only.
             </div>
           ) : inputType === 'text' ? (
@@ -160,9 +160,9 @@ export function ExecutionInputModal({
               rows={5}
               className={cn(
                 'w-full px-4 py-3 rounded-lg resize-none',
-                'bg-iris-fg/5 border border-iris-fg/10',
-                'text-iris-fg placeholder-iris-fg/40',
-                'focus:outline-none focus:border-iris-tint-400/50',
+                'bg-white/5 border border-white/10',
+                'text-white placeholder-white/40',
+                'focus:outline-none focus:border-slate-400/50',
                 'disabled:opacity-50 disabled:cursor-not-allowed'
               )}
             />
@@ -175,8 +175,8 @@ export function ExecutionInputModal({
                 'relative rounded-lg border-2 border-dashed transition-colors cursor-pointer',
                 'flex flex-col items-center justify-center',
                 selectedFile
-                  ? 'border-iris-tint-400/50 bg-iris-tint-400/10'
-                  : 'border-iris-fg/20 hover:border-iris-fg/40 bg-iris-fg/5',
+                  ? 'border-slate-400/50 bg-slate-400/10'
+                  : 'border-white/20 hover:border-white/40 bg-white/5',
                 isExecuting && 'opacity-50 cursor-not-allowed',
                 'min-h-[200px]'
               )}
@@ -199,13 +199,13 @@ export function ExecutionInputModal({
                       className="max-h-32 max-w-full rounded-lg object-contain"
                     />
                   ) : (
-                    <FileText size={48} className="text-iris-tint-300" />
+                    <FileText size={48} className="text-slate-300" />
                   )}
                   <div className="text-center">
-                    <p className="text-sm text-iris-fg font-medium truncate max-w-[250px]">
+                    <p className="text-sm text-white font-medium truncate max-w-[250px]">
                       {selectedFile.name}
                     </p>
-                    <p className="text-xs text-iris-fg/50 mt-1">
+                    <p className="text-xs text-white/50 mt-1">
                       {(selectedFile.size / 1024).toFixed(1)} KB
                     </p>
                   </div>
@@ -215,7 +215,7 @@ export function ExecutionInputModal({
                       setSelectedFile(null);
                       setPreviewUrl(null);
                     }}
-                    className="text-xs text-iris-fg/50 hover:text-iris-fg/70 underline"
+                    className="text-xs text-white/50 hover:text-white/70 underline"
                   >
                     Change file
                   </button>
@@ -223,15 +223,15 @@ export function ExecutionInputModal({
               ) : (
                 <div className="flex flex-col items-center gap-3 p-6">
                   {inputType === 'image' ? (
-                    <ImageIcon size={48} className="text-iris-text-4" />
+                    <ImageIcon size={48} className="text-white/30" />
                   ) : (
-                    <Upload size={48} className="text-iris-text-4" />
+                    <Upload size={48} className="text-white/30" />
                   )}
                   <div className="text-center">
-                    <p className="text-sm text-iris-fg/70">
+                    <p className="text-sm text-white/70">
                       Click or drag to upload {inputType === 'image' ? 'an image' : 'a file'}
                     </p>
-                    <p className="text-xs text-iris-text-4 mt-1">
+                    <p className="text-xs text-white/40 mt-1">
                       {inputType === 'image' ? 'PNG, JPG, GIF, WEBP' : 'Any file type'}
                     </p>
                   </div>
@@ -248,7 +248,7 @@ export function ExecutionInputModal({
             disabled={isExecuting}
             className={cn(
               'px-4 py-2 rounded-lg text-sm transition-colors',
-              'text-iris-fg/70 hover:text-iris-fg hover:bg-iris-fg/10',
+              'text-white/70 hover:text-white hover:bg-white/10',
               'disabled:opacity-50 disabled:cursor-not-allowed'
             )}
           >

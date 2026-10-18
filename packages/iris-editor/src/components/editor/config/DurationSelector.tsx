@@ -101,17 +101,17 @@ export function DurationSelector({
   if (isImageToVideo && selectedProvider === 'google') {
     return (
       <div>
-        <label className="block text-xs text-iris-fg/50 mb-1">Duration</label>
+        <label className="block text-xs text-white/50 mb-1">Duration</label>
         <div className={cn(
           'w-full px-3 py-2 text-sm rounded-md',
-          'bg-iris-fg/5 border border-iris-fg/10',
-          'text-iris-fg/70 flex items-center gap-2'
+          'bg-white/5 border border-white/10',
+          'text-white/70 flex items-center gap-2'
         )}>
-          <Clock size={14} className="text-iris-tint-300" />
+          <Clock size={14} className="text-slate-300" />
           <span>8 seconds</span>
-          <span className="text-iris-text-4 text-xs">(fixed for image-to-video)</span>
+          <span className="text-white/40 text-xs">(fixed for image-to-video)</span>
         </div>
-        <p className="text-xs text-iris-text-4 mt-1">
+        <p className="text-xs text-white/40 mt-1">
           Google Veo image-to-video requires 8 second duration
         </p>
       </div>
@@ -120,28 +120,28 @@ export function DurationSelector({
 
   return (
     <div>
-      <label className="block text-xs text-iris-fg/50 mb-1">Duration</label>
+      <label className="block text-xs text-white/50 mb-1">Duration</label>
       <div className="relative">
         <select
           value={effectiveValue || durationOptions[0]?.value || ''}
           onChange={(e) => onChange(e.target.value)}
           className={cn(
             'w-full px-3 py-2 text-sm rounded-md appearance-none cursor-pointer',
-            'bg-iris-fg/5 border border-iris-fg/10',
-            'text-iris-fg',
-            'focus:outline-none focus:border-iris-tint-400/50',
+            'bg-white/5 border border-white/10',
+            'text-white',
+            'focus:outline-none focus:border-slate-400/50',
             'pr-8'
           )}
         >
           {durationOptions.map((opt) => (
-            <option key={opt.value} value={opt.value} className="bg-iris-tint-800">
+            <option key={opt.value} value={opt.value} className="bg-slate-800">
               {opt.label}
             </option>
           ))}
         </select>
         <ChevronDown
           size={14}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-iris-text-4 pointer-events-none"
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none"
         />
       </div>
       {!selectedModel && (

@@ -217,24 +217,17 @@ export class RecraftAdapter extends BaseProviderAdapter {
     const { prompt, negativePrompt, parameters = {} } = request;
     const model = request.model || 'recraftv3';
 
+    const style = (parameters.style as string) || 'realistic_image';
     const size = this.mapAspectRatioToSize(parameters.aspectRatio);
 
     const requestBody: Record<string, unknown> = {
       prompt: prompt || '',
       model,
+      style,
       size,
       n: parameters.numOutputs || 1,
       response_format: 'url',
     };
-
-    // V2/V3 styles (realistic_image, ...) do not exist on V4.x: V4/V4.1 take
-    // only `any`, and V4.1 Flash rejects `style` altogether
-    // (recraft.ai/docs/api-reference/endpoints, checked 2026-10-18).
-    if (!model.startsWith('recraftv4')) {
-      requestBody.style = (parameters.style as string) || 'realistic_image';
-    } else if (model !== 'recraftv4_1_flash' && parameters.style === 'any') {
-      requestBody.style = 'any';
-    }
 
     if (negativePrompt) requestBody.negative_prompt = negativePrompt;
 
