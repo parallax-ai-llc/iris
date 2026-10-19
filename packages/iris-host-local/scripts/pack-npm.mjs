@@ -2,7 +2,7 @@
 /**
  * Stage the `iris-flow` npm package into `.npm-dist/`.
  *
- * The workspace package stays `iris-host-local` (iris/desktop depends on it by
+ * The workspace package stays `iris-host-local` (the iris/desktop-rs engine sidecar bundles it by
  * that name). What goes to npm is a single self-contained CLI:
  *
  *   - `dist/cli.js`  — esbuild bundle of src/cli.ts with the workspace packages

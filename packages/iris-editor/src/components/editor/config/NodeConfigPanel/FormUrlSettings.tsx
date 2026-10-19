@@ -69,8 +69,8 @@ export function FormUrlSettings({ workflowId }: { workflowId: string }) {
 
   if (isLoading) {
     return (
-      <div className="p-3 bg-white/5 rounded-lg border border-white/10">
-        <div className="flex items-center gap-2 text-white/50 text-xs">
+      <div className="p-3 bg-iris-fg/5 rounded-lg border border-iris-fg/10">
+        <div className="flex items-center gap-2 text-iris-fg/50 text-xs">
           <Loader2 size={14} className="animate-spin" />
           Loading form URL…
         </div>
@@ -81,12 +81,12 @@ export function FormUrlSettings({ workflowId }: { workflowId: string }) {
   // No token yet (e.g. workflow not saved since the form node was added).
   if (!formInfo?.hasToken || !formInfo.formUrl) {
     return (
-      <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+      <div className="p-3 bg-iris-fg/5 rounded-lg border border-iris-fg/10">
         <div className="flex items-center gap-2 mb-1">
           <ClipboardList size={14} className="text-blue-400" />
-          <span className="text-xs text-white/70">Form URL</span>
+          <span className="text-xs text-iris-fg/70">Form URL</span>
         </div>
-        <p className="text-[10px] text-white/40">
+        <p className="text-[10px] text-iris-text-4">
           Save the workflow to generate a shareable form URL.
         </p>
       </div>
@@ -94,41 +94,41 @@ export function FormUrlSettings({ workflowId }: { workflowId: string }) {
   }
 
   return (
-    <div className="p-3 bg-white/5 rounded-lg border border-white/10 space-y-3">
+    <div className="p-3 bg-iris-fg/5 rounded-lg border border-iris-fg/10 space-y-3">
       <div className="flex items-center gap-2">
         <ClipboardList size={14} className="text-blue-400" />
-        <span className="text-xs text-white/70">Form URL</span>
+        <span className="text-xs text-iris-fg/70">Form URL</span>
       </div>
 
       <div className="flex items-center gap-1">
-        <div className="flex-1 bg-white/10 rounded px-2 py-1.5 text-[10px] font-mono text-white/70 truncate">
+        <div className="flex-1 bg-iris-fg/10 rounded px-2 py-1.5 text-[10px] font-mono text-iris-fg/70 truncate">
           {formInfo.formUrl}
         </div>
         <button
           onClick={handleCopyUrl}
-          className="p-1.5 bg-white/10 hover:bg-white/20 rounded transition-colors"
+          className="p-1.5 bg-iris-fg/10 hover:bg-iris-fg/20 rounded transition-colors"
           title="Copy URL"
         >
           {copied ? (
             <Check size={12} className="text-green-400" />
           ) : (
-            <Copy size={12} className="text-white/70" />
+            <Copy size={12} className="text-iris-fg/70" />
           )}
         </button>
         <button
           onClick={handleRegenerateToken}
           disabled={isGenerating}
-          className="p-1.5 bg-white/10 hover:bg-white/20 rounded transition-colors"
+          className="p-1.5 bg-iris-fg/10 hover:bg-iris-fg/20 rounded transition-colors"
           title="Regenerate URL"
         >
           <RefreshCw
             size={12}
-            className={cn('text-white/70', isGenerating && 'animate-spin')}
+            className={cn('text-iris-fg/70', isGenerating && 'animate-spin')}
           />
         </button>
       </div>
 
-      <p className="text-[10px] text-white/40">
+      <p className="text-[10px] text-iris-text-4">
         Anyone with this link can open the form. Regenerating invalidates the old
         link.
       </p>

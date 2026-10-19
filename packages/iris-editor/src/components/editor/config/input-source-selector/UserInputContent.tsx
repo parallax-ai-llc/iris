@@ -49,9 +49,9 @@ export function UserInputContent({
         rows={3}
         className={cn(
           'w-full px-3 py-2 text-sm rounded-md resize-none',
-          'bg-white/5 border border-white/10',
-          'text-white placeholder-white/40',
-          'focus:outline-none focus:border-slate-400/50'
+          'bg-iris-fg/5 border border-iris-fg/10',
+          'text-iris-fg placeholder-iris-fg/40',
+          'focus:outline-none focus:border-iris-tint-400/50'
         )}
       />
     );
@@ -88,9 +88,9 @@ export function UserInputContent({
       rows={2}
       className={cn(
         'w-full px-3 py-2 text-sm rounded-md resize-none',
-        'bg-white/5 border border-white/10',
-        'text-white placeholder-white/40',
-        'focus:outline-none focus:border-slate-400/50'
+        'bg-iris-fg/5 border border-iris-fg/10',
+        'text-iris-fg placeholder-iris-fg/40',
+        'focus:outline-none focus:border-iris-tint-400/50'
       )}
     />
   );

@@ -62,7 +62,7 @@ function PaletteNode({ node, localizedLabel, isMobile, inUse, onAddNode }: Palet
         padding: '8px 10px',
         borderRadius: 8,
         fontSize: 12.5,
-        color: 'rgba(255,255,255,0.72)',
+        color: 'color-mix(in srgb, var(--color-iris-fg, #fff) 72%, transparent)',
         cursor: isMobile ? 'pointer' : 'grab',
         position: 'relative',
         transition: 'background 0.12s, color 0.12s',
@@ -72,7 +72,7 @@ function PaletteNode({ node, localizedLabel, isMobile, inUse, onAddNode }: Palet
       {/* grip / plus */}
       <span
         style={{
-          color: 'rgba(255,255,255,0.22)',
+          color: 'color-mix(in srgb, var(--color-iris-fg, #fff) 22%, transparent)',
           fontSize: 10,
           letterSpacing: -1,
           lineHeight: 1,
@@ -91,7 +91,7 @@ function PaletteNode({ node, localizedLabel, isMobile, inUse, onAddNode }: Palet
           borderRadius: 6,
           color: c.text,
           background: c.soft,
-          border: `1px solid ${c.stroke}33`,
+          border: `1px solid color-mix(in srgb, ${c.stroke} 20%, transparent)`,
         }}
       >
         {Icon && <Icon size={12} />}
@@ -116,7 +116,7 @@ function PaletteNode({ node, localizedLabel, isMobile, inUse, onAddNode }: Palet
             borderRadius: 999,
             color: c.text,
             background: c.soft,
-            border: `1px solid ${c.stroke}33`,
+            border: `1px solid color-mix(in srgb, ${c.stroke} 20%, transparent)`,
             letterSpacing: '0.05em',
             flexShrink: 0,
           }}
@@ -179,7 +179,7 @@ function PaletteCategory({
           fontSize: 11.5,
           fontWeight: 500,
           letterSpacing: '0.04em',
-          color: 'rgba(255,255,255,0.5)',
+          color: 'color-mix(in srgb, var(--color-iris-fg, #fff) 50%, transparent)',
           background: 'transparent',
         }}
       >
@@ -199,7 +199,7 @@ function PaletteCategory({
             marginLeft: 'auto',
             fontFamily: 'var(--font-mono, ui-monospace, monospace)',
             fontSize: 10.5,
-            color: 'rgba(255,255,255,0.34)',
+            color: 'var(--color-iris-text-4, rgba(255,255,255,0.34))',
             fontWeight: 400,
           }}
         >
@@ -207,7 +207,7 @@ function PaletteCategory({
         </span>
         <span
           style={{
-            color: 'rgba(255,255,255,0.34)',
+            color: 'var(--color-iris-text-4, rgba(255,255,255,0.34))',
             fontSize: 10,
             transform: isOpen ? 'rotate(90deg)' : 'none',
             transition: 'transform 0.15s',
@@ -301,7 +301,7 @@ export function NodePalette({ onNodeAdded }: NodePaletteProps = {}) {
       className="h-full flex flex-col"
       style={{
         borderRight: '1px solid var(--color-iris-line-2)',
-        background: 'linear-gradient(180deg, #0d0e15, #0a0b11)',
+        background: 'linear-gradient(180deg, var(--color-iris-panel-top, #0d0e15), var(--color-iris-panel-bottom, #0a0b11))',
         overflow: 'hidden',
         position: 'relative',
         zIndex: 1,
@@ -315,7 +315,7 @@ export function NodePalette({ onNodeAdded }: NodePaletteProps = {}) {
             fontSize: 10,
             fontWeight: 500,
             letterSpacing: '0.16em',
-            color: 'rgba(255,255,255,0.5)',
+            color: 'color-mix(in srgb, var(--color-iris-fg, #fff) 50%, transparent)',
             marginBottom: 10,
           }}
         >
@@ -328,7 +328,7 @@ export function NodePalette({ onNodeAdded }: NodePaletteProps = {}) {
               left: 11,
               top: '50%',
               transform: 'translateY(-50%)',
-              color: 'rgba(255,255,255,0.34)',
+              color: 'var(--color-iris-text-4, rgba(255,255,255,0.34))',
             }}
           >
             <Search size={13} />
@@ -360,7 +360,7 @@ export function NodePalette({ onNodeAdded }: NodePaletteProps = {}) {
               transform: 'translateY(-50%)',
               fontFamily: 'var(--font-mono, ui-monospace, monospace)',
               fontSize: 10,
-              color: 'rgba(255,255,255,0.34)',
+              color: 'var(--color-iris-text-4, rgba(255,255,255,0.34))',
               padding: '1px 6px',
               border: '1px solid var(--color-iris-line-2)',
               borderRadius: 4,
@@ -404,7 +404,7 @@ export function NodePalette({ onNodeAdded }: NodePaletteProps = {}) {
         <p
           style={{
             fontSize: 11,
-            color: 'rgba(255,255,255,0.34)',
+            color: 'var(--color-iris-text-4, rgba(255,255,255,0.34))',
             margin: 0,
           }}
         >

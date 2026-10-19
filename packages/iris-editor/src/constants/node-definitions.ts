@@ -302,7 +302,10 @@ export const MODEL_OPTIONS: Record<string, Record<string, Array<{ value: string;
   },
   'text-to-speech': {
     elevenlabs: [
+      { value: 'eleven_v4', label: 'Eleven v4' },
+      { value: 'eleven_v4_turbo', label: 'Eleven v4 Turbo' },
       { value: 'eleven_multilingual_v2', label: 'Multilingual v2' },
+      { value: 'eleven_v3', label: 'Eleven v3' },
       { value: 'eleven_flash_v2_5', label: 'Flash v2.5' },
     ],
     google: [

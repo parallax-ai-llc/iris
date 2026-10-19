@@ -30,9 +30,9 @@ export function UrlInputContent({
         placeholder={`Enter ${inputType} URL (https://...)...`}
         className={cn(
           'w-full px-3 py-2 text-sm rounded-md',
-          'bg-white/5 border border-white/10',
-          'text-white placeholder-white/40',
-          'focus:outline-none focus:border-slate-400/50'
+          'bg-iris-fg/5 border border-iris-fg/10',
+          'text-iris-fg placeholder-iris-fg/40',
+          'focus:outline-none focus:border-iris-tint-400/50'
         )}
       />
       {value && value.startsWith('http') && (
@@ -45,7 +45,7 @@ export function UrlInputContent({
           </div>
         </div>
       )}
-      <p className="text-xs text-white/40">
+      <p className="text-xs text-iris-text-4">
         Enter a public URL to {mediaTypeLabel} file
       </p>
     </div>

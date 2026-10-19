@@ -34,10 +34,10 @@ import { ScheduleNodeSettings } from './NodeConfigPanel/ScheduleNodeSettings';
 // Category color classes (text-only variant used in this panel's header)
 const categoryColorClasses: Record<NodeCategory, { text: string }> = {
   TRIGGER: { text: 'text-green-400' },
-  GENERATOR: { text: 'text-slate-300' },
+  GENERATOR: { text: 'text-iris-tint-300' },
   ANALYZER: { text: 'text-blue-400' },
   EDITOR: { text: 'text-orange-400' },
-  UTILITY: { text: 'text-gray-400' },
+  UTILITY: { text: 'text-iris-tint-400' },
   WEB: { text: 'text-indigo-400' },
   OUTPUT: { text: 'text-teal-400' },
 };
@@ -160,7 +160,7 @@ export function NodeConfigPanel() {
         className="h-full flex flex-col items-center justify-center"
         style={{
           borderLeft: '1px solid var(--color-iris-line-2)',
-          background: 'linear-gradient(180deg, #0d0e15, #0a0b11)',
+          background: 'linear-gradient(180deg, var(--color-iris-panel-top, #0d0e15), var(--color-iris-panel-bottom, #0a0b11))',
           padding: '0 24px',
           color: 'var(--color-iris-text-4)',
           textAlign: 'center',
@@ -222,7 +222,7 @@ export function NodeConfigPanel() {
       className="h-full flex flex-col"
       style={{
         borderLeft: '1px solid var(--color-iris-line-2)',
-        background: 'linear-gradient(180deg, #0d0e15, #0a0b11)',
+        background: 'linear-gradient(180deg, var(--color-iris-panel-top, #0d0e15), var(--color-iris-panel-bottom, #0a0b11))',
         overflow: 'hidden',
         position: 'relative',
         zIndex: 1,
@@ -239,7 +239,7 @@ export function NodeConfigPanel() {
               borderRadius: 8,
               background: palette.soft,
               color: palette.text,
-              border: `1px solid ${palette.stroke}33`,
+              border: `1px solid color-mix(in srgb, ${palette.stroke} 20%, transparent)`,
             }}
           >
             {CategoryIcon && <CategoryIcon size={14} />}
@@ -433,7 +433,7 @@ export function NodeConfigPanel() {
             })}
 
             {modelFields.length === 0 && otherFields.length === 0 && selectedNode.data.type !== 'TRIGGER_WEBHOOK' && selectedNode.data.type !== 'TRIGGER_SCHEDULE' && (
-              <p className="text-xs text-white/40 text-center py-4">
+              <p className="text-xs text-iris-text-4 text-center py-4">
                 {t('iris.nodeConfig.noSettings')}
               </p>
             )}
@@ -475,7 +475,7 @@ export function NodeConfigPanel() {
                 );
               })
             ) : (
-              <p className="text-xs text-white/40 text-center py-4">
+              <p className="text-xs text-iris-text-4 text-center py-4">
                 {t('iris.nodeConfig.noInputs')}
               </p>
             )}
@@ -493,13 +493,13 @@ export function NodeConfigPanel() {
                 const outputPort = isSignalOnly ? 'text (signal)' : inputType;
                 return (
                   <div className="space-y-3">
-                    <p className="text-xs text-white/60">
-                      {t('iris.nodeConfig.userInputHint')} <span className="text-slate-300">{inputTypeLabel}</span> {t('iris.nodeConfig.data')}.
+                    <p className="text-xs text-iris-fg/60">
+                      {t('iris.nodeConfig.userInputHint')} <span className="text-iris-tint-300">{inputTypeLabel}</span> {t('iris.nodeConfig.data')}.
                     </p>
-                    <div className="p-2 rounded-md bg-white/5 border border-white/10">
+                    <div className="p-2 rounded-md bg-iris-fg/5 border border-iris-fg/10">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-white/70">{t('iris.nodeConfig.outputPort')}</span>
-                        <span className="text-xs px-2 py-0.5 rounded bg-slate-400/20 text-slate-200">
+                        <span className="text-xs text-iris-fg/70">{t('iris.nodeConfig.outputPort')}</span>
+                        <span className="text-xs px-2 py-0.5 rounded bg-iris-tint-400/20 text-iris-tint-200">
                           {outputPort}
                         </span>
                       </div>
@@ -514,14 +514,14 @@ export function NodeConfigPanel() {
                 const inputTypeLabel = inputType === 'none' ? 'None' : inputType === 'text' ? 'Text' : 'Image';
                 return (
                   <div className="space-y-3">
-                    <p className="text-xs text-white/60">
-                      {t('iris.nodeConfig.staticInputHint')} <span className="text-slate-300">{inputTypeLabel}</span> {t('iris.nodeConfig.data')}.
+                    <p className="text-xs text-iris-fg/60">
+                      {t('iris.nodeConfig.staticInputHint')} <span className="text-iris-tint-300">{inputTypeLabel}</span> {t('iris.nodeConfig.data')}.
                     </p>
                     {inputType !== 'none' && (
-                      <div className="p-2 rounded-md bg-white/5 border border-white/10">
+                      <div className="p-2 rounded-md bg-iris-fg/5 border border-iris-fg/10">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-white/70">{t('iris.nodeConfig.outputPort')}</span>
-                          <span className="text-xs px-2 py-0.5 rounded bg-slate-400/20 text-slate-200">
+                          <span className="text-xs text-iris-fg/70">{t('iris.nodeConfig.outputPort')}</span>
+                          <span className="text-xs px-2 py-0.5 rounded bg-iris-tint-400/20 text-iris-tint-200">
                             {inputType}
                           </span>
                         </div>
@@ -535,12 +535,12 @@ export function NodeConfigPanel() {
               if (selectedNode.data.type === 'OUTPUT_STORAGE') {
                 return (
                   <div className="space-y-3">
-                    <p className="text-xs text-white/60">
+                    <p className="text-xs text-iris-fg/60">
                       {t('iris.nodeConfig.storageOutput')}
                     </p>
-                    <div className="p-2 rounded-md bg-white/5 border border-white/10">
+                    <div className="p-2 rounded-md bg-iris-fg/5 border border-iris-fg/10">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-white/70">{t('iris.nodeConfig.outputs')}</span>
+                        <span className="text-xs text-iris-fg/70">{t('iris.nodeConfig.outputs')}</span>
                         <span className="text-xs px-2 py-0.5 rounded bg-teal-500/20 text-teal-300">
                           {t('iris.nodeConfig.storageUrl')}
                         </span>
@@ -554,7 +554,7 @@ export function NodeConfigPanel() {
               if (selectedNode.data.type.startsWith('OUTPUT_')) {
                 return (
                   <div className="space-y-3">
-                    <p className="text-xs text-white/60">
+                    <p className="text-xs text-iris-fg/60">
                       {t('iris.nodeConfig.terminalNode')}
                     </p>
                   </div>
@@ -569,7 +569,7 @@ export function NodeConfigPanel() {
 
                 return (
                   <div className="space-y-3">
-                    <p className="text-xs text-white/60">
+                    <p className="text-xs text-iris-fg/60">
                       {t('iris.nodeConfig.autoSaveHint')}
                     </p>
                     {mediaOutputs.length > 0 && (
@@ -578,23 +578,23 @@ export function NodeConfigPanel() {
                           const outputConfig = getOutputConfig(output.name);
                           const storagePath = outputConfig.storagePath || '/';
                           return (
-                            <div key={output.name} className="p-2 rounded-md bg-white/5 border border-white/10">
+                            <div key={output.name} className="p-2 rounded-md bg-iris-fg/5 border border-iris-fg/10">
                               <div className="flex items-center gap-2 mb-2">
-                                <span className="text-xs text-white/70">{output.label}</span>
-                                <span className="text-xs text-white/40">({output.type})</span>
+                                <span className="text-xs text-iris-fg/70">{output.label}</span>
+                                <span className="text-xs text-iris-text-4">({output.type})</span>
                               </div>
                               <div className="flex items-center justify-between">
-                                <label className="text-xs text-white/50">{t('iris.nodeConfig.storageLocation')}</label>
+                                <label className="text-xs text-iris-fg/50">{t('iris.nodeConfig.storageLocation')}</label>
                               </div>
                               <button
                                 onClick={() => {
                                   setStoragePickerOutputName(output.name);
                                   setStoragePickerOpen(true);
                                 }}
-                                className="w-full mt-1 flex items-center gap-2 px-2 py-1.5 text-xs rounded bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-left"
+                                className="w-full mt-1 flex items-center gap-2 px-2 py-1.5 text-xs rounded bg-iris-fg/5 border border-iris-fg/10 hover:bg-iris-fg/10 transition-colors text-left"
                               >
                                 <Folder size={12} className="text-amber-400 flex-shrink-0" />
-                                <span className="text-white/70 truncate flex-1">
+                                <span className="text-iris-fg/70 truncate flex-1">
                                   {storagePath === '/' ? t('iris.nodeConfig.rootFolder') : storagePath}
                                 </span>
                               </button>
@@ -628,12 +628,12 @@ export function NodeConfigPanel() {
                   return (
                     <div key={output.name} className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-white/70">{output.label}</span>
-                        <span className="text-xs text-white/40">({output.type})</span>
+                        <span className="text-xs text-iris-fg/70">{output.label}</span>
+                        <span className="text-xs text-iris-text-4">({output.type})</span>
                       </div>
-                      <div className="p-2 rounded-md bg-white/5 border border-white/10">
+                      <div className="p-2 rounded-md bg-iris-fg/5 border border-iris-fg/10">
                         <div className="flex items-center justify-between mb-2">
-                          <label className="text-xs text-white/50">{t('iris.nodeConfig.variableName')}</label>
+                          <label className="text-xs text-iris-fg/50">{t('iris.nodeConfig.variableName')}</label>
                         </div>
                         <input
                           type="text"
@@ -642,9 +642,9 @@ export function NodeConfigPanel() {
                           placeholder="output_name"
                           className={cn(
                             'w-full px-2 py-1 text-xs rounded',
-                            'bg-white/5 border border-white/10',
-                            'text-white placeholder-white/40',
-                            'focus:outline-none focus:border-slate-400/50'
+                            'bg-iris-fg/5 border border-iris-fg/10',
+                            'text-iris-fg placeholder-iris-fg/40',
+                            'focus:outline-none focus:border-iris-tint-400/50'
                           )}
                         />
                       </div>
@@ -652,7 +652,7 @@ export function NodeConfigPanel() {
                   );
                 })
               ) : (
-                <p className="text-xs text-white/40 text-center py-4">
+                <p className="text-xs text-iris-text-4 text-center py-4">
                   {t('iris.nodeConfig.noOutputs')}
                 </p>
               );

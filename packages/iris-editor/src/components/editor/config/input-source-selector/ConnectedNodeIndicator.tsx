@@ -19,7 +19,7 @@ export function ConnectedNodeIndicator({
           {nodeName} / {outputLabel}
         </span>
       </div>
-      <p className="text-xs text-white/40 mt-1">
+      <p className="text-xs text-iris-text-4 mt-1">
         This input is connected via edge. Remove the edge to change source.
       </p>
     </div>
