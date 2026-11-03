@@ -45,7 +45,13 @@ const categoryColorClasses: Record<NodeCategory, { text: string }> = {
 // Tab types
 type ConfigTab = 'settings' | 'inputs' | 'outputs';
 
-export function NodeConfigPanel() {
+interface NodeConfigPanelProps {
+  /** 'floating': drawn inside a floating card (iris/web) — no side border or own background. */
+  variant?: 'sidebar' | 'floating';
+}
+
+export function NodeConfigPanel({ variant = 'sidebar' }: NodeConfigPanelProps = {}) {
+  const floating = variant === 'floating';
   const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<ConfigTab>('settings');
   const [isEditingName, setIsEditingName] = useState(false);
@@ -159,8 +165,10 @@ export function NodeConfigPanel() {
       <aside
         className="h-full flex flex-col items-center justify-center"
         style={{
-          borderLeft: '1px solid var(--color-iris-line-2)',
-          background: 'linear-gradient(180deg, var(--color-iris-panel-top, #0d0e15), var(--color-iris-panel-bottom, #0a0b11))',
+          borderLeft: floating ? undefined : '1px solid var(--color-iris-line-2)',
+          background: floating
+            ? 'transparent'
+            : 'linear-gradient(180deg, var(--color-iris-panel-top, #0d0e15), var(--color-iris-panel-bottom, #0a0b11))',
           padding: '0 24px',
           color: 'var(--color-iris-text-4)',
           textAlign: 'center',
@@ -221,8 +229,10 @@ export function NodeConfigPanel() {
       onBlur={() => history.breakMerge()}
       className="h-full flex flex-col"
       style={{
-        borderLeft: '1px solid var(--color-iris-line-2)',
-        background: 'linear-gradient(180deg, var(--color-iris-panel-top, #0d0e15), var(--color-iris-panel-bottom, #0a0b11))',
+        borderLeft: floating ? undefined : '1px solid var(--color-iris-line-2)',
+        background: floating
+          ? 'transparent'
+          : 'linear-gradient(180deg, var(--color-iris-panel-top, #0d0e15), var(--color-iris-panel-bottom, #0a0b11))',
         overflow: 'hidden',
         position: 'relative',
         zIndex: 1,
@@ -237,9 +247,9 @@ export function NodeConfigPanel() {
               width: 30,
               height: 30,
               borderRadius: 8,
-              background: palette.soft,
-              color: palette.text,
-              border: `1px solid color-mix(in srgb, ${palette.stroke} 20%, transparent)`,
+              background: `var(--we-icon-bg, ${palette.soft})`,
+              color: `var(--we-icon-fg, ${palette.text})`,
+              border: `1px solid var(--we-float-border, color-mix(in srgb, ${palette.stroke} 20%, transparent))`,
             }}
           >
             {CategoryIcon && <CategoryIcon size={14} />}
@@ -717,7 +727,7 @@ function ConfigTabs({
                 : 'var(--color-iris-text-3)',
               borderBottom:
                 '2px solid ' +
-                (isActive ? 'var(--color-iris-violet)' : 'transparent'),
+                (isActive ? 'var(--we-edge-live, var(--color-iris-violet))' : 'transparent'),
               marginBottom: -1,
               background: 'transparent',
               transition: 'color 0.15s, border-color 0.15s',

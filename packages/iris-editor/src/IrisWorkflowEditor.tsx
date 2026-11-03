@@ -10,6 +10,7 @@
 
 import { ExecutionInputModal } from '@editor/components/editor/ExecutionInputModal';
 import { useSeams } from '@editor/seams';
+import { useEditorTheme } from '@editor/hooks/useEditorTheme';
 import { useWorkflowEditor, useMobilePanel } from './orchestrator/hooks';
 import {
   LoadingState,
@@ -33,6 +34,7 @@ export function IrisWorkflowEditor({
   onOpenChat,
 }: IrisWorkflowEditorProps) {
   const { navigate } = useSeams();
+  const { theme, toggleTheme } = useEditorTheme();
 
   const {
     workflow,
@@ -89,12 +91,9 @@ export function IrisWorkflowEditor({
 
   return (
     <div
-      className="h-screen flex flex-col"
+      className="h-screen flex flex-col relative overflow-hidden"
       style={{
-        background:
-          'radial-gradient(50% 40% at 50% 30%, rgba(167,139,250,0.10), transparent 70%),' +
-          'radial-gradient(40% 30% at 80% 90%, rgba(125,211,252,0.07), transparent 60%),' +
-          'var(--color-iris-canvas)',
+        background: 'var(--color-iris-canvas)',
         color: 'var(--color-iris-text-1)',
       }}
     >
@@ -141,9 +140,11 @@ export function IrisWorkflowEditor({
         onToggleLeftPanel={toggleLeftPanel}
         onToggleRightPanel={toggleRightPanel}
         onClosePanels={closePanels}
-        onNodeAdded={() => {
-          if (isMobile) setShowLeftPanel(false);
-        }}
+        onNodeAdded={() => setShowLeftPanel(false)}
+        onCloseLeftPanel={() => setShowLeftPanel(false)}
+        onOpenChat={() => onOpenChat?.(workflow.id)}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
 
       <StatusBar

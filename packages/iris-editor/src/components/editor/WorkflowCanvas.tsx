@@ -8,6 +8,7 @@ import {
   MiniMap,
   ReactFlowProvider,
   useReactFlow,
+  useStore,
   Connection,
   NodeTypes,
   DefaultEdgeOptions,
@@ -21,7 +22,25 @@ import { toast } from 'sonner';
 import { cn } from '@editor/lib/convert/string';
 import { IrisNode } from './nodes/IrisNode';
 import { ConfirmModal } from '../common/ConfirmModal';
-import { ZoomIn, ZoomOut, Maximize2, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import {
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  Loader2,
+  CheckCircle,
+  XCircle,
+  MousePointer2,
+  Hand,
+  Hash,
+  Undo2,
+  Redo2,
+  Sun,
+  Moon,
+  Minus,
+  Plus,
+  Workflow as WorkflowIcon,
+} from 'lucide-react';
+import type { EditorTheme } from '../../hooks/useEditorTheme';
 import { useExecutionPolling } from '../../hooks/useExecutionPolling';
 import { useI18n } from '@editor/hooks/usei18n';
 import { useSeams } from '@editor/seams';
@@ -31,13 +50,14 @@ const nodeTypes: NodeTypes = {
   irisNode: IrisNode,
 };
 
-// Custom edge options — Iris handoff: bezier with iris-grad
+// Edges are thin bezier curves. Themed hosts set --we-edge; others keep the
+// violet → cyan gradient.
 const defaultEdgeOptions: DefaultEdgeOptions = {
-  type: 'smoothstep',
-  animated: true,
+  type: 'default',
+  animated: false,
   style: {
     stroke: 'url(#weEdgeIris)',
-    strokeWidth: 1.8,
+    strokeWidth: 1.4,
   },
   deletable: true,
   focusable: true,
@@ -47,21 +67,33 @@ const defaultEdgeOptions: DefaultEdgeOptions = {
 const edgeStyles = {
   default: {
     stroke: 'url(#weEdgeIris)',
-    strokeWidth: 1.8,
+    strokeWidth: 1.4,
   },
   selected: {
     stroke: 'var(--color-iris-err, #f87171)',
-    strokeWidth: 2.5,
+    strokeWidth: 2,
     filter: 'drop-shadow(0 0 6px rgba(248,113,113,0.45))',
   },
 };
+
+/** Floating canvas chrome (zoom pill + bottom toolbar). Hosts that draw their own toolbar omit it. */
+export interface WorkflowCanvasChrome {
+  theme: EditorTheme;
+  onToggleTheme: () => void;
+}
+
+interface WorkflowCanvasProps {
+  chrome?: WorkflowCanvasChrome;
+}
 
 /** Fallback clipboard when the system clipboard cannot be read. */
 let lastCopiedFragment: unknown = null;
 
 // Inner canvas component (needs ReactFlowProvider context)
-function CanvasInner() {
+function CanvasInner({ chrome }: WorkflowCanvasProps) {
   const { t } = useI18n();
+  const [tool, setTool] = useState<'select' | 'hand'>('select');
+  const [snap, setSnap] = useState(true);
   const { hostHandlesHistoryKeys, isKeyboardActive, clipboard } = useSeams();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { fitView, zoomIn, zoomOut, screenToFlowPosition } = useReactFlow();
@@ -125,6 +157,19 @@ function CanvasInner() {
     };
   }, []);
 
+  // Palette click (instead of drag): add the node at the middle of the view.
+  useEffect(() => {
+    const handleAddRequest = (e: CustomEvent<{ nodeType: string; nodeData: Record<string, unknown> }>) => {
+      if (isKeyboardActive && !isKeyboardActive()) return;
+      const rect = reactFlowWrapper.current?.getBoundingClientRect();
+      if (!rect || rect.width === 0) return;
+      const center = screenToFlowPosition({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+      addNode(e.detail.nodeType, { x: center.x - 120, y: center.y - 60 }, e.detail.nodeData);
+    };
+    window.addEventListener('iris-node-add-request', handleAddRequest as EventListener);
+    return () => window.removeEventListener('iris-node-add-request', handleAddRequest as EventListener);
+  }, [addNode, screenToFlowPosition, isKeyboardActive]);
+
   // Calculate execution progress summary
   const executionSummary = useMemo(() => {
     const nodeIds = Object.keys(executionProgress);
@@ -146,20 +191,30 @@ function CanvasInner() {
   // mounted (desktop tabs) would otherwise resolve `url(#…)` to the gradient
   // inside a hidden tab, and the edges would draw with no stroke.
   const gradientId = `weEdgeIris-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
-  const edgeDefaultStyle = useMemo(() => ({ ...edgeStyles.default, stroke: `url(#${gradientId})` }), [gradientId]);
+  const edgeStroke = `var(--we-edge, url(#${gradientId}))`;
+  const edgeDefaultStyle = useMemo(() => ({ ...edgeStyles.default, stroke: edgeStroke }), [edgeStroke]);
+  const edgeLiveStyle = useMemo(
+    () => ({ ...edgeStyles.default, stroke: `var(--we-edge-live, url(#${gradientId}))` }),
+    [gradientId],
+  );
   const canvasEdgeOptions = useMemo<DefaultEdgeOptions>(
-    () => ({ ...defaultEdgeOptions, style: { ...defaultEdgeOptions.style, stroke: `url(#${gradientId})` } }),
-    [gradientId]
+    () => ({ ...defaultEdgeOptions, style: { ...defaultEdgeOptions.style, stroke: edgeStroke } }),
+    [edgeStroke]
   );
 
-  // 선택된 edge에 스타일 적용
+  // Selected edges turn red; while a run is in progress the rest flow.
   const styledEdges = useMemo(() => {
-    return edges.map((edge) => ({
-      ...edge,
-      style: selectedEdgeIds.includes(edge.id) ? edgeStyles.selected : edgeDefaultStyle,
-      animated: !selectedEdgeIds.includes(edge.id), // 선택되면 애니메이션 끄기
-    }));
-  }, [edges, selectedEdgeIds, edgeDefaultStyle]);
+    return edges.map((edge) => {
+      const isSelected = selectedEdgeIds.includes(edge.id);
+      return {
+        ...edge,
+        // Floating-chrome hosts draw bezier curves; others keep the stored type.
+        type: chrome ? 'default' : edge.type,
+        style: isSelected ? edgeStyles.selected : isExecuting ? edgeLiveStyle : edgeDefaultStyle,
+        animated: !isSelected && isExecuting,
+      };
+    });
+  }, [edges, selectedEdgeIds, edgeDefaultStyle, edgeLiveStyle, isExecuting, chrome]);
 
   // Handle node/edge selection
   const handleSelectionChange = useCallback(
@@ -407,10 +462,13 @@ function CanvasInner() {
         defaultEdgeOptions={canvasEdgeOptions}
         deleteKeyCode={null}
         fitView
-        snapToGrid
+        fitViewOptions={{ padding: 0.25, maxZoom: 1 }}
+        snapToGrid={snap}
         snapGrid={[16, 16]}
-        connectionLineStyle={{ stroke: 'var(--color-iris-violet, #a78bfa)', strokeWidth: 1.8 }}
-        connectionLineType={ConnectionLineType.SmoothStep}
+        panOnDrag={chrome && tool === 'select' ? [1, 2] : true}
+        selectionOnDrag={!!chrome && tool === 'select'}
+        connectionLineStyle={{ stroke: 'var(--we-edge-live, var(--color-iris-violet, #a78bfa))', strokeWidth: 1.4 }}
+        connectionLineType={ConnectionLineType.Bezier}
         proOptions={{ hideAttribution: true }}
       >
         {/* SVG gradient defs for edges */}
@@ -425,10 +483,41 @@ function CanvasInner() {
 
         <Background
           variant={BackgroundVariant.Dots}
-          gap={24}
-          size={1}
-          color="color-mix(in srgb, var(--color-iris-fg, #fff) 4.5%, transparent)"
+          gap={chrome ? 20 : 24}
+          size={chrome ? 1.2 : 1}
+          // An SVG fill attribute cannot read CSS variables, so the dot colour is resolved here.
+          color={
+            chrome
+              ? chrome.theme === 'light'
+                ? 'rgba(0,0,0,0.2)'
+                : 'rgba(255,255,255,0.13)'
+              : 'color-mix(in srgb, var(--color-iris-fg, #fff) 4.5%, transparent)'
+          }
         />
+        {chrome && (
+          <>
+            <Panel position="top-center" className="hidden md:block" style={{ marginTop: 14 }}>
+              <ZoomPill />
+            </Panel>
+            <Panel position="bottom-center" style={{ marginBottom: 18 }}>
+              <CanvasToolbar
+                tool={tool}
+                onTool={setTool}
+                snap={snap}
+                onToggleSnap={() => setSnap((v) => !v)}
+                onFit={() => fitView({ padding: 0.25, maxZoom: 1, duration: 250 })}
+                onUndo={undo}
+                onRedo={redo}
+                canUndo={canUndo()}
+                canRedo={canRedo()}
+                theme={chrome.theme}
+                onToggleTheme={chrome.onToggleTheme}
+              />
+            </Panel>
+          </>
+        )}
+        {!chrome && (
+        <>
         <MiniMap
           nodeColor={minimapNodeColor}
           maskColor="var(--color-iris-minimap-mask, rgba(7,7,10,0.7))"
@@ -509,92 +598,20 @@ function CanvasInner() {
             <span>{t('iris.canvas.run') || 'Run'}</span>
           </div>
         </Panel>
+        </>
+        )}
 
-        {/* Execution Status Panel */}
+        {/* Execution status toast */}
         {(isExecuting || executionSummary) && (
-          <Panel position="top-center" className="mt-2">
-            <div
-              className="flex items-center"
-              style={{
-                gap: 12,
-                padding: '8px 14px',
-                borderRadius: 10,
-                background: isExecuting
-                  ? 'rgba(167,139,250,0.10)'
-                  : executionSummary?.failed
-                  ? 'var(--color-iris-err-bg)'
-                  : 'var(--color-iris-ok-bg)',
-                border:
-                  '1px solid ' +
-                  (isExecuting
-                    ? 'rgba(167,139,250,0.30)'
-                    : executionSummary?.failed
-                    ? 'rgba(248,113,113,0.30)'
-                    : 'rgba(52,211,153,0.30)'),
-                backdropFilter: 'blur(14px)',
-              }}
-            >
-              {isExecuting ? (
-                <>
-                  <Loader2 size={14} className="animate-spin" style={{ color: 'var(--color-iris-violet)' }} />
-                  <span style={{ fontSize: 12.5, color: 'var(--color-iris-text-1)' }}>
-                    {t('iris.canvas.executing')}
-                  </span>
-                </>
-              ) : executionSummary?.failed ? (
-                <>
-                  <XCircle size={14} style={{ color: 'var(--color-iris-err)' }} />
-                  <span style={{ fontSize: 12.5, color: 'var(--color-iris-text-1)' }}>
-                    {t('iris.canvas.errorInNodes', { count: executionSummary.failed })}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <CheckCircle size={14} style={{ color: 'var(--color-iris-ok)' }} />
-                  <span style={{ fontSize: 12.5, color: 'var(--color-iris-text-1)' }}>
-                    {t('iris.canvas.executionComplete')}
-                  </span>
-                </>
-              )}
-
-              {executionSummary && (
-                <div
-                  className="flex items-center"
-                  style={{
-                    gap: 8,
-                    marginLeft: 4,
-                    paddingLeft: 10,
-                    borderLeft: '1px solid var(--color-iris-line-2)',
-                  }}
-                >
-                  <span style={{ fontSize: 11, color: 'var(--color-iris-text-3)' }}>
-                    {t('iris.canvas.completedCount', {
-                      completed: executionSummary.completed,
-                      total: executionSummary.total,
-                    })}
-                  </span>
-                  {executionSummary.running > 0 && (
-                    <span style={{ fontSize: 11, color: 'var(--color-iris-violet)' }}>
-                      {t('iris.canvas.runningCount', { count: executionSummary.running })}
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {!isExecuting && executionSummary && (
-                <button
-                  onClick={resetExecution}
-                  style={{
-                    marginLeft: 4,
-                    fontSize: 11,
-                    color: 'var(--color-iris-text-3)',
-                    background: 'transparent',
-                  }}
-                >
-                  {t('iris.canvas.close')}
-                </button>
-              )}
-            </div>
+          <Panel
+            position={chrome ? 'bottom-center' : 'top-center'}
+            style={chrome ? { marginBottom: 76 } : { marginTop: 8 }}
+          >
+            <RunToast
+              isExecuting={isExecuting}
+              summary={executionSummary}
+              onClose={resetExecution}
+            />
           </Panel>
         )}
       </ReactFlow>
@@ -619,10 +636,260 @@ function CanvasInner() {
 }
 
 // Main component with provider wrapper
-export function WorkflowCanvas() {
+export function WorkflowCanvas({ chrome }: WorkflowCanvasProps = {}) {
   return (
     <ReactFlowProvider>
-      <CanvasInner />
+      <CanvasInner chrome={chrome} />
     </ReactFlowProvider>
   );
 }
+
+/** Top-centre zoom readout: − 100% +; the number resets to 100%. */
+function ZoomPill() {
+  const { t } = useI18n();
+  const { zoomIn, zoomOut, zoomTo } = useReactFlow();
+  const zoom = useStore((s) => s.transform[2]);
+  return (
+    <div className="we-float flex items-center" style={{ height: 34, padding: 2, borderRadius: 10 }}>
+      <button
+        type="button"
+        onClick={() => zoomOut({ duration: 150 })}
+        className="we-tool"
+        title={t('iris.canvas.zoomOut') || 'Zoom out'}
+        aria-label={t('iris.canvas.zoomOut') || 'Zoom out'}
+      >
+        <Minus size={13} />
+      </button>
+      <button
+        type="button"
+        onClick={() => zoomTo(1, { duration: 150 })}
+        className="we-tool"
+        style={{
+          minWidth: 52,
+          fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+          fontSize: 11,
+          color: 'var(--color-iris-text-2)',
+        }}
+        title={t('iris.canvas.resetZoom') || 'Reset to 100%'}
+      >
+        {Math.round(zoom * 100)}%
+      </button>
+      <button
+        type="button"
+        onClick={() => zoomIn({ duration: 150 })}
+        className="we-tool"
+        title={t('iris.canvas.zoomIn') || 'Zoom in'}
+        aria-label={t('iris.canvas.zoomIn') || 'Zoom in'}
+      >
+        <Plus size={13} />
+      </button>
+    </div>
+  );
+}
+
+interface CanvasToolbarProps {
+  tool: 'select' | 'hand';
+  onTool: (tool: 'select' | 'hand') => void;
+  snap: boolean;
+  onToggleSnap: () => void;
+  onFit: () => void;
+  onUndo: () => void;
+  onRedo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  theme: EditorTheme;
+  onToggleTheme: () => void;
+}
+
+type ToolbarItem =
+  | { label: string; icon: React.ReactNode; onClick: () => void; active?: boolean; disabled?: boolean }
+  | 'divider';
+
+/** Some locales already put the shortcut in the label. */
+function withShortcut(label: string, shortcut: string): string {
+  return label.includes(shortcut) ? label : `${label} (${shortcut})`;
+}
+
+/** Bottom-centre tool dock. */
+function CanvasToolbar({
+  tool,
+  onTool,
+  snap,
+  onToggleSnap,
+  onFit,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
+  theme,
+  onToggleTheme,
+}: CanvasToolbarProps) {
+  const { t } = useI18n();
+  const items: ToolbarItem[] = [
+    { label: `${t('iris.canvas.selectTool') || 'Select'} (V)`, icon: <MousePointer2 size={14} />, onClick: () => onTool('select'), active: tool === 'select' },
+    { label: `${t('iris.canvas.handTool') || 'Hand'} (H)`, icon: <Hand size={14} />, onClick: () => onTool('hand'), active: tool === 'hand' },
+    'divider',
+    { label: t('iris.canvas.snapToGrid') || 'Snap to grid', icon: <Hash size={14} />, onClick: onToggleSnap, active: snap },
+    { label: t('iris.canvas.fitView') || 'Fit view', icon: <Maximize2 size={14} />, onClick: onFit },
+    'divider',
+    { label: withShortcut(t('iris.canvas.undo') || 'Undo', 'Ctrl+Z'), icon: <Undo2 size={14} />, onClick: onUndo, disabled: !canUndo },
+    { label: withShortcut(t('iris.canvas.redo') || 'Redo', 'Ctrl+Shift+Z'), icon: <Redo2 size={14} />, onClick: onRedo, disabled: !canRedo },
+    'divider',
+    {
+      label: theme === 'dark' ? t('iris.canvas.lightMode') || 'Light mode' : t('iris.canvas.darkMode') || 'Dark mode',
+      icon: theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />,
+      onClick: onToggleTheme,
+    },
+  ];
+
+  // V / H switch tools like design apps (ignored while typing).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
+      const el = e.target as HTMLElement | null;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)) return;
+      const k = e.key.toLowerCase();
+      if (k === 'v') onTool('select');
+      else if (k === 'h') onTool('hand');
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onTool]);
+
+  return (
+    <div
+      role="toolbar"
+      aria-label={t('iris.canvas.toolbar') || 'Canvas tools'}
+      className="we-float flex items-center"
+      style={{ height: 40, padding: 4, borderRadius: 12, gap: 2 }}
+    >
+      {items.map((item, i) =>
+        item === 'divider' ? (
+          <span
+            key={`d${i}`}
+            style={{ width: 1, height: 18, margin: '0 4px', background: 'var(--color-iris-line-2)' }}
+          />
+        ) : (
+          <button
+            key={item.label}
+            type="button"
+            className="we-tool"
+            data-active={item.active ? 'true' : undefined}
+            aria-pressed={item.active}
+            disabled={item.disabled}
+            onClick={item.onClick}
+            title={item.label}
+            aria-label={item.label}
+          >
+            {item.icon}
+          </button>
+        ),
+      )}
+    </div>
+  );
+}
+
+interface RunToastProps {
+  isExecuting: boolean;
+  summary: { completed: number; failed: number; running: number; total: number } | null;
+  onClose: () => void;
+}
+
+/** Run status card: icon tile, title, mono progress line and a thin bar. */
+function RunToast({ isExecuting, summary, onClose }: RunToastProps) {
+  const { t } = useI18n();
+  const done = summary ? summary.completed + summary.failed : 0;
+  const pct = summary && summary.total > 0 ? Math.min(100, Math.round((done / summary.total) * 100)) : 0;
+  const failed = !isExecuting && !!summary?.failed;
+  const title = isExecuting
+    ? t('iris.canvas.executing')
+    : failed
+    ? t('iris.canvas.errorInNodes', { count: summary!.failed })
+    : t('iris.canvas.executionComplete');
+  const accent = failed
+    ? 'var(--color-iris-err)'
+    : isExecuting
+    ? 'var(--color-iris-text-1)'
+    : 'var(--color-iris-ok)';
+
+  return (
+    <div
+      className="we-float we-pop flex items-center"
+      style={{ gap: 12, padding: '8px 14px 8px 8px', borderRadius: 14, minWidth: 340 }}
+      role="status"
+    >
+      <span
+        className="inline-flex items-center justify-center flex-shrink-0"
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 9,
+          background: 'var(--color-iris-surf-3)',
+          border: '1px solid var(--color-iris-line-2)',
+          color: accent,
+        }}
+      >
+        {isExecuting ? (
+          <Loader2 size={15} className="animate-spin" />
+        ) : failed ? (
+          <XCircle size={15} />
+        ) : summary ? (
+          <CheckCircle size={15} />
+        ) : (
+          <WorkflowIcon size={15} />
+        )}
+      </span>
+      <div className="min-w-0" style={{ flex: '0 1 auto' }}>
+        <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-iris-text-1)', whiteSpace: 'nowrap' }}>
+          {title}
+        </div>
+        {summary && (
+          <div
+            style={{
+              fontSize: 10.5,
+              marginTop: 2,
+              color: 'var(--color-iris-text-4)',
+              fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {t('iris.canvas.completedCount', { completed: summary.completed, total: summary.total })}
+            {summary.running > 0 && ` · ${t('iris.canvas.runningCount', { count: summary.running })}`}
+            {` · ${pct}%`}
+          </div>
+        )}
+      </div>
+      <div
+        style={{
+          flex: 1,
+          minWidth: 90,
+          height: 3,
+          borderRadius: 999,
+          background: 'var(--color-iris-surf-3)',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          className="transition-all duration-500"
+          style={{
+            width: `${isExecuting ? Math.max(pct, 4) : 100}%`,
+            height: '100%',
+            borderRadius: 999,
+            background: accent,
+          }}
+        />
+      </div>
+      {!isExecuting && summary && (
+        <button
+          type="button"
+          onClick={onClose}
+          className="we-chip"
+          style={{ height: 26, padding: '0 8px', fontSize: 11.5 }}
+        >
+          {t('iris.canvas.close')}
+        </button>
+      )}
+    </div>
+  );
+}
+

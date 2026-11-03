@@ -36,17 +36,17 @@ export function LoadErrorState({ workflowId, kind, onRetry }: LoadErrorStateProp
   const Icon = kind === 'error' ? AlertCircle : Lock;
 
   return (
-    <div className="h-screen flex items-center justify-center bg-iris-bg">
+    <div className="h-screen flex items-center justify-center bg-iris-canvas">
       <div className="text-center max-w-sm px-6" role="alert">
         <Icon size={48} className="text-red-400 mx-auto mb-4" aria-hidden="true" />
-        <h2 className="text-xl font-semibold text-white mb-2">{title}</h2>
-        {description && <p className="text-white/60 text-sm mb-6">{description}</p>}
+        <h2 className="text-xl font-semibold text-iris-text-1 mb-2">{title}</h2>
+        {description && <p className="text-iris-text-3 text-sm mb-6">{description}</p>}
         <div className="flex items-center justify-center gap-4">
           {kind === 'error' && (
             <button
               type="button"
               onClick={onRetry}
-              className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-black hover:bg-white/90"
+              className="inline-flex items-center gap-2 rounded-full bg-iris-fg px-4 py-2 text-sm font-medium text-iris-canvas hover:opacity-90"
             >
               <RotateCw size={16} aria-hidden="true" />
               {t('iris.editor.retry')}
@@ -56,7 +56,7 @@ export function LoadErrorState({ workflowId, kind, onRetry }: LoadErrorStateProp
             <button
               type="button"
               onClick={() => onUnauthorized({ workflowId })}
-              className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-black hover:bg-white/90"
+              className="inline-flex items-center gap-2 rounded-full bg-iris-fg px-4 py-2 text-sm font-medium text-iris-canvas hover:opacity-90"
             >
               <LogIn size={16} aria-hidden="true" />
               {t('iris.editor.signIn')}
@@ -65,7 +65,7 @@ export function LoadErrorState({ workflowId, kind, onRetry }: LoadErrorStateProp
           <button
             type="button"
             onClick={() => navigate?.('/')}
-            className="text-purple-400 hover:text-purple-300 text-sm"
+            className="text-iris-text-2 hover:text-iris-text-1 underline underline-offset-2 text-sm"
           >
             {t('iris.editor.goBack')}
           </button>

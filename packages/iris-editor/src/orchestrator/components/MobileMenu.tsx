@@ -40,11 +40,11 @@ export function MobileMenu({
   if (!isOpen) return null;
 
   return (
-    <div className="md:hidden absolute top-14 right-2 z-30 border border-white/10 rounded-lg shadow-xl p-2 flex flex-col gap-1 bg-iris-bg-solid">
+    <div className="md:hidden absolute top-16 right-3 z-30 border border-iris-line-2 rounded-lg shadow-xl p-2 flex flex-col gap-1 bg-iris-bg-solid">
       <button
         onClick={() => { onValidate(); onClose(); }}
         disabled={isValidating}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/10 text-white/80 text-sm w-full"
+        className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-iris-surf-3 text-iris-text-2 text-sm w-full"
       >
         {validationResult?.valid ? (
           <CheckCircle size={16} className="text-green-400" />
@@ -57,14 +57,14 @@ export function MobileMenu({
       </button>
       <button
         onClick={() => { onToggleLeftPanel(); onClose(); }}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/10 text-white/80 text-sm w-full"
+        className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-iris-surf-3 text-iris-text-2 text-sm w-full"
       >
         {showLeftPanel ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
         {showLeftPanel ? t('iris.editor.hideNodes') : t('iris.editor.showNodes')}
       </button>
       <button
         onClick={() => { onToggleRightPanel(); onClose(); }}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/10 text-white/80 text-sm w-full"
+        className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-iris-surf-3 text-iris-text-2 text-sm w-full"
       >
         {showRightPanel ? <PanelRightClose size={16} /> : <PanelRightOpen size={16} />}
         {showRightPanel ? t('iris.editor.hideConfig') : t('iris.editor.showConfig')}

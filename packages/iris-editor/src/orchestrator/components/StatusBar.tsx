@@ -19,23 +19,26 @@ export function StatusBar({ isExecuting, costEstimate, isDirty }: StatusBarProps
     lastSavedAt?: number;
   };
 
-  const dividerColor = 'rgba(255,255,255,0.22)';
+  const dividerColor = 'var(--color-iris-text-5, var(--color-iris-line-3))';
 
+  // Floating status line, bottom-left of the canvas (desktop only).
   return (
     <div
-      className="flex items-center"
+      className="hidden md:flex absolute items-center pointer-events-none"
       style={{
-        height: 36,
-        flexShrink: 0,
-        padding: '0 16px',
-        gap: 14,
-        borderTop: '1px solid var(--color-iris-line-1)',
-        background: 'rgba(7,7,10,0.7)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        fontSize: 11,
+        left: 16,
+        bottom: 18,
+        height: 32,
+        padding: '0 12px',
+        gap: 10,
+        borderRadius: 10,
+        zIndex: 15,
+        fontSize: 10.5,
         color: 'var(--color-iris-text-4)',
         fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+        maxWidth: 'calc(50% - 220px)',
+        overflow: 'hidden',
+        whiteSpace: 'nowrap',
       }}
     >
       <span className="inline-flex items-center" style={{ gap: 6 }}>
@@ -44,8 +47,9 @@ export function StatusBar({ isExecuting, costEstimate, isDirty }: StatusBarProps
             width: 6,
             height: 6,
             borderRadius: 999,
+            flexShrink: 0,
             background: isExecuting
-              ? 'var(--color-iris-violet)'
+              ? 'var(--color-iris-text-1)'
               : isDirty
               ? 'var(--color-iris-warn)'
               : 'var(--color-iris-ok)',
@@ -67,53 +71,20 @@ export function StatusBar({ isExecuting, costEstimate, isDirty }: StatusBarProps
       {hasRunCost(costEstimate) && (
         <>
           <span style={{ color: dividerColor }}>|</span>
-          <span style={{ color: 'var(--color-iris-text-2)' }}>
+          <span className="truncate" style={{ color: 'var(--color-iris-text-3)' }}>
             {formatRunCostDetail(costEstimate, t)}
           </span>
         </>
       )}
 
-      <span style={{ flex: 1 }} />
-
       {lastSavedAt && (
         <>
-          <span>
-            {t('iris.statusBar.autosaved') || 'Autosaved'} ·{' '}
-            {formatRelativeTime(lastSavedAt)}
-          </span>
           <span style={{ color: dividerColor }}>|</span>
+          <span>
+            {t('iris.statusBar.autosaved') || 'Autosaved'} · {formatRelativeTime(lastSavedAt)}
+          </span>
         </>
       )}
-      <span className="inline-flex items-center" style={{ gap: 6 }}>
-        <span className="inline-flex items-center" style={{ gap: 2 }}>
-          <span
-            style={{
-              width: 4,
-              height: 8,
-              background: 'var(--color-iris-ok)',
-              borderRadius: 1,
-            }}
-          />
-          <span
-            style={{
-              width: 4,
-              height: 8,
-              background: 'var(--color-iris-ok)',
-              borderRadius: 1,
-            }}
-          />
-          <span
-            style={{
-              width: 4,
-              height: 8,
-              background: 'var(--color-iris-ok)',
-              borderRadius: 1,
-              opacity: 0.5,
-            }}
-          />
-        </span>
-        Iris API
-      </span>
     </div>
   );
 }

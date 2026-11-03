@@ -44,10 +44,35 @@ function StatusIcon({ status }: { status: NodeStatus }) {
   }
 }
 
+const MONO = 'var(--font-mono, ui-monospace, monospace)';
+
+/** URL of an image/video port value (string, { url } or { image }; loop runs show the last pass). */
+function mediaUrlFromOutput(output: unknown, portName: string): string | null {
+  let full = output;
+  if (full && typeof full === 'object' && Array.isArray((full as { __iterations?: unknown[] }).__iterations)) {
+    const runs = (full as { __iterations: unknown[] }).__iterations;
+    full = runs[runs.length - 1];
+  }
+  const value =
+    full && typeof full === 'object' && !Array.isArray(full)
+      ? (full as Record<string, unknown>)[portName] ?? full
+      : full;
+  const raw =
+    typeof value === 'string'
+      ? value
+      : value && typeof value === 'object'
+      ? ((value as Record<string, unknown>).url as string) || ((value as Record<string, unknown>).image as string)
+      : null;
+  if (!raw || typeof raw !== 'string') return null;
+  if (raw.startsWith('http') || raw.startsWith('data:') || raw.startsWith('/') || raw.startsWith('blob:')) return raw;
+  return `data:image/png;base64,${raw}`;
+}
+
 // Main IrisNode component
 export type IrisFlowNode = Node<IrisNodeData, 'irisNode'>;
 export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps<IrisFlowNode>) {
-  const { deleteNode, duplicateNode, selectNode, executionProgress, validationErrors, clearNodeValidationError, edges, nodeConfigs } = useIrisEditorStore();
+  const { duplicateNode, selectNode, executionProgress, validationErrors, clearNodeValidationError, edges, nodes, nodeConfigs } = useIrisEditorStore();
+  const nodeIndex = nodes.findIndex((n) => n.id === id);
   const { t } = useI18n();
   const runToHereLabel = t('iris.editor.runToHere') || 'Run to here';
   const runFromHereLabel = t('iris.editor.runFromHere') || 'Re-run from here';
@@ -153,8 +178,8 @@ export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps
       <div
         className="relative transition-all duration-200"
         style={{
-          minWidth: 220,
-          maxWidth: 280,
+          minWidth: 240,
+          maxWidth: 290,
           background:
             'linear-gradient(180deg, var(--color-iris-node-top, rgba(22,22,28,0.92)), var(--color-iris-node-bottom, rgba(14,14,20,0.96)))',
           backdropFilter: 'blur(14px) saturate(140%)',
@@ -166,8 +191,8 @@ export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps
               : currentStatus === 'error'
               ? 'var(--color-iris-err, #f87171)'
               : selected
-              ? palette.stroke
-              : 'color-mix(in srgb, var(--color-iris-fg, #fff) 10%, transparent)'),
+              ? `var(--we-node-border-selected, ${palette.stroke})`
+              : 'var(--we-node-border, color-mix(in srgb, var(--color-iris-fg, #fff) 10%, transparent))'),
           borderRadius: 14,
           boxShadow:
             validationError
@@ -175,53 +200,39 @@ export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps
               : currentStatus === 'error'
               ? '0 0 0 4px rgba(248,113,113,0.18), 0 24px 60px -20px rgba(248,113,113,0.45)'
               : selected
-              ? `0 0 0 4px ${palette.soft}, 0 24px 60px -20px ${palette.glow}`
-              : '0 12px 32px -16px var(--color-iris-node-shadow, rgba(0,0,0,0.7))',
+              ? `var(--we-node-highlight, 0 0 0 0 transparent), 0 0 0 4px var(--we-node-ring, ${palette.soft}), 0 24px 60px -24px var(--color-iris-node-shadow, ${palette.glow})`
+              : 'var(--we-node-highlight, 0 0 0 0 transparent), 0 16px 36px -18px var(--color-iris-node-shadow, rgba(0,0,0,0.7))',
           overflow: 'visible',
         }}
       >
-        {/* Top accent stripe */}
-        <div
-          style={{
-            position: 'relative',
-            left: 5,
-            height: 3,
-            borderTopLeftRadius: 14,
-            borderTopRightRadius: 14,
-            background: `linear-gradient(90deg, ${palette.stroke}, color-mix(in srgb, ${palette.stroke} 50%, transparent) 60%, transparent)`,
-            opacity: selected ? 1 : 0.6,
-          }}
-        />
-
-        {/* Header */}
+        {/* Header: icon tile · title · index */}
         <div
           className="flex items-center"
           style={{
-            padding: '10px 12px',
+            padding: '11px 12px 8px',
             gap: 9,
-            borderBottom: '1px solid var(--color-iris-line-1)',
           }}
         >
           <span
             className="inline-flex items-center justify-center flex-shrink-0"
             style={{
-              width: 26,
-              height: 26,
-              borderRadius: 7,
-              background: palette.soft,
-              color: palette.text,
-              border: `1px solid color-mix(in srgb, ${palette.stroke} 20%, transparent)`,
+              width: 20,
+              height: 20,
+              borderRadius: 6,
+              background: `var(--we-icon-bg, ${palette.soft})`,
+              color: `var(--we-icon-fg, ${palette.text})`,
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.35), 0 1px 2px rgba(0,0,0,0.25)',
             }}
           >
-            {Icon && <Icon size={14} />}
+            {Icon && <Icon size={12} strokeWidth={2.2} />}
           </span>
           <div className="min-w-0 flex-1">
             <div
               className="flex items-center"
               style={{
-                fontSize: 12,
+                fontSize: 12.5,
                 fontWeight: 500,
-                letterSpacing: '-0.005em',
+                letterSpacing: '-0.01em',
                 gap: 5,
                 color: 'var(--color-iris-text-1)',
               }}
@@ -257,6 +268,14 @@ export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps
           ) : (
             <StatusIcon status={currentStatus} />
           )}
+          <span
+            className="inline-flex items-center flex-shrink-0"
+            style={{ gap: 5, fontFamily: MONO, fontSize: 9.5, color: 'var(--color-iris-text-5, var(--color-iris-text-4))' }}
+            title={nodeDef?.category}
+          >
+            <span style={{ width: 5, height: 5, borderRadius: 999, background: palette.stroke, opacity: 0.85 }} />
+            {String(nodeIndex + 1).padStart(2, '0')}
+          </span>
         </div>
 
         {/* Trigger Info Display (left side, no handle) */}
@@ -299,7 +318,15 @@ export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps
             const previewValue = inputValue.length > 30 ? inputValue.substring(0, 30) + '...' : inputValue;
 
             return (
-              <div style={{ padding: '8px 12px 4px' }}>
+              <div
+                style={{
+                  margin: '2px 10px 6px',
+                  padding: '8px 10px',
+                  borderRadius: 8,
+                  background: 'var(--we-inset-bg, transparent)',
+                  border: '1px solid var(--we-inset-border, transparent)',
+                }}
+              >
                 <TriggerKv k="Input" v={inputTypeLabel} accent={palette} inline />
                 {inputType !== 'none' && inputValue && (
                   <div
@@ -344,7 +371,7 @@ export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps
         {nodeDef?.inputs && nodeDef.inputs.length > 0 && (
           <div
             className="flex flex-col"
-            style={{ padding: '8px 12px', gap: 4 }}
+            style={{ padding: '4px 12px 6px', gap: 2 }}
           >
             {nodeDef.inputs.map((input) => (
               <div
@@ -366,9 +393,9 @@ export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps
                   style={{
                     width: 10,
                     height: 10,
-                    left: -16,
-                    background: 'var(--color-iris-canvas)',
-                    borderColor: palette.stroke,
+                    left: -17,
+                    background: 'var(--we-handle, var(--color-iris-canvas))',
+                    borderColor: `var(--we-handle-ring, ${palette.stroke})`,
                     boxShadow: 'none',
                     transition: 'box-shadow 0.18s',
                   }}
@@ -408,7 +435,7 @@ export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps
                 style={{
                   height: '100%',
                   width: `${nodeProgress.progress}%`,
-                  background: `linear-gradient(90deg, ${palette.stroke}, color-mix(in srgb, ${palette.stroke} 50%, transparent))`,
+                  background: 'var(--color-iris-text-1)',
                 }}
               />
             </div>
@@ -426,11 +453,59 @@ export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps
           </div>
         )}
 
+        {/* Result preview (image / video outputs), like a preview card */}
+        {currentStatus === 'success' &&
+          nodeProgress?.output != null &&
+          (() => {
+            const port = outputPorts.find((o) => o.type === 'image' || o.type === 'video');
+            const url = port ? mediaUrlFromOutput(nodeProgress.output, port.name) : null;
+            if (!port || !url) return null;
+            return (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveOutputPreview(activeOutputPreview === port.name ? null : port.name);
+                }}
+                className="nodrag block"
+                style={{
+                  margin: '2px 10px 6px',
+                  width: 'calc(100% - 20px)',
+                  borderRadius: 9,
+                  overflow: 'hidden',
+                  background: 'var(--we-inset-bg, var(--color-iris-canvas-2))',
+                  border: '1px solid var(--we-inset-border, var(--color-iris-line-1))',
+                  padding: 0,
+                }}
+                title={port.label}
+              >
+                {port.type === 'video' ? (
+                  <video
+                    src={url}
+                    muted
+                    loop
+                    autoPlay
+                    playsInline
+                    style={{ display: 'block', width: '100%', maxHeight: 200, objectFit: 'cover' }}
+                  />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={url}
+                    alt={port.label}
+                    draggable={false}
+                    style={{ display: 'block', width: '100%', maxHeight: 200, objectFit: 'cover' }}
+                  />
+                )}
+              </button>
+            );
+          })()}
+
         {/* Output Handles */}
         {outputPorts.length > 0 && (
           <div
             className="flex flex-col"
-            style={{ padding: '8px 12px 12px', gap: 4 }}
+            style={{ padding: '4px 12px 8px', gap: 2 }}
           >
             {outputPorts
               // Filter outputs for trigger nodes
@@ -572,14 +647,13 @@ export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps
                         style={{
                           width: 10,
                           height: 10,
-                          right: -17,
-                          background: 'var(--color-iris-canvas)',
-                          borderColor: palette.stroke,
-                          boxShadow: hasOutput
-                            ? `0 0 0 4px ${palette.soft}`
-                            : currentStatus === 'running'
-                            ? `0 0 0 4px ${palette.soft}`
-                            : 'none',
+                          right: -18,
+                          background: 'var(--we-handle, var(--color-iris-canvas))',
+                          borderColor: `var(--we-handle-ring, ${palette.stroke})`,
+                          boxShadow:
+                            hasOutput || currentStatus === 'running'
+                              ? `0 0 0 4px var(--color-iris-surf-hover, ${palette.soft})`
+                              : 'none',
                           transition: 'box-shadow 0.18s',
                         }}
                       />
@@ -594,10 +668,14 @@ export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps
         <div
           className="flex items-center"
           style={{
-            padding: '6px 12px',
-            borderTop: '1px solid var(--color-iris-line-1)',
+            margin: '0 10px 10px',
+            padding: '5px 8px',
+            borderRadius: 8,
+            background: 'var(--we-inset-bg, transparent)',
+            border: '1px solid var(--we-inset-border, var(--color-iris-line-1))',
             gap: 6,
             fontSize: 10,
+            fontFamily: MONO,
             color: 'var(--color-iris-text-4)',
           }}
         >
@@ -726,41 +804,45 @@ export const IrisNode = memo(function IrisNode({ id, data, selected }: NodeProps
         {/* Actions (visible on hover/select) */}
         {selected && (
           <div
-            className="absolute flex"
-            style={{ top: -34, right: 0, gap: 6 }}
+            className="absolute flex we-float we-pop nodrag"
+            style={{ top: -42, right: 0, gap: 2, padding: 3, borderRadius: 10 }}
           >
             <button
               type="button"
               onClick={(e) => requestRun(e, 'to')}
-              className="we-iconbtn"
+              className="we-tool"
               title={runToHereLabel}
               aria-label={runToHereLabel}
             >
-              <SkipForward size={18} />
+              <SkipForward size={14} />
             </button>
             <button
               type="button"
               onClick={(e) => requestRun(e, 'from')}
-              className="we-iconbtn"
+              className="we-tool"
               title={runFromHereLabel}
               aria-label={runFromHereLabel}
             >
-              <RotateCw size={18} />
+              <RotateCw size={14} />
             </button>
             <button
+              type="button"
               onClick={handleDuplicate}
-              className="we-iconbtn"
-              title="Duplicate"
+              className="we-tool"
+              title={t('iris.actions.duplicate') || 'Duplicate'}
+              aria-label={t('iris.actions.duplicate') || 'Duplicate'}
             >
-              <Copy size={18} />
+              <Copy size={14} />
             </button>
             <button
+              type="button"
               onClick={handleDelete}
-              className="we-iconbtn"
+              className="we-tool"
               style={{ color: 'var(--color-iris-err)' }}
-              title="Delete"
+              title={t('iris.actions.delete') || 'Delete'}
+              aria-label={t('iris.actions.delete') || 'Delete'}
             >
-              <Trash2 size={18} />
+              <Trash2 size={14} />
             </button>
           </div>
         )}
@@ -781,7 +863,17 @@ function TriggerKv({ k, v, mono, inline, accent }: TriggerKvProps) {
   return (
     <div
       className="flex items-center"
-      style={inline ? undefined : { padding: '8px 12px' }}
+      style={
+        inline
+          ? undefined
+          : {
+              margin: '2px 10px 6px',
+              padding: '8px 10px',
+              borderRadius: 8,
+              background: 'var(--we-inset-bg, transparent)',
+              border: '1px solid var(--we-inset-border, transparent)',
+            }
+      }
     >
       <div
         className="flex items-center"

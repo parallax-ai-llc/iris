@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { cn } from '@editor/lib/convert/string';
 import {
   getNodeCategories,
@@ -18,11 +18,12 @@ interface PaletteNodeProps {
   localizedLabel: string;
   isMobile: boolean;
   inUse: boolean;
+  clickToAdd: boolean;
   onAddNode: (nodeType: string, nodeData: Record<string, unknown>) => void;
+  onAdded?: () => void;
 }
 
-function PaletteNode({ node, localizedLabel, isMobile, inUse, onAddNode }: PaletteNodeProps) {
-  const c = categoryPalette[node.category];
+function PaletteNode({ node, localizedLabel, isMobile, inUse, clickToAdd, onAddNode, onAdded }: PaletteNodeProps) {
   const Icon = node.icon;
 
   const getNodeData = useCallback(() => {
@@ -45,64 +46,75 @@ function PaletteNode({ node, localizedLabel, isMobile, inUse, onAddNode }: Palet
     [node.type, getNodeData],
   );
 
+  // Mobile adds directly; desktop also adds on click (at the middle of the
+  // view, see WorkflowCanvas) besides drag-and-drop.
   const handleClick = useCallback(() => {
-    if (isMobile) {
-      onAddNode(node.type, getNodeData());
+    if (isMobile || !clickToAdd) {
+      if (isMobile) onAddNode(node.type, getNodeData());
+      return;
     }
-  }, [isMobile, node.type, getNodeData, onAddNode]);
+    window.dispatchEvent(
+      new CustomEvent('iris-node-add-request', { detail: { nodeType: node.type, nodeData: getNodeData() } }),
+    );
+    onAdded?.();
+  }, [isMobile, clickToAdd, node.type, getNodeData, onAddNode, onAdded]);
 
   return (
     <div
       draggable={!isMobile}
       onDragStart={!isMobile ? handleDragStart : undefined}
       onClick={handleClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleClick();
+        }
+      }}
+      role={clickToAdd || isMobile ? 'button' : undefined}
+      tabIndex={clickToAdd || isMobile ? 0 : undefined}
       className="we-lib-item flex items-center"
       style={{
-        gap: 10,
-        padding: '8px 10px',
-        borderRadius: 8,
+        gap: 11,
+        padding: '7px 8px',
+        borderRadius: 10,
         fontSize: 12.5,
-        color: 'color-mix(in srgb, var(--color-iris-fg, #fff) 72%, transparent)',
-        cursor: isMobile ? 'pointer' : 'grab',
+        color: 'var(--color-iris-text-1)',
+        cursor: isMobile || clickToAdd ? 'pointer' : 'grab',
         position: 'relative',
         transition: 'background 0.12s, color 0.12s',
       }}
       title={node.description}
     >
-      {/* grip / plus */}
-      <span
-        style={{
-          color: 'color-mix(in srgb, var(--color-iris-fg, #fff) 22%, transparent)',
-          fontSize: 10,
-          letterSpacing: -1,
-          lineHeight: 1,
-          flexShrink: 0,
-        }}
-      >
-        {isMobile ? <Plus size={11} /> : '⠿'}
-      </span>
-
-      {/* icon block */}
+      {/* icon tile */}
       <span
         className="inline-flex items-center justify-center flex-shrink-0"
         style={{
-          width: 22,
-          height: 22,
-          borderRadius: 6,
-          color: c.text,
-          background: c.soft,
-          border: `1px solid color-mix(in srgb, ${c.stroke} 20%, transparent)`,
+          width: 32,
+          height: 32,
+          borderRadius: 9,
+          color: 'var(--color-iris-text-2)',
+          background: 'var(--color-iris-surf-2)',
+          border: '1px solid var(--color-iris-line-2)',
+          boxShadow: 'inset 0 1px 0 color-mix(in srgb, var(--color-iris-fg, #fff) 5%, transparent)',
         }}
       >
-        {Icon && <Icon size={12} />}
+        {Icon && <Icon size={14} />}
       </span>
 
-      {/* label */}
-      <span
-        className="flex-1 truncate"
-        style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-      >
-        {localizedLabel}
+      {/* label + description */}
+      <span className="flex-1 min-w-0 flex flex-col" style={{ gap: 1 }}>
+        <span
+          className="truncate"
+          style={{ fontSize: 12.5, fontWeight: 500, letterSpacing: '-0.005em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+        >
+          {localizedLabel}
+        </span>
+        <span
+          className="truncate"
+          style={{ fontSize: 11, color: 'var(--color-iris-text-4)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+        >
+          {node.description}
+        </span>
       </span>
 
       {/* IN USE pill */}
@@ -114,9 +126,9 @@ function PaletteNode({ node, localizedLabel, isMobile, inUse, onAddNode }: Palet
             fontFamily: 'var(--font-mono, ui-monospace, monospace)',
             padding: '1px 6px',
             borderRadius: 999,
-            color: c.text,
-            background: c.soft,
-            border: `1px solid color-mix(in srgb, ${c.stroke} 20%, transparent)`,
+            color: 'var(--color-iris-text-3)',
+            background: 'var(--color-iris-surf-2)',
+            border: '1px solid var(--color-iris-line-2)',
             letterSpacing: '0.05em',
             flexShrink: 0,
           }}
@@ -124,6 +136,7 @@ function PaletteNode({ node, localizedLabel, isMobile, inUse, onAddNode }: Palet
           IN USE
         </span>
       )}
+      {isMobile && <Plus size={12} style={{ color: 'var(--color-iris-text-4)', flexShrink: 0 }} />}
     </div>
   );
 }
@@ -138,7 +151,9 @@ interface PaletteCategoryProps {
   getNodeLabel: (nodeType: string) => string;
   isMobile: boolean;
   usedTypes: Set<string>;
+  clickToAdd: boolean;
   onAddNode: (nodeType: string, nodeData: Record<string, unknown>) => void;
+  onAdded?: () => void;
 }
 
 function PaletteCategory({
@@ -151,7 +166,9 @@ function PaletteCategory({
   getNodeLabel,
   isMobile,
   usedTypes,
+  clickToAdd,
   onAddNode,
+  onAdded,
 }: PaletteCategoryProps) {
   const c = categoryPalette[category];
 
@@ -169,27 +186,28 @@ function PaletteCategory({
   if (searchQuery && filteredNodes.length === 0) return null;
 
   return (
-    <div style={{ margin: '8px 0' }}>
+    <div style={{ margin: '6px 0' }}>
       <button
         onClick={onToggle}
         className="uppercase w-full flex items-center"
+        aria-expanded={isOpen}
         style={{
           gap: 8,
-          padding: '8px 10px',
-          fontSize: 11.5,
+          padding: '8px 8px 6px',
+          fontSize: 10,
           fontWeight: 500,
-          letterSpacing: '0.04em',
-          color: 'color-mix(in srgb, var(--color-iris-fg, #fff) 50%, transparent)',
+          letterSpacing: '0.14em',
+          fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+          color: 'var(--color-iris-text-4)',
           background: 'transparent',
         }}
       >
         <span
           style={{
-            width: 8,
-            height: 8,
+            width: 5,
+            height: 5,
             borderRadius: 999,
             background: c.stroke,
-            boxShadow: `0 0 0 2px ${c.soft}`,
             flexShrink: 0,
           }}
         />
@@ -199,7 +217,7 @@ function PaletteCategory({
             marginLeft: 'auto',
             fontFamily: 'var(--font-mono, ui-monospace, monospace)',
             fontSize: 10.5,
-            color: 'var(--color-iris-text-4, rgba(255,255,255,0.34))',
+            color: 'var(--color-iris-text-4)',
             fontWeight: 400,
           }}
         >
@@ -207,7 +225,7 @@ function PaletteCategory({
         </span>
         <span
           style={{
-            color: 'var(--color-iris-text-4, rgba(255,255,255,0.34))',
+            color: 'var(--color-iris-text-4)',
             fontSize: 10,
             transform: isOpen ? 'rotate(90deg)' : 'none',
             transition: 'transform 0.15s',
@@ -217,7 +235,7 @@ function PaletteCategory({
         </span>
       </button>
       {isOpen && (
-        <div className="flex flex-col" style={{ paddingLeft: 4, gap: 1 }}>
+        <div className="flex flex-col" style={{ gap: 1 }}>
           {filteredNodes.map((node) => (
             <PaletteNode
               key={node.type}
@@ -225,7 +243,9 @@ function PaletteCategory({
               localizedLabel={getNodeLabel(node.type)}
               isMobile={isMobile}
               inUse={usedTypes.has(node.type)}
+              clickToAdd={clickToAdd}
               onAddNode={onAddNode}
+              onAdded={onAdded}
             />
           ))}
         </div>
@@ -234,12 +254,26 @@ function PaletteCategory({
   );
 }
 
-interface NodePaletteProps {
-  onNodeAdded?: () => void;
+function isMacPlatform(): boolean {
+  return typeof navigator !== 'undefined' && /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent);
 }
 
-export function NodePalette({ onNodeAdded }: NodePaletteProps = {}) {
+interface NodePaletteProps {
+  onNodeAdded?: () => void;
+  /**
+   * 'floating': a "Create anything" menu card (iris/web) — no side border, and
+   * clicking an item adds it to the middle of the canvas. 'sidebar' (default)
+   * keeps the docked drag-only list other hosts lay out themselves.
+   */
+  variant?: 'sidebar' | 'floating';
+  /** Focus the search field when the palette opens. */
+  autoFocus?: boolean;
+}
+
+export function NodePalette({ onNodeAdded, variant = 'sidebar', autoFocus = false }: NodePaletteProps = {}) {
   const { t } = useI18n();
+  const floating = variant === 'floating';
+  const searchRef = useRef<HTMLInputElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [openCategories, setOpenCategories] = useState<Set<NodeCategory>>(
     new Set(['TRIGGER', 'GENERATOR']),
@@ -251,6 +285,10 @@ export function NodePalette({ onNodeAdded }: NodePaletteProps = {}) {
 
   // Track which node types are currently in use in the workflow
   const usedTypes = new Set(nodes.map((n) => n.data?.type as string).filter(Boolean));
+
+  useEffect(() => {
+    if (autoFocus) searchRef.current?.focus();
+  }, [autoFocus]);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -300,81 +338,85 @@ export function NodePalette({ onNodeAdded }: NodePaletteProps = {}) {
     <aside
       className="h-full flex flex-col"
       style={{
-        borderRight: '1px solid var(--color-iris-line-2)',
-        background: 'linear-gradient(180deg, var(--color-iris-panel-top, #0d0e15), var(--color-iris-panel-bottom, #0a0b11))',
+        borderRight: floating ? undefined : '1px solid var(--color-iris-line-2)',
+        background: floating
+          ? 'transparent'
+          : 'linear-gradient(180deg, var(--color-iris-panel-top, #0d0e15), var(--color-iris-panel-bottom, #0a0b11))',
         overflow: 'hidden',
         position: 'relative',
         zIndex: 1,
       }}
     >
-      {/* Header */}
-      <div style={{ padding: '14px 14px 10px' }}>
-        <div
-          className="uppercase"
-          style={{
-            fontSize: 10,
-            fontWeight: 500,
-            letterSpacing: '0.16em',
-            color: 'color-mix(in srgb, var(--color-iris-fg, #fff) 50%, transparent)',
-            marginBottom: 10,
-          }}
-        >
-          {t('iris.nodePalette.title') || 'Node Library'}
-        </div>
+      {/* Header: search */}
+      <div style={{ padding: floating ? '10px 10px 4px' : '14px 14px 10px' }}>
+        {!floating && (
+          <div
+            className="uppercase"
+            style={{
+              fontSize: 10,
+              fontWeight: 500,
+              letterSpacing: '0.16em',
+              color: 'var(--color-iris-text-4)',
+              marginBottom: 10,
+            }}
+          >
+            {t('iris.nodePalette.title') || 'Node Library'}
+          </div>
+        )}
         <div style={{ position: 'relative' }}>
           <span
             style={{
               position: 'absolute',
-              left: 11,
+              left: 13,
               top: '50%',
               transform: 'translateY(-50%)',
-              color: 'var(--color-iris-text-4, rgba(255,255,255,0.34))',
+              color: 'var(--color-iris-text-4)',
+              display: 'inline-flex',
             }}
           >
-            <Search size={13} />
+            <Search size={15} />
           </span>
           <input
+            ref={searchRef}
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={
               t('iris.nodePalette.searchPlaceholder') || `Search ${totalNodes}+ nodes…`
             }
+            aria-label={t('iris.nodePalette.title') || 'Node Library'}
             style={{
               width: '100%',
-              height: 34,
-              padding: '0 10px 0 34px',
-              background: 'var(--color-iris-surf-1)',
+              height: floating ? 42 : 34,
+              padding: '0 44px 0 38px',
+              background: 'var(--color-iris-surf-2)',
               border: '1px solid var(--color-iris-line-2)',
-              borderRadius: 10,
-              fontSize: 12.5,
+              borderRadius: 11,
+              fontSize: floating ? 13.5 : 12.5,
               color: 'var(--color-iris-text-1)',
               outline: 'none',
             }}
           />
+          {!isMobile && (
           <kbd
+            className="we-kbd"
             style={{
               position: 'absolute',
               right: 10,
               top: '50%',
               transform: 'translateY(-50%)',
-              fontFamily: 'var(--font-mono, ui-monospace, monospace)',
-              fontSize: 10,
-              color: 'var(--color-iris-text-4, rgba(255,255,255,0.34))',
-              padding: '1px 6px',
-              border: '1px solid var(--color-iris-line-2)',
-              borderRadius: 4,
             }}
           >
-            /
+            {floating ? (isMacPlatform() ? '⌘ K' : 'Ctrl K') : '/'}
           </kbd>
+          )}
         </div>
       </div>
 
       {/* Categories */}
       <div
         className="flex-1 overflow-y-auto"
-        style={{ padding: '4px 8px 18px' }}
+        style={{ padding: floating ? '2px 6px 10px' : '4px 8px 18px' }}
       >
         {categories.map(({ category, nodes }) => (
           <PaletteCategory
@@ -388,7 +430,9 @@ export function NodePalette({ onNodeAdded }: NodePaletteProps = {}) {
             getNodeLabel={getNodeLabel}
             isMobile={isMobile}
             usedTypes={usedTypes}
+            clickToAdd={floating}
             onAddNode={handleAddNode}
+            onAdded={onNodeAdded}
           />
         ))}
       </div>
@@ -404,12 +448,14 @@ export function NodePalette({ onNodeAdded }: NodePaletteProps = {}) {
         <p
           style={{
             fontSize: 11,
-            color: 'var(--color-iris-text-4, rgba(255,255,255,0.34))',
+            color: 'var(--color-iris-text-4)',
             margin: 0,
           }}
         >
           {isMobile
             ? t('iris.nodePalette.tapHint')
+            : floating
+            ? t('iris.nodePalette.clickOrDragHint') || 'Click to add, or drag onto the canvas'
             : t('iris.nodePalette.dragHint')}
         </p>
       </div>

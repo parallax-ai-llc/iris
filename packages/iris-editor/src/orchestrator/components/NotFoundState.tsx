@@ -9,13 +9,13 @@ export function NotFoundState() {
   const { t } = useI18n();
 
   return (
-    <div className="h-screen flex items-center justify-center bg-iris-bg">
+    <div className="h-screen flex items-center justify-center bg-iris-canvas">
       <div className="text-center">
         <AlertCircle size={48} className="text-red-400 mx-auto mb-4" />
-        <h2 className="text-xl font-semibold text-white mb-2">{t('iris.editor.notFound')}</h2>
+        <h2 className="text-xl font-semibold text-iris-text-1 mb-2">{t('iris.editor.notFound')}</h2>
         <button
           onClick={() => navigate?.('/')}
-          className="text-purple-400 hover:text-purple-300"
+          className="text-iris-text-2 hover:text-iris-text-1 underline underline-offset-2"
         >
           {t('iris.editor.goBack')}
         </button>

@@ -1,0 +1,378 @@
+/*
+ * iris-editor themes: graphite dark (default) and light.
+ *
+ * The editor paints with `--color-iris-*` tokens plus a few editor-only `--we-*`
+ * tokens. `useEditorTheme` puts `data-iris-editor-theme="dark|light"` on <html>
+ * while the editor is mounted, so dialogs portalled to <body> follow the theme
+ * too. Hosts that theme the editor themselves (iris/desktop-rs) never set the
+ * attribute, and every `--we-*` read in the components carries a fallback.
+ *
+ * Imported by iris/web globals.css and by iris-theme.css (iris-host-local).
+ */
+
+html[data-iris-editor-theme='dark'] {
+  color-scheme: dark;
+  --color-iris-fg: #ffffff;
+  --color-iris-bg: #141416;
+  --color-iris-bg-elevated: rgba(20, 20, 22, 0.9);
+  --color-iris-bg-solid: #111113;
+  --color-iris-bg-panel: rgba(20, 20, 22, 0.92);
+  --color-iris-bg-panel-solid: #141416;
+  --color-iris-canvas: #0b0b0c;
+  --color-iris-canvas-1: #0e0e10;
+  --color-iris-canvas-2: #121214;
+  --color-iris-canvas-3: #18181b;
+  --color-iris-surf-1: rgba(255, 255, 255, 0.03);
+  --color-iris-surf-2: rgba(255, 255, 255, 0.045);
+  --color-iris-surf-3: rgba(255, 255, 255, 0.07);
+  --color-iris-surf-hover: rgba(255, 255, 255, 0.085);
+  --color-iris-line-1: rgba(255, 255, 255, 0.06);
+  --color-iris-line-2: rgba(255, 255, 255, 0.085);
+  --color-iris-line-3: rgba(255, 255, 255, 0.13);
+  --color-iris-line-strong: rgba(255, 255, 255, 0.22);
+  --color-iris-line-input: rgba(255, 255, 255, 0.3);
+  --color-iris-text-1: rgba(255, 255, 255, 0.94);
+  --color-iris-text-2: rgba(255, 255, 255, 0.7);
+  --color-iris-text-3: rgba(255, 255, 255, 0.52);
+  --color-iris-text-4: rgba(255, 255, 255, 0.46);
+  --color-iris-text-5: rgba(255, 255, 255, 0.22);
+  --color-iris-tint-200: #e4e4e7;
+  --color-iris-tint-300: #d4d4d8;
+  --color-iris-tint-400: #a1a1aa;
+  --color-iris-tint-500: #71717a;
+  --color-iris-tint-800: #27272a;
+  --color-iris-tint-900: #18181b;
+  --color-iris-violet: #a78bfa;
+  --color-iris-cyan: #7dd3fc;
+  --color-iris-pink: #f0abfc;
+  --color-iris-focus: #a1a1aa;
+  --color-iris-ok: #34d399;
+  --color-iris-ok-bg: rgba(52, 211, 153, 0.12);
+  --color-iris-warn: #fbbf24;
+  --color-iris-warn-bg: rgba(251, 191, 36, 0.12);
+  --color-iris-err: #f87171;
+  --color-iris-err-bg: rgba(248, 113, 113, 0.12);
+  --color-iris-panel-top: #141416;
+  --color-iris-panel-bottom: #111113;
+  --color-iris-node-top: #161618;
+  --color-iris-node-bottom: #121214;
+  --color-iris-node-shadow: rgba(0, 0, 0, 0.6);
+  --color-iris-minimap-bg: rgba(20, 20, 22, 0.9);
+  --color-iris-minimap-mask: rgba(11, 11, 12, 0.7);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.16);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.3);
+
+  --we-float-bg: rgba(21, 21, 23, 0.88);
+  --we-float-border: rgba(255, 255, 255, 0.08);
+  --we-float-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 12px 32px -14px rgba(0, 0, 0, 0.85);
+  --we-node-border: rgba(255, 255, 255, 0.075);
+  --we-node-border-selected: rgba(255, 255, 255, 0.34);
+  --we-node-ring: rgba(255, 255, 255, 0.06);
+  --we-node-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --we-inset-bg: #0d0d0f;
+  --we-inset-border: rgba(255, 255, 255, 0.06);
+  --we-icon-bg: linear-gradient(180deg, #f4f4f5 0%, #c8c8cc 100%);
+  --we-icon-fg: #111113;
+  --we-handle: #e9e9eb;
+  --we-handle-ring: #0b0b0c;
+  --we-edge: rgba(255, 255, 255, 0.42);
+  --we-edge-live: rgba(255, 255, 255, 0.85);
+  --we-primary-bg: linear-gradient(180deg, #fafafa 0%, #d6d6d9 100%);
+  --we-primary-bg-hover: linear-gradient(180deg, #ffffff 0%, #e2e2e5 100%);
+  --we-primary-fg: #0b0b0c;
+  --we-primary-border: rgba(255, 255, 255, 0.55);
+  --we-primary-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75), inset 0 -1px 0 rgba(0, 0, 0, 0.16),
+    0 6px 20px -8px rgba(255, 255, 255, 0.22);
+  --we-active-bg: linear-gradient(180deg, #f4f4f5 0%, #d4d4d8 100%);
+  --we-active-fg: #0b0b0c;
+  --we-backdrop: rgba(0, 0, 0, 0.55);
+}
+
+html[data-iris-editor-theme='light'] {
+  color-scheme: light;
+  --color-iris-fg: #0a0a0a;
+  --color-iris-bg: #ffffff;
+  --color-iris-bg-elevated: rgba(255, 255, 255, 0.94);
+  --color-iris-bg-solid: #ffffff;
+  --color-iris-bg-panel: rgba(255, 255, 255, 0.95);
+  --color-iris-bg-panel-solid: #ffffff;
+  --color-iris-canvas: #f3f3f4;
+  --color-iris-canvas-1: #ffffff;
+  --color-iris-canvas-2: #f4f4f5;
+  --color-iris-canvas-3: #e9e9ec;
+  --color-iris-surf-1: rgba(0, 0, 0, 0.025);
+  --color-iris-surf-2: rgba(0, 0, 0, 0.04);
+  --color-iris-surf-3: rgba(0, 0, 0, 0.065);
+  --color-iris-surf-hover: rgba(0, 0, 0, 0.08);
+  --color-iris-line-1: rgba(0, 0, 0, 0.06);
+  --color-iris-line-2: rgba(0, 0, 0, 0.09);
+  --color-iris-line-3: rgba(0, 0, 0, 0.14);
+  --color-iris-line-strong: rgba(0, 0, 0, 0.24);
+  --color-iris-line-input: rgba(0, 0, 0, 0.32);
+  --color-iris-text-1: rgba(10, 10, 12, 0.94);
+  --color-iris-text-2: rgba(10, 10, 12, 0.72);
+  --color-iris-text-3: rgba(10, 10, 12, 0.58);
+  --color-iris-text-4: rgba(10, 10, 12, 0.52);
+  --color-iris-text-5: rgba(10, 10, 12, 0.28);
+  /* Neutral tints flip: the light steps become dark text on white. */
+  --color-iris-tint-200: #27272a;
+  --color-iris-tint-300: #3f3f46;
+  --color-iris-tint-400: #52525b;
+  --color-iris-tint-500: #71717a;
+  --color-iris-tint-800: #ffffff;
+  --color-iris-tint-900: #ffffff;
+  --color-iris-violet: #7c3aed;
+  --color-iris-cyan: #0284c7;
+  --color-iris-pink: #c026d3;
+  --color-iris-focus: #52525b;
+  --color-iris-ok: #15803d;
+  --color-iris-ok-bg: rgba(21, 128, 61, 0.1);
+  --color-iris-warn: #b45309;
+  --color-iris-warn-bg: rgba(180, 83, 9, 0.1);
+  --color-iris-err: #c62828;
+  --color-iris-err-bg: rgba(198, 40, 40, 0.08);
+  --color-iris-cat-trigger: #10b981;
+  --color-iris-cat-generator: #8b5cf6;
+  --color-iris-cat-analyzer: #0ea5e9;
+  --color-iris-cat-editor: #f59e0b;
+  --color-iris-cat-utility: #64748b;
+  --color-iris-cat-web: #6366f1;
+  --color-iris-cat-output: #d946ef;
+  --color-iris-cat-trigger-text: #047857;
+  --color-iris-cat-generator-text: #6d28d9;
+  --color-iris-cat-analyzer-text: #0369a1;
+  --color-iris-cat-editor-text: #b45309;
+  --color-iris-cat-utility-text: #475569;
+  --color-iris-cat-web-text: #4338ca;
+  --color-iris-cat-output-text: #a21caf;
+  --color-iris-panel-top: #ffffff;
+  --color-iris-panel-bottom: #fcfcfc;
+  --color-iris-node-top: #ffffff;
+  --color-iris-node-bottom: #fbfbfb;
+  --color-iris-node-shadow: rgba(0, 0, 0, 0.1);
+  --color-iris-minimap-bg: rgba(255, 255, 255, 0.92);
+  --color-iris-minimap-mask: rgba(243, 243, 244, 0.7);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.18);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.3);
+  /* Tailwind's light accent steps (300/400) lack contrast on white. */
+  --color-green-300: #15803d;
+  --color-green-400: #15803d;
+  --color-emerald-400: #047857;
+  --color-teal-300: #0f766e;
+  --color-teal-400: #0f766e;
+  --color-blue-400: #1d4ed8;
+  --color-cyan-400: #0e7490;
+  --color-indigo-400: #4338ca;
+  --color-red-200: #991b1b;
+  --color-red-300: #b91c1c;
+  --color-red-400: #c62828;
+  --color-rose-300: #be123c;
+  --color-amber-400: #b45309;
+  --color-yellow-400: #a16207;
+  --color-orange-400: #c2410c;
+
+  --we-float-bg: rgba(255, 255, 255, 0.92);
+  --we-float-border: rgba(0, 0, 0, 0.08);
+  --we-float-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 12px 32px -16px rgba(0, 0, 0, 0.2);
+  --we-node-border: rgba(0, 0, 0, 0.08);
+  --we-node-border-selected: rgba(0, 0, 0, 0.42);
+  --we-node-ring: rgba(0, 0, 0, 0.05);
+  --we-node-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --we-inset-bg: #f6f6f7;
+  --we-inset-border: rgba(0, 0, 0, 0.06);
+  --we-icon-bg: linear-gradient(180deg, #2c2c30 0%, #0e0e10 100%);
+  --we-icon-fg: #ffffff;
+  --we-handle: #18181b;
+  --we-handle-ring: #ffffff;
+  --we-edge: rgba(0, 0, 0, 0.32);
+  --we-edge-live: rgba(0, 0, 0, 0.75);
+  --we-primary-bg: #0a0a0a;
+  --we-primary-bg-hover: #27272a;
+  --we-primary-fg: #ffffff;
+  --we-primary-border: rgba(0, 0, 0, 0.9);
+  --we-primary-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 6px 16px -8px rgba(0, 0, 0, 0.45);
+  --we-active-bg: #0a0a0a;
+  --we-active-fg: #ffffff;
+  --we-backdrop: rgba(10, 10, 12, 0.28);
+}
+
+html[data-iris-editor-theme] body {
+  background: var(--color-iris-canvas);
+  color: var(--color-iris-text-1);
+}
+
+/* ── Shared editor controls ─────────────────────────────────────────── */
+
+html[data-iris-editor-theme] .we-iconbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--we-float-border);
+  background: var(--we-float-bg);
+  color: var(--color-iris-text-2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--we-float-shadow);
+  transition: background 0.15s, color 0.15s;
+}
+html[data-iris-editor-theme] .we-iconbtn:hover:not(:disabled) {
+  background: var(--color-iris-canvas-3);
+  color: var(--color-iris-text-1);
+}
+html[data-iris-editor-theme] .we-iconbtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+html[data-iris-editor-theme] .we-meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 10.5px;
+  color: var(--color-iris-text-3);
+  background: var(--color-iris-surf-2);
+  border: 1px solid var(--color-iris-line-2);
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+html[data-iris-editor-theme] .we-lib-item:hover {
+  background: var(--color-iris-surf-3);
+  color: var(--color-iris-text-1);
+}
+html[data-iris-editor-theme] .we-lib-item:active {
+  background: var(--color-iris-surf-hover);
+}
+
+/* Floating chrome: pills, rail, toolbar and floating panels. */
+.we-float {
+  background: var(--we-float-bg, var(--color-iris-bg-panel));
+  border: 1px solid var(--we-float-border, var(--color-iris-line-2));
+  box-shadow: var(--we-float-shadow, none);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+}
+
+.we-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 30px;
+  min-width: 30px;
+  padding: 0 7px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-iris-text-3);
+  background: transparent;
+  transition: background 0.15s, color 0.15s;
+}
+.we-tool:hover:not(:disabled) {
+  background: var(--color-iris-surf-3);
+  color: var(--color-iris-text-1);
+}
+.we-tool:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.we-tool[data-active='true'] {
+  background: var(--we-active-bg, var(--color-iris-surf-3));
+  color: var(--we-active-fg, var(--color-iris-text-1));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.we-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 11px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--color-iris-text-2);
+  transition: background 0.15s, color 0.15s;
+}
+.we-chip:hover:not(:disabled) {
+  background: var(--color-iris-surf-3);
+  color: var(--color-iris-text-1);
+}
+.we-chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.we-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--we-primary-fg, #0b0b0c);
+  background: var(--we-primary-bg, #f4f4f5);
+  border: 1px solid var(--we-primary-border, transparent);
+  box-shadow: var(--we-primary-shadow, none);
+  transition: filter 0.15s, transform 0.1s;
+}
+.we-primary:hover:not(:disabled) {
+  background: var(--we-primary-bg-hover, var(--we-primary-bg, #f4f4f5));
+}
+.we-primary:active:not(:disabled) {
+  transform: translateY(0.5px);
+}
+.we-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.we-kbd {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 10px;
+  line-height: 1;
+  padding: 3px 5px;
+  border-radius: 5px;
+  color: var(--color-iris-text-4);
+  border: 1px solid var(--color-iris-line-2);
+  background: var(--color-iris-surf-1);
+}
+
+/* Handles: solid discs with a canvas-coloured ring (beats the global 8px rule). */
+html[data-iris-editor-theme] .react-flow__handle {
+  width: 11px !important;
+  height: 11px !important;
+  min-width: 11px !important;
+  min-height: 11px !important;
+}
+html[data-iris-editor-theme] .react-flow__handle.connectingto,
+html[data-iris-editor-theme] .react-flow__handle:hover {
+  box-shadow: 0 0 0 4px var(--color-iris-surf-hover) !important;
+}
+
+@keyframes we-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.we-pop {
+  animation: we-pop-in 0.16s ease-out;
+}
