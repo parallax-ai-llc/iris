@@ -192,26 +192,6 @@ export class OpenAIAdapter extends BaseProviderAdapter {
       defaultParameters: { temperature: 0.7, maxTokens: 16000 },
     },
     {
-      id: 'gpt-image-1',
-      name: 'GPT Image 1',
-      provider: 'openai',
-      capabilities: ['text-to-image', 'image-to-image'],
-      inputTypes: ['text', 'image'],
-      outputTypes: ['image'],
-      constraints: {
-        maxImageSize: 1536,
-        supportedFormats: ['png', 'webp'],
-        supportedAspectRatios: ['1:1', '16:9', '9:16'],
-      },
-      pricing: {
-        unit: 'image',
-        inputCost: 0,
-        outputCost: 0.04,
-        currency: 'USD',
-      },
-      defaultParameters: { quality: 'standard', width: 1024, height: 1024 },
-    },
-    {
       id: 'gpt-image-1-mini',
       name: 'GPT Image 1 Mini',
       provider: 'openai',
@@ -585,7 +565,7 @@ export class OpenAIAdapter extends BaseProviderAdapter {
     request: AIRequest,
     startTime: number
   ): Promise<AIResponse> {
-    const model = request.model || 'gpt-image-1';
+    const model = request.model || 'gpt-image-2.5-flare';
 
     let size = '1024x1024';
     if (request.parameters?.aspectRatio === '16:9') size = '1536x1024';
@@ -656,7 +636,7 @@ export class OpenAIAdapter extends BaseProviderAdapter {
     );
     if (validationError) return validationError;
 
-    const model = request.model || 'gpt-image-1';
+    const model = request.model || 'gpt-image-2.5-flare';
     const { prompt, inputImage, parameters = {} } = request;
 
     // Get image as buffer for multipart/form-data
