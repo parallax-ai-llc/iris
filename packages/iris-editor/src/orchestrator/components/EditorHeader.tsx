@@ -9,7 +9,7 @@ import {
   Play,
   Save,
   Square,
-  Sparkles,
+  Bot,
   MessageSquare,
 } from 'lucide-react';
 import { cn } from '@editor/lib/convert/string';
@@ -173,7 +173,7 @@ export function EditorHeader({
       <div className="hidden md:flex items-center pointer-events-auto flex-shrink-0" style={{ gap: 8 }}>
         <div className="we-float flex items-center" style={{ height: 36, padding: 2, borderRadius: 10, gap: 1 }}>
           <button onClick={onOpenChat} className="we-chip" type="button">
-            <Sparkles size={13} />
+            <Bot size={13} />
             <span>{t('iris.editor.aiAssistant')}</span>
           </button>
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { Plus, SlidersHorizontal, Sparkles, X } from 'lucide-react';
+import { Plus, SlidersHorizontal, Bot, X } from 'lucide-react';
 import { cn } from '@editor/lib/convert/string';
 import { useI18n } from '@editor/hooks/usei18n';
 import { useIrisEditorStore } from '@editor/store/iris-editor';
@@ -137,7 +137,7 @@ export function EditorMainArea({
           aria-label={t('iris.editor.aiAssistant')}
           style={{ width: 34, height: 34 }}
         >
-          <Sparkles size={15} />
+          <Bot size={15} />
         </button>
       </nav>
 

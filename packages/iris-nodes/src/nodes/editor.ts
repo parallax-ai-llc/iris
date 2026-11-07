@@ -312,7 +312,7 @@ export const EDIT_IMAGE_AUTO_ENHANCE: NodeDefinition = {
   category: 'EDITOR',
   label: 'Auto Enhance',
   description: 'One-click AI enhancement for sharpness, color, and detail',
-  iconName: 'Sparkles',
+  iconName: 'SlidersHorizontal',
   color: 'purple',
   aiCapability: 'image-enhance',
   inputs: [{ name: 'image', type: 'image', label: 'Image', required: true }],

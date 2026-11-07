@@ -49,7 +49,6 @@ import {
   Folder,
   Sun,
   Lightbulb,
-  Sparkles,
   Crop,
   SlidersHorizontal,
   Variable,
@@ -114,7 +113,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Eye, Headphones, FileSearch, ArrowUpCircle, Paintbrush, Expand, Palette,
   User, Eraser, Film, Layers, AudioWaveform, Timer, GitBranch, Repeat,
   Merge, Scissors, RefreshCw, Globe, Code, HardDrive, Mail, BellRing, Move,
-  Music, Captions, Folder, Sun, Lightbulb, Sparkles, Crop, SlidersHorizontal,
+  Music, Captions, Folder, Sun, Lightbulb, Crop, SlidersHorizontal,
   Variable, FileOutput, FileInput,
   // Phase 1 flow control + data formatter icons
   Filter, Network, Combine, ShieldAlert, Workflow, Regex, CalendarClock, Braces,
