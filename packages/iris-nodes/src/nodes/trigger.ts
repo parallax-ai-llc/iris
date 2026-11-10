@@ -368,7 +368,7 @@ export const TRIGGER_ERROR: NodeDefinition = {
   category: 'TRIGGER',
   cacheable: false,
   label: 'Error Trigger',
-  description: '다른 워크플로우 실행이 실패하면 실행 (에러 핸들러)',
+  description: 'Run when another workflow fails (error handler)',
   iconName: 'TriangleAlert',
   color: 'green',
   inputs: [],
