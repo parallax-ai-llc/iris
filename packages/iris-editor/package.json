@@ -29,9 +29,9 @@
     "clsx": "^2.1.1",
     "iris-nodes": "workspace:*",
     "lucide-react": "^0.539.0",
-    "tailwind-merge": "^3.3.1",
-    "nanoid": "^5.0.0",
+    "nanoid": "^5.1.16",
     "sonner": "^2.0.7",
+    "tailwind-merge": "^3.3.1",
     "zustand": "^5.0.7"
   },
   "peerDependencies": {
